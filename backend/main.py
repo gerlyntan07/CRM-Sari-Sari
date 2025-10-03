@@ -5,9 +5,13 @@ from fastapi.middleware.cors import CORSMiddleware
 from database import Base, engine
 
 # Import models to create tables
-import models.user
+import models.auth
+
+import routers.auth as auth_router
+
 
 app = FastAPI()
+app.include_router(auth_router.router)
 
 origins = [
     "http://localhost:5173",

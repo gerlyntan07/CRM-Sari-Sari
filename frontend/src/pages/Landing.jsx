@@ -12,10 +12,10 @@ const HeroSection = () => (
             {/* Left */}
             <div className="lg:text-left text-center">
                 <h1 className="text-5xl sm:text-6xl lg:text-7xl font-lg text-secondary mb-6 leading-tight">
-                    Intelligent Growth. <span className="text-accent font-extrabold">Simplified.</span>
+                   Sari-Sari <span className="text-accent font-extrabold">Sari-Sari.</span> 
                 </h1>
                 <p className="max-w-xl mx-auto lg:mx-0 text-lg sm:text-xl text-secondary mb-10 italic">
-                    CRM is the AI-driven platform that streamlines operations, delivers hyper-personalized experiences, and turns data into decisive action.
+                    Crm Daw ng Sari-Sari
                 </p>
                 <div className="flex flex-col sm:flex-row justify-center lg:justify-start space-y-4 sm:space-y-0 sm:space-x-4">
                     <a href="#" className="px-10 py-3 rounded-lg border border-secondary text-white bg-secondary font-semibold hover:bg-accent hover:text-secondary hover:border-accent transition-all duration-500">
@@ -62,7 +62,7 @@ const FeaturesSection = () => {
         <section id="platform" className="py-20 bg-gray-900 border-t border-gray-800">
             <div className="container mx-auto px-4 sm:px-6 lg:px-8 text-center">
                 <h2 className="text-4xl sm:text-5xl font-bold text-white mb-4">Engineered for Enterprise Scale</h2>
-                <p className="text-xl text-gray-400 mb-16">AuraCRM is the neural network powering your customer relationships.</p>
+                <p className="text-xl text-gray-400 mb-16">Pillows is the neural network powering your customer relationships.</p>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
                     {features.map((f, i) => <FeatureCard key={i} {...f} />)}
                 </div>

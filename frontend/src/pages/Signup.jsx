@@ -1,168 +1,324 @@
 import * as React from "react";
+import { useNavigate } from "react-router-dom"; // ✅ add this at the top
+import { FiBriefcase, FiArrowLeft, FiEye, FiEyeOff, FiCheck } from "react-icons/fi";
+import { FcGoogle } from "react-icons/fc";
+import { HiArrowLeft } from "react-icons/hi";
 
-// --- Utility function for merging Tailwind classes ---
-function cn(...inputs) {
-  return inputs.flat().filter(Boolean).join(" ");
-}
+// Helper for Tailwind class names
+const cn = (...i) => i.flat().filter(Boolean).join(" ");
 
-// --- Message Toast Component (for non-alert feedback) ---
-const MessageToast = ({ message, type, onClose }) => {
-  if (!message) return null;
-
-  const typeClasses = {
-    error: "bg-red-600 border-red-700",
-    success: "bg-green-600 border-green-700",
-  }[type] || `bg-blue-600 border-blue-700`;
-
+const COUNTRY_CODES = [{ code: "+1", name: "USA" }, { code: "+63", name: "Phil" }];
+const STEPS = [
+  { id: 1, title: "Your Account", subtitle: "Personal & Login Details" },
+  { id: 2, title: "Company Setup", subtitle: "Business Information" },
+];
+// Inside your Signup component
+const BackButton = () => {
+  const navigate = useNavigate();
   return (
-    <div className="fixed top-4 right-4 z-50">
-      <div 
-        className={cn("px-4 py-3 rounded-xl shadow-2xl text-white border-b-4 transition-all duration-300", typeClasses)}
-        role="alert" aria-live="assertive"
-      >
-        <div className="flex justify-between items-center">
-          <p className="font-semibold text-sm">{message}</p>
-          <button onClick={onClose} className="ml-4 text-white opacity-75 hover:opacity-100 transition" aria-label="Close notification">
-            <svg className="size-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
-          </button>
-        </div>
-      </div>
-    </div>
+    <button
+      onClick={() => navigate("/")}
+      className="inline-flex items-center text-sm text-gray-500 hover:text-gray-700 transition cursor-pointer"
+    >
+      <HiArrowLeft className="size-4 mr-1" /> Back to Home
+    </button>
   );
 };
 
+// Input Component
+const InputComponent = React.memo(({ label, id, placeholder, type = 'text', value, onChange, isVisible, onTogglePass, error, isSelect, options }) => {
+  const isPass = id.toLowerCase().includes('password');
+  const inputType = isPass ? (isVisible ? 'text' : 'password') : type;
 
-// --- Simple Input Field Component (No forwardRef needed) ---
-const InputField = ({ label, id, placeholder, type = 'text', value, onChange, className = '' }) => (
-  <div className="flex flex-col space-y-2">
-    <label htmlFor={id} className="text-sm font-medium text-gray-700">
-      {label}
-    </label>
-    <input
-      id={id}
-      type={type}
-      placeholder={placeholder}
-      value={value}
-      onChange={onChange}
-      className={cn(
-        'w-full bg-gray-50 border border-gray-200 px-4 py-2.5 rounded-lg text-gray-800 transition shadow-inner ' +
-        'placeholder-gray-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30 focus:outline-none', 
-        className
-      )}
-      required
-    />
-  </div>
-);
-
-
-// --- Main Application Component ---
-const SignUpForm = () => {
-  const [formData, setFormData] = React.useState({
-    firstName: '', lastName: '', contactNumber: '', email: '', password: '', confirmPassword: '',
-  });
-  const [message, setMessage] = React.useState(null);
-  const [messageType, setMessageType] = React.useState('info'); 
-  const [passwordError, setPasswordError] = React.useState(null);
-
-  const showMessage = (msg, type = 'info') => {
-    setMessage(msg);
-    setMessageType(type);
-    setTimeout(() => setMessage(null), 5000); 
-  };
-
-  const handleChange = (e) => {
-    const { id, value } = e.target;
-    setFormData(prev => ({ ...prev, [id]: value }));
-    setPasswordError(null);
-  };
-
-  const handleSubmitSafe = (e) => {
-    e.preventDefault();
-    setMessage(null);
-    setPasswordError(null);
-    
-    const { password, confirmPassword } = formData;
-    
-    if (password.length < 8) {
-      setPasswordError("Password must be at least 8 characters long.");
-      showMessage("Password too short.", 'error');
-      return;
-    }
-    
-    if (password !== confirmPassword) {
-      setPasswordError("Passwords must match.");
-      showMessage("Passwords do not match.", 'error');
-      return;
-    }
-    
-    // --- Submission Mock ---
-    console.log("--- Form Submission Success (Data logged to console) ---", formData);
-    showMessage(`Success! Account created for ${formData.email}.`, 'success');
-    
-    // Reset passwords
-    setFormData(prev => ({ ...prev, password: '', confirmPassword: '' }));
-  };
-  
-  // Inlined Button Component logic
-  const Button = ({ children, className }) => (
-    <button
-        type="submit"
-        className={cn(
-            "inline-flex items-center justify-center rounded-lg h-12 px-6 text-base font-bold tracking-wide transition-all disabled:opacity-50 " +
-            "bg-gray-900 text-white hover:bg-gray-800 shadow-xl focus-visible:ring-2 focus-visible:ring-indigo-500/50 focus-visible:outline-none",
-            className
-        )}
-    >
-        {children}
-    </button>
+  const inputClasses = cn(
+    "w-full bg-gray-50 border px-4 py-2.5 rounded-lg text-gray-800 transition shadow-inner placeholder-gray-400 focus:outline-none cursor-pointer",
+    isPass ? "pr-10" : "",
+    error 
+      ? "border-red-500 focus:border-red-500 focus:ring-2 focus:ring-red-500/50"
+      : "border-gray-200 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/50"
   );
+  
 
   return (
-    <div className="min-h-screen bg-gray-50 font-sans flex flex-col items-center pt-16 pb-12 text-gray-800">
-      
-      <MessageToast message={message} type={messageType} onClose={() => setMessage(null)} />
+    <div className="flex flex-col space-y-2">
 
-      {/* --- Sign Up Card --- */}
-      <main className="w-full max-w-lg px-4">
+      <label htmlFor={id} className="text-sm font-medium text-gray-700 cursor-pointer">{label}</label>
+      <div className="relative">
+        {isSelect ? (
+          <select id={id} value={value} onChange={onChange} required className={inputClasses}>
+            {options.map((opt) => (<option key={opt} value={opt}>{opt}</option>))}
+          </select>
+        ) : (
+          <input id={id} type={inputType} placeholder={placeholder} value={value} onChange={onChange} required className={inputClasses}/>
+        )}
+        {isPass && (
+          <button type="button" onClick={() => onTogglePass(id)}
+            className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-700 hover:text-gray-900 focus:outline-none z-10 transition-colors cursor-pointer"
+            aria-label={isVisible ? "Hide password" : "Show password"}
+          >
+            {isVisible ? <FiEyeOff className="size-5" /> : <FiEye className="size-5" />}
+          </button>
+        )}
+      </div>
+      {error && <p className="mt-1 text-sm text-red-600 font-semibold">{error}</p>} 
+    </div>
+  );
+});
+const Input = InputComponent;
+
+// Step Indicator
+const StepIndicator = React.memo(({ currentStep, totalSteps }) => (
+  <div className="flex justify-between items-center mb-10 w-full max-w-xs mx-auto">
+    {STEPS.map((step) => (
+      <React.Fragment key={step.id}>
+        <div className="flex flex-col items-center cursor-pointer">
+          <div className={cn(
+            "size-10 flex items-center justify-center rounded-full font-bold transition-all duration-300",
+            step.id === currentStep ? "bg-amber-500 text-white shadow-lg" :
+            step.id < currentStep ? "bg-green-500 text-white" :
+            "bg-gray-100 text-gray-500 border-2 border-gray-300"
+          )}>
+            {step.id < currentStep ? <FiCheck className="size-5" /> : step.id}
+          </div>
+          <span className={cn(
+            "mt-2 text-xs font-medium hidden sm:block",
+            step.id === currentStep ? "text-amber-600" : "text-gray-500"
+          )}>
+            {step.title}
+          </span>
+        </div>
+        {step.id < totalSteps && (
+          <div className="flex-1 h-0.5 mx-1 transition-colors duration-300 bg-gray-300"></div>
+        )}
+      </React.Fragment>
+    ))}
+  </div>
+));
+
+// Step 1 Content
+const Step1Content = React.memo(({ formData, handleChange, handleCodeChange, handleTogglePass, isPassVisible, formError, termsAccepted, handleTerms, isButtonDisabled }) => (
+  <>
+    <button type="button" className="w-full mb-6 inline-flex items-center justify-center rounded-lg h-12 px-6 text-base font-medium transition-all disabled:opacity-50 bg-white text-gray-700 border border-gray-300 hover:bg-gray-50 shadow-sm focus-visible:ring-2 focus-visible:ring-gray-300 focus-visible:outline-none cursor-pointer">
+      <FcGoogle className="size-5 mr-3" />
+      Or Sign up with Google
+    </button>
+    
+    <div className="flex items-center my-6">
+      <div className="flex-grow border-t border-gray-300"></div>
+      <span className="flex-shrink mx-4 text-sm text-gray-500">OR</span>
+      <div className="flex-grow border-t border-gray-300"></div>
+    </div>
+
+    <div className="space-y-6">
+      <div className="md:flex md:space-x-4 space-y-6 md:space-y-0">
+        <div className="md:w-1/2"><Input label="First Name" id="firstName" placeholder="John" value={formData.firstName} onChange={handleChange} /></div>
+        <div className="md:w-1/2"><Input label="Last Name" id="lastName" placeholder="Doe" value={formData.lastName} onChange={handleChange} /></div>
+      </div>
+
+      <div className="flex flex-col space-y-2">
+        <label htmlFor="phoneNumber" className="text-sm font-medium text-gray-700 cursor-pointer">Contact Number</label>
+        <div className="flex space-x-2">
+          <select id="countryCode" value={formData.countryCode} onChange={handleCodeChange} className="flex-shrink-0 bg-gray-50 border border-gray-200 px-3 py-2.5 rounded-lg text-gray-800 transition shadow-inner focus:border-amber-500 focus:ring-2 focus:ring-amber-500/50 focus:outline-none cursor-pointer">
+            {COUNTRY_CODES.map((c) => <option key={c.code} value={c.code}>{c.code} ({c.name})</option>)}
+          </select>
+          <input id="phoneNumber" type="tel" placeholder="000 000 0000" value={formData.phoneNumber} onChange={handleChange} className="w-full bg-gray-50 border border-gray-200 px-4 py-2.5 rounded-lg text-gray-800 transition shadow-inner placeholder-gray-400 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/50 focus:outline-none cursor-pointer"/>
+        </div>
+      </div>
+
+      <Input label="Email Address" id="email" type="email" placeholder="you@company.com" value={formData.email} onChange={handleChange} />
+      <Input label="Password" id="password" placeholder="Min 8 characters" value={formData.password} onChange={handleChange} isVisible={isPassVisible.password} onTogglePass={handleTogglePass}/>
+      <Input label="Confirm Password" id="confirmPassword" placeholder="Confirm your password" value={formData.confirmPassword} onChange={handleChange} isVisible={isPassVisible.confirmPassword} onTogglePass={handleTogglePass} error={formError}/>
+
+      <div className="flex items-start pt-2">
+        <input id="terms" type="checkbox" checked={termsAccepted} onChange={handleTerms} className="size-4 mt-1 rounded text-amber-500 border-gray-300 focus:ring-amber-500 cursor-pointer"/>
+        <label htmlFor="terms" className="ml-3 text-sm font-medium text-gray-700 cursor-pointer">
+          I accept the <a href="#" className="text-amber-600 hover:text-amber-700 font-semibold">Terms</a> and <a href="#" className="text-amber-600 hover:text-amber-700 font-semibold">Policy</a>.
+        </label>
+      </div>
+    </div>
+
+    <button type="submit" disabled={isButtonDisabled} className="w-full mt-8 inline-flex items-center justify-center rounded-lg h-12 px-6 text-white font-bold tracking-wide transition-all duration-300 bg-secondary hover:bg-tertiary shadow-lg shadow-tertiary disabled:shadow-none focus-visible:outline-none cursor-pointer">
+      Continue to Company Details
+    </button>
+  </>
+));
+
+// Step 2 Content
+const Step2Content = React.memo(({ formData, handleChange, formError, isSubmitted, isButtonDisabled, setStep, setIsSubmitted, setFormError }) => (
+  <>
+    <div className="space-y-6">
+      <Input label="Company Name" id="companyName" placeholder="Acme Corp" value={formData.companyName} onChange={handleChange} />
+      <Input label="Company Number" id="companyNumber" type="tel" placeholder="e.g., 555-123-4567" value={formData.companyNumber} onChange={handleChange} />
+      <Input label="Company Website" id="companyWebsite" type="url" placeholder="https://www.acme.com" value={formData.companyWebsite} onChange={handleChange} />
+    </div>
+
+    {formError && (
+      <div className="p-3 text-sm rounded-lg bg-red-100 text-red-700 border border-red-300 font-medium my-6">
+        {formError}
+      </div>
+    )}
+    {isSubmitted && (
+      <div className="p-3 text-sm rounded-lg bg-green-100 text-green-700 border border-green-300 font-medium my-6">
+        Account and Company Setup simulated successfully! Welcome aboard.
+      </div>
+    )}
+
+    <div className="flex space-x-4 mt-8">
+      <button type="button" onClick={() => { setStep(1); setIsSubmitted(false); setFormError(null); }} 
+        className="flex-1 inline-flex items-center justify-center rounded-lg h-12 px-6 text-gray-700 font-bold tracking-wide border border-gray-300 bg-white hover:bg-tertiary hover:text-white transition-colors focus-visible:ring-2 focus-visible:ring-gray-300 focus-visible:outline-none cursor-pointer">
+        <FiArrowLeft className="size-4 mr-2" /> Back
+      </button>
+
+      <button type="submit" disabled={isButtonDisabled} 
+        className="flex-1 inline-flex items-center justify-center rounded-lg h-12 px-6 text-white font-bold tracking-wide transition-all duration-300 bg-tertiary hover:bg-accent hover:text-secondary shadow-xl shadow-amber-500/30 disabled:shadow-none focus-visible:ring-2 focus-visible:ring-amber-500/50 focus-visible:outline-none cursor-pointer">
+        Create Account
+      </button>
+    </div>
+  </>
+));
+
+// Main Component
+const Signup = () => {
+  const REQUIRED_FIELDS_STEP_1 = ['firstName', 'email', 'password'];
+  const REQUIRED_FIELDS_STEP_2 = ['companyName', 'companyNumber', 'companyWebsite'];
+
+  const [step, setStep] = React.useState(1);
+  const [formData, setFormData] = React.useState({
+    firstName: '', lastName: '', 
+    countryCode: '+63', phoneNumber: '', email: '', 
+    password: '', confirmPassword: '',
+    companyName: '', companyNumber: '', companyWebsite: '',
+  });
+  const [isPassVisible, setIsPassVisible] = React.useState({});
+  const [termsAccepted, setTermsAccepted] = React.useState(false);
+  const [formError, setFormError] = React.useState(null);
+  const [isSubmitted, setIsSubmitted] = React.useState(false);
+
+  const handleChange = React.useCallback((e) => {
+    const { id, value } = e.target;
+    setIsSubmitted(false);
+    setFormData(p => {
+      const nextData = { ...p, [id]: value };
+      if (step === 1 && (id === 'password' || id === 'confirmPassword')) {
+        const { password, confirmPassword } = nextData;
+        const newError = (password.length > 0 && confirmPassword.length > 0 && password !== confirmPassword) 
+          ? "Password doesn't match. Please try again." 
+          : null;
+        setFormError(prevError => (prevError !== newError ? newError : prevError));
+      }
+      return nextData;
+    });
+  }, [step]);
+
+  const handleCodeChange = React.useCallback((e) => setFormData(p => ({ ...p, countryCode: e.target.value })), []);
+  const handleTogglePass = React.useCallback((fieldId) => setIsPassVisible(p => ({ ...p, [fieldId]: !p[fieldId] })), []);
+  const handleTerms = React.useCallback((e) => setTermsAccepted(e.target.checked), []);
+
+  const handleSubmit = React.useCallback((e) => {
+    e.preventDefault();
+    setIsSubmitted(false);
+
+    if (step === 1) {
+      const allRequiredFilled = REQUIRED_FIELDS_STEP_1.every(field => formData[field].trim() !== '');
+      if (!allRequiredFilled || !termsAccepted) {
+        setFormError("Please fill in all required fields and accept the terms.");
+        return;
+      }
+      if (formData.password !== formData.confirmPassword) {
+        setFormError("The passwords you entered do not match. Please try again.");
+        return; 
+      }
+      setFormError(null);
+      setStep(2);
+    } else if (step === 2) {
+      const allRequiredFilled = REQUIRED_FIELDS_STEP_2.every(field => formData[field].trim() !== '');
+      if (!allRequiredFilled) {
+        setFormError("Please fill in all required company details.");
+        return;
+      }
+      setFormError(null);
+      setIsSubmitted(true);
+    }
+  }, [step, formData, termsAccepted, REQUIRED_FIELDS_STEP_1, REQUIRED_FIELDS_STEP_2]);
+
+  const isButtonDisabled = React.useMemo(() => {
+    if (step === 1) {
+      const allRequiredFilled = REQUIRED_FIELDS_STEP_1.every(field => formData[field].trim() !== '');
+      return !termsAccepted || !!formError || !allRequiredFilled;
+    }
+    if (step === 2) {
+      const allRequiredFilled = REQUIRED_FIELDS_STEP_2.every(field => formData[field].trim() !== '');
+      return !allRequiredFilled;
+    }
+    return true;
+  }, [step, termsAccepted, formError, formData, REQUIRED_FIELDS_STEP_1, REQUIRED_FIELDS_STEP_2]);
+
+  const currentStepInfo = STEPS.find(s => s.id === step);
+
+  return (
+    <div className="min-h-screen w-full bg-gray-100 font-sans text-gray-800 flex flex-col items-center">
+      
+      <div className="w-full py-6 px-4 sm:px-12 lg:px-20 max-w-7xl"> 
+        <div className="flex items-center text-gray-800">
+          <FiBriefcase className="size-6 text-amber-500 mr-2" />
+          <span className="text-xl font-extrabold tracking-wider">CRM</span>
+        </div>
+      </div>
+      
+ <div className="w-full max-w-lg px-4 pt-6"> 
+  <BackButton />
+</div>
+
+      <main className="w-full max-w-lg font-inter mx-auto px-4 pt-3 pb-12"> 
+  
         <div className="bg-white border border-gray-100 rounded-2xl shadow-xl p-6 md:p-10">
           <header className="text-center mb-8">
-            <h1 className="text-4xl font-extrabold text-gray-900 tracking-tight">Create Account</h1>
-            <p className="text-base text-gray-500 mt-2 max-w-sm mx-auto">
-              Join thousands of users transforming their business
-            </p>
+            <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight">{currentStepInfo.title}</h1>
+            <p className="text-sm text-gray-500 mt-2 max-w-sm mx-auto">{currentStepInfo.subtitle}</p>
           </header>
 
-          <form onSubmit={handleSubmitSafe} className="space-y-6">
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <InputField label="First Name" id="firstName" placeholder="John" value={formData.firstName} onChange={handleChange} />
-              <InputField label="Last Name" id="lastName" placeholder="Doe" value={formData.lastName} onChange={handleChange} />
-            </div>
-
-            <InputField label="Contact Number" id="contactNumber" type="tel" placeholder="(555) 123-4567" value={formData.contactNumber} onChange={handleChange} />
-            <InputField label="Email" id="email" type="email" placeholder="john@example.com" value={formData.email} onChange={handleChange} />
-            <InputField label="Password (min 8)" id="password" type="password" placeholder="Create a password" value={formData.password} onChange={handleChange} />
-            <InputField label="Confirm Password" id="confirmPassword" type="password" placeholder="Confirm your password" value={formData.confirmPassword} onChange={handleChange} />
-
-            {/* Validation Error Message */}
-            {passwordError && (
-                <p className="text-sm text-red-500 -mt-4" aria-live="polite">{passwordError}</p>
+          <StepIndicator currentStep={step} totalSteps={STEPS.length} />
+          
+          <form onSubmit={handleSubmit} className="mt-8">
+            {step === 1 && (
+              <Step1Content
+                formData={formData}
+                handleChange={handleChange}
+                handleCodeChange={handleCodeChange}
+                handleTogglePass={handleTogglePass}
+                isPassVisible={isPassVisible}
+                formError={formError}
+                termsAccepted={termsAccepted}
+                handleTerms={handleTerms}
+                isButtonDisabled={isButtonDisabled}
+              />
             )}
-            
-            <Button className="w-full mt-8">Create Account</Button>
-          </form>
+            {step === 2 && (
+              <Step2Content 
+                formData={formData}
+                handleChange={handleChange}
+                formError={formError}
+                isSubmitted={isSubmitted}
+                isButtonDisabled={isButtonDisabled}
+                setStep={setStep}
+                setIsSubmitted={setIsSubmitted}
+                setFormError={setFormError}
+              />
+            )}
 
-          {/* Footer Links (Simplified) */}
-          <div className="text-center mt-6">
-            <p className="text-sm text-gray-700">
-              Already have an account? 
-              <a href="#" className="font-bold text-indigo-600 hover:text-indigo-700 ml-1">Log in</a>
-            </p>
-          </div>
+            {step === 1 && (
+              <div className="text-center mt-6">
+                <p className="text-sm text-gray-700">
+                  Already have an account? 
+                  <a href="#" className="font-bold text-amber-600 hover:text-amber-700 ml-1 cursor-pointer">Log in</a>
+                </p>
+              </div>
+            )}
+          </form>
         </div>
       </main>
     </div>
   );
 };
 
-export default SignUpForm;
+export default Signup;

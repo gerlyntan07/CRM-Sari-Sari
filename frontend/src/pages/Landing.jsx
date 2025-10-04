@@ -28,12 +28,19 @@ const HeroSection = () => (
             </div>
             {/* Right */}
             <div className="relative">
-                <div className="hidden lg:block absolute inset-0 -top-10 -bottom-10 right-10 bg-accent rounded-3xl transform rotate-3 z-0"></div>
-                <img
-                    src="https://placehold.co/800x500/1e293b/a3e635?text=AuraCRM+AI+Dashboard"
-                    alt="AuraCRM Dashboard Mockup"
-                    className="rounded-xl shadow-2xl border-4 border-gray-800 relative z-10"
-                />
+                <div className="hidden lg:block absolute inset-0 -top-10 -bottom-10 right-4 bg-accent rounded-3xl transform rotate-3 z-0"></div>
+               <img
+   src="/image/dashboard.jpg" 
+    alt="anya"
+    className="rounded-xl shadow-2xl border-4 border-gray-800 relative z-10"
+/> 
+            {/* <img
+            src="/image/anya.jpg"
+            alt="anya"
+            className="w-120 h-80 rounded-xl shadow-2xl border-4 border-gray-800 relative z-10 object-cover"
+            /> */}
+
+
             </div>
         </div>
     </section>

@@ -6,9 +6,19 @@ from sqlalchemy.orm import sessionmaker, declarative_base
 
 load_dotenv()
 DATABASE_URL = os.getenv("DATABASE_URL")
+SECRET_KEY = os.getenv("SECRET_KEY")
 engine = create_engine(DATABASE_URL, echo=True)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
+
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+        print("Database session yield successfully")
+    finally:
+        db.close()
+        print("Database session closed")
 
 def test_connection():
     try:

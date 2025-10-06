@@ -27,7 +27,7 @@ const InputField = ({ label, id, placeholder, type = "text", value, onChange, ic
         {label}
       </label>
       <div className="relative flex items-center">
-        {Icon && <Icon className="absolute left-3 text-gray-500 size-5" />} {/* LEFT Icon */}
+        {Icon && <Icon className="absolute left-3 text-gray-500 size-5" />} 
         <input
           id={id}
           type={isPassword && showPassword ? "text" : type}
@@ -43,7 +43,7 @@ const InputField = ({ label, id, placeholder, type = "text", value, onChange, ic
             onClick={() => setShowPassword((prev) => !prev)}
             className="absolute right-3 text-gray-500"
           >
-            {showPassword ? <FiEyeOff className="size-5" /> : <FiEye className="size-5" />} {/* RIGHT Toggle */}
+            {showPassword ? <FiEyeOff className="size-5" /> : <FiEye className="size-5" />} 
           </button>
         )}
       </div>

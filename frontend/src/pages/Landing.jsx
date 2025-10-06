@@ -1,9 +1,7 @@
-// Landing.jsx
-import React from "react";
+import React, { useEffect } from "react";
 import Header from "../components/Header";
-
-// Import icons from react-icons
 import { LuZap, LuGauge, LuUsers, LuMessageCircle } from "react-icons/lu";
+
 
 // --- Hero Section ---
 const HeroSection = () => (
@@ -88,7 +86,7 @@ const CTASection = () => (
             href="#"
             className="px-12 py-4 text-lg font-bold rounded-xl shadow-2xl bg-accent border border-secondary text-white bg-secondary hover:bg-accent hover:text-secondary hover:border-accent transition-all duration-400"
         >
-            Start 30-Day Free Trial
+            Start 15-Day Free Trial
         </a>
     </section>
 );
@@ -99,7 +97,7 @@ const Footer = () => (
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-2 md:grid-cols-5 gap-8">
             <div>
                 <span className="text-xl font-white">Tan<span className="text-accent">CRM</span></span>
-                <p className="text-sm text-white mt-4">&copy; 2024 TanCRM, Inc.</p>
+                <p className="text-sm text-white mt-4">&copy; 2025 TanCRM, Inc.</p>
             </div>
             {[
                 { title: "Platform", links: ["AI Features", "Automation", "Integrations", "APIs"] },
@@ -123,7 +121,11 @@ const Footer = () => (
 );
 
 // --- Landing Page Wrapper ---
-const Landing = () => (
+const Landing = () => { 
+     useEffect(() => {
+    document.title = "Sari-Sari CRM | Sari-Sari CRM";
+  }, []);
+    return (
    <main className="font-inter">
       <Header />
         <HeroSection />
@@ -131,6 +133,7 @@ const Landing = () => (
         <CTASection />
         <Footer />
     </main>
-);
+  );
+};
 
 export default Landing;

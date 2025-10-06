@@ -13,6 +13,7 @@ export default function AdminHeader() {
     "/admin/accounts": "Accounts",
     "/admin/contacts": "Contacts",
     "/reports": "Reports",
+    "/leads": "Leads",
     "/admin/Audit": "Audit",
   };
 

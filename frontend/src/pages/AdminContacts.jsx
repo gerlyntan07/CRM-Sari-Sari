@@ -253,73 +253,125 @@ export default function AdminContacts() {
           className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50"
         >
           <div
-            className="bg-white w-full max-w-2xl rounded-lg shadow-lg p-6 relative"
+            className="bg-white w-full max-w-2xl rounded-2xl shadow-lg p-8 relative border border-gray-200"
             onClick={(e) => e.stopPropagation()}
           >
+            {/* Close Button */}
             <button
               onClick={() => setShowModal(false)}
-              className="absolute top-3 right-3 text-gray-500 hover:text-black"
+              className="absolute top-4 right-4 text-gray-500 hover:text-black transition"
             >
-              <FiX size={20} />
+              <FiX size={22} />
             </button>
-            <h2 className="text-xl font-semibold mb-4">Add New Contact</h2>
-            <form className="grid grid-cols-2 gap-4">
+
+            {/* Header */}
+            <h2 className="text-2xl font-semibold text-gray-800 mb-6 flex items-center space-x-2">
+              <FiUser className="text-blue-600" />
+              <span>Add New Contact</span>
+            </h2>
+
+            {/* Form */}
+            <form className="grid grid-cols-2 gap-5 text-sm">
               <div>
-                <label className="block text-sm font-medium">Name</label>
-                <input type="text" className="w-full border px-2 py-1 rounded" />
+                <label className="block text-gray-700 font-medium mb-1">Name</label>
+                <input
+                  type="text"
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-400 outline-none"
+                  placeholder="Enter full name"
+                />
               </div>
+
               <div>
-                <label className="block text-sm font-medium">Title</label>
-                <input type="text" className="w-full border px-2 py-1 rounded" />
+                <label className="block text-gray-700 font-medium mb-1">Title</label>
+                <input
+                  type="text"
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-400 outline-none"
+                  placeholder="e.g. Sales Manager"
+                />
               </div>
+
               <div>
-                <label className="block text-sm font-medium">Account</label>
-                <input type="text" className="w-full border px-2 py-1 rounded" />
+                <label className="block text-gray-700 font-medium mb-1">Account</label>
+                <input
+                  type="text"
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-400 outline-none"
+                  placeholder="Company name"
+                />
               </div>
+
               <div>
-                <label className="block text-sm font-medium">Email</label>
-                <input type="email" className="w-full border px-2 py-1 rounded" />
+                <label className="block text-gray-700 font-medium mb-1">Email</label>
+                <input
+                  type="email"
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-400 outline-none"
+                  placeholder="example@email.com"
+                />
               </div>
+
               <div>
-                <label className="block text-sm font-medium">Department</label>
-                <input type="text" className="w-full border px-2 py-1 rounded" />
+                <label className="block text-gray-700 font-medium mb-1">Department</label>
+                <input
+                  type="text"
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-400 outline-none"
+                  placeholder="e.g. IT, Marketing"
+                />
               </div>
+
               <div>
-                <label className="block text-sm font-medium">Work Phone</label>
-                <input type="text" className="w-full border px-2 py-1 rounded" />
+                <label className="block text-gray-700 font-medium mb-1">Work Phone</label>
+                <input
+                  type="text"
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-400 outline-none"
+                  placeholder="(555) 123-4567"
+                />
               </div>
+
               <div>
-                <label className="block text-sm font-medium">Phone 1</label>
-                <input type="text" className="w-full border px-2 py-1 rounded" />
+                <label className="block text-gray-700 font-medium mb-1">Phone 1</label>
+                <input
+                  type="text"
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-400 outline-none"
+                />
               </div>
+
               <div>
-                <label className="block text-sm font-medium">Phone 2</label>
-                <input type="text" className="w-full border px-2 py-1 rounded" />
+                <label className="block text-gray-700 font-medium mb-1">Phone 2</label>
+                <input
+                  type="text"
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-400 outline-none"
+                />
               </div>
+
               <div className="col-span-2">
-                <label className="block text-sm font-medium">Assigned To</label>
-                <input type="text" className="w-full border px-2 py-1 rounded" />
+                <label className="block text-gray-700 font-medium mb-1">Assigned To</label>
+                <input
+                  type="text"
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-400 outline-none"
+                />
               </div>
+
               <div className="col-span-2">
-                <label className="block text-sm font-medium">Notes</label>
+                <label className="block text-gray-700 font-medium mb-1">Notes</label>
                 <textarea
                   rows="3"
-                  className="w-full border px-2 py-1 rounded"
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-400 outline-none"
+                  placeholder="Additional details..."
                 ></textarea>
               </div>
             </form>
 
-            <div className="flex justify-end space-x-3 mt-6">
+            {/* Footer Buttons */}
+            <div className="flex justify-end space-x-3 mt-8">
               <button
                 type="button"
                 onClick={() => setShowModal(false)}
-                className="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400"
+                className="px-5 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400 transition"
               >
                 Cancel
               </button>
               <button
                 type="submit"
-                className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600"
+                className="px-5 py-2 bg-green-500 text-white rounded-md hover:bg-green-600 transition"
               >
                 Save Contact
               </button>

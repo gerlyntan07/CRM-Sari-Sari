@@ -116,15 +116,21 @@ const Login = () => {
               onChange={handleChange}
               isPassVisible={isPassVisible}
               onTogglePass={() => setIsPassVisible((prev) => !prev)}
-              
+
             />
 
             <button
               type="submit"
-              className="w-full mt-8 inline-flex items-center justify-center rounded-lg h-12 px-6 text-white font-bold tracking-wide transition-all disabled:opacity-50 bg-secondary text-gray-900 hover:bg-tertiary shadow-xl focus-visible:ring-2 focus-visible:ring-amber-500/50 cursor-pointer"
+              className="w-full mt-2 inline-flex items-center justify-center rounded-lg h-12 px-6 text-white font-bold tracking-wide transition-all disabled:opacity-50 bg-secondary text-gray-900 hover:bg-tertiary shadow-xl focus-visible:ring-2 focus-visible:ring-amber-500/50 cursor-pointer"
             >
               Log In
             </button>
+
+            <div className="text-center mt-1">
+              <a href="/forgot-password" className="text-sm font-medium text-amber-600 hover:text-amber-700 cursor-pointer">
+                Forgot Password?
+              </a>
+            </div>
           </form>
 
           <div className="text-center mt-6">

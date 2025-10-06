@@ -6,19 +6,22 @@ import Signup from "./pages/Signup";
 import Login from "./pages/Login";
 import AdminPanel from "./components/AdminPanel";
 import AdminDashboard from "./pages/AdminDashboard";
+import AdminAccounts from "./pages/AdminAccounts"; // create this page
 
 function App() {
   return (
     <Router>
-      <Routes>
+      <Routes> 
         <Route path="/" element={<Landing />} />
         <Route path="/header" element={<Header />} />
         <Route path="/signup" element={<Signup />} />
         <Route path="/login" element={<Login />} />
 
+        {/* Admin Layout */}
         <Route path="/admin" element={<AdminPanel />}>
           <Route path="dashboard" element={<AdminDashboard />} />
-          {/* you can add Accounts, Contacts, etc. later here */}
+          <Route path="accounts" element={<AdminAccounts />} />
+          {/* later you can add more: contacts, reports, etc. */}
         </Route>
       </Routes>
     </Router>

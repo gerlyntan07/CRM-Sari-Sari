@@ -1,9 +1,22 @@
 import { useState, useRef, useEffect } from "react";
 import { FiBell, FiUser } from "react-icons/fi";
+import { useLocation } from "react-router-dom";
 
 export default function AdminHeader() {
   const [open, setOpen] = useState(false);
   const dropdownRef = useRef(null);
+  const location = useLocation();
+
+  // Map routes to titles
+  const routeTitles = {
+    "/admin/dashboard": "Dashboard",
+    "/admin/accounts": "Accounts",
+    "/admin/contacts": "Contacts",
+    "/reports": "Reports",
+  };
+
+  // Get current title from route
+  const currentTitle = routeTitles[location.pathname] || "Admin Panel";
 
   // Close dropdown if clicked outside
   useEffect(() => {
@@ -19,7 +32,7 @@ export default function AdminHeader() {
   return (
     <header className="flex justify-between items-center bg-white shadow px-6 py-3 border-b relative">
       {/* Left Side - Page Title */}
-      <h1 className="text-lg font-semibold text-gray-800">Dashboard</h1>
+      <h1 className="text-lg font-semibold text-gray-800">{currentTitle}</h1>
 
       {/* Right Side */}
       <div className="flex items-center space-x-4">
@@ -38,7 +51,9 @@ export default function AdminHeader() {
             className="flex items-center gap-2 cursor-pointer hover:bg-gray-100 px-2 py-1 rounded"
           >
             <FiUser className="text-xl text-gray-700" />
-            <span className="text-sm font-medium text-gray-700">Joshua Vergara</span>
+            <span className="text-sm font-medium text-gray-700">
+              Joshua Vergara
+            </span>
           </button>
 
           {open && (

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, Outlet } from "react-router-dom";
+import { NavLink, Outlet, useLocation } from "react-router-dom";
 import {
   FiHome,
   FiUsers,
@@ -14,71 +14,118 @@ import AdminHeader from "./AdminHeader";
 
 export default function AdminPanel() {
   const [salesOpen, setSalesOpen] = useState(true);
+  const location = useLocation();
+
+  // styles
+  const activeLink =
+    "flex items-center gap-3 px-3 py-2 rounded-lg bg-white text-[#1e293b] font-semibold shadow-sm";
+  const normalLink =
+    "flex items-center gap-3 px-3 py-2 rounded-lg text-gray-300 hover:bg-[#334155] hover:text-white transition";
+
+  // expand Sales if a child is active
+  const salesRoutes = [
+    "/admin/accounts",
+    "/admin/contacts",
+    "/admin/leads",
+    "/admin/deals",
+    "/admin/quotes",
+    "/admin/targets",
+  ];
+  const isSalesActive = salesRoutes.includes(location.pathname);
 
   return (
-    <div className="flex h-screen">
+    <div className="flex h-screen bg-gray-100">
       {/* Sidebar */}
-      <div className="w-64 bg-[#1e293b] text-white flex flex-col fixed top-0 left-0 h-screen">
-        <div className="bg-[#fbbf24] text-gray-900 font-bold text-lg px-4 py-3">
+      <div className="w-64 bg-[#1e293b] text-white flex flex-col fixed top-0 left-0 h-screen shadow-lg">
+        {/* Logo */}
+        <div className="bg-[#fbbf24] text-gray-900 font-bold text-xl px-6 py-4 tracking-wide">
           CRM ni Josh
         </div>
 
-        <nav className="flex-1 overflow-y-auto">
+        {/* Nav */}
+        <nav className="flex-1 overflow-y-auto p-4 space-y-2">
           {/* Dashboard */}
-          <Link
+          <NavLink
             to="/admin/dashboard"
-            className="px-4 py-2 hover:bg-[#334155] cursor-pointer flex items-center gap-2"
+            className={({ isActive }) => (isActive ? activeLink : normalLink)}
           >
-            <FiHome className="text-xl" />
+            <FiHome className="text-lg" />
             <span>Dashboard</span>
-          </Link>
+          </NavLink>
 
           {/* Sales Dropdown */}
           <div>
             <button
-              className="w-full px-4 py-2 flex justify-between items-center text-left hover:bg-[#334155]"
+              className="w-full px-3 py-2 flex justify-between items-center text-sm font-medium text-gray-300 hover:bg-[#334155] rounded-lg transition"
               onClick={() => setSalesOpen(!salesOpen)}
             >
-              <span>Sales</span>
+              <span className="flex items-center gap-2">
+                <FiBriefcase className="text-lg" />
+                Sales
+              </span>
               <FiChevronDown
-                className={`transition-transform ${salesOpen ? "rotate-180" : ""}`}
+                className={`transition-transform ${salesOpen || isSalesActive ? "rotate-180" : ""}`}
               />
             </button>
-            {salesOpen && (
-              <div className="ml-6 space-y-2">
-                <Link to="/admin/accounts" className="flex items-center gap-2 px-2 py-1 hover:bg-[#475569] rounded cursor-pointer">
+
+            {(salesOpen || isSalesActive) && (
+              <div className="ml-6 mt-2 space-y-1">
+                <NavLink
+                  to="/admin/accounts"
+                  className={({ isActive }) => (isActive ? activeLink : normalLink)}
+                >
                   <FiUsers /> Accounts
-                </Link>
-                <Link to="/admin/contacts" className="flex items-center gap-2 px-2 py-1 hover:bg-[#475569] rounded cursor-pointer">
+                </NavLink>
+                <NavLink
+                  to="/admin/contacts"
+                  className={({ isActive }) => (isActive ? activeLink : normalLink)}
+                >
                   <FiUser /> Contacts
-                </Link>
-                <Link to="/admin/leads" className="flex items-center gap-2 px-2 py-1 hover:bg-[#475569] rounded cursor-pointer">
+                </NavLink>
+                <NavLink
+                  to="/admin/leads"
+                  className={({ isActive }) => (isActive ? activeLink : normalLink)}
+                >
                   <FiUserPlus /> Leads
-                </Link>
-                <Link to="/admin/deals" className="flex items-center gap-2 px-2 py-1 hover:bg-[#475569] rounded cursor-pointer">
+                </NavLink>
+                <NavLink
+                  to="/admin/deals"
+                  className={({ isActive }) => (isActive ? activeLink : normalLink)}
+                >
                   <FiBriefcase /> Deals
-                </Link>
-                <Link to="/admin/quotes" className="flex items-center gap-2 px-2 py-1 hover:bg-[#475569] rounded cursor-pointer">
+                </NavLink>
+                <NavLink
+                  to="/admin/quotes"
+                  className={({ isActive }) => (isActive ? activeLink : normalLink)}
+                >
                   <FiFileText /> Quotes
-                </Link>
-                <Link to="/admin/targets" className="flex items-center gap-2 px-2 py-1 hover:bg-[#475569] rounded cursor-pointer">
+                </NavLink>
+                <NavLink
+                  to="/admin/targets"
+                  className={({ isActive }) => (isActive ? activeLink : normalLink)}
+                >
                   <FiTarget /> Targets
-                </Link>
+                </NavLink>
               </div>
             )}
           </div>
         </nav>
+
+        {/* Footer */}
+        <div className="px-4 py-3 text-xs text-gray-400 border-t border-gray-700">
+          © {new Date().getFullYear()} CRM ni Josh
+        </div>
       </div>
 
-      {/* Right content area */}
-      <div className="flex-1 bg-[#fefce8] ml-64 flex flex-col">
+      {/* Main content */}
+      <div className="flex-1 ml-64 flex flex-col">
         {/* Header */}
         <AdminHeader />
 
         {/* Page Content */}
-        <div className="flex-1 overflow-y-auto p-4">
+      <main className="flex-1 p-6" style={{ backgroundColor: "#fffeee" }}>
           <Outlet />
-        </div>
+        </main>
       </div>
     </div>
   );

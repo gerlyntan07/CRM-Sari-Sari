@@ -6,7 +6,8 @@ import Signup from "./pages/Signup";
 import Login from "./pages/Login";
 import AdminPanel from "./components/AdminPanel";
 import AdminDashboard from "./pages/AdminDashboard";
-import AdminAccounts from "./pages/AdminAccounts"; // create this page
+import AdminAccounts from "./pages/AdminAccounts"; 
+import AdminContacts from "./pages/AdminContacts";
 
 function App() {
   return (
@@ -21,6 +22,7 @@ function App() {
         <Route path="/admin" element={<AdminPanel />}>
           <Route path="dashboard" element={<AdminDashboard />} />
           <Route path="accounts" element={<AdminAccounts />} />
+          <Route path="contacts" element={<AdminContacts/>}/>
           {/* later you can add more: contacts, reports, etc. */}
         </Route>
       </Routes>

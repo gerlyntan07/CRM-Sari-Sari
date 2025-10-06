@@ -14,6 +14,7 @@ import { BsBuilding } from "react-icons/bs";
 
 export default function AdminContacts() {
   const [showModal, setShowModal] = useState(false);
+  const [selectedContact, setSelectedContact] = useState(null);
 
   const contacts = [
     {
@@ -26,37 +27,120 @@ export default function AdminContacts() {
       department: "Executive",
       assigned: "Jane Sales",
       created: "1/10/2024",
-    },
-    {
-      name: "Sarah Johnson",
-      title: "CTO",
-      account: "TechStart Inc",
-      email: "sarah.johnson@techstart.io",
-      phone1: "+1-555-0201",
-      phone2: "+1-555-0202",
-      department: "Technology",
-      assigned: "Jane Sales",
-      created: "1/15/2024",
-    },
-    {
-      name: "Michael Brown",
-      title: "VP Sales",
-      account: "Global Solutions Ltd",
-      email: "michael.brown@globalsolutions.com",
-      phone1: "+1-555-0301",
-      phone2: "+1-555-0302",
-      department: "Sales",
-      assigned: "Jane Sales",
-      created: "1/5/2024",
+      mobile: "09217229846",
+      workPhone: "(555) 123-4567",
+      createdBy: "John Appleseed",
+      lastUpdated: "2025-09-21 15:30",
     },
   ];
 
-  // Close modal if backdrop is clicked
   const handleBackdropClick = (e) => {
     if (e.target.id === "modalBackdrop") {
       setShowModal(false);
     }
   };
+
+  const handleContactClick = (contact) => {
+    setSelectedContact(contact);
+  };
+
+  const handleBackToList = () => {
+    setSelectedContact(null);
+  };
+
+  // CONTACT DETAILS VIEW
+
+  if (selectedContact) {
+    return (
+      <div className="p-8">
+        <div className="mb-6">
+          <h1 className="text-2xl font-semibold text-gray-900">
+            {selectedContact.account}
+          </h1>
+          <span className="inline-block mt-1 bg-blue-600 text-white text-xs px-2 py-0.5 rounded">
+            Active
+          </span>
+        </div>
+
+        {/* Buttons */}
+        <div className="flex space-x-3 mb-6">
+          <button className="bg-red-500 text-white px-5 py-2 rounded hover:bg-red-600">
+            Delete
+          </button>
+          <button className="bg-gray-800 text-white px-5 py-2 rounded hover:bg-gray-900">
+            Export
+          </button>
+          <button
+            onClick={handleBackToList}
+            className="bg-gray-400 text-white px-5 py-2 rounded hover:bg-gray-500"
+          >
+            Back to List
+          </button>
+        </div>
+
+        {/* Details Card */}
+        <div className="bg-gray-100 rounded-lg p-6 w-full max-w-3xl shadow">
+          <h2 className="text-lg font-semibold mb-4">Contact Details</h2>
+          <div className="grid grid-cols-3 gap-y-4 text-sm text-gray-700">
+            <p>
+              <span className="font-semibold">Primary Contact:</span>
+              <br />
+              {selectedContact.name}
+            </p>
+            <p>
+              <span className="font-semibold">Email:</span>
+              <br />
+              {selectedContact.email}
+            </p>
+            <p>
+              <span className="font-semibold">Created By:</span>
+              <br />
+              {selectedContact.createdBy} on {selectedContact.created}
+            </p>
+
+            <p>
+              <span className="font-semibold">Title:</span>
+              <br />
+              {selectedContact.title}
+            </p>
+            <p>
+              <span className="font-semibold">Assigned To:</span>
+              <br />
+              {selectedContact.assigned}
+            </p>
+            <p>
+              <span className="font-semibold">Work Phone:</span>
+              <br />
+              {selectedContact.workPhone}
+            </p>
+
+            <p>
+              <span className="font-semibold">Account:</span>
+              <br />
+              {selectedContact.account}
+            </p>
+            <p>
+              <span className="font-semibold">Mobile Phone:</span>
+              <br />
+              {selectedContact.mobile}
+            </p>
+            <p>
+              <span className="font-semibold">Last Updated:</span>
+              <br />
+              {selectedContact.lastUpdated}
+            </p>
+            <p>
+              <span className="font-semibold">Notes:</span>
+              <br />
+
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // CONTACTS TABLE VIEW
 
   return (
     <div className="p-6">
@@ -93,10 +177,9 @@ export default function AdminContacts() {
         </select>
       </div>
 
-      {/* Table: table-fixed + colgroup ensures stable column sizing */}
+      {/* Table */}
       <div className="overflow-x-auto bg-white rounded-lg shadow border">
         <table className="min-w-full table-fixed">
-          {/* Specify widths so small columns don't wrap under others */}
           <colgroup>
             <col style={{ width: "20%" }} />
             <col style={{ width: "18%" }} />
@@ -121,29 +204,30 @@ export default function AdminContacts() {
 
           <tbody className="text-sm text-gray-700">
             {contacts.map((c, i) => (
-              <tr key={i} className="border-t hover:bg-gray-50 align-top">
-                {/* Contact */}
-                <td className="px-6 py-4 align-middle">
-                  <div>
-                    <p className="font-medium">{c.name}</p>
-                    <p className="text-xs text-gray-500">{c.title}</p>
-                  </div>
+              <tr
+                key={i}
+                className="border-t hover:bg-gray-50 cursor-pointer"
+                onClick={() => handleContactClick(c)}
+              >
+                <td className="px-6 py-4">
+                  <p className="font-medium text-blue-600 hover:underline">
+                    {c.name}
+                  </p>
+                  <p className="text-xs text-gray-500">{c.title}</p>
                 </td>
 
-                {/* Account */}
-                <td className="px-6 py-4 align-middle">
-                  <div className="flex items-center space-x-2 text-sm text-gray-700">
+                <td className="px-6 py-4">
+                  <div className="flex items-center space-x-2">
                     <BsBuilding className="text-gray-500" />
                     <span>{c.account}</span>
                   </div>
                 </td>
 
-                {/* Contact Info */}
-                <td className="px-6 py-4 align-middle text-sm">
+                <td className="px-6 py-4">
                   <div className="space-y-1">
                     <div className="flex items-center space-x-2">
                       <FiMail className="text-gray-500" />
-                      <span className="truncate">{c.email}</span>
+                      <span>{c.email}</span>
                     </div>
                     <div className="flex items-center space-x-2">
                       <FiPhone className="text-gray-500" />
@@ -156,39 +240,33 @@ export default function AdminContacts() {
                   </div>
                 </td>
 
-                {/* Department */}
-                <td className="px-6 py-4 align-middle text-sm">{c.department}</td>
+                <td className="px-6 py-4">{c.department}</td>
 
-                {/* Assigned To */}
-                <td className="px-6 py-4 align-middle whitespace-nowrap text-sm">
+                <td className="px-6 py-4">
                   <div className="flex items-center space-x-2">
                     <FiUser className="text-gray-500" />
                     <span>{c.assigned}</span>
                   </div>
                 </td>
 
-                {/* Created */}
-                <td className="px-6 py-4 align-middle whitespace-nowrap text-sm">
+                <td className="px-6 py-4">
                   <div className="flex items-center space-x-2">
                     <FiCalendar className="text-gray-500" />
                     <span>{c.created}</span>
                   </div>
                 </td>
 
-                {/* Actions */}
-                <td className="px-6 py-4 align-middle whitespace-nowrap text-center">
+                <td className="px-6 py-4 text-center">
                   <div className="flex justify-center space-x-3">
                     <button
                       className="p-2 rounded hover:bg-blue-50 text-blue-500 hover:text-blue-700"
                       aria-label="Edit"
-                      title="Edit"
                     >
                       <FiEdit />
                     </button>
                     <button
                       className="p-2 rounded hover:bg-red-50 text-red-500 hover:text-red-700"
                       aria-label="Delete"
-                      title="Delete"
                     >
                       <FiTrash2 />
                     </button>
@@ -200,7 +278,7 @@ export default function AdminContacts() {
         </table>
       </div>
 
-      {/* Modal */}
+      {/* Add Contact Modal */}
       {showModal && (
         <div
           id="modalBackdrop"
@@ -257,11 +335,13 @@ export default function AdminContacts() {
               </div>
               <div className="col-span-2">
                 <label className="block text-sm font-medium">Notes</label>
-                <textarea rows="3" className="w-full border px-2 py-1 rounded"></textarea>
+                <textarea
+                  rows="3"
+                  className="w-full border px-2 py-1 rounded"
+                ></textarea>
               </div>
             </form>
 
-            {/* Actions */}
             <div className="flex justify-end space-x-3 mt-6">
               <button
                 type="button"
@@ -270,7 +350,10 @@ export default function AdminContacts() {
               >
                 Cancel
               </button>
-              <button type="submit" className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600">
+              <button
+                type="submit"
+                className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600"
+              >
                 Save Contact
               </button>
             </div>

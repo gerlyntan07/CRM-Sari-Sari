@@ -13,6 +13,7 @@ export default function AdminHeader() {
     "/admin/accounts": "Accounts",
     "/admin/contacts": "Contacts",
     "/reports": "Reports",
+    "/admin/Audit": "Audit",
   };
 
   // Get current title from route

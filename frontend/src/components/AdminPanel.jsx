@@ -9,6 +9,10 @@ import {
   FiFileText,
   FiTarget,
   FiChevronDown,
+  FiCheckSquare,
+  FiCalendar,
+  FiPhoneCall,
+  FiClipboard,
 } from "react-icons/fi";
 import AdminHeader from "./AdminHeader";
 
@@ -124,7 +128,9 @@ export default function AdminPanel() {
                 Activity
               </span>
               <FiChevronDown
-                className={`transition-transform ${activityOpen ? "rotate-180" : ""}`}
+                className={`transition-transform ${
+                  activityOpen ? "rotate-180" : ""
+                }`}
               />
             </button>
 
@@ -134,19 +140,25 @@ export default function AdminPanel() {
                   to="/admin/tasks"
                   className={({ isActive }) => (isActive ? activeLink : normalLink)}
                 >
-                  Tasks
+                  <FiCheckSquare /> Tasks
                 </NavLink>
                 <NavLink
                   to="/admin/meetings"
                   className={({ isActive }) => (isActive ? activeLink : normalLink)}
                 >
-                  Meetings
+                  <FiCalendar /> Meetings
                 </NavLink>
                 <NavLink
                   to="/admin/calls"
                   className={({ isActive }) => (isActive ? activeLink : normalLink)}
                 >
-                  Calls
+                  <FiPhoneCall /> Calls
+                </NavLink>
+                <NavLink
+                  to="/admin/audit"
+                  className={({ isActive }) => (isActive ? activeLink : normalLink)}
+                >
+                  <FiClipboard /> Audit
                 </NavLink>
               </div>
             )}

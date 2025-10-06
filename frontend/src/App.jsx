@@ -9,6 +9,7 @@ import AdminPanel from "./components/AdminPanel";
 import AdminDashboard from "./pages/AdminDashboard";
 import AdminAccounts from "./pages/AdminAccounts"; 
 import AdminContacts from "./pages/AdminContacts";
+import AdminAudit from "./components/AdminAudit";
 
 function App() {
   return (
@@ -25,6 +26,7 @@ function App() {
           <Route path="dashboard" element={<AdminDashboard />} />
           <Route path="accounts" element={<AdminAccounts />} />
           <Route path="contacts" element={<AdminContacts/>}/>
+          <Route path="audit" element={<AdminAudit/>}/>
           {/* later you can add more: contacts, reports, etc. */}
         </Route>
       </Routes>

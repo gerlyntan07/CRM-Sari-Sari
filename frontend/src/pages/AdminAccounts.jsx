@@ -57,7 +57,7 @@ export default function AdminAccounts() {
               <td className="border px-4 py-2 flex justify-center space-x-3">
                 <button className="text-blue-500 hover:text-blue-700">
                   <FiEdit />
-                </button>
+                </button> 
                 <button className="text-red-500 hover:text-red-700">
                   <FiTrash2 />
                 </button>

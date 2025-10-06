@@ -14,6 +14,7 @@ import AdminHeader from "./AdminHeader";
 
 export default function AdminPanel() {
   const [salesOpen, setSalesOpen] = useState(true);
+  const [activityOpen, setActivityOpen] = useState(false);
   const location = useLocation();
 
   // styles
@@ -64,7 +65,9 @@ export default function AdminPanel() {
                 Sales
               </span>
               <FiChevronDown
-                className={`transition-transform ${salesOpen || isSalesActive ? "rotate-180" : ""}`}
+                className={`transition-transform ${
+                  salesOpen || isSalesActive ? "rotate-180" : ""
+                }`}
               />
             </button>
 
@@ -109,6 +112,45 @@ export default function AdminPanel() {
               </div>
             )}
           </div>
+
+          {/* Activity Dropdown */}
+          <div>
+            <button
+              className="w-full px-3 py-2 flex justify-between items-center text-sm font-medium text-gray-300 hover:bg-[#334155] rounded-lg transition"
+              onClick={() => setActivityOpen(!activityOpen)}
+            >
+              <span className="flex items-center gap-2">
+                <FiBriefcase className="text-lg" />
+                Activity
+              </span>
+              <FiChevronDown
+                className={`transition-transform ${activityOpen ? "rotate-180" : ""}`}
+              />
+            </button>
+
+            {activityOpen && (
+              <div className="ml-6 mt-2 space-y-1">
+                <NavLink
+                  to="/admin/tasks"
+                  className={({ isActive }) => (isActive ? activeLink : normalLink)}
+                >
+                  Tasks
+                </NavLink>
+                <NavLink
+                  to="/admin/meetings"
+                  className={({ isActive }) => (isActive ? activeLink : normalLink)}
+                >
+                  Meetings
+                </NavLink>
+                <NavLink
+                  to="/admin/calls"
+                  className={({ isActive }) => (isActive ? activeLink : normalLink)}
+                >
+                  Calls
+                </NavLink>
+              </div>
+            )}
+          </div>
         </nav>
 
         {/* Footer */}
@@ -123,7 +165,7 @@ export default function AdminPanel() {
         <AdminHeader />
 
         {/* Page Content */}
-      <main className="flex-1 p-6" style={{ backgroundColor: "#fffeee" }}>
+        <main className="flex-1 p-6" style={{ backgroundColor: "#fffeee" }}>
           <Outlet />
         </main>
       </div>

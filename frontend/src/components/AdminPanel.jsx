@@ -10,6 +10,7 @@ import {
   FiTarget,
   FiChevronDown,
 } from "react-icons/fi";
+import AdminHeader from "./AdminHeader";
 
 export default function AdminPanel() {
   const [salesOpen, setSalesOpen] = useState(true);
@@ -45,40 +46,22 @@ export default function AdminPanel() {
             </button>
             {salesOpen && (
               <div className="ml-6 space-y-2">
-                <Link
-                  to="/admin/accounts"
-                  className="flex items-center gap-2 px-2 py-1 hover:bg-[#475569] rounded cursor-pointer"
-                >
+                <Link to="/admin/accounts" className="flex items-center gap-2 px-2 py-1 hover:bg-[#475569] rounded cursor-pointer">
                   <FiUsers /> Accounts
                 </Link>
-                <Link
-                  to="/admin/contacts"
-                  className="flex items-center gap-2 px-2 py-1 hover:bg-[#475569] rounded cursor-pointer"
-                >
+                <Link to="/admin/contacts" className="flex items-center gap-2 px-2 py-1 hover:bg-[#475569] rounded cursor-pointer">
                   <FiUser /> Contacts
                 </Link>
-                <Link
-                  to="/admin/leads"
-                  className="flex items-center gap-2 px-2 py-1 hover:bg-[#475569] rounded cursor-pointer"
-                >
+                <Link to="/admin/leads" className="flex items-center gap-2 px-2 py-1 hover:bg-[#475569] rounded cursor-pointer">
                   <FiUserPlus /> Leads
                 </Link>
-                <Link
-                  to="/admin/deals"
-                  className="flex items-center gap-2 px-2 py-1 hover:bg-[#475569] rounded cursor-pointer"
-                >
+                <Link to="/admin/deals" className="flex items-center gap-2 px-2 py-1 hover:bg-[#475569] rounded cursor-pointer">
                   <FiBriefcase /> Deals
                 </Link>
-                <Link
-                  to="/admin/quotes"
-                  className="flex items-center gap-2 px-2 py-1 hover:bg-[#475569] rounded cursor-pointer"
-                >
+                <Link to="/admin/quotes" className="flex items-center gap-2 px-2 py-1 hover:bg-[#475569] rounded cursor-pointer">
                   <FiFileText /> Quotes
                 </Link>
-                <Link
-                  to="/admin/targets"
-                  className="flex items-center gap-2 px-2 py-1 hover:bg-[#475569] rounded cursor-pointer"
-                >
+                <Link to="/admin/targets" className="flex items-center gap-2 px-2 py-1 hover:bg-[#475569] rounded cursor-pointer">
                   <FiTarget /> Targets
                 </Link>
               </div>
@@ -88,8 +71,14 @@ export default function AdminPanel() {
       </div>
 
       {/* Right content area */}
-      <div className="flex-1 bg-[#fefce8] ml-64 overflow-y-auto">
-        <Outlet />
+      <div className="flex-1 bg-[#fefce8] ml-64 flex flex-col">
+        {/* Header */}
+        <AdminHeader />
+
+        {/* Page Content */}
+        <div className="flex-1 overflow-y-auto p-4">
+          <Outlet />
+        </div>
       </div>
     </div>
   );

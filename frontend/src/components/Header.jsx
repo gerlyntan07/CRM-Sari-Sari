@@ -8,7 +8,7 @@ const Header = () => (
                 {/* Logo */}
                 <div className="flex-shrink-0">
                     <span className="text-2xl font-black text-white">
-                        Tan<span className="text-accent">CRIMINAL</span>
+                        CRM<span className="text-accent"> Sari-Sari</span>
                     </span>
                 </div>
 

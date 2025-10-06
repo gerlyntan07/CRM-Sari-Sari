@@ -1,0 +1,142 @@
+import * as React from "react";
+import { useNavigate } from "react-router-dom";
+import { HiArrowLeft } from "react-icons/hi";
+import { FcGoogle } from "react-icons/fc";
+import { FiEye, FiEyeOff } from "react-icons/fi";
+// --- Back Button ---
+const BackButton = () => {
+  const navigate = useNavigate();
+  return (
+    <button
+      onClick={() => navigate("/")}
+      className="inline-flex items-center text-sm text-gray-500 hover:text-gray-700 transition mb-3 cursor-pointer"
+    >
+      <HiArrowLeft className="size-4 mr-1" /> Back to Home
+    </button>
+  );
+};
+
+// --- Input ---
+const InputField = ({ label, id, placeholder, type = "text", value, onChange, isPassVisible, onTogglePass }) => {
+  const isPass = id.toLowerCase().includes("password");
+  const inputType = isPass ? (isPassVisible ? "text" : "password") : type;
+
+  return (
+    <div className="flex flex-col space-y-2">
+      <label htmlFor={id} className="text-sm font-medium text-gray-700">
+        {label}
+      </label>
+      <div className="relative">
+        <input
+          id={id}
+          type={inputType}
+          placeholder={placeholder}
+          value={value}
+          onChange={onChange}
+          required
+          className="w-full bg-gray-50 border border-gray-200 px-4 py-2.5 rounded-lg text-gray-800 transition shadow-inner placeholder-gray-400 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/50 focus:outline-none cursor-pointer"
+        />
+        {isPass && (
+          <button
+            type="button"
+            onClick={onTogglePass}
+            className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-700 hover:text-gray-900 focus:outline-none z-10 transition-colors cursor-pointer"
+            aria-label={isPassVisible ? "Hide password" : "Show password"}
+          >
+            {isPassVisible ? <FiEyeOff className="size-5" /> : <FiEye className="size-5" />}
+          </button>
+        )}
+      </div>
+    </div>
+  );
+};
+
+// --- Main Login Form ---
+const Login = () => {
+  const [formData, setFormData] = React.useState({ email: "", password: "" });
+  const [isPassVisible, setIsPassVisible] = React.useState(false);
+
+  const handleChange = (e) => {
+    const { id, value } = e.target;
+    setFormData((prev) => ({ ...prev, [id]: value }));
+  };
+
+  const handleLogin = (e) => {
+    e.preventDefault();
+    console.log("Login Attempt:", formData);
+  };
+
+  return (
+    <div className="min-h-screen w-full bg-gray-100 font-sans text-gray-800 flex flex-col items-center">
+      <div className="w-full py-6 px-4 sm:px-12 lg:px-20 max-w-7xl">
+        <div className="flex items-center text-gray-800">
+          <span className="text-xl font-extrabold tracking-wider">CRM</span>
+        </div>
+      </div>
+
+      <main className="w-full max-w-lg font-inter mx-auto px-4 pt-6 pb-12">
+        <BackButton />
+
+        <div className="bg-white border border-gray-100 rounded-2xl shadow-xl p-6 md:p-10">
+          <header className="text-center mb-6">
+            <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight">Login</h1>
+            <p className="text-sm text-gray-500 mt-2 max-w-sm mx-auto">
+              Sign in to access your dashboard.
+            </p>
+          </header>
+
+          {/* Google Login */}
+          <button className="w-full mb-6 inline-flex items-center justify-center cursor-pointer rounded-lg h-12 px-6 text-base font-medium transition-all bg-white text-gray-700 border border-gray-300 hover:bg-gray-50 shadow-sm">
+            <FcGoogle className="size-5 mr-3" /> Continue with Google
+          </button>
+
+          {/* Separator */}
+          <div className="flex items-center my-6">
+            <div className="flex-grow border-t border-gray-300"></div>
+            <span className="flex-shrink mx-4 text-sm text-gray-500">OR</span>
+            <div className="flex-grow border-t border-gray-300"></div>
+          </div>
+
+          <form onSubmit={handleLogin} className="space-y-6 cursor-pointer">
+            <InputField
+              label="Email"
+              id="email"
+              type="email"
+              placeholder="you@example.com"
+              value={formData.email}
+              onChange={handleChange}
+            />
+
+            <InputField
+              label="Password"
+              id="password"
+              type="password"
+              placeholder="Enter your password"
+              value={formData.password}
+              onChange={handleChange}
+              isPassVisible={isPassVisible}
+              onTogglePass={() => setIsPassVisible((prev) => !prev)}
+              
+            />
+
+            <button
+              type="submit"
+              className="w-full mt-8 inline-flex items-center justify-center rounded-lg h-12 px-6 text-white font-bold tracking-wide transition-all disabled:opacity-50 bg-secondary text-gray-900 hover:bg-tertiary shadow-xl focus-visible:ring-2 focus-visible:ring-amber-500/50 cursor-pointer"
+            >
+              Log In
+            </button>
+          </form>
+
+          <div className="text-center mt-6">
+            <p className="text-sm text-gray-700">
+              Don't have an account?
+              <a href="/signup" className="font-bold text-amber-600 hover:text-amber-700 ml-1 cursor-pointer">Sign Up</a>
+            </p>
+          </div>
+        </div>
+      </main>
+    </div>
+  );
+};
+
+export default Login;

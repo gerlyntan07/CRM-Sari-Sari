@@ -22,10 +22,10 @@ const Header = () => (
 
                 {/* CTA Button */}
                 <div className="flex items-center space-x-4">
-                    <a href="#" className="text-sm font-medium text-white hover:text-accent transition duration-500 hidden sm:block">
+                    <a href="/login" className="text-sm font-medium text-white hover:text-accent transition duration-500 hidden sm:block">
                         Log In
                     </a>
-                    <a href="#" className="inline-flex items-center justify-center px-4 py-2 text-sm font-semibold rounded-full shadow-lg border border-secondary text-white bg-secondary hover:bg-accent hover:text-secondary hover:border-accent transition-all duration-500">
+                    <a href="/signup" className="inline-flex items-center justify-center px-4 py-2 text-sm font-semibold rounded-full shadow-lg border border-secondary text-white bg-secondary hover:bg-accent hover:text-secondary hover:border-accent transition-all duration-500">
                         Start for Free 
                     </a>
                 </div>

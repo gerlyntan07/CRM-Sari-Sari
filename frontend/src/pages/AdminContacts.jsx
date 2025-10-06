@@ -35,9 +35,7 @@ export default function AdminContacts() {
   ];
 
   const handleBackdropClick = (e) => {
-    if (e.target.id === "modalBackdrop") {
-      setShowModal(false);
-    }
+    if (e.target.id === "modalBackdrop") setShowModal(false);
   };
 
   const handleContactClick = (contact) => {
@@ -48,13 +46,12 @@ export default function AdminContacts() {
     setSelectedContact(null);
   };
 
-  // CONTACT DETAILS VIEW
-
+  // ===================== CONTACT DETAILS VIEW ===================== //
   if (selectedContact) {
     return (
       <div className="p-8">
         <div className="mb-6">
-          <h1 className="text-2xl font-semibold text-gray-900">
+          <h1 className="text-2xl font-semibold text-gray-800">
             {selectedContact.account}
           </h1>
           <span className="inline-block mt-1 bg-blue-600 text-white text-xs px-2 py-0.5 rounded">
@@ -62,77 +59,63 @@ export default function AdminContacts() {
           </span>
         </div>
 
-        {/* Buttons */}
         <div className="flex space-x-3 mb-6">
-          <button className="bg-red-500 text-white px-5 py-2 rounded hover:bg-red-600">
+          <button className="bg-red-500 text-white px-5 py-2 rounded-md hover:bg-red-600">
             Delete
           </button>
-          <button className="bg-gray-800 text-white px-5 py-2 rounded hover:bg-gray-900">
+          <button className="bg-gray-800 text-white px-5 py-2 rounded-md hover:bg-gray-900">
             Export
           </button>
           <button
             onClick={handleBackToList}
-            className="bg-gray-400 text-white px-5 py-2 rounded hover:bg-gray-500"
+            className="bg-gray-400 text-white px-5 py-2 rounded-md hover:bg-gray-500"
           >
             Back to List
           </button>
         </div>
 
-        {/* Details Card */}
-        <div className="bg-gray-100 rounded-lg p-6 w-full max-w-3xl shadow">
-          <h2 className="text-lg font-semibold mb-4">Contact Details</h2>
+        <div className="bg-white border border-gray-200 rounded-lg p-6 w-full max-w-3xl shadow-sm">
+          <h2 className="text-lg font-semibold mb-4 text-gray-800">
+            Contact Details
+          </h2>
           <div className="grid grid-cols-3 gap-y-4 text-sm text-gray-700">
             <p>
-              <span className="font-semibold">Primary Contact:</span>
-              <br />
+              <span className="font-semibold">Primary Contact:</span> <br />
               {selectedContact.name}
             </p>
             <p>
-              <span className="font-semibold">Email:</span>
-              <br />
+              <span className="font-semibold">Email:</span> <br />
               {selectedContact.email}
             </p>
             <p>
-              <span className="font-semibold">Created By:</span>
-              <br />
+              <span className="font-semibold">Created By:</span> <br />
               {selectedContact.createdBy} on {selectedContact.created}
             </p>
 
             <p>
-              <span className="font-semibold">Title:</span>
-              <br />
+              <span className="font-semibold">Title:</span> <br />
               {selectedContact.title}
             </p>
             <p>
-              <span className="font-semibold">Assigned To:</span>
-              <br />
+              <span className="font-semibold">Assigned To:</span> <br />
               {selectedContact.assigned}
             </p>
             <p>
-              <span className="font-semibold">Work Phone:</span>
-              <br />
+              <span className="font-semibold">Work Phone:</span> <br />
               {selectedContact.workPhone}
             </p>
 
             <p>
-              <span className="font-semibold">Account:</span>
-              <br />
+              <span className="font-semibold">Account:</span> <br />
               {selectedContact.account}
             </p>
             <p>
-              <span className="font-semibold">Mobile Phone:</span>
-              <br />
+              <span className="font-semibold">Mobile Phone:</span> <br />
               {selectedContact.mobile}
             </p>
             <p>
-              <span className="font-semibold">Last Updated:</span>
-              <br />
+              <span className="font-semibold">Last Updated:</span> <br />
               {selectedContact.lastUpdated}
-            </p>
-            <p>
-              <span className="font-semibold">Notes:</span>
-              <br />
-
             </p>
           </div>
         </div>
@@ -140,36 +123,34 @@ export default function AdminContacts() {
     );
   }
 
-  // CONTACTS TABLE VIEW
-
+  // ===================== CONTACTS TABLE VIEW ===================== //
   return (
-    <div className="p-6">
+    <div className="p-8">
       {/* Header */}
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="flex items-center text-xl font-semibold text-gray-700">
-          <FiUsers className="mr-2" /> Contacts Management
+      <div className="flex items-center justify-between mb-6">
+        <h2 className="flex items-center text-2xl font-semibold text-gray-800">
+          <FiUsers className="mr-2 text-blue-600" /> Contacts Management
         </h2>
 
         <button
           onClick={() => setShowModal(true)}
-          className="bg-black hover:bg-gray-800 text-white px-4 py-2 rounded-md flex items-center space-x-2"
+          className="flex items-center bg-black text-white px-4 py-2 rounded-md hover:bg-gray-800"
         >
-          <span className="text-lg">＋</span>
-          <span>Add Contact</span>
+          ＋ Add Contact
         </button>
       </div>
 
       {/* Search and Filters */}
-      <div className="flex items-center space-x-3 mb-4">
-        <div className="flex items-center border rounded px-3 py-2 w-96 bg-gray-50">
+      <div className="flex items-center space-x-3 mb-8">
+        <div className="flex items-center bg-white border border-gray-200 rounded-md px-3 py-2 w-1/3 shadow-sm">
           <FiSearch className="text-gray-500" />
           <input
             type="text"
-            placeholder="Search contacts by name, email, or title..."
-            className="ml-2 flex-1 outline-none bg-transparent"
+            placeholder="Search contacts..."
+            className="ml-2 bg-transparent w-full outline-none text-sm"
           />
         </div>
-        <select className="border px-3 py-2 rounded bg-gray-50">
+        <select className="border border-gray-300 rounded-md px-3 py-2 text-sm text-gray-600 bg-white shadow-sm">
           <option>All Accounts</option>
           <option>Acme Corporation</option>
           <option>TechStart Inc</option>
@@ -178,27 +159,17 @@ export default function AdminContacts() {
       </div>
 
       {/* Table */}
-      <div className="overflow-x-auto bg-white rounded-lg shadow border">
-        <table className="min-w-full table-fixed">
-          <colgroup>
-            <col style={{ width: "20%" }} />
-            <col style={{ width: "18%" }} />
-            <col style={{ width: "30%" }} />
-            <col style={{ width: "12%" }} />
-            <col style={{ width: "8%" }} />
-            <col style={{ width: "6%" }} />
-            <col style={{ width: "6%" }} />
-          </colgroup>
-
-          <thead>
-            <tr className="bg-gray-50 text-left text-sm text-gray-600">
-              <th className="px-6 py-3 border-b">Contact</th>
-              <th className="px-6 py-3 border-b">Account</th>
-              <th className="px-6 py-3 border-b">Contact Info</th>
-              <th className="px-6 py-3 border-b">Department</th>
-              <th className="px-6 py-3 border-b">Assigned To</th>
-              <th className="px-6 py-3 border-b text-left">Created</th>
-              <th className="px-6 py-3 border-b text-center">Actions</th>
+      <div className="overflow-x-auto">
+        <table className="w-full border border-gray-200 rounded-lg bg-white shadow-sm">
+          <thead className="bg-gray-100 text-left text-sm text-gray-600 border-b">
+            <tr>
+              <th className="py-3 px-4">Contact</th>
+              <th className="py-3 px-4">Account</th>
+              <th className="py-3 px-4">Contact Info</th>
+              <th className="py-3 px-4">Department</th>
+              <th className="py-3 px-4">Assigned To</th>
+              <th className="py-3 px-4">Created</th>
+              <th className="py-3 px-4 text-center">Actions</th>
             </tr>
           </thead>
 
@@ -206,24 +177,26 @@ export default function AdminContacts() {
             {contacts.map((c, i) => (
               <tr
                 key={i}
-                className="border-t hover:bg-gray-50 cursor-pointer"
+                className="border-b hover:bg-gray-50 cursor-pointer"
                 onClick={() => handleContactClick(c)}
               >
-                <td className="px-6 py-4">
-                  <p className="font-medium text-blue-600 hover:underline">
-                    {c.name}
-                  </p>
-                  <p className="text-xs text-gray-500">{c.title}</p>
+                <td className="py-3 px-4">
+                  <div>
+                    <div className="font-medium text-blue-600 hover:underline">
+                      {c.name}
+                    </div>
+                    <div className="text-xs text-gray-500">{c.title}</div>
+                  </div>
                 </td>
 
-                <td className="px-6 py-4">
+                <td className="py-3 px-4">
                   <div className="flex items-center space-x-2">
                     <BsBuilding className="text-gray-500" />
                     <span>{c.account}</span>
                   </div>
                 </td>
 
-                <td className="px-6 py-4">
+                <td className="py-3 px-4">
                   <div className="space-y-1">
                     <div className="flex items-center space-x-2">
                       <FiMail className="text-gray-500" />
@@ -240,34 +213,28 @@ export default function AdminContacts() {
                   </div>
                 </td>
 
-                <td className="px-6 py-4">{c.department}</td>
+                <td className="py-3 px-4">{c.department}</td>
 
-                <td className="px-6 py-4">
+                <td className="py-3 px-4">
                   <div className="flex items-center space-x-2">
                     <FiUser className="text-gray-500" />
                     <span>{c.assigned}</span>
                   </div>
                 </td>
 
-                <td className="px-6 py-4">
+                <td className="py-3 px-4">
                   <div className="flex items-center space-x-2">
                     <FiCalendar className="text-gray-500" />
                     <span>{c.created}</span>
                   </div>
                 </td>
 
-                <td className="px-6 py-4 text-center">
-                  <div className="flex justify-center space-x-3">
-                    <button
-                      className="p-2 rounded hover:bg-blue-50 text-blue-500 hover:text-blue-700"
-                      aria-label="Edit"
-                    >
+                <td className="py-3 px-4 text-center">
+                  <div className="flex justify-center space-x-2">
+                    <button className="text-blue-500 hover:text-blue-700">
                       <FiEdit />
                     </button>
-                    <button
-                      className="p-2 rounded hover:bg-red-50 text-red-500 hover:text-red-700"
-                      aria-label="Delete"
-                    >
+                    <button className="text-red-500 hover:text-red-700">
                       <FiTrash2 />
                     </button>
                   </div>
@@ -278,7 +245,7 @@ export default function AdminContacts() {
         </table>
       </div>
 
-      {/* Add Contact Modal */}
+      {/* Modal */}
       {showModal && (
         <div
           id="modalBackdrop"

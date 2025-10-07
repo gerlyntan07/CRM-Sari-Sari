@@ -15,6 +15,8 @@ export default function AdminHeader() {
     "/reports": "Reports",
     "/leads": "Leads",
     "/admin/Audit": "Audit",
+    "/admin/targets": "Targets",
+    "/admin/leads": "Leads",
   };
 
   // Get current title from route

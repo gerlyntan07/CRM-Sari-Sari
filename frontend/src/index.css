@@ -11,6 +11,10 @@
   --font-inter:"Inter", sans-serif;
 }
 
+* {
+  font-family: "Inter", sans-serif;
+}
+
 .hide-scrollbar {
   -ms-overflow-style: none;
   scrollbar-width: none;

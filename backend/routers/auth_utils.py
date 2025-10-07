@@ -1,4 +1,3 @@
-#backend/schemas/auth_utils.py
 from passlib.context import CryptContext
 from jose import JWTError, jwt
 from sqlalchemy.orm import Session
@@ -16,16 +15,19 @@ def get_db():
     finally:
         db.close()
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+# ✅ Use Argon2 instead of bcrypt (no 72-byte limit)
+pwd_context = CryptContext(schemes=["argon2"], deprecated="auto")
 
-SECRET_KEY = os.getenv("SECRET_KEY")
+SECRET_KEY = os.getenv("SECRET_KEY", "defaultsecretkey")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60
 
 def hash_password(password: str) -> str:
+    """Hash password safely using Argon2"""
     return pwd_context.hash(password)
 
 def verify_password(plain_password, hashed_password) -> bool:
+    """Verify password using Argon2"""
     return pwd_context.verify(plain_password, hashed_password)
 
 def create_access_token(data: dict, expires_delta: timedelta = None):
@@ -56,7 +58,7 @@ DEFAULT_AVATAR_BASE = "https://ik.imagekit.io/cafedejur/avatars"
 
 def get_default_avatar(first_name: str) -> str:
     if not first_name:
-        return f"{DEFAULT_AVATAR_BASE}/default.png"  # fallback
+        return f"{DEFAULT_AVATAR_BASE}/default.png"
     
     first_letter = first_name[0].upper()
     if first_letter not in string.ascii_uppercase:

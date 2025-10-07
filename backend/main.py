@@ -7,12 +7,15 @@ from database import Base, engine
 
 # Import models to create tables
 import models.auth
+import models.company
 
 # Import routers
 import routers.auth as auth_router
+import routers.company as company_router
 
 app = FastAPI()
-app.include_router(auth_router.router)
+app.include_router(auth_router.router, prefix='/api')
+app.include_router(company_router.router, prefix='/api')
 
 MEDIA_ROOT = os.getenv("MEDIA_ROOT", "./media")
 app.mount("/media", StaticFiles(directory=MEDIA_ROOT), name="media")

@@ -3,6 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { HiArrowLeft } from "react-icons/hi";
 import { FcGoogle } from "react-icons/fc";
 import { FiEye, FiEyeOff } from "react-icons/fi";
+import api from "../api";
+import useAuth from "../hooks/useAuth";
 // --- Back Button ---
 const BackButton = () => {
   const navigate = useNavigate();
@@ -55,15 +57,48 @@ const InputField = ({ label, id, placeholder, type = "text", value, onChange, is
 const Login = () => {
   const [formData, setFormData] = React.useState({ email: "", password: "" });
   const [isPassVisible, setIsPassVisible] = React.useState(false);
+  const [loginErr, setLoginErr] = React.useState(null);
+  const {isLoggedIn, login, userRole} = useAuth();
+  const navigate = useNavigate();
+
+  React.useEffect(() => {
+    document.title = "Login | Sari-Sari CRM";
+  }, []);
+
+  React.useEffect(() => {
+    if (isLoggedIn) {
+      if(userRole === 'CEO'){
+        navigate(`/admin`)
+      }else if(userRole === 'co-organizer'){
+        navigate(`/org/dashboard`)
+      }else if(userRole === 'staff'){
+        navigate(`/staff`)
+      }else if(userRole === 'admin'){
+        navigate(`/admin-dashboard`);
+      }
+    }
+  }, [isLoggedIn, navigate, userRole]);
 
   const handleChange = (e) => {
     const { id, value } = e.target;
     setFormData((prev) => ({ ...prev, [id]: value }));
   };
 
-  const handleLogin = (e) => {
+  const handleLogin = async(e) => {
     e.preventDefault();
-    console.log("Login Attempt:", formData);
+    setLoginErr(null);
+     try{
+      const res = await api.post(`/auth/login`, formData);
+      login(res.data);      
+      console.log(res.data);
+      setLoginErr(null);      
+     } catch (err) {
+      if (err.response && err.response.data && err.response.data.detail) {
+        setLoginErr(err.response.data.detail);
+      } else {
+        setLoginErr("Something went wrong. Please try again.");
+      }
+    }
   };
 
   return (
@@ -118,6 +153,12 @@ const Login = () => {
               onTogglePass={() => setIsPassVisible((prev) => !prev)}
 
             />
+
+            {loginErr && (
+              <div className="bg-red-100 border border-red-300 py-2 px-3 text-red-600">
+                {loginErr}
+              </div>
+            )}
 
             <button
               type="submit"

@@ -1,11 +1,13 @@
 import { useState, useRef, useEffect } from "react";
 import { FiBell, FiUser } from "react-icons/fi";
 import { useLocation } from "react-router-dom";
+import useAuth from '../hooks/useAuth.js'
 
 export default function AdminHeader() {
   const [open, setOpen] = useState(false);
   const dropdownRef = useRef(null);
   const location = useLocation();
+  const {logout} = useAuth();
 
   // Map routes to titles
   const routeTitles = {
@@ -70,7 +72,7 @@ export default function AdminHeader() {
                   Manage Account
                 </button>
                 <div className="border-t my-1"></div>
-                <button className="px-4 py-2 text-sm bg-red-500 text-white rounded mx-2 my-2 hover:bg-red-600">
+                <button onClick={logout} className="px-4 py-2 text-sm bg-red-500 text-white rounded mx-2 my-2 hover:bg-red-600">
                   Logout
                 </button>
               </div>

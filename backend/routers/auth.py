@@ -1,9 +1,10 @@
 #backend/routers/auth.py
 from fastapi import APIRouter, Depends, HTTPException, Response
+from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 from database import SessionLocal
 from models.auth import User
-from schemas.auth import UserCreate, UserLogin, UserResponse
+from schemas.auth import UserCreate, UserLogin, UserResponse, EmailCheck, EmailCheckResponse
 from .auth_utils import hash_password, verify_password, create_access_token, get_default_avatar
 import requests, os
 import string
@@ -19,12 +20,20 @@ def get_db():
 
 DEFAULT_PROFILE_PIC = "https://cdn-icons-png.flaticon.com/512/149/149071.png"
 
+@router.post("/email-check", response_model=EmailCheckResponse)
+def emailcheck(user: EmailCheck, response: Response, db: Session = Depends(get_db)):
+    db_user = db.query(User).filter(User.email == user.email).first()
+    if db_user:
+        raise HTTPException(status_code=400, detail="Account with this email already exists. Please enter another email.")
+    else:
+        return JSONResponse(content={"detail": "No existing email"})    
+
 # Manual signup
 @router.post("/signup", response_model=UserResponse)
 def signup(user: UserCreate, response: Response, db: Session = Depends(get_db)):
     db_user = db.query(User).filter(User.email == user.email).first()
     if db_user:
-        raise HTTPException(status_code=400, detail="Email already registered")
+        raise HTTPException(status_code=400, detail="Account with this email already exists. Please enter another email.")
 
     # Pick default avatar based on first letter
     profile_pic_url = get_default_avatar(user.first_name)
@@ -124,3 +133,11 @@ def google_login(token: dict, response: Response, db: Session = Depends(get_db))
     )
 
     return db_user
+
+@router.post("/logout")
+def logout(response: Response):
+    response.delete_cookie(
+        key="access_token",
+        path="/",
+    )
+    return {"detail": "Logged out successfully"}

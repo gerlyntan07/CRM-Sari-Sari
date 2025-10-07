@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom"; // ✅ add this at the top
 import { FiBriefcase, FiArrowLeft, FiEye, FiEyeOff, FiCheck } from "react-icons/fi";
 import { FcGoogle } from "react-icons/fc";
 import { HiArrowLeft } from "react-icons/hi";
+import api from '../api.js'
 
 // Helper for Tailwind class names
 const cn = (...i) => i.flat().filter(Boolean).join(" ");
@@ -33,11 +34,11 @@ const InputComponent = React.memo(({ label, id, placeholder, type = 'text', valu
   const inputClasses = cn(
     "w-full bg-gray-50 border px-4 py-2.5 rounded-lg text-gray-800 transition shadow-inner placeholder-gray-400 focus:outline-none cursor-pointer",
     isPass ? "pr-10" : "",
-    error 
+    error
       ? "border-red-500 focus:border-red-500 focus:ring-2 focus:ring-red-500/50"
       : "border-gray-200 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/50"
   );
-  
+
 
   return (
     <div className="flex flex-col space-y-2">
@@ -49,7 +50,7 @@ const InputComponent = React.memo(({ label, id, placeholder, type = 'text', valu
             {options.map((opt) => (<option key={opt} value={opt}>{opt}</option>))}
           </select>
         ) : (
-          <input id={id} type={inputType} placeholder={placeholder} value={value} onChange={onChange} required className={inputClasses}/>
+          <input id={id} type={inputType} placeholder={placeholder} value={value} onChange={onChange} required className={inputClasses} />
         )}
         {isPass && (
           <button type="button" onClick={() => onTogglePass(id)}
@@ -60,7 +61,7 @@ const InputComponent = React.memo(({ label, id, placeholder, type = 'text', valu
           </button>
         )}
       </div>
-      {error && <p className="mt-1 text-sm text-red-600 font-semibold">{error}</p>} 
+      {error && <p className="mt-1 text-sm text-red-600 font-semibold">{error}</p>}
     </div>
   );
 });
@@ -75,8 +76,8 @@ const StepIndicator = React.memo(({ currentStep, totalSteps }) => (
           <div className={cn(
             "size-10 flex items-center justify-center rounded-full font-bold transition-all duration-300",
             step.id === currentStep ? "bg-amber-500 text-white shadow-lg" :
-            step.id < currentStep ? "bg-green-500 text-white" :
-            "bg-gray-100 text-gray-500 border-2 border-gray-300"
+              step.id < currentStep ? "bg-green-500 text-white" :
+                "bg-gray-100 text-gray-500 border-2 border-gray-300"
           )}>
             {step.id < currentStep ? <FiCheck className="size-5" /> : step.id}
           </div>
@@ -96,13 +97,13 @@ const StepIndicator = React.memo(({ currentStep, totalSteps }) => (
 ));
 
 // Step 1 Content
-const Step1Content = React.memo(({ formData, handleChange, handleCodeChange, handleTogglePass, isPassVisible, formError, termsAccepted, handleTerms, isButtonDisabled }) => (
+const Step1Content = React.memo(({ formData, handleChange, handleCodeChange, handleTogglePass, isPassVisible, formError, termsAccepted, handleTerms, isButtonDisabled, handleSubmit }) => (
   <>
     <button type="button" className="w-full mb-6 inline-flex items-center justify-center rounded-lg h-12 px-6 text-base font-medium transition-all disabled:opacity-50 bg-white text-gray-700 border border-gray-300 hover:bg-gray-50 shadow-sm focus-visible:ring-2 focus-visible:ring-gray-300 focus-visible:outline-none cursor-pointer">
       <FcGoogle className="size-5 mr-3" />
       Or Sign up with Google
     </button>
-    
+
     <div className="flex items-center my-6">
       <div className="flex-grow border-t border-gray-300"></div>
       <span className="flex-shrink mx-4 text-sm text-gray-500">OR</span>
@@ -111,8 +112,8 @@ const Step1Content = React.memo(({ formData, handleChange, handleCodeChange, han
 
     <div className="space-y-6">
       <div className="md:flex md:space-x-4 space-y-6 md:space-y-0">
-        <div className="md:w-1/2"><Input label="First Name" id="firstName" placeholder="John" value={formData.firstName} onChange={handleChange} /></div>
-        <div className="md:w-1/2"><Input label="Last Name" id="lastName" placeholder="Doe" value={formData.lastName} onChange={handleChange} /></div>
+        <div className="md:w-1/2"><Input label="First Name" id="first_name" placeholder="John" value={formData.first_name} onChange={handleChange} /></div>
+        <div className="md:w-1/2"><Input label="Last Name" id="last_name" placeholder="Doe" value={formData.last_name} onChange={handleChange} /></div>
       </div>
 
       <div className="flex flex-col space-y-2">
@@ -121,35 +122,35 @@ const Step1Content = React.memo(({ formData, handleChange, handleCodeChange, han
           <select id="countryCode" value={formData.countryCode} onChange={handleCodeChange} className="flex-shrink-0 bg-gray-50 border border-gray-200 px-3 py-2.5 rounded-lg text-gray-800 transition shadow-inner focus:border-amber-500 focus:ring-2 focus:ring-amber-500/50 focus:outline-none cursor-pointer">
             {COUNTRY_CODES.map((c) => <option key={c.code} value={c.code}>{c.code} ({c.name})</option>)}
           </select>
-          <input id="phoneNumber" type="tel" placeholder="000 000 0000" value={formData.phoneNumber} onChange={handleChange} className="w-full bg-gray-50 border border-gray-200 px-4 py-2.5 rounded-lg text-gray-800 transition shadow-inner placeholder-gray-400 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/50 focus:outline-none cursor-pointer"/>
+          <input id="phone_number" type="tel" placeholder="000 000 0000" value={formData.phone_number} onChange={handleChange} className="w-full bg-gray-50 border border-gray-200 px-4 py-2.5 rounded-lg text-gray-800 transition shadow-inner placeholder-gray-400 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/50 focus:outline-none cursor-pointer" />
         </div>
       </div>
 
       <Input label="Email Address" id="email" type="email" placeholder="you@company.com" value={formData.email} onChange={handleChange} />
-      <Input label="Password" id="password" placeholder="Min 8 characters" value={formData.password} onChange={handleChange} isVisible={isPassVisible.password} onTogglePass={handleTogglePass}/>
-      <Input label="Confirm Password" id="confirmPassword" placeholder="Confirm your password" value={formData.confirmPassword} onChange={handleChange} isVisible={isPassVisible.confirmPassword} onTogglePass={handleTogglePass} error={formError}/>
+      <Input label="Password" id="password" placeholder="Min 8 characters" value={formData.password} onChange={handleChange} isVisible={isPassVisible.password} onTogglePass={handleTogglePass} />
+      <Input label="Confirm Password" id="confirmPassword" placeholder="Confirm your password" value={formData.confirmPassword} onChange={handleChange} isVisible={isPassVisible.confirmPassword} onTogglePass={handleTogglePass} error={formError} />
 
       <div className="flex items-start pt-2">
-        <input id="terms" type="checkbox" checked={termsAccepted} onChange={handleTerms} className="size-4 mt-1 rounded text-amber-500 border-gray-300 focus:ring-amber-500 cursor-pointer"/>
+        <input id="terms" type="checkbox" checked={termsAccepted} onChange={handleTerms} className="size-4 mt-1 rounded text-amber-500 border-gray-300 focus:ring-amber-500 cursor-pointer" />
         <label htmlFor="terms" className="ml-3 text-sm font-medium text-gray-700 cursor-pointer">
           I accept the <a href="#" className="text-amber-600 hover:text-amber-700 font-semibold">Terms</a> and <a href="#" className="text-amber-600 hover:text-amber-700 font-semibold">Policy</a>.
         </label>
       </div>
     </div>
 
-    <button type="submit" disabled={isButtonDisabled} className="w-full mt-8 inline-flex items-center justify-center rounded-lg h-12 px-6 text-white font-bold tracking-wide transition-all duration-300 bg-secondary hover:bg-tertiary shadow-lg shadow-tertiary disabled:shadow-none focus-visible:outline-none cursor-pointer">
+    <button type="submit" onClick={handleSubmit} disabled={isButtonDisabled} className="w-full mt-8 inline-flex items-center justify-center rounded-lg h-12 px-6 text-white font-bold tracking-wide transition-all duration-300 bg-secondary hover:bg-tertiary shadow-lg shadow-tertiary disabled:shadow-none focus-visible:outline-none cursor-pointer">
       Continue to Company Details
     </button>
   </>
 ));
 
 // Step 2 Content
-const Step2Content = React.memo(({ formData, handleChange, formError, isSubmitted, isButtonDisabled, setStep, setIsSubmitted, setFormError }) => (
+const Step2Content = React.memo(({ handleSubmit, companyData, handleCompanyChange, formError, isSubmitted, isButtonDisabled, setStep, setIsSubmitted, setFormError }) => (
   <>
     <div className="space-y-6">
-      <Input label="Company Name" id="companyName" placeholder="Acme Corp" value={formData.companyName} onChange={handleChange} />
-      <Input label="Company Number" id="companyNumber" type="tel" placeholder="e.g., 555-123-4567" value={formData.companyNumber} onChange={handleChange} />
-      <Input label="Company Website" id="companyWebsite" type="url" placeholder="https://www.acme.com" value={formData.companyWebsite} onChange={handleChange} />
+      <Input label="Company Name" id="company_name" placeholder="Acme Corp" value={companyData.company_name} onChange={handleCompanyChange} />
+      <Input label="Company Number" id="company_number" type="tel" placeholder="e.g., 555-123-4567" value={companyData.company_number} onChange={handleCompanyChange} />
+      <Input label="Company Website" id="company_website" type="url" placeholder="https://www.acme.com" value={companyData.company_website} onChange={handleCompanyChange} />
     </div>
 
     {formError && (
@@ -164,12 +165,12 @@ const Step2Content = React.memo(({ formData, handleChange, formError, isSubmitte
     )}
 
     <div className="flex space-x-4 mt-8">
-      <button type="button" onClick={() => { setStep(1); setIsSubmitted(false); setFormError(null); }} 
+      <button type="button" onClick={() => { setStep(1); setIsSubmitted(false); setFormError(null); }}
         className="flex-1 inline-flex items-center justify-center rounded-lg h-12 px-6 text-gray-700 font-bold tracking-wide border border-gray-300 bg-white hover:bg-tertiary hover:text-white transition-colors focus-visible:ring-2 focus-visible:ring-gray-300 focus-visible:outline-none cursor-pointer">
         <FiArrowLeft className="size-4 mr-2" /> Back
       </button>
 
-      <button type="submit" disabled={isButtonDisabled} 
+      <button onClick={handleSubmit} type="submit" disabled={isButtonDisabled}
         className="flex-1 inline-flex items-center justify-center rounded-lg h-12 px-6 text-white font-bold tracking-wide transition-all duration-300 bg-tertiary hover:bg-accent hover:text-secondary shadow-xl shadow-amber-500/30 disabled:shadow-none focus-visible:ring-2 focus-visible:ring-amber-500/50 focus-visible:outline-none cursor-pointer">
         Create Account
       </button>
@@ -179,16 +180,19 @@ const Step2Content = React.memo(({ formData, handleChange, formError, isSubmitte
 
 // Main Component
 const Signup = () => {
-  const REQUIRED_FIELDS_STEP_1 = ['firstName', 'email', 'password'];
-  const REQUIRED_FIELDS_STEP_2 = ['companyName', 'companyNumber', 'companyWebsite'];
+  const REQUIRED_FIELDS_STEP_1 = ['first_name', 'email', 'password'];
+  const REQUIRED_FIELDS_STEP_2 = ['company_name', 'company_number', 'company_website'];
 
   const [step, setStep] = React.useState(1);
   const [formData, setFormData] = React.useState({
-    firstName: '', lastName: '', 
-    countryCode: '+63', phoneNumber: '', email: '', 
+    first_name: '', last_name: '',
+    phone_number: '', email: '',
     password: '', confirmPassword: '',
-    companyName: '', companyNumber: '', companyWebsite: '',
+    role: 'CEO'
   });
+  const [companyData, setCompanyData] = React.useState({
+    company_name: '', company_number: '', company_website: ''
+  })
   const [isPassVisible, setIsPassVisible] = React.useState({});
   const [termsAccepted, setTermsAccepted] = React.useState(false);
   const [formError, setFormError] = React.useState(null);
@@ -201,8 +205,8 @@ const Signup = () => {
       const nextData = { ...p, [id]: value };
       if (step === 1 && (id === 'password' || id === 'confirmPassword')) {
         const { password, confirmPassword } = nextData;
-        const newError = (password.length > 0 && confirmPassword.length > 0 && password !== confirmPassword) 
-          ? "Password doesn't match. Please try again." 
+        const newError = (password.length > 0 && confirmPassword.length > 0 && password !== confirmPassword)
+          ? "Password doesn't match. Please try again."
           : null;
         setFormError(prevError => (prevError !== newError ? newError : prevError));
       }
@@ -210,67 +214,173 @@ const Signup = () => {
     });
   }, [step]);
 
+  const handleCompanyChange = React.useCallback((e) => {
+    const { id, value } = e.target;
+    setIsSubmitted(false);
+    setCompanyData(p => {
+      const nextData = { ...p, [id]: value };
+      return nextData;
+    });
+  }, []);
+
   const handleCodeChange = React.useCallback((e) => setFormData(p => ({ ...p, countryCode: e.target.value })), []);
   const handleTogglePass = React.useCallback((fieldId) => setIsPassVisible(p => ({ ...p, [fieldId]: !p[fieldId] })), []);
   const handleTerms = React.useCallback((e) => setTermsAccepted(e.target.checked), []);
 
-  const handleSubmit = React.useCallback((e) => {
-    e.preventDefault();
-    setIsSubmitted(false);
+  const handleSubmit = async (e) => {
+  e.preventDefault();
+  setIsSubmitted(false);
+  setFormError(null);
 
-    if (step === 1) {
-      const allRequiredFilled = REQUIRED_FIELDS_STEP_1.every(field => formData[field].trim() !== '');
-      if (!allRequiredFilled || !termsAccepted) {
-        setFormError("Please fill in all required fields and accept the terms.");
-        return;
-      }
-      if (formData.password !== formData.confirmPassword) {
-        setFormError("The passwords you entered do not match. Please try again.");
-        return; 
-      }
-      setFormError(null);
-      setStep(2);
-    } else if (step === 2) {
-      const allRequiredFilled = REQUIRED_FIELDS_STEP_2.every(field => formData[field].trim() !== '');
-      if (!allRequiredFilled) {
-        setFormError("Please fill in all required company details.");
-        return;
-      }
-      setFormError(null);
-      setIsSubmitted(true);
+  if (step === 1) {
+    const allRequiredFilled = REQUIRED_FIELDS_STEP_1.every(field => formData[field].trim() !== '');
+    if (!allRequiredFilled || !termsAccepted) {
+      setFormError("Please fill in all required fields and accept the terms.");
+      return;
     }
-  }, [step, formData, termsAccepted, REQUIRED_FIELDS_STEP_1, REQUIRED_FIELDS_STEP_2]);
+    if (formData.password !== formData.confirmPassword) {
+      setFormError("The passwords you entered do not match. Please try again.");
+      return;
+    }
+
+    try {
+      const res1 = await api.post(`/auth/email-check`, { email: formData.email });
+      if (res1.data.detail === "No existing email") {
+        setFormError(null);
+        setStep(2);
+      }
+    } catch (err) {
+      if (err.response && err.response.data && err.response.data.detail) {
+        setFormError(err.response.data.detail);
+      } else {
+        setFormError("Something went wrong. Please try again.");
+      }
+    }
+  } else if (step === 2) {
+    const allRequiredFilled = REQUIRED_FIELDS_STEP_2.every(
+  field => (companyData[field] || '').trim() !== ''
+);
+if (!allRequiredFilled) {
+  setFormError("Please fill in all required company details.");
+  return;
+}
+
+
+    try {
+  // Remove confirmPassword before sending to backend
+  const { confirmPassword, ...cleanedFormData } = formData;
+
+  // Add +63 prefix
+  const finalFormData = {
+    ...cleanedFormData,
+    phone_number: `+63${cleanedFormData.phone_number}`,
+  };
+
+  console.log("📤 Sending payload:", finalFormData);
+
+  const res2 = await api.post(`/auth/signup`, finalFormData);
+  const ceoId = res2.data.id;
+
+  const companyPayload = {
+    ...companyData,
+    CEO_id: ceoId,
+    company_number: `+63${companyData.company_number}`,
+  };
+
+  const res3 = await api.post(`/company/create`, companyPayload);
+
+  setFormError(null);
+  setIsSubmitted(true);
+  console.log(`CEO: `, res2.data);
+      console.log(`Company: `, res3.data);
+} catch (err) {
+  if (err.response?.data?.detail) {
+    const detail = err.response.data.detail;
+
+    // Handle both string and object-based errors
+    if (Array.isArray(detail)) {
+      // FastAPI validation errors
+      const message = detail.map(e => e.msg).join(', ');
+      setFormError(message);
+    } else if (typeof detail === "object") {
+      setFormError(detail.msg || JSON.stringify(detail));
+    } else {
+      setFormError(detail);
+    }
+  } else {
+    setFormError("Something went wrong. Please try again.");
+  }
+}
+
+
+  }
+};
+
+
+  // const handleSubmit = React.useCallback((e) => {
+  //   e.preventDefault();
+  //   setIsSubmitted(false);
+
+  //   if (step === 1) {
+  //     const allRequiredFilled = REQUIRED_FIELDS_STEP_1.every(field => formData[field].trim() !== '');
+  //     if (!allRequiredFilled || !termsAccepted) {
+  //       setFormError("Please fill in all required fields and accept the terms.");
+  //       return;
+  //     }
+  //     if (formData.password !== formData.confirmPassword) {
+  //       setFormError("The passwords you entered do not match. Please try again.");
+  //       return;
+  //     }
+  //     setFormError(null);
+  //     setStep(2);
+  //   } else if (step === 2) {
+  //     const allRequiredFilled = REQUIRED_FIELDS_STEP_2.every(field => formData[field].trim() !== '');
+  //     if (!allRequiredFilled) {
+  //       setFormError("Please fill in all required company details.");
+  //       return;
+  //     }
+  //     setFormError(null);
+  //     setIsSubmitted(true);
+  //   }
+  // }, [step, formData, termsAccepted, REQUIRED_FIELDS_STEP_1, REQUIRED_FIELDS_STEP_2]);
 
   const isButtonDisabled = React.useMemo(() => {
-    if (step === 1) {
-      const allRequiredFilled = REQUIRED_FIELDS_STEP_1.every(field => formData[field].trim() !== '');
-      return !termsAccepted || !!formError || !allRequiredFilled;
-    }
-    if (step === 2) {
-      const allRequiredFilled = REQUIRED_FIELDS_STEP_2.every(field => formData[field].trim() !== '');
-      return !allRequiredFilled;
-    }
-    return true;
-  }, [step, termsAccepted, formError, formData, REQUIRED_FIELDS_STEP_1, REQUIRED_FIELDS_STEP_2]);
+  if (step === 1) {
+    const allRequiredFilled = REQUIRED_FIELDS_STEP_1.every(
+      field => (formData[field] || '').trim() !== ''
+    );
+    return !termsAccepted || !!formError || !allRequiredFilled;
+  }
+
+  if (step === 2) {
+    const allRequiredFilled = REQUIRED_FIELDS_STEP_2.every(
+      field => (companyData[field] || '').trim() !== ''
+    );
+    return !allRequiredFilled;
+  }
+
+  return true;
+}, [step, termsAccepted, formError, formData, REQUIRED_FIELDS_STEP_1, REQUIRED_FIELDS_STEP_2]);
+
 
   const currentStepInfo = STEPS.find(s => s.id === step);
 
   return (
     <div className="min-h-screen w-full bg-gray-100 font-sans text-gray-800 flex flex-col items-center">
-      
-      <div className="w-full py-6 px-4 sm:px-12 lg:px-20 max-w-7xl"> 
+
+      <div className="w-full py-6 px-4 sm:px-12 lg:px-20 max-w-7xl">
         <div className="flex items-center text-gray-800">
           <FiBriefcase className="size-6 text-amber-500 mr-2" />
           <span className="text-xl font-extrabold tracking-wider">CRM</span>
         </div>
       </div>
-      
- <div className="w-full max-w-lg px-4 pt-6"> 
-  <BackButton />
-</div>
 
-      <main className="w-full max-w-lg font-inter mx-auto px-4 pt-3 pb-12"> 
-  
+      <div className="w-full max-w-lg px-4 pt-6">
+        <BackButton />
+      </div>
+
+      <main className="w-full max-w-lg font-inter mx-auto px-4 pt-3 pb-12">
+
         <div className="bg-white border border-gray-100 rounded-2xl shadow-xl p-6 md:p-10">
           <header className="text-center mb-8">
             <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight">{currentStepInfo.title}</h1>
@@ -278,8 +388,8 @@ const Signup = () => {
           </header>
 
           <StepIndicator currentStep={step} totalSteps={STEPS.length} />
-          
-          <form onSubmit={handleSubmit} className="mt-8">
+
+          <form className="mt-8">
             {step === 1 && (
               <Step1Content
                 formData={formData}
@@ -291,12 +401,14 @@ const Signup = () => {
                 termsAccepted={termsAccepted}
                 handleTerms={handleTerms}
                 isButtonDisabled={isButtonDisabled}
+                handleSubmit={handleSubmit}
               />
             )}
             {step === 2 && (
-              <Step2Content 
-                formData={formData}
-                handleChange={handleChange}
+              <Step2Content
+                handleSubmit={handleSubmit}
+                companyData={companyData}
+                handleCompanyChange={handleCompanyChange}
                 formError={formError}
                 isSubmitted={isSubmitted}
                 isButtonDisabled={isButtonDisabled}
@@ -309,7 +421,7 @@ const Signup = () => {
             {step === 1 && (
               <div className="text-center mt-6">
                 <p className="text-sm text-gray-700">
-                  Already have an account? 
+                  Already have an account?
                   <a href="#" className="font-bold text-amber-600 hover:text-amber-700 ml-1 cursor-pointer">Log in</a>
                 </p>
               </div>

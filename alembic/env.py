@@ -10,7 +10,9 @@ sys.path.append(os.path.join(os.path.dirname(os.path.dirname(__file__)), "backen
 
 # Load your database & models
 from backend.database import Base, DATABASE_URL
-import backend.models.auth  # import your models here (add more as you create them)
+# import your models here (add more as you create them)
+import backend.models.auth
+import backend.models.company
 
 # Alembic Config object
 config = context.config

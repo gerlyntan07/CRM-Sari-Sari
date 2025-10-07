@@ -3,12 +3,10 @@ import { useNavigate } from "react-router-dom";
 import { HiArrowLeft } from "react-icons/hi";
 import { FiMail, FiLock, FiEye, FiEyeOff } from "react-icons/fi";
 
-// --- Back Button ---
 const BackButton = ({ onClick }) => {
-  const navigate = useNavigate();
   return (
     <button
-      onClick={onClick || (() => navigate("/login"))}
+      onClick={onClick}
       className="inline-flex items-center text-sm text-gray-500 hover:text-gray-700 transition mb-3 cursor-pointer"
     >
       <HiArrowLeft className="size-4 mr-1" /> Back
@@ -16,8 +14,15 @@ const BackButton = ({ onClick }) => {
   );
 };
 
-// --- Input Field (Left Icon + Show/Hide Password Support) ---
-const InputField = ({ label, id, placeholder, type = "text", value, onChange, icon: Icon }) => {
+const InputField = ({
+  label,
+  id,
+  placeholder,
+  type = "text",
+  value,
+  onChange,
+  icon: Icon,
+}) => {
   const [showPassword, setShowPassword] = React.useState(false);
   const isPassword = type === "password";
 
@@ -27,7 +32,7 @@ const InputField = ({ label, id, placeholder, type = "text", value, onChange, ic
         {label}
       </label>
       <div className="relative flex items-center">
-        {Icon && <Icon className="absolute left-3 text-gray-500 size-5" />} 
+        {Icon && <Icon className="absolute left-3 text-gray-500 size-5" />}
         <input
           id={id}
           type={isPassword && showPassword ? "text" : type}
@@ -43,7 +48,11 @@ const InputField = ({ label, id, placeholder, type = "text", value, onChange, ic
             onClick={() => setShowPassword((prev) => !prev)}
             className="absolute right-3 text-gray-500"
           >
-            {showPassword ? <FiEyeOff className="size-5" /> : <FiEye className="size-5" />} 
+            {showPassword ? (
+              <FiEyeOff className="size-5" />
+            ) : (
+              <FiEye className="size-5" />
+            )}
           </button>
         )}
       </div>
@@ -75,6 +84,7 @@ const OtpInput = ({ otp, setOtp }) => (
 );
 
 const ForgotPass = () => {
+  const navigate = useNavigate();
   const [step, setStep] = React.useState(1);
   const [email, setEmail] = React.useState("");
   const [otp, setOtp] = React.useState(["", "", "", "", "", ""]);
@@ -100,6 +110,14 @@ const ForgotPass = () => {
     alert("Password reset successfully!");
   };
 
+  const handleBackClick = () => {
+    if (step > 1) {
+      setStep(step - 1);
+    } else {
+      navigate("/login");
+    }
+  };
+
   return (
     <div className="min-h-screen w-full bg-gray-100 font-sans text-gray-800 flex flex-col items-center">
       <div className="w-full py-6 px-4 sm:px-12 lg:px-20 max-w-7xl">
@@ -109,13 +127,15 @@ const ForgotPass = () => {
       </div>
 
       <main className="w-full max-w-lg font-inter mx-auto px-4 pt-6 pb-12">
-        <BackButton onClick={() => (step > 1 ? setStep(step - 1) : null)} />
+        <BackButton onClick={handleBackClick} />
 
         <div className="bg-white border border-gray-100 rounded-2xl shadow-xl p-6 md:p-10">
           {step === 1 && (
             <>
               <header className="text-center mb-6">
-                <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight">Forgot Password</h1>
+                <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight">
+                  Forgot Password
+                </h1>
                 <p className="text-sm text-gray-500 mt-2 max-w-sm mx-auto">
                   Enter your email and we'll send you a verification code.
                 </p>
@@ -142,7 +162,9 @@ const ForgotPass = () => {
           {step === 2 && (
             <>
               <header className="text-center mb-6">
-                <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight">Enter Verification Code</h1>
+                <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight">
+                  Enter Verification Code
+                </h1>
                 <p className="text-sm text-gray-500 mt-2 max-w-sm mx-auto">
                   We've sent a 6-digit code to <strong>{email}</strong>.
                 </p>
@@ -161,8 +183,12 @@ const ForgotPass = () => {
           {step === 3 && (
             <>
               <header className="text-center mb-6">
-                <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight">Reset Password</h1>
-                <p className="text-sm text-gray-500 mt-2 max-w-sm mx-auto">Enter your new password below.</p>
+                <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight">
+                  Reset Password
+                </h1>
+                <p className="text-sm text-gray-500 mt-2 max-w-sm mx-auto">
+                  Enter your new password below.
+                </p>
               </header>
 
               <form onSubmit={handlePasswordSubmit} className="space-y-6">

@@ -221,7 +221,7 @@ export default function AdminLeads() {
   }
 
 
-  // MAIN TABLE VIEW ================================ 
+ {/* // MAIN TABLE VIEW ================================ */}
   return (
     <div className="p-8 font-inter">
       {/* Header */}
@@ -264,9 +264,10 @@ export default function AdminLeads() {
       </div>
 
       {/* Table */}
-      <div className="bg-white shadow-sm overflow-hidden border-b border-black">
+      <div className="bg-white shadow-sm overflow-hidden shadow-sm border-b border-gray-500">
+
         {/* Table Header */}
-        <div className="grid grid-cols-9 bg-gray-50 font-medium text-gray-700 px-4 py-2 text-sm border-b border-black">
+        <div className="grid grid-cols-9 bg-gray-100 font-medium text-gray-700 px-4 py-2 text-sm border-b border-gray-500 py-3 px-4">
           <div>Name</div>
           <div>Account</div>
           <div>Title</div>
@@ -282,7 +283,7 @@ export default function AdminLeads() {
         {leads.map((lead, i) => (
           <div
             key={i}
-            className="grid grid-cols-9 px-4 py-3 text-sm hover:bg-gray-100 transition cursor-pointer gap-x-6"
+            className="grid grid-cols-9 px-4 py-3 text-sm hover:bg-gray-100 transition cursor-pointer gap-x-6 py-3 px-4"
             onClick={() => handleLeadClick(lead)}
           >
             <div className="truncate">{lead.name}</div>

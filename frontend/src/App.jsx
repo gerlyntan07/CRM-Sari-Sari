@@ -12,6 +12,7 @@ import AdminContacts from "./pages/AdminContacts";
 import AdminLeads from "./pages/AdminLeads";
 import AdminAudit from "./components/AdminAudit";
 import AdminTargets from "./pages/AdminTargets";
+import AdminQuotes from "./pages/AdminQuotes";
 
 
 function App() {
@@ -32,6 +33,7 @@ function App() {
           <Route path="leads" element={<AdminLeads />} />
           <Route path="audit" element={<AdminAudit />} />
           <Route path="targets" element={<AdminTargets />} />
+          <Route path="quotes" element={<AdminQuotes />} />
 
           {/* later you can add more: contacts, reports, etc. */}
         </Route>

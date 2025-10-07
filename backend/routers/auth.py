@@ -1,15 +1,18 @@
 #backend/routers/auth.py
-from fastapi import APIRouter, Depends, HTTPException, Response
+from fastapi import APIRouter, Depends, HTTPException, Response, Cookie, Request
 from fastapi.responses import JSONResponse
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from database import SessionLocal
+from jose import jwt, JWTError
 from models.auth import User
-from schemas.auth import UserCreate, UserLogin, UserResponse, EmailCheck, EmailCheckResponse
+from schemas.auth import UserCreate, UserLogin, UserResponse, EmailCheck, EmailCheckResponse, UserWithCompany
 from .auth_utils import hash_password, verify_password, create_access_token, get_default_avatar
 import requests, os
 import string
 
 router = APIRouter(prefix="/auth", tags=["Auth"])
+
+SECRET_KEY = os.getenv("SECRET_KEY", "defaultsecretkey")
 
 def get_db():
     db = SessionLocal()
@@ -19,6 +22,30 @@ def get_db():
         db.close()
 
 DEFAULT_PROFILE_PIC = "https://cdn-icons-png.flaticon.com/512/149/149071.png"
+
+from fastapi import Request
+from sqlalchemy.orm import joinedload
+
+@router.get("/me", response_model=UserWithCompany)
+def get_me(request: Request, db: Session = Depends(get_db)):
+    access_token = request.cookies.get("access_token")
+    if not access_token:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    
+    try:
+        payload = jwt.decode(access_token, SECRET_KEY, algorithms=["HS256"])
+        user_id = int(payload.get("sub"))
+    except JWTError:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    
+    # ✅ Eagerly load company relationship
+    user = db.query(User).options(joinedload(User.company)).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    return user
+
+
 
 @router.post("/email-check", response_model=EmailCheckResponse)
 def emailcheck(user: EmailCheck, response: Response, db: Session = Depends(get_db)):
@@ -60,7 +87,7 @@ def signup(user: UserCreate, response: Response, db: Session = Depends(get_db)):
         httponly=True,
         secure=bool(os.getenv("COOKIE_SECURE", "False") == "True"),
         samesite="lax",
-        max_age=60 * 60,  # 1 hour
+        max_age=60 * 60 * 24 * 7,
         path="/"
     )
 
@@ -83,7 +110,7 @@ def login(user: UserLogin, response: Response, db: Session = Depends(get_db)):
         httponly=True,
         secure=bool(os.getenv("COOKIE_SECURE", "False") == "True"),
         samesite="lax",
-        max_age=60 * 60,
+        max_age=60 * 60 * 24 * 7,
         path="/"
     )
 
@@ -128,7 +155,7 @@ def google_login(token: dict, response: Response, db: Session = Depends(get_db))
         httponly=True,
         samesite="lax",
         secure=bool(os.getenv("COOKIE_SECURE", "False") == "True"),
-        max_age=60 * 60,
+        max_age=60 * 60 * 24 * 7,
         path="/"
     )
 

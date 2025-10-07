@@ -4,6 +4,7 @@ import { FiBriefcase, FiArrowLeft, FiEye, FiEyeOff, FiCheck } from "react-icons/
 import { FcGoogle } from "react-icons/fc";
 import { HiArrowLeft } from "react-icons/hi";
 import api from '../api.js'
+import useAuth from "../hooks/useAuth.js";
 
 // Helper for Tailwind class names
 const cn = (...i) => i.flat().filter(Boolean).join(" ");
@@ -96,10 +97,11 @@ const StepIndicator = React.memo(({ currentStep, totalSteps }) => (
   </div>
 ));
 
+
 // Step 1 Content
-const Step1Content = React.memo(({ formData, handleChange, handleCodeChange, handleTogglePass, isPassVisible, formError, termsAccepted, handleTerms, isButtonDisabled, handleSubmit }) => (
+const Step1Content = React.memo(({ formData, handleChange, handleCodeChange, handleTogglePass, isPassVisible, formError, termsAccepted, handleTerms, isButtonDisabled, handleSubmit, handleGoogleLogin }) => (
   <>
-    <button type="button" className="w-full mb-6 inline-flex items-center justify-center rounded-lg h-12 px-6 text-base font-medium transition-all disabled:opacity-50 bg-white text-gray-700 border border-gray-300 hover:bg-gray-50 shadow-sm focus-visible:ring-2 focus-visible:ring-gray-300 focus-visible:outline-none cursor-pointer">
+    <button type="button" onClick={handleGoogleLogin} className="w-full mb-6 inline-flex items-center justify-center rounded-lg h-12 px-6 text-base font-medium transition-all disabled:opacity-50 bg-white text-gray-700 border border-gray-300 hover:bg-gray-50 shadow-sm focus-visible:ring-2 focus-visible:ring-gray-300 focus-visible:outline-none cursor-pointer">
       <FcGoogle className="size-5 mr-3" />
       Or Sign up with Google
     </button>
@@ -197,6 +199,11 @@ const Signup = () => {
   const [termsAccepted, setTermsAccepted] = React.useState(false);
   const [formError, setFormError] = React.useState(null);
   const [isSubmitted, setIsSubmitted] = React.useState(false);
+  const {login} = useAuth();
+
+  React.useEffect(() => {
+      document.title = "Sign Up | Sari-Sari CRM";
+    }, []);
 
   const handleChange = React.useCallback((e) => {
     const { id, value } = e.target;
@@ -291,8 +298,7 @@ if (!allRequiredFilled) {
 
   setFormError(null);
   setIsSubmitted(true);
-  console.log(`CEO: `, res2.data);
-      console.log(`Company: `, res3.data);
+  login(res2.data);
 } catch (err) {
   if (err.response?.data?.detail) {
     const detail = err.response.data.detail;
@@ -316,33 +322,40 @@ if (!allRequiredFilled) {
   }
 };
 
+const handleGoogleLogin = async () => {
+  try {
+    const googleAuth = window.google.accounts.id;
+    googleAuth.prompt(); // or your existing Google Sign-In init
 
-  // const handleSubmit = React.useCallback((e) => {
-  //   e.preventDefault();
-  //   setIsSubmitted(false);
+    // Assuming you’re using the new Google Identity API
+    window.google.accounts.id.initialize({
+      client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID,
+      callback: async (response) => {
+        const { credential } = response;
+        const res = await api.post("/auth/google", { id_token: credential });
 
-  //   if (step === 1) {
-  //     const allRequiredFilled = REQUIRED_FIELDS_STEP_1.every(field => formData[field].trim() !== '');
-  //     if (!allRequiredFilled || !termsAccepted) {
-  //       setFormError("Please fill in all required fields and accept the terms.");
-  //       return;
-  //     }
-  //     if (formData.password !== formData.confirmPassword) {
-  //       setFormError("The passwords you entered do not match. Please try again.");
-  //       return;
-  //     }
-  //     setFormError(null);
-  //     setStep(2);
-  //   } else if (step === 2) {
-  //     const allRequiredFilled = REQUIRED_FIELDS_STEP_2.every(field => formData[field].trim() !== '');
-  //     if (!allRequiredFilled) {
-  //       setFormError("Please fill in all required company details.");
-  //       return;
-  //     }
-  //     setFormError(null);
-  //     setIsSubmitted(true);
-  //   }
-  // }, [step, formData, termsAccepted, REQUIRED_FIELDS_STEP_1, REQUIRED_FIELDS_STEP_2]);
+        const googleUser = res.data; // returned user info (NOT saved yet)
+        setFormData(prev => ({
+          ...prev,
+          first_name: googleUser.first_name,
+          last_name: googleUser.last_name,
+          email: googleUser.email,
+          profile_picture: googleUser.profile_picture,
+          auth_provider: "google",
+        }));
+
+        // Skip to step 2
+        setStep(2);
+      },
+    });
+
+    window.google.accounts.id.prompt();
+  } catch (err) {
+    console.error("Google login failed:", err);
+    setFormError("Google login failed. Please try again.");
+  }
+};
+
 
   const isButtonDisabled = React.useMemo(() => {
   if (step === 1) {
@@ -402,6 +415,7 @@ if (!allRequiredFilled) {
                 handleTerms={handleTerms}
                 isButtonDisabled={isButtonDisabled}
                 handleSubmit={handleSubmit}
+                handleGoogleLogin={handleGoogleLogin}
               />
             )}
             {step === 2 && (
@@ -422,7 +436,7 @@ if (!allRequiredFilled) {
               <div className="text-center mt-6">
                 <p className="text-sm text-gray-700">
                   Already have an account?
-                  <a href="#" className="font-bold text-amber-600 hover:text-amber-700 ml-1 cursor-pointer">Log in</a>
+                  <a href="/login" className="font-bold text-amber-600 hover:text-amber-700 ml-1 cursor-pointer">Log in</a>
                 </p>
               </div>
             )}

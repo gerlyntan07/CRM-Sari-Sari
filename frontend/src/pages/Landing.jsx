@@ -83,7 +83,7 @@ const CTASection = () => (
         <h2 className="text-4xl sm:text-5xl font-bold text-secondary mb-4">Start Building Your Future, Today.</h2>
         <p className="text-xl text-gray-400 mb-10">Join thousands leveraging AuraCRM's intelligent platform.</p>
         <a
-            href="#"
+            href="/signup"
             className="px-12 py-4 text-lg font-bold rounded-xl shadow-2xl bg-accent border border-secondary text-white bg-secondary hover:bg-accent hover:text-secondary hover:border-accent transition-all duration-400"
         >
             Start 15-Day Free Trial
@@ -96,8 +96,8 @@ const Footer = () => (
     <footer className="bg-secondary text-white border-t py-10">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-2 md:grid-cols-5 gap-8">
             <div>
-                <span className="text-xl font-white">Tan<span className="text-accent">CRM</span></span>
-                <p className="text-sm text-white mt-4">&copy; 2025 TanCRM, Inc.</p>
+                <span className="text-xl font-white">CRM<span className="text-accent">Sari-Sari</span></span>
+                <p className="text-sm text-white mt-4">&copy; 2025 CRMSari-Sari, Inc.</p>
             </div>
             {[
                 { title: "Platform", links: ["AI Features", "Automation", "Integrations", "APIs"] },

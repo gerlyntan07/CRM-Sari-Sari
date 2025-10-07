@@ -29,12 +29,33 @@ class EmailCheck(BaseModel):
 class EmailCheckResponse(BaseModel):
     detail: str
 
+class CompanyBase(BaseModel):
+    id: int
+    company_name: str
+    company_number: str
+    company_website: Optional[str] = None
+    company_logo: Optional[str] = None
+    CEO_id: int
+
+    class Config:
+        orm_mode = True
+class CompanyOut(CompanyBase):
+    pass
+
+class UserWithCompany(UserBase):
+    id: int
+    auth_provider: str
+    profile_picture: Optional[str] 
+    company: Optional[CompanyBase] = None
+
+    class Config:
+        orm_mode = True
 
 # ✅ Response model (includes extra fields)
 class UserResponse(UserBase):
     id: int
     auth_provider: str
-    profile_picture: Optional[str]
+    profile_picture: Optional[str]    
 
     class Config:
         orm_mode = True

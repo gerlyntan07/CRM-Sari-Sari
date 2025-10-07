@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { NavLink, Outlet, useLocation } from "react-router-dom";
 import {
   FiHome,
@@ -15,11 +15,17 @@ import {
   FiClipboard,
 } from "react-icons/fi";
 import AdminHeader from "./AdminHeader";
+import useFetchUser from "../hooks/useFetchUser";
 
 export default function AdminPanel() {
   const [salesOpen, setSalesOpen] = useState(true);
   const [activityOpen, setActivityOpen] = useState(false);
   const location = useLocation();
+  const {fetchUser} = useFetchUser();
+
+  useEffect(() => {
+    fetchUser();
+  }, [])
 
   // styles
   const activeLink =
@@ -37,6 +43,8 @@ export default function AdminPanel() {
     "/admin/targets",
   ];
   const isSalesActive = salesRoutes.includes(location.pathname);
+
+  
 
   return (
     <div className="flex h-screen bg-gray-100">

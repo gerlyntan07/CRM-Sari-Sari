@@ -2,12 +2,14 @@ import { useState, useRef, useEffect } from "react";
 import { FiBell, FiUser } from "react-icons/fi";
 import { useLocation } from "react-router-dom";
 import useAuth from '../hooks/useAuth.js'
+import useFetchUser from "../hooks/useFetchUser.js";
 
 export default function AdminHeader() {
   const [open, setOpen] = useState(false);
   const dropdownRef = useRef(null);
   const location = useLocation();
   const {logout} = useAuth();
+  const {user, fetchUser} = useFetchUser();
 
   // Map routes to titles
   const routeTitles = {
@@ -15,11 +17,16 @@ export default function AdminHeader() {
     "/admin/accounts": "Accounts",
     "/admin/contacts": "Contacts",
     "/reports": "Reports",
+    "/leads": "Leads",
     "/admin/Audit": "Audit",
     "/admin/targets": "Targets",
     "/admin/leads": "Leads",
     "/admin/quotes": "Quotes",
   };
+
+  useEffect(() => {
+    fetchUser();
+  }, [])
 
   // Get current title from route
   const currentTitle = routeTitles[location.pathname] || "Admin Panel";
@@ -56,9 +63,9 @@ export default function AdminHeader() {
             onClick={() => setOpen(!open)}
             className="flex items-center gap-2 cursor-pointer hover:bg-gray-100 px-2 py-1 rounded"
           >
-            <FiUser className="text-xl text-gray-700" />
+            <img src={user?.profile_picture} alt="" className="w-8 aspect-square object-cover rounded-full" />
             <span className="text-sm font-medium text-gray-700">
-              Joshua Vergara
+              {user?.first_name} {user?.last_name}
             </span>
           </button>
 

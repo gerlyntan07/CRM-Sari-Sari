@@ -1,11 +1,15 @@
 import { FiSearch } from "react-icons/fi";
+import useFetchUser from "../hooks/useFetchUser";
 
 export default function AdminDashboard() {
+  const {user} = useFetchUser();
+
+
   return (
     <div className="p-6">
       {/* Welcome */}
       <h1 className="text-xl font-semibold mb-6">
-        Welcome back, <span className="text-gray-700">Joshua Vergara!</span>
+        Welcome back, <span className="text-gray-700">{user?.first_name} {user?.last_name}!</span>
       </h1>
 
       {/* Search + Quick Actions */}

@@ -28,4 +28,4 @@ class User(Base):
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
     manager = relationship("User", remote_side=[id])
-    company = relationship("Company", back_populates="owner", cascade="all, delete-orphan")
+    company = relationship("Company", back_populates="owner", uselist=False, cascade="all, delete-orphan")

@@ -90,7 +90,6 @@ const Login = () => {
      try{
       const res = await api.post(`/auth/login`, formData);
       login(res.data);      
-      console.log(res.data);
       setLoginErr(null);      
      } catch (err) {
       if (err.response && err.response.data && err.response.data.detail) {

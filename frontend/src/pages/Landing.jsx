@@ -123,7 +123,7 @@ const Footer = () => (
 // --- Landing Page Wrapper ---
 const Landing = () => { 
      useEffect(() => {
-    document.title = "Sari-Sari CRM | Sari-Sari CRM";
+    document.title = "Sari-Sari CRM";
   }, []);
     return (
    <main className="font-inter">

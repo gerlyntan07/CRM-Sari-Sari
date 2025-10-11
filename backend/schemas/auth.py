@@ -7,7 +7,7 @@ class UserBase(BaseModel):
     last_name: str
     email: EmailStr
     role: str
-    phone_number: str
+    phone_number: Optional[str] = None
 
 
 # ✅ For creating a new user

@@ -5,6 +5,7 @@ import { FcGoogle } from "react-icons/fc";
 import { FiEye, FiEyeOff } from "react-icons/fi";
 import api from "../api";
 import useAuth from "../hooks/useAuth";
+import { jwtDecode } from "jwt-decode"; 
 // --- Back Button ---
 const BackButton = () => {
   const navigate = useNavigate();
@@ -100,6 +101,50 @@ const Login = () => {
     }
   };
 
+  React.useEffect(() => {
+    const script = document.createElement('script');
+    script.src = 'https://accounts.google.com/gsi/client';
+    script.async = true;
+    script.defer = true;
+    script.onload = () => {
+      if (window.google) {
+        window.google.accounts.id.initialize({
+          client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID,
+          callback: handleGoogleCallback,
+        });
+        window.google.accounts.id.renderButton(
+          document.getElementById('googleLoginBtn'),
+          { theme: 'outline', size: 'large', text: "signin_with" }
+        );
+      }
+    };
+    document.body.appendChild(script);
+
+    return () => {
+      if (document.body.contains(script)) {
+        document.body.removeChild(script);
+      }
+    };
+  }, []);
+
+const handleGoogleCallback = async (response) => {
+  try {
+    const user = jwtDecode(response.credential);
+    console.log("Decoded Google User:", user);
+
+    // Send the ID token to backend for verification
+    const res = await api.post("/auth/google", { id_token: response.credential });
+
+    login(res.data); // use your existing login hook
+    console.log("Logged in with Google:", res.data);
+
+  } catch (error) {
+    console.error("Google login failed:", error);
+    setLoginErr("Google login failed. Please try again.");
+  }
+};
+
+
   return (
     <div className="min-h-screen w-full bg-gray-100 font-sans text-gray-800 flex flex-col items-center">
       <div className="w-full py-6 px-4 sm:px-12 lg:px-20 max-w-7xl">
@@ -119,10 +164,8 @@ const Login = () => {
             </p>
           </header>
 
-          {/* Google Login */}
-          <button className="w-full mb-6 inline-flex items-center justify-center cursor-pointer rounded-lg h-12 px-6 text-base font-medium transition-all bg-white text-gray-700 border border-gray-300 hover:bg-gray-50 shadow-sm">
-            <FcGoogle className="size-5 mr-3" /> Continue with Google
-          </button>
+          <div id="googleLoginBtn"></div>
+
 
           {/* Separator */}
           <div className="flex items-center my-6">

@@ -22,6 +22,8 @@ export default function AdminHeader() {
     "/admin/targets": "Targets",
     "/admin/leads": "Leads",
     "/admin/quotes": "Quotes",
+    "/admin/users": "Users",
+
   };
 
   useEffect(() => {

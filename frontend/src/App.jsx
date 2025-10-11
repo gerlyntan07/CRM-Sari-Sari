@@ -17,6 +17,8 @@ import AdminLeads from "./pages/AdminLeads";
 import AdminAudit from "./components/AdminAudit";
 import AdminTargets from "./pages/AdminTargets";
 import AdminQuotes from "./pages/AdminQuotes";
+import AdminUser from "./pages/AdminUser";          // ✅ New import
+
 
 // Sales layout + pages
 import SalesPanel from "./components/SalesPanel";
@@ -46,6 +48,8 @@ function App() {
           <Route path="audit" element={<AdminAudit />} />
           <Route path="targets" element={<AdminTargets />} />
           <Route path="quotes" element={<AdminQuotes />} />
+          <Route path="users" element={<AdminUser />} />
+
           {/* Add more admin routes here */}
         </Route>
 

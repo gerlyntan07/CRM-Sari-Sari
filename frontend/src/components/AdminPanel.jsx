@@ -13,6 +13,8 @@ import {
   FiCalendar,
   FiPhoneCall,
   FiClipboard,
+  FiSettings,
+  FiShield,
 } from "react-icons/fi";
 import AdminHeader from "./AdminHeader";
 import useFetchUser from "../hooks/useFetchUser";
@@ -20,12 +22,13 @@ import useFetchUser from "../hooks/useFetchUser";
 export default function AdminPanel() {
   const [salesOpen, setSalesOpen] = useState(true);
   const [activityOpen, setActivityOpen] = useState(false);
+  const [userMgmtOpen, setUserMgmtOpen] = useState(false);
   const location = useLocation();
-  const {fetchUser} = useFetchUser();
+  const { fetchUser } = useFetchUser();
 
   useEffect(() => {
     fetchUser();
-  }, [])
+  }, []);
 
   // styles
   const activeLink =
@@ -43,8 +46,6 @@ export default function AdminPanel() {
     "/admin/targets",
   ];
   const isSalesActive = salesRoutes.includes(location.pathname);
-
-  
 
   return (
     <div className="flex h-screen bg-gray-100">
@@ -132,7 +133,7 @@ export default function AdminPanel() {
               onClick={() => setActivityOpen(!activityOpen)}
             >
               <span className="flex items-center gap-2">
-                <FiBriefcase className="text-lg" />
+                <FiClipboard className="text-lg" />
                 Activity
               </span>
               <FiChevronDown
@@ -167,6 +168,35 @@ export default function AdminPanel() {
                   className={({ isActive }) => (isActive ? activeLink : normalLink)}
                 >
                   <FiClipboard /> Audit
+                </NavLink>
+              </div>
+            )}
+          </div>
+
+          {/* User Management Dropdown */}
+          <div>
+            <button
+              className="w-full px-3 py-2 flex justify-between items-center text-sm font-medium text-gray-300 hover:bg-[#334155] rounded-lg transition"
+              onClick={() => setUserMgmtOpen(!userMgmtOpen)}
+            >
+              <span className="flex items-center gap-2">
+                <FiSettings className="text-lg" />
+                User Management
+              </span>
+              <FiChevronDown
+                className={`transition-transform ${
+                  userMgmtOpen ? "rotate-180" : ""
+                }`}
+              />
+            </button>
+
+            {userMgmtOpen && (
+              <div className="ml-6 mt-2 space-y-1">
+                <NavLink
+                  to="/admin/users"
+                  className={({ isActive }) => (isActive ? activeLink : normalLink)}
+                >
+                  <FiUsers /> Users
                 </NavLink>
               </div>
             )}

@@ -24,6 +24,13 @@ import AdminUser from "./pages/AdminUser";          // ✅ New import
 import SalesPanel from "./components/SalesPanel";
 import SalesOverview from "./pages/SalesOverview";
 
+// Manager layout + pages
+import ManagerPanel from "./components/ManagerPanel";
+import ManagerOverview from "./pages/ManagerOverview";
+import ManagerAccounts from "./pages/ManagerAccounts";
+import ManagerContacts from "./pages/ManagerContacts";
+
+
 
 
 function App() {
@@ -58,6 +65,13 @@ function App() {
           <Route index element={<Navigate to="overview" replace />} />
           <Route path="overview" element={<SalesOverview />} />
 
+          {/* Manager Layout */}
+        <Route path="/manager" element={<ManagerPanel />}>
+        <Route index element={<Navigate to="overview" replace />} />
+        <Route path="overview" element={<ManagerOverview />} />
+        <Route path="accounts" element={<ManagerAccounts />} />
+        <Route path="contacts" element={<ManagerContacts />} />
+        </Route>
 
         </Route>
       </Routes>

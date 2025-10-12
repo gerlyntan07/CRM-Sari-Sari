@@ -60,9 +60,8 @@ function App() {
         <Route path="/sales" element={<SalesPanel />}>
           <Route index element={<Navigate to="overview" replace />} />
           <Route path="overview" element={<SalesOverview />} />
-          {/* ✅ Nested Sales Hub routes */}
           <Route path="hub/*" element={<SalesHub />}>
-            <Route index element={<Navigate to="activities" replace />} />
+            <Route index element={<Navigate to="mytasks" replace />} />
             <Route path="activities" element={<SalesActivities />} />
             <Route path="mytasks" element={<SalesMyTask />} />
           </Route>

@@ -1,41 +1,90 @@
-import { FiClock, FiPhone, FiEdit, FiTrash2 } from "react-icons/fi";
+import React from "react";
+import { FiClock, FiPhone, FiEdit2, FiTrash2 } from "react-icons/fi";
 
 export default function SalesMyTasks() {
+  const tasks = [
+    {
+      id: 1,
+      title: "Follow up with TechStart Inc",
+      priority: "HIGH",
+      description: "Discuss cloud migration proposal feedback",
+      date: "10/13/2025",
+      assignee: "Robert Davis",
+      type: "Call",
+    },
+    {
+      id: 2,
+      title: "Schedule demo for Apex Co.",
+      priority: "MEDIUM",
+      description: "Arrange product demo for new CRM module",
+      date: "10/14/2025",
+      assignee: "Sophia Martinez",
+      type: "Call",
+    },
+  ];
+
+  const priorityColors = {
+    HIGH: "bg-orange-100 text-orange-700",
+    MEDIUM: "bg-yellow-100 text-yellow-700",
+    LOW: "bg-green-100 text-green-700",
+  };
+
   return (
-    <div className="p-4 bg-gradient-to-b from-blue-50 to-white rounded-lg">
-      <div className="flex justify-between items-center mb-4">
-        <h2 className="font-semibold flex items-center gap-2 text-blue-700">
-          <FiClock /> My Tasks & Follow-ups
+    <div className="bg-gradient-to-r from-blue-50 to-indigo-50 min-h-[80vh] p-6 rounded-lg">
+      {/* Header */}
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-xl font-semibold flex items-center gap-2 text-blue-700">
+          <FiClock className="text-blue-600" /> My Tasks & Follow-ups
         </h2>
-        <select className="border rounded-lg px-3 py-1 text-sm text-gray-600">
-          <option>All Tasks</option>
-          <option>High Priority</option>
-          <option>Completed</option>
-        </select>
+
+        <div className="flex items-center gap-2 bg-white shadow-sm border rounded-lg px-3 py-2 cursor-pointer hover:bg-gray-50">
+          <span className="text-sm text-gray-700">All Tasks ▾</span>
+        </div>
       </div>
 
-      {/* Example Task Card */}
-      <div className="bg-white border rounded-xl p-4 shadow-sm mb-3">
-        <div className="flex justify-between items-start">
-          <div>
-            <p className="font-medium text-gray-800 flex items-center gap-2">
-              <FiPhone className="text-blue-600" /> Follow up with TechStart Inc
-              <span className="bg-orange-100 text-orange-700 text-xs px-2 py-1 rounded-md font-medium">
-                HIGH
-              </span>
-            </p>
-            <p className="text-gray-500 text-sm mt-1">
-              Discuss cloud migration proposal feedback
-            </p>
-            <p className="text-gray-400 text-xs mt-1">
-              📅 10/13/2025 · Robert Davis
-            </p>
+      {/* Task List */}
+      <div className="space-y-4">
+        {tasks.map((task) => (
+          <div
+            key={task.id}
+            className="bg-white rounded-xl shadow-sm p-5 border border-gray-100 flex flex-col gap-3 hover:shadow-md transition"
+          >
+            {/* Header Row */}
+            <div className="flex justify-between items-start">
+              <div className="flex items-center gap-3">
+                <FiPhone className="text-blue-600 text-xl" />
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                    {task.title}
+                    <span
+                      className={`text-xs font-medium px-2 py-0.5 rounded-full ${priorityColors[task.priority]}`}
+                    >
+                      {task.priority}
+                    </span>
+                  </h3>
+                  <p className="text-gray-600 text-sm">{task.description}</p>
+                </div>
+              </div>
+
+              {/* Actions */}
+              <div className="flex gap-3 text-lg text-gray-500">
+                <button className="hover:text-blue-600">
+                  <FiEdit2 />
+                </button>
+                <button className="hover:text-red-600">
+                  <FiTrash2 />
+                </button>
+              </div>
+            </div>
+
+            {/* Footer Info */}
+            <div className="flex flex-wrap items-center gap-4 text-sm text-gray-500">
+              <p className="flex items-center gap-1">📅 {task.date}</p>
+              <p className="flex items-center gap-1">👤 {task.assignee}</p>
+              <p className="flex items-center gap-1">📞 {task.type}</p>
+            </div>
           </div>
-          <div className="flex gap-3">
-            <FiEdit className="text-green-500 cursor-pointer" />
-            <FiTrash2 className="text-red-500 cursor-pointer" />
-          </div>
-        </div>
+        ))}
       </div>
     </div>
   );

@@ -25,6 +25,7 @@ import SalesOverview from "./pages/SalesOverview";
 import SalesHub from "./pages/SalesHub"; // ✅ fixed typo
 import SalesActivities from "./pages/SalesActivities";
 import SalesMyTask from "./pages/SalesMyTask"; // ✅ add this new page
+import SalesPipeline from "./pages/SalesPipeline";
 
 // 🔹 Manager layout + pages
 import ManagerPanel from "./components/ManagerPanel";
@@ -64,6 +65,7 @@ function App() {
             <Route index element={<Navigate to="mytasks" replace />} />
             <Route path="activities" element={<SalesActivities />} />
             <Route path="mytasks" element={<SalesMyTask />} />
+            <Route path="pipeline" element={<SalesPipeline/>}/>
           </Route>
         </Route>
 

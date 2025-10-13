@@ -1,5 +1,7 @@
 from pydantic import BaseModel, EmailStr, constr
 from typing import Optional
+from datetime import datetime
+
 
 # ✅ Base model for shared fields
 class UserBase(BaseModel):
@@ -56,6 +58,9 @@ class UserResponse(UserBase):
     id: int
     auth_provider: str
     profile_picture: Optional[str]    
+    is_active: bool
+    created_at: Optional[datetime]  # Date joined
+    last_login: Optional[datetime]  # Last login
 
     class Config:
         orm_mode = True

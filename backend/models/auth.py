@@ -26,6 +26,8 @@ class User(Base):
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    last_login = Column(DateTime(timezone=True), nullable=True)  # tracks last login
+
 
     manager = relationship("User", remote_side=[id])
     company = relationship("Company", back_populates="owner", uselist=False, cascade="all, delete-orphan")

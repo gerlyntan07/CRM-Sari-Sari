@@ -1,6 +1,46 @@
-import { FiUser, FiMail, FiPhone, FiMapPin, FiCalendar, FiUsers, FiTarget, FiPhoneCall, FiActivity } from "react-icons/fi";
+import {
+  FiUser,
+  FiMail,
+  FiPhone,
+  FiMapPin,
+  FiCalendar,
+  FiUsers,
+  FiTarget,
+  FiPhoneCall,
+  FiActivity,
+} from "react-icons/fi";
+import { useEffect, useState } from "react";
+import useFetchUser from "../hooks/useFetchUser.js";
+import api from "../api.js"; // ✅ Axios instance
 
 export default function SalesOverview() {
+  const { user, loading } = useFetchUser();
+
+  // ✅ Local state for sales data (can be fetched from backend)
+  const [stats, setStats] = useState({
+    contacts: 0,
+    leads: 0,
+    calls_today: 0,
+    target_progress: 0,
+  });
+
+  // ✅ Fetch sales summary metrics for logged-in user
+  useEffect(() => {
+    const fetchSalesData = async () => {
+      try {
+        const res = await api.get("/sales/overview"); // Example endpoint
+        setStats(res.data);
+      } catch (err) {
+        console.error("Error fetching sales overview:", err);
+      }
+    };
+    fetchSalesData();
+  }, []);
+
+  if (loading) {
+    return <p className="text-gray-500">Loading user data...</p>;
+  }
+
   return (
     <div className="space-y-10">
       {/* Title */}
@@ -13,53 +53,56 @@ export default function SalesOverview() {
       <div className="bg-white shadow-sm rounded-lg p-6 grid grid-cols-1 md:grid-cols-3 gap-6">
         <div>
           <p className="text-sm text-gray-500">Full Name</p>
-          <p className="font-medium text-gray-900">Jane Sales</p>
-        </div>
-        <div>
-          <p className="text-sm text-gray-500">Phone Number</p>
-          <p className="font-medium text-gray-900">+1-555-0003</p>
+          <p className="font-medium text-gray-900">
+            {user?.first_name} {user?.last_name}
+          </p>
         </div>
         <div>
           <p className="text-sm text-gray-500">Last Login</p>
           <div className="flex items-center gap-2">
             <FiCalendar className="text-gray-600" />
-            <p className="font-medium text-gray-900">10/11/2025</p>
-          </div>
-        </div>
-
-        <div>
-          <p className="text-sm text-gray-500">Username</p>
-          <p className="font-medium text-gray-900">sales1</p>
-        </div>
-        <div>
-          <p className="text-sm text-gray-500">Role & Permissions</p>
-          <div className="flex items-center gap-2">
-            <span className="bg-green-100 text-green-700 text-xs font-semibold px-2 py-1 rounded-full">
-              SALES
-            </span>
-            <p className="text-gray-600 text-sm">Customer relationship and sales activity management</p>
+            <p className="font-medium text-gray-900">
+              {user?.last_login
+                ? new Date(user.last_login).toLocaleString("en-PH", {
+                  timeZone: "Asia/Manila",
+                  year: "numeric",
+                  month: "2-digit",
+                  day: "2-digit",
+                  hour: "2-digit",
+                  minute: "2-digit",
+                  second: "2-digit",
+                })
+                : "N/A"}
+            </p>
           </div>
         </div>
         <div>
           <p className="text-sm text-gray-500">Date Joined</p>
-          <p className="font-medium text-gray-900">2/1/2024</p>
+          <p className="font-medium text-gray-900">
+            {user?.created_at
+              ? new Date(user.created_at).toLocaleDateString()
+              : "N/A"}
+
+          </p>
         </div>
 
         <div>
           <p className="text-sm text-gray-500">Email</p>
-          <p className="font-medium text-gray-900">sales@company.com</p>
+          <p className="font-medium text-gray-900">{user?.email}</p>
         </div>
         <div>
           <p className="text-sm text-gray-500">Territory</p>
           <div className="flex items-center gap-2">
             <FiMapPin className="text-gray-600" />
-            <p className="font-medium text-gray-900">South Region</p>
+            <p className="font-medium text-gray-900">
+              {user?.territory || "South Region"}
+            </p>
           </div>
         </div>
         <div>
           <p className="text-sm text-gray-500">Status</p>
           <span className="bg-black text-white text-xs font-semibold px-3 py-1 rounded-full">
-            Active
+            {user?.is_active ? "Active" : "Inactive"}
           </span>
         </div>
       </div>
@@ -69,28 +112,39 @@ export default function SalesOverview() {
         <div className="bg-white p-6 rounded-lg shadow-sm flex flex-col items-center">
           <FiUsers className="text-blue-600 text-3xl mb-2" />
           <p className="text-sm text-gray-500">My Contacts</p>
-          <p className="text-2xl font-bold text-gray-800">64</p>
+          <p className="text-2xl font-bold text-gray-800">
+            {stats.contacts ?? 0}
+          </p>
         </div>
+
         <div className="bg-white p-6 rounded-lg shadow-sm flex flex-col items-center">
           <FiTarget className="text-green-600 text-3xl mb-2" />
           <p className="text-sm text-gray-500">My Leads</p>
-          <p className="text-2xl font-bold text-gray-800">18</p>
+          <p className="text-2xl font-bold text-gray-800">{stats.leads ?? 0}</p>
         </div>
+
         <div className="bg-white p-6 rounded-lg shadow-sm flex flex-col items-center">
           <FiPhoneCall className="text-orange-500 text-3xl mb-2" />
           <p className="text-sm text-gray-500">My Calls Today</p>
-          <p className="text-2xl font-bold text-gray-800">12</p>
+          <p className="text-2xl font-bold text-gray-800">
+            {stats.calls_today ?? 0}
+          </p>
         </div>
+
         <div className="bg-white p-6 rounded-lg shadow-sm flex flex-col items-center">
           <FiActivity className="text-purple-600 text-3xl mb-2" />
           <p className="text-sm text-gray-500">My Target Progress</p>
-          <p className="text-2xl font-bold text-gray-800">73%</p>
+          <p className="text-2xl font-bold text-gray-800">
+            {stats.target_progress ?? 0}%
+          </p>
         </div>
       </div>
 
       {/* Recent Activities */}
       <div className="bg-white p-6 rounded-lg shadow-sm">
-        <h2 className="text-lg font-semibold text-gray-800 mb-4">Recent Activities</h2>
+        <h2 className="text-lg font-semibold text-gray-800 mb-4">
+          Recent Activities
+        </h2>
 
         <div className="space-y-4">
           <div className="flex items-start gap-3">

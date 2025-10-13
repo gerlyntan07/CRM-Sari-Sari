@@ -22,8 +22,6 @@ export default function AdminUser() {
         email: "",
         password: "",
         role: "",
-        phone: "",
-        territory: "",
     });
 
     // Empty initial user list (no dummy data)
@@ -32,7 +30,7 @@ export default function AdminUser() {
     const filteredUsers = users.filter(
         (user) =>
             user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            user.email.toLowerCase().includes(searchTerm.toLowerCase()) 
+            user.email.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
     const roleColors = {
@@ -54,7 +52,6 @@ export default function AdminUser() {
                 name: fullName,
                 email: newUser.email,
                 role: newUser.role.toUpperCase(),
-                territory: newUser.territory || "—",
                 status: "Active",
                 permissions: ["Staff"],
             },
@@ -66,8 +63,6 @@ export default function AdminUser() {
             email: "",
             password: "",
             role: "",
-            phone: "",
-            territory: "",
         });
         setShowModal(false);
     };
@@ -124,7 +119,6 @@ export default function AdminUser() {
                             <th className="py-3 px-4">Name</th>
                             <th className="py-3 px-4">Email</th>
                             <th className="py-3 px-4">Role</th>
-                            <th className="py-3 px-4">Territory</th>
                             <th className="py-3 px-4">Status</th>
                             <th className="py-3 px-4">Permissions</th>
                             <th className="py-3 px-4 text-center">Actions</th>
@@ -151,9 +145,6 @@ export default function AdminUser() {
                                         >
                                             {user.role}
                                         </span>
-                                    </td>
-                                    <td className="py-3 px-4 flex items-center gap-1 text-gray-600">
-                                        <FiMapPin className="text-gray-400" /> {user.territory}
                                     </td>
                                     <td className="py-3 px-4">
                                         <span className="px-2 py-1 bg-gray-900 text-white text-xs rounded-md">
@@ -204,9 +195,6 @@ export default function AdminUser() {
                         <h2 className="text-xl font-semibold text-gray-900 mb-1">
                             Add New User
                         </h2>
-                        <p className="text-sm text-gray-500 mb-6">
-                            Create a new user account with role and territory assignments.
-                        </p>
 
                         {/* Form */}
                         <form onSubmit={handleAddUser} className="space-y-4">
@@ -262,20 +250,41 @@ export default function AdminUser() {
                                 </div>
                             </div>
 
+                            {/* Password + Generate Button */}
                             <div>
                                 <label className="text-sm font-medium text-gray-700">
                                     Password <span className="text-red-500">*</span>
                                 </label>
-                                <input
-                                    type="password"
-                                    placeholder="Enter secure password"
-                                    value={newUser.password}
-                                    onChange={(e) =>
-                                        setNewUser({ ...newUser, password: e.target.value })
-                                    }
-                                    required
-                                    className="w-full mt-1 px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-yellow-400 focus:outline-none"
-                                />
+                                <div className="flex mt-1 gap-2">
+                                    <input
+                                        type="text"
+                                        placeholder="Enter or generate secure password"
+                                        value={newUser.password}
+                                        onChange={(e) =>
+                                            setNewUser({ ...newUser, password: e.target.value })
+                                        }
+                                        required
+                                        className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-yellow-400 focus:outline-none"
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            const chars =
+                                                "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+                                            let randomPass = "";
+                                            for (let i = 0; i < 8; i++) {
+                                                randomPass += chars.charAt(Math.floor(Math.random() * chars.length));
+                                            }
+                                            setNewUser({ ...newUser, password: randomPass });
+                                        }}
+                                        className="px-3 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition"
+                                    >
+                                        Generate
+                                    </button>
+                                </div>
+                                <p className="text-xs text-gray-500 mt-1">
+                                    Generates a random 8-character password.
+                                </p>
                             </div>
 
                             <div className="grid grid-cols-2 gap-4">
@@ -296,39 +305,43 @@ export default function AdminUser() {
                                         <option value="Manager">Manager</option>
                                         <option value="Admin">Admin</option>
                                     </select>
-                                </div>
+                                    <div>
+                                        {/* Notes Section */}
+                                        <div className="mt-6 w-full">
+                                            <div className="bg-gradient-to-r from-blue-50 to-blue-200 border border-blue-300 rounded-xl p-4 shadow-sm w-full">
+                                                <div className="flex items-center mb-2">
+                                                    <svg
+                                                        xmlns="http://www.w3.org/2000/svg"
+                                                        className="h-5 w-5 text-blue-600 mr-2"
+                                                        fill="none"
+                                                        viewBox="0 0 24 24"
+                                                        stroke="currentColor"
+                                                    >
+                                                        <path
+                                                            strokeLinecap="round"
+                                                            strokeLinejoin="round"
+                                                            strokeWidth={2}
+                                                            d="M13 16h-1v-4h-1m1-4h.01M12 2a10 10 0 11-9.95 9.95A10 10 0 0112 2z"
+                                                        />
+                                                    </svg>
+                                                    <h3 className="text-sm font-semibold text-blue-800">
+                                                        Important Note
+                                                    </h3>
+                                                </div>
+                                                <p className="text-sm text-gray-700 leading-relaxed">
+                                                    Territory can be assigned{" "}
+                                                    <span className="font-medium text-gray-900">
+                                                        only after adding the user.
+                                                    </span>
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
 
-                                <div>
-                                    <label className="text-sm font-medium text-gray-700">
-                                        Phone Number
-                                    </label>
-                                    <input
-                                        type="text"
-                                        placeholder="+693xxxxxxxxx"
-                                        value={newUser.phone}
-                                        onChange={(e) =>
-                                            setNewUser({ ...newUser, phone: e.target.value })
-                                        }
-                                        className="w-full mt-1 px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-yellow-400 focus:outline-none"
-                                    />
-                                </div>
-                            </div>
 
-                            <div>
-                                <label className="text-sm font-medium text-gray-700">Territory</label>
-                                <select
-                                    value={newUser.territory}
-                                    onChange={(e) =>
-                                        setNewUser({ ...newUser, territory: e.target.value })
-                                    }
-                                    className="w-full mt-1 px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-gray-700 focus:ring-2 focus:ring-yellow-400 focus:outline-none"
-                                >
-                                    <option value="">Select territory (optional)</option>
-                                    <option value="North Region">North Region</option>
-                                    <option value="South Region">South Region</option>
-                                    <option value="East Region">East Region</option>
-                                    <option value="West Region">West Region</option>
-                                </select>
+
+
+                                </div>
                             </div>
 
                             {/* Buttons */}

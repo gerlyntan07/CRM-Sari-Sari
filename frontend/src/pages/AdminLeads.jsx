@@ -55,7 +55,7 @@ export default function AdminLeads() {
             </span>
             <div className="flex flex-wrap items-center ml-1">
               <button className="bg-green-600 hover:bg-green-700 text-white px-5 py-2 rounded-lg font-medium">
-                Convert Lead
+                Convert
               </button>
             </div>
           </div>

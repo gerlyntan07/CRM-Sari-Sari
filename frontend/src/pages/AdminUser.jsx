@@ -7,15 +7,18 @@ import {
   FiUserPlus,
   FiX,
 } from "react-icons/fi";
-import api from "../api"; // ✅ Axios instance
-import useFetchUser from "../hooks/useFetchUser"; // ✅ Fetch current logged-in user
+import api from "../api";
+import useFetchUser from "../hooks/useFetchUser";
 
 export default function AdminUser() {
-  const { user } = useFetchUser(); // current logged-in user
+  const { user } = useFetchUser();
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
-  const [showModal, setShowModal] = useState(false);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [selectedUser, setSelectedUser] = useState(null);
+
   const [newUser, setNewUser] = useState({
     firstName: "",
     lastName: "",
@@ -24,14 +27,14 @@ export default function AdminUser() {
     role: "",
   });
 
-  // ✅ Fetch users from backend
+  // ✅ Fetch all users
   useEffect(() => {
     const fetchUsers = async () => {
       try {
-        const res = await api.get("/users/");
+        const res = await api.get("/users/all");
         setUsers(res.data);
       } catch (error) {
-        console.error("Error fetching users:", error.response?.data || error);
+        console.error("❌ Error fetching users:", error.response?.data || error);
       } finally {
         setLoading(false);
       }
@@ -54,13 +57,13 @@ export default function AdminUser() {
     "Sales Representative": "bg-green-100 text-green-700",
   };
 
-  // ✅ Add user
+  // ✅ Add new user
   const handleAddUser = async (e) => {
     e.preventDefault();
     if (!newUser.firstName || !newUser.email) return;
 
     try {
-      const res = await api.post("/users/", {
+      const res = await api.post("/users/createuser", {
         first_name: newUser.firstName,
         last_name: newUser.lastName,
         email: newUser.email,
@@ -68,7 +71,9 @@ export default function AdminUser() {
         role: newUser.role,
       });
 
-      setUsers((prev) => [...prev, res.data]);
+      const createdUser = res.data;
+      setUsers((prev) => [...prev, { ...createdUser, highlight: true }]);
+      setShowAddModal(false);
       setNewUser({
         firstName: "",
         lastName: "",
@@ -76,26 +81,39 @@ export default function AdminUser() {
         password: "",
         role: "",
       });
-      setShowModal(false);
+
+      alert("✅ User created successfully!");
+      setTimeout(() => {
+        setUsers((prev) => prev.map((u) => ({ ...u, highlight: false })));
+      }, 2000);
     } catch (error) {
-      console.error("Error creating user:", error.response?.data || error);
+      console.error("❌ Error creating user:", error.response?.data || error);
       alert(error.response?.data?.detail || "Failed to add user.");
     }
   };
 
+  // ✅ Open delete confirmation modal
+  const confirmDelete = (user) => {
+    setSelectedUser(user);
+    setShowDeleteModal(true);
+  };
+
   // ✅ Delete user
-  const handleDeleteUser = async (id) => {
-    if (!window.confirm("Are you sure you want to delete this user?")) return;
+  const handleDeleteUser = async () => {
+    if (!selectedUser) return;
     try {
-      await api.delete(`/users/${id}`);
-      setUsers(users.filter((u) => u.id !== id));
+      await api.delete(`/users/deleteuser/${selectedUser.id}`);
+      setUsers((prev) => prev.filter((u) => u.id !== selectedUser.id));
+      setShowDeleteModal(false);
+      alert("✅ User deleted successfully!");
     } catch (error) {
-      console.error("Error deleting user:", error.response?.data || error);
+      console.error("❌ Error deleting user:", error.response?.data || error);
+      alert(error.response?.data?.detail || "Failed to delete user.");
     }
   };
 
   return (
-    <div className="p-6">
+    <div className="p-6 relative">
       {/* Header */}
       <div className="flex justify-between items-center mb-6">
         <div className="flex items-center gap-2">
@@ -105,7 +123,7 @@ export default function AdminUser() {
           </h1>
         </div>
         <button
-          onClick={() => setShowModal(true)}
+          onClick={() => setShowAddModal(true)}
           className="flex items-center gap-2 bg-gray-900 text-white px-4 py-2 rounded-lg hover:bg-gray-800 transition"
         >
           <FiUserPlus className="text-sm" />
@@ -147,7 +165,12 @@ export default function AdminUser() {
             </thead>
             <tbody>
               {filteredUsers.map((u) => (
-                <tr key={u.id} className="border-b hover:bg-gray-50">
+                <tr
+                  key={u.id}
+                  className={`border-b transition-all duration-300 ${
+                    u.highlight ? "bg-green-50" : "hover:bg-gray-50"
+                  }`}
+                >
                   <td className="py-3 px-4">
                     {u.first_name} {u.last_name}
                   </td>
@@ -166,7 +189,7 @@ export default function AdminUser() {
                       <FiEdit2 />
                     </button>
                     <button
-                      onClick={() => handleDeleteUser(u.id)}
+                      onClick={() => confirmDelete(u)}
                       className="text-red-500 hover:text-red-700"
                     >
                       <FiTrash2 />
@@ -179,12 +202,12 @@ export default function AdminUser() {
         )}
       </div>
 
-      {/* Add User Modal */}
-      {showModal && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg p-8 relative">
+      {/* 🟢 Add User Modal (with blur background) */}
+      {showAddModal && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black/30 backdrop-blur-sm z-50">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg p-8 relative animate-fadeIn">
             <button
-              onClick={() => setShowModal(false)}
+              onClick={() => setShowAddModal(false)}
               className="absolute top-4 right-4 text-gray-400 hover:text-gray-600"
             >
               <FiX className="text-xl" />
@@ -267,7 +290,9 @@ export default function AdminUser() {
                         "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
                       let pass = "";
                       for (let i = 0; i < 8; i++) {
-                        pass += chars.charAt(Math.floor(Math.random() * chars.length));
+                        pass += chars.charAt(
+                          Math.floor(Math.random() * chars.length)
+                        );
                       }
                       setNewUser({ ...newUser, password: pass });
                     }}
@@ -302,7 +327,7 @@ export default function AdminUser() {
               <div className="flex justify-end gap-3 mt-6">
                 <button
                   type="button"
-                  onClick={() => setShowModal(false)}
+                  onClick={() => setShowAddModal(false)}
                   className="px-4 py-2 rounded-lg text-gray-600 hover:text-gray-900 border border-gray-200 hover:bg-gray-100"
                 >
                   Cancel
@@ -318,7 +343,38 @@ export default function AdminUser() {
           </div>
         </div>
       )}
+
+      {/* 🟥 Delete Confirmation Modal */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black/30 backdrop-blur-sm z-50">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6 relative animate-fadeIn">
+            <button
+              onClick={() => setShowDeleteModal(false)}
+              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600"
+            >
+              <FiX className="text-xl" />
+            </button>
+            <h2 className="text-lg font-semibold text-gray-800 mb-4 text-center">
+              Are you sure you want to delete{" "}
+              <span className="font-bold">{selectedUser?.first_name}</span>?
+            </h2>
+            <div className="flex justify-center gap-3">
+              <button
+                onClick={handleDeleteUser}
+                className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition"
+              >
+                Delete
+              </button>
+              <button
+                onClick={() => setShowDeleteModal(false)}
+                className="bg-gray-200 text-gray-800 px-4 py-2 rounded-lg hover:bg-gray-300 transition"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
-    

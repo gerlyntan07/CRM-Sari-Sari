@@ -70,10 +70,10 @@ const Login = () => {
     if (isLoggedIn) {
       if(userRole === 'CEO'){
         navigate(`/admin`)
-      }else if(userRole === 'co-organizer'){
-        navigate(`/org/dashboard`)
-      }else if(userRole === 'staff'){
-        navigate(`/staff`)
+      }else if(userRole === 'Manager'){
+        navigate(`/manager`)
+      }else if(userRole === 'Sales Representative'){
+        navigate(`/sales`)
       }else if(userRole === 'admin'){
         navigate(`/admin-dashboard`);
       }

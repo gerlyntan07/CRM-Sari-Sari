@@ -18,6 +18,7 @@ import AdminAudit from "./components/AdminAudit";
 import AdminTargets from "./pages/AdminTargets";
 import AdminQuotes from "./pages/AdminQuotes";
 import AdminUser from "./pages/AdminUser";
+import AdminDeals from "./pages/AdminDeals";
 
 // 🔹 Sales layout + pages
 import SalesPanel from "./components/SalesPanel";
@@ -55,6 +56,7 @@ function App() {
           <Route path="targets" element={<AdminTargets />} />
           <Route path="quotes" element={<AdminQuotes />} />
           <Route path="users" element={<AdminUser />} />
+          <Route path="deals" element={<AdminDeals />} />
         </Route>
 
         {/* ================= Sales Layout ================= */}

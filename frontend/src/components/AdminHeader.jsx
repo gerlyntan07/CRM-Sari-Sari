@@ -23,6 +23,7 @@ export default function AdminHeader() {
     "/admin/leads": "Leads",
     "/admin/quotes": "Quotes",
     "/admin/users": "Users",
+    "/admin/deals": "Deals",
 
   };
 

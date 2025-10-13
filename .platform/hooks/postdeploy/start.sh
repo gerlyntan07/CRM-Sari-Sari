@@ -12,9 +12,10 @@ source /var/app/venv/*/bin/activate || {
   exit 1
 }
 
+# Run any post-deployment commands here (e.g. migrations, setup tasks)
 cd backend
 
-# Start FastAPI (use your actual main app entry)
-echo "Starting FastAPI with Uvicorn..."
-uvicorn main:app --host 0.0.0.0 --port 8000 --reload &
-echo "Post-deploy hook finished!"
+# Example: Run Alembic migrations (optional)
+# alembic upgrade head
+
+echo "Post-deploy hook finished successfully!"

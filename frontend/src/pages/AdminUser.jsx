@@ -8,15 +8,17 @@ import {
     FiMapPin,
     FiX,
 } from "react-icons/fi";
+import useFetchUser from "../hooks/useFetchUser";
+
 
 export default function AdminUser() {
+    const { user } = useFetchUser();
     const [searchTerm, setSearchTerm] = useState("");
     const [showModal, setShowModal] = useState(false);
 
     const [newUser, setNewUser] = useState({
         firstName: "",
         lastName: "",
-        username: "",
         email: "",
         password: "",
         role: "",
@@ -24,41 +26,13 @@ export default function AdminUser() {
         territory: "",
     });
 
-    const [users, setUsers] = useState([
-        {
-            name: "Admin User",
-            username: "@admin",
-            email: "admin@company.com",
-            role: "ADMIN",
-            territory: "North Region",
-            status: "Active",
-            permissions: ["Staff", "Super"],
-        },
-        {
-            name: "John Manager",
-            username: "@manager1",
-            email: "manager@company.com",
-            role: "MANAGER",
-            territory: "North Region",
-            status: "Active",
-            permissions: ["Staff"],
-        },
-        {
-            name: "Jane Sales",
-            username: "@sales1",
-            email: "sales@company.com",
-            role: "SALES",
-            territory: "South Region",
-            status: "Active",
-            permissions: ["Staff"],
-        },
-    ]);
+    // Empty initial user list (no dummy data)
+    const [users, setUsers] = useState([]);
 
     const filteredUsers = users.filter(
         (user) =>
             user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            user.username.toLowerCase().includes(searchTerm.toLowerCase())
+            user.email.toLowerCase().includes(searchTerm.toLowerCase()) 
     );
 
     const roleColors = {
@@ -67,7 +41,7 @@ export default function AdminUser() {
         SALES: "bg-green-100 text-green-700",
     };
 
-    // Add user logic
+    // Add new user
     const handleAddUser = (e) => {
         e.preventDefault();
         if (!newUser.firstName || !newUser.email) return;
@@ -78,7 +52,6 @@ export default function AdminUser() {
             ...users,
             {
                 name: fullName,
-                username: `@${newUser.username}`,
                 email: newUser.email,
                 role: newUser.role.toUpperCase(),
                 territory: newUser.territory || "—",
@@ -90,7 +63,6 @@ export default function AdminUser() {
         setNewUser({
             firstName: "",
             lastName: "",
-            username: "",
             email: "",
             password: "",
             role: "",
@@ -98,6 +70,12 @@ export default function AdminUser() {
             territory: "",
         });
         setShowModal(false);
+    };
+
+    // Delete user
+    const handleDeleteUser = (index) => {
+        const updatedUsers = users.filter((_, i) => i !== index);
+        setUsers(updatedUsers);
     };
 
     return (
@@ -123,7 +101,7 @@ export default function AdminUser() {
                     <FiSearch className="absolute left-3 top-3 text-gray-400" />
                     <input
                         type="text"
-                        placeholder="Search users by name, email, or username..."
+                        placeholder="Search users by name, email,"
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                         className="w-full pl-10 pr-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-yellow-400 focus:outline-none"
@@ -143,7 +121,7 @@ export default function AdminUser() {
                 <table className="min-w-full text-sm text-gray-700">
                     <thead className="border-b bg-gray-50 text-left text-gray-500 text-xs uppercase">
                         <tr>
-                            <th className="py-3 px-4">User</th>
+                            <th className="py-3 px-4">Name</th>
                             <th className="py-3 px-4">Email</th>
                             <th className="py-3 px-4">Role</th>
                             <th className="py-3 px-4">Territory</th>
@@ -153,51 +131,59 @@ export default function AdminUser() {
                         </tr>
                     </thead>
                     <tbody>
-                        {filteredUsers.map((user, index) => (
-                            <tr key={index} className="border-b hover:bg-gray-50">
-                                <td className="py-3 px-4">
-                                    <div className="flex flex-col">
-                                        <span className="font-medium text-gray-800">{user.name}</span>
-                                        <span className="text-gray-400 text-xs">{user.username}</span>
-                                    </div>
-                                </td>
-                                <td className="py-3 px-4">{user.email}</td>
-                                <td className="py-3 px-4">
-                                    <span
-                                        className={`px-2 py-1 text-xs font-semibold rounded-md ${roleColors[user.role] || "bg-gray-100 text-gray-700"
-                                            }`}
-                                    >
-                                        {user.role}
-                                    </span>
-                                </td>
-                                <td className="py-3 px-4 flex items-center gap-1 text-gray-600">
-                                    <FiMapPin className="text-gray-400" /> {user.territory}
-                                </td>
-                                <td className="py-3 px-4">
-                                    <span className="px-2 py-1 bg-gray-900 text-white text-xs rounded-md">
-                                        {user.status}
-                                    </span>
-                                </td>
-                                <td className="py-3 px-4 space-x-2">
-                                    {user.permissions.map((perm, i) => (
-                                        <span
-                                            key={i}
-                                            className="px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded-md"
-                                        >
-                                            {perm}
-                                        </span>
-                                    ))}
-                                </td>
-                                <td className="py-3 px-4 text-center space-x-3">
-                                    <button className="text-gray-600 hover:text-yellow-600">
-                                        <FiEdit2 />
-                                    </button>
-                                    <button className="text-red-500 hover:text-red-700">
-                                        <FiTrash2 />
-                                    </button>
+                        {filteredUsers.length === 0 ? (
+                            <tr>
+                                <td
+                                    colSpan="7"
+                                    className="text-center py-6 text-gray-400"
+                                >
+                                    No users found. Click “Add User” to create one.
                                 </td>
                             </tr>
-                        ))}
+                        ) : (
+                            filteredUsers.map((user, index) => (
+                                <tr key={index} className="border-b hover:bg-gray-50">
+                                    <td className="py-3 px-4">{user.email}</td>
+                                    <td className="py-3 px-4">
+                                        <span
+                                            className={`px-2 py-1 text-xs font-semibold rounded-md ${roleColors[user.role] || "bg-gray-100 text-gray-700"
+                                                }`}
+                                        >
+                                            {user.role}
+                                        </span>
+                                    </td>
+                                    <td className="py-3 px-4 flex items-center gap-1 text-gray-600">
+                                        <FiMapPin className="text-gray-400" /> {user.territory}
+                                    </td>
+                                    <td className="py-3 px-4">
+                                        <span className="px-2 py-1 bg-gray-900 text-white text-xs rounded-md">
+                                            {user.status}
+                                        </span>
+                                    </td>
+                                    <td className="py-3 px-4 space-x-2">
+                                        {user.permissions.map((perm, i) => (
+                                            <span
+                                                key={i}
+                                                className="px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded-md"
+                                            >
+                                                {perm}
+                                            </span>
+                                        ))}
+                                    </td>
+                                    <td className="py-3 px-4 text-center space-x-3">
+                                        <button className="text-gray-600 hover:text-yellow-600">
+                                            <FiEdit2 />
+                                        </button>
+                                        <button
+                                            onClick={() => handleDeleteUser(index)}
+                                            className="text-red-500 hover:text-red-700"
+                                        >
+                                            <FiTrash2 />
+                                        </button>
+                                    </td>
+                                </tr>
+                            ))
+                        )}
                     </tbody>
                 </table>
             </div>
@@ -233,7 +219,9 @@ export default function AdminUser() {
                                         type="text"
                                         placeholder="John"
                                         value={newUser.firstName}
-                                        onChange={(e) => setNewUser({ ...newUser, firstName: e.target.value })}
+                                        onChange={(e) =>
+                                            setNewUser({ ...newUser, firstName: e.target.value })
+                                        }
                                         required
                                         className="w-full mt-1 px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-yellow-400 focus:outline-none"
                                     />
@@ -247,7 +235,9 @@ export default function AdminUser() {
                                         type="text"
                                         placeholder="Doe"
                                         value={newUser.lastName}
-                                        onChange={(e) => setNewUser({ ...newUser, lastName: e.target.value })}
+                                        onChange={(e) =>
+                                            setNewUser({ ...newUser, lastName: e.target.value })
+                                        }
                                         required
                                         className="w-full mt-1 px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-yellow-400 focus:outline-none"
                                     />
@@ -257,27 +247,15 @@ export default function AdminUser() {
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
                                     <label className="text-sm font-medium text-gray-700">
-                                        Username <span className="text-red-500">*</span>
-                                    </label>
-                                    <input
-                                        type="text"
-                                        placeholder="johndoe"
-                                        value={newUser.username}
-                                        onChange={(e) => setNewUser({ ...newUser, username: e.target.value })}
-                                        required
-                                        className="w-full mt-1 px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-yellow-400 focus:outline-none"
-                                    />
-                                </div>
-
-                                <div>
-                                    <label className="text-sm font-medium text-gray-700">
                                         Email <span className="text-red-500">*</span>
                                     </label>
                                     <input
                                         type="email"
                                         placeholder="john.doe@company.com"
                                         value={newUser.email}
-                                        onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
+                                        onChange={(e) =>
+                                            setNewUser({ ...newUser, email: e.target.value })
+                                        }
                                         required
                                         className="w-full mt-1 px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-yellow-400 focus:outline-none"
                                     />
@@ -292,7 +270,9 @@ export default function AdminUser() {
                                     type="password"
                                     placeholder="Enter secure password"
                                     value={newUser.password}
-                                    onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
+                                    onChange={(e) =>
+                                        setNewUser({ ...newUser, password: e.target.value })
+                                    }
                                     required
                                     className="w-full mt-1 px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-yellow-400 focus:outline-none"
                                 />
@@ -305,7 +285,9 @@ export default function AdminUser() {
                                     </label>
                                     <select
                                         value={newUser.role}
-                                        onChange={(e) => setNewUser({ ...newUser, role: e.target.value })}
+                                        onChange={(e) =>
+                                            setNewUser({ ...newUser, role: e.target.value })
+                                        }
                                         required
                                         className="w-full mt-1 px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-gray-700 focus:ring-2 focus:ring-yellow-400 focus:outline-none"
                                     >
@@ -322,9 +304,11 @@ export default function AdminUser() {
                                     </label>
                                     <input
                                         type="text"
-                                        placeholder="+1-555-0100"
+                                        placeholder="+693xxxxxxxxx"
                                         value={newUser.phone}
-                                        onChange={(e) => setNewUser({ ...newUser, phone: e.target.value })}
+                                        onChange={(e) =>
+                                            setNewUser({ ...newUser, phone: e.target.value })
+                                        }
                                         className="w-full mt-1 px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-yellow-400 focus:outline-none"
                                     />
                                 </div>
@@ -334,7 +318,9 @@ export default function AdminUser() {
                                 <label className="text-sm font-medium text-gray-700">Territory</label>
                                 <select
                                     value={newUser.territory}
-                                    onChange={(e) => setNewUser({ ...newUser, territory: e.target.value })}
+                                    onChange={(e) =>
+                                        setNewUser({ ...newUser, territory: e.target.value })
+                                    }
                                     className="w-full mt-1 px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-gray-700 focus:ring-2 focus:ring-yellow-400 focus:outline-none"
                                 >
                                     <option value="">Select territory (optional)</option>

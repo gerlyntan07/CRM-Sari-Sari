@@ -29,6 +29,7 @@ Base.metadata.create_all(bind=engine)
 origins = [
     "http://localhost:5173",  # local dev
     "*",  # allow all in production; adjust later for security
+    "http://crm-sari-sari-env.eba-pdpixtqe.ap-southeast-1.elasticbeanstalk.com",
 ]
 app.add_middleware(
     CORSMiddleware,

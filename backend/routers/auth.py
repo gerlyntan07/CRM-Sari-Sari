@@ -81,12 +81,16 @@ def signup(user: UserCreate, response: Response, db: Session = Depends(get_db)):
 
     # 🔑 Auto login after signup
     token = create_access_token({"sub": str(new_user.id)})
+
+    cookie_secure = os.getenv("COOKIE_SECURE", "False") == "True"
+    samesite_mode = os.getenv("COOKIE_SAMESITE", "lax")  
+
     response.set_cookie(
         key="access_token",
         value=token,
         httponly=True,
-        secure=bool(os.getenv("COOKIE_SECURE", "False") == "True"),
-        samesite="lax",
+        secure=cookie_secure,
+        samesite=samesite_mode,
         max_age=60 * 60 * 24 * 7,
         path="/"
     )
@@ -108,12 +112,15 @@ def login(user: UserLogin, response: Response, db: Session = Depends(get_db)):
 
     token = create_access_token({"sub": str(db_user.id)})
 
+    cookie_secure = os.getenv("COOKIE_SECURE", "False") == "True"
+    samesite_mode = os.getenv("COOKIE_SAMESITE", "lax")  
+
     response.set_cookie(
         key="access_token",
         value=token,
         httponly=True,
-        secure=bool(os.getenv("COOKIE_SECURE", "False") == "True"),
-        samesite="lax",
+        secure=cookie_secure,
+        samesite=samesite_mode,
         max_age=60 * 60 * 24 * 7,
         path="/"
     )
@@ -153,12 +160,16 @@ def google_login(token: dict, response: Response, db: Session = Depends(get_db))
         db.refresh(db_user)
 
     token = create_access_token({"sub": str(db_user.id)})
+
+    cookie_secure = os.getenv("COOKIE_SECURE", "False") == "True"
+    samesite_mode = os.getenv("COOKIE_SAMESITE", "lax")  
+
     response.set_cookie(
         key="access_token",
         value=token,
         httponly=True,
-        samesite="lax",
-        secure=bool(os.getenv("COOKIE_SECURE", "False") == "True"),
+        samesite=samesite_mode,
+        secure=cookie_secure,
         max_age=60 * 60 * 24 * 7,
         path="/"
     )

@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { NavLink, Outlet } from "react-router-dom";
 import {
   FiPlus,
@@ -6,8 +6,11 @@ import {
   FiTarget,
   FiDollarSign,
 } from "react-icons/fi";
+import CreateTaskModal from "../components/CreateTaskModal";
 
 export default function SalesHub() {
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
   return (
     <div className="p-6 bg-gray-50 min-h-screen">
       {/* Header */}
@@ -22,9 +25,14 @@ export default function SalesHub() {
         </div>
 
         <div className="flex gap-3">
-          <button className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 text-sm font-medium shadow-sm">
+          {/* ✅ Opens Create Task Modal */}
+          <button
+            onClick={() => setIsModalOpen(true)}
+            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 text-sm font-medium shadow-sm"
+          >
             <FiPlus className="text-lg" /> New Task
           </button>
+
           <button className="border border-blue-600 text-blue-600 hover:bg-blue-50 px-4 py-2 rounded-lg flex items-center gap-2 text-sm font-medium shadow-sm">
             <FiActivity className="text-lg" /> Log Activity
           </button>
@@ -65,7 +73,7 @@ export default function SalesHub() {
       {/* Tabs Navigation */}
       <div className="flex space-x-3 mb-6">
         <NavLink
-          to="/sales/hub/mytasks" // ✅ absolute path
+          to="/sales/hub/mytasks"
           className={({ isActive }) =>
             `px-4 py-2 rounded-full text-sm font-medium ${
               isActive
@@ -78,7 +86,7 @@ export default function SalesHub() {
         </NavLink>
 
         <NavLink
-          to="/sales/hub/activities" // ✅ absolute path
+          to="/sales/hub/activities"
           className={({ isActive }) =>
             `px-4 py-2 rounded-full text-sm font-medium ${
               isActive
@@ -91,7 +99,7 @@ export default function SalesHub() {
         </NavLink>
 
         <NavLink
-          to="/sales/hub/pipeline" // ✅ absolute path
+          to="/sales/hub/pipeline"
           className={({ isActive }) =>
             `px-4 py-2 rounded-full text-sm font-medium ${
               isActive
@@ -104,7 +112,7 @@ export default function SalesHub() {
         </NavLink>
 
         <NavLink
-          to="/sales/hub/performance" // ✅ absolute path
+          to="/sales/hub/performance"
           className={({ isActive }) =>
             `px-4 py-2 rounded-full text-sm font-medium ${
               isActive
@@ -121,6 +129,12 @@ export default function SalesHub() {
       <div className="bg-white rounded-xl shadow-sm p-4">
         <Outlet />
       </div>
+
+      {/* ✅ Create Task Modal */}
+      <CreateTaskModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+      />
     </div>
   );
 }

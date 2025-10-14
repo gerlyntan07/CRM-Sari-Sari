@@ -22,7 +22,8 @@ class User(Base):
     role = Column(String, default=UserRole.CEO.value, nullable=False)
     phone_number = Column(String, nullable=True)
     auth_provider = Column(String, default="manual")  # "manual" or "google"
-    related_to_CEO = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=True)  # Self-referential foreign key
+    related_to_CEO = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)  # Self-referential foreign key
+    related_to_company = Column(Integer, ForeignKey("companies.id", ondelete="CASCADE"), nullable=True) 
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
@@ -30,4 +31,4 @@ class User(Base):
 
 
     manager = relationship("User", remote_side=[id])
-    company = relationship("Company", back_populates="owner", uselist=False, cascade="all, delete-orphan")
+    company = relationship("Company", back_populates="users")

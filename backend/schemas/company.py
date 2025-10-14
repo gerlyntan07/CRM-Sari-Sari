@@ -10,11 +10,10 @@ class CompanyBase(BaseModel):
     company_logo: Optional[str] = None
 
 class CompanyCreate(CompanyBase):
-    CEO_id: Optional[int] = None
+    pass
 
 class CompanyResponse(CompanyBase):
     id: int
-    CEO_id: Optional[int]
     created_at: Optional[datetime]
     updated_at: Optional[datetime]
 

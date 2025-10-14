@@ -13,6 +13,7 @@ import models.company
 import routers.auth as auth_router
 import routers.company as company_router
 import routers.users as users_router
+import routers.subscription as subscription_router
 
 
 app = FastAPI()
@@ -21,6 +22,7 @@ app = FastAPI()
 app.include_router(auth_router.router, prefix='/api')
 app.include_router(company_router.router, prefix='/api')
 app.include_router(users_router.router, prefix='/api')
+app.include_router(subscription_router.router, prefix='/api')
 
 # === Database initialization ===
 Base.metadata.create_all(bind=engine)

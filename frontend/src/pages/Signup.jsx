@@ -197,6 +197,10 @@ const Signup = () => {
   const [formError, setFormError] = React.useState(null);
   const [isSubmitted, setIsSubmitted] = React.useState(false);
   const { login } = useAuth();
+  const [subscription, setSubscription] = React.useState({
+    plan_name: 'Free',
+    price: 0.00,    
+  })
 
   React.useEffect(() => {
     document.title = "Sign Up | Sari-Sari CRM";
@@ -336,41 +340,47 @@ const Signup = () => {
       try {
         // Remove confirmPassword before sending to backend
         const { confirmPassword, ...cleanedFormData } = formData;
+        const companyPayload1 = {
+            ...companyData,            
+            company_number: `+63${companyData.company_number}`,
+          };          
+        const resCompany = await api.post(`/company/create`, companyPayload1);
+        const companyID = resCompany.data.id;
 
         // Add +63 prefix
         const finalFormData = {
           ...cleanedFormData,
+          company_id: companyID,
           phone_number: `+63${cleanedFormData.phone_number}`,
         };
 
         console.log("📤 Sending payload:", finalFormData);
 
-        if(cleanedFormData.auth_provider === 'google'){
-          const resGoogle = await api.post(`/auth/google`, finalFormData);
-          const ceoId = resGoogle.data.id;
+        if(cleanedFormData.auth_provider === 'google'){                    
 
-          const companyPayload1 = {
-            ...companyData,
-            CEO_id: ceoId,
-            company_number: `+63${companyData.company_number}`,
-          };
+          const resGoogle = await api.post(`/auth/google`, finalFormData);          
 
-          const resCompany = await api.post(`/company/create`, companyPayload1);
+          const subsPayload = {
+            ...subscription,
+            company_id: companyID,
+            status: "Active",
+          }
+
+          const resSubscription = await api.post(`/subscription/subscribe`, subsPayload);          
 
           setFormError(null);
           setIsSubmitted(true);
           login(resGoogle.data);
         } else {
-          const res2 = await api.post(`/auth/signup`, finalFormData);
-          const ceoId = res2.data.id;
+          const res2 = await api.post(`/auth/signup`, finalFormData);     
 
-          const companyPayload = {
-            ...companyData,
-            CEO_id: ceoId,
-            company_number: `+63${companyData.company_number}`,
-          };
+          const subsPayload = {
+            ...subscription,
+            company_id: companyID,
+            status: "Active",
+          }
 
-          const res3 = await api.post(`/company/create`, companyPayload);
+          const resSubscription = await api.post(`/subscription/subscribe`, subsPayload);    
 
           setFormError(null);
           setIsSubmitted(true);

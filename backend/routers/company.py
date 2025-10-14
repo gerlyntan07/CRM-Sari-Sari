@@ -21,7 +21,6 @@ def createCompany(user: CompanyCreate, response: Response, db: Session = Depends
         company_name=user.company_name,
         company_number=user.company_number,
         company_website=str(user.company_website),
-        CEO_id=user.CEO_id,
     )
     
     db.add(new_company)

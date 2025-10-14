@@ -37,7 +37,6 @@ class CompanyBase(BaseModel):
     company_number: str
     company_website: Optional[str] = None
     company_logo: Optional[str] = None
-    CEO_id: int
 
     class Config:
         orm_mode = True

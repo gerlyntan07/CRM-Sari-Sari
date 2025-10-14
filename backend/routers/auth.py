@@ -74,6 +74,7 @@ def signup(user: UserCreate, response: Response, db: Session = Depends(get_db)):
         role=user.role,
         phone_number=user.phone_number,
         auth_provider="manual",
+        related_to_company=user.company_id,
     )
     db.add(new_user)
     db.commit()
@@ -131,6 +132,7 @@ def login(user: UserLogin, response: Response, db: Session = Depends(get_db)):
 @router.post("/google", response_model=UserResponse)
 def google_login(token: dict, response: Response, db: Session = Depends(get_db)):
     id_token = token.get("id_token")
+    company_id = token.get("company_id")
     if not id_token:
         raise HTTPException(status_code=400, detail="No id_token provided")
 
@@ -153,7 +155,8 @@ def google_login(token: dict, response: Response, db: Session = Depends(get_db))
             email=email,
             profile_picture=picture,   # 👈 save picture
             auth_provider="google",
-            hashed_password=None
+            hashed_password=None,
+            related_to_company=company_id,
         )
         db.add(db_user)
         db.commit()

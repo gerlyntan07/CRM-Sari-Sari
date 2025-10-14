@@ -10,9 +10,10 @@ class Company(Base):
     company_name = Column(String, nullable=False)
     company_number = Column(String, nullable=False)
     company_website = Column(String, nullable=True)
-    company_logo = Column(String, nullable=True)
-    CEO_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=True)
+    company_logo = Column(String, nullable=True)    
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
-    
-    owner = relationship("User", back_populates="company", passive_deletes=True)
+
+    # Add this line to link back to User
+    users = relationship("User", back_populates="company", cascade="all, delete-orphan")
+    plan = relationship("Subscription", back_populates="subscriber")

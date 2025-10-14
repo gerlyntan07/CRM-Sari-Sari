@@ -1,5 +1,7 @@
 import React, { useState } from "react";
-import { FiEdit, FiTrash2, FiPhone, FiMail, FiCalendar, FiFileText, FiX, FiBriefcase, } from "react-icons/fi";
+import { FiEdit, FiTrash2, FiBriefcase, FiX, FiSearch, } from "react-icons/fi";
+import AdminDealsInformation from "../components/AdminDealsInformation";
+
 
 export default function AdminDeals() {
     const [searchQuery, setSearchQuery] = useState("");
@@ -7,8 +9,25 @@ export default function AdminDeals() {
     const [ownerFilter, setOwnerFilter] = useState("");
     const [selectedDeal, setSelectedDeal] = useState(null);
     const [activeTab, setActiveTab] = useState("Overview");
+    const [showDealModal, setShowDealModal] = useState(false);
 
-    const deals = [
+    const [dealForm, setDealForm] = useState({
+        id: null,
+        name: "",
+        account: "",
+        contact: "",
+        stage: "Proposal Stage",
+        value: "",
+        closeDate: "",
+        owner: "",
+        status: "Proposal",
+        progress: 0,
+        description: "",
+        phone: "",
+        email: "",
+    });
+
+    const [deals, setDeals] = useState([
         {
             id: 1,
             name: "Enterprise ni Dinosaur Tuberow",
@@ -25,8 +44,25 @@ export default function AdminDeals() {
             phone: "+6373737373",
             email: "jesselle@example.com",
         },
-    ];
+        {
+            id: 2,
+            name: "Enterprise ni Dinosaur Tuberow",
+            account: "Gertan Corp.",
+            contact: "Joshua M.",
+            stage: "Proposal Stage",
+            value: 200000,
+            closeDate: "January 12, 2026",
+            owner: "Dinosaur Roar",
+            status: "Proposal",
+            progress: 75,
+            description:
+                "Annual enterprise software license renewal with additional modules.",
+            phone: "+6373737373",
+            email: "jesselle@example.com",
+        },
+    ]);
 
+    // Filtered deals
     const filteredDeals = deals.filter((deal) => {
         const matchesSearch =
             searchQuery === "" ||
@@ -36,40 +72,111 @@ export default function AdminDeals() {
         return matchesSearch && matchesStage && matchesOwner;
     });
 
-    const closeModal = () => {
+    // Handlers
+    const openNewDealModal = () => {
+        setDealForm({
+            id: null,
+            name: "",
+            account: "",
+            contact: "",
+            stage: "Proposal Stage",
+            value: "",
+            closeDate: "",
+            owner: "",
+            status: "Proposal",
+            progress: 0,
+            description: "",
+            phone: "",
+            email: "",
+        });
+        setShowDealModal(true);
+    };
+
+    const openEditDealModal = (deal) => {
+        setDealForm(deal);
+        setShowDealModal(true);
+    };
+
+    const openDetailsModal = (deal) => {
+        setSelectedDeal(deal);
+        setActiveTab("Overview");
+    };
+
+    const closeDetailsModal = () => {
         setSelectedDeal(null);
         setActiveTab("Overview");
     };
 
-    return (
-        <div className="min-h-screen bg-paper-white p-6 font-inter">
-            {/* Header */}
-            <div className="sticky top-0 bg-paper-white z-20 pb-3">
-                <div className="flex items-center justify-between mb-4">
-                    <h1 className="text-2xl font-semibold flex items-center gap-2">
-                        <FiBriefcase className="text-blue-600" />
-                        Deals Management
-                    </h1>
+    const handleInputChange = (key, value) => {
+        setDealForm({ ...dealForm, [key]: value });
+    };
 
-                    <button className="bg-gray-900 text-white px-4 py-2 rounded-md hover:bg-gray-800 transition">
-                        + New Deal
-                    </button>
+    const handleDealSubmit = (e) => {
+        e.preventDefault();
+        if (dealForm.id) {
+            setDeals((prev) =>
+                prev.map((d) => (d.id === dealForm.id ? dealForm : d))
+            );
+        } else {
+            setDeals([...deals, { ...dealForm, id: deals.length + 1 }]);
+        }
+        setShowDealModal(false);
+    };
+
+    return (
+        <div className="min-h-screen p-6 font-inter">
+            {/* Header */}
+            <div className="flex items-center justify-between mb-4">
+                <h1 className="text-2xl font-semibold flex items-center gap-2">
+                    <FiBriefcase className="text-blue-600" />
+                    Deals Management
+                </h1>
+                <button
+                    onClick={openNewDealModal}
+                    className="bg-gray-900 text-white px-4 py-2 rounded-md hover:bg-gray-800 transition"
+                >
+                    + New Deal
+                </button>
+            </div>
+
+            {/* Summary Boxes */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                <div className="bg-white p-4 rounded-lg shadow border border-gray-200 flex flex-col items-start">
+                    <span className="text-sm text-gray-500">Total Deals</span>
+                </div>
+                <div className="bg-white p-4 rounded-lg shadow border border-gray-200 flex flex-col items-start">
+                    <span className="text-sm text-gray-500"></span>
+                    <span className="text-xl font-semibold text-orange-500">
+                    </span>
+                </div>
+                <div className="bg-white p-4 rounded-lg shadow border border-gray-200 flex flex-col items-start">
+                    <span className="text-sm text-gray-500"></span>
+                    <span className="text-xl font-semibold text-blue-500">
+                    </span>
+                </div>
+                <div className="bg-white p-4 rounded-lg shadow border border-gray-200 flex flex-col items-start">
+                    <span className="text-sm text-gray-500"></span>
+                    <span className="text-xl font-semibold text-green-500">
+                    </span>
                 </div>
             </div>
 
             {/* Search & Filters */}
             <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-4 gap-4">
-                <input
-                    type="text"
-                    placeholder="Search"
-                    className="border border-gray-300 rounded-md px-4 py-2 w-full lg:w-1/3 text-sm focus:outline-none focus:ring-2 focus:ring-gray-300"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                />
+                <div className="relative w-full lg:w-1/3">
+                    <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                    <input
+                        type="text"
+                        placeholder="Search Deals..."
+                        className="border border-gray-300 bg-white rounded-md px-10 py-2 w-full text-sm focus:outline-none focus:ring-2 focus:ring-gray-300"
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                    />
+                </div>
 
                 <div className="flex flex-wrap gap-4">
                     <select
-                        className="border border-gray-300 rounded-md px-4 py-2 text-sm"
+                        className="border border-gray-300 rounded-md px-4 py-2 text-sm bg-white"
                         value={stageFilter}
                         onChange={(e) => setStageFilter(e.target.value)}
                     >
@@ -77,14 +184,13 @@ export default function AdminDeals() {
                         <option value="Proposal Stage">Proposal Stage</option>
                         <option value="Negotiation Stage">Negotiation Stage</option>
                     </select>
-
                     <select
-                        className="border border-gray-300 rounded-md px-4 py-2 text-sm"
+                        className="border border-gray-300 rounded-md px-4 py-2 text-sm bg-white"
                         value={ownerFilter}
                         onChange={(e) => setOwnerFilter(e.target.value)}
                     >
                         <option value="">Filter by Owner</option>
-                        <option value="Jesselle R.">Roar Dinosaur</option>
+                        <option value="Dinosaur Roar">Dinosaur Roar</option>
                         <option value="Marcus Lee">Marcus Lee</option>
                     </select>
                 </div>
@@ -92,7 +198,7 @@ export default function AdminDeals() {
 
             {/* Deals Table */}
             <div className="overflow-x-auto rounded-lg shadow-sm">
-                <table className="w-full bg-white text-left table-auto mt-7">
+                <table className="w-full bg-white text-left table-auto mt-5">
                     <thead className="bg-gray-100 text-sm text-gray-600 sticky top-0 z-10">
                         <tr>
                             <th className="py-3 px-4 font-medium">Deal Name</th>
@@ -107,38 +213,47 @@ export default function AdminDeals() {
                     </thead>
                     <tbody className="text-xs">
                         {filteredDeals.length > 0 ? (
-                            filteredDeals.map((deal, index) => (
-                                <tr
-                                    key={deal.id}
-                                    onClick={() => setSelectedDeal(deal)}
-                                    className={`border-b border-gray-200 hover:bg-gray-50 cursor-pointer ${index % 2 === 0 ? "bg-white" : "bg-[#F8F8F8]"
-                                        }`}
-                                >
-                                    <td className="py-3 px-4">{deal.name}</td>
-                                    <td className="py-3 px-4">{deal.account}</td>
-                                    <td className="py-3 px-4">{deal.contact}</td>
-                                    <td className="py-3 px-4 text-orange-500">{deal.stage}</td>
-                                    <td className="py-3 px-4">₱ {deal.value.toLocaleString()}</td>
-                                    <td className="py-3 px-4">{deal.closeDate}</td>
-                                    <td className="py-3 px-4">{deal.owner}</td>
-                                    <td className="py-3 px-4 text-center">
-                                        <div className="flex justify-center space-x-2">
-                                            <button
-                                                onClick={(e) => e.stopPropagation()}
-                                                className="text-blue-500 hover:text-blue-700"
-                                            >
-                                                <FiEdit />
-                                            </button>
-                                            <button
-                                                onClick={(e) => e.stopPropagation()}
-                                                className="text-red-500 hover:text-red-700"
-                                            >
-                                                <FiTrash2 />
-                                            </button>
-                                        </div>
-                                    </td>
-                                </tr>
-                            ))
+                            filteredDeals.map((deal, index) => {
+                                const isEven = index % 2 === 0;
+                                return (
+                                    <tr
+                                        key={deal.id}
+                                        onClick={() => openDetailsModal(deal)}
+                                        className={`border-b border-gray-200 cursor-pointer ${isEven ? "bg-white hover:bg-gray-200" : "bg-yellow-50 hover:bg-yellow-200"
+                                            }`}
+                                    >
+                                        <td className="py-3 px-4">{deal.name}</td>
+                                        <td className="py-3 px-4">{deal.account}</td>
+                                        <td className="py-3 px-4">{deal.contact}</td>
+                                        <td className="py-3 px-4 text-orange-500">{deal.stage}</td>
+                                        <td className="py-3 px-4">₱ {deal.value.toLocaleString()}</td>
+                                        <td className="py-3 px-4">{deal.closeDate}</td>
+                                        <td className="py-3 px-4">{deal.owner}</td>
+                                        <td className="py-3 px-4 text-center">
+                                            <div className="flex justify-center space-x-2">
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        openEditDealModal(deal);
+                                                    }}
+                                                    className="text-blue-500 hover:text-blue-700"
+                                                >
+                                                    <FiEdit />
+                                                </button>
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        setDeals(deals.filter((d) => d.id !== deal.id));
+                                                    }}
+                                                    className="text-red-500 hover:text-red-700"
+                                                >
+                                                    <FiTrash2 />
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                );
+                            })
                         ) : (
                             <tr>
                                 <td colSpan="8" className="text-center py-6 text-gray-500">
@@ -147,216 +262,116 @@ export default function AdminDeals() {
                             </tr>
                         )}
                     </tbody>
+
+
+
                 </table>
             </div>
 
-            {/* MODAL */}
-            {selectedDeal && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[9999] font-inter p-4">
-                    <div className="bg-white rounded-xl shadow-lg w-full max-w-6xl h-[90vh] overflow-y-auto relative">
-                        {/* Header */}
-                        <div className="flex justify-between items-start p-6 border-b-gray-200 mt-6">
-                            <div>
-                                <h1 className="text-xl font-semibold">
-                                    {selectedDeal.name}
-                                </h1>
-                                <p className="text-gray-500 text-sm mt-1">
-                                    Created on {selectedDeal.closeDate}
-                                </p>
-                                <span className="mt-3 inline-block bg-yellow-100 text-yellow-700 text-sm font-medium px-3 py-1 rounded-full">
-                                    {selectedDeal.status}
-                                </span>
-                            </div>
+            {/* Deal Details Modal */}
+            <AdminDealsInformation
+                selectedDeal={selectedDeal}
+                show={!!selectedDeal}
+                onClose={closeDetailsModal}
+                activeTab={activeTab}
+                setActiveTab={setActiveTab}
+            />
 
-                            <div className="text-right">
-                                <h2 className="text-3xl font-bold text-gray-900">
-                                    ₱ {selectedDeal.value.toLocaleString()}
-                                </h2>
-                                <div className="w-40 bg-gray-200 rounded-full h-2 mt-1">
-                                    <div
-                                        className="bg-green-500 h-2 rounded-full"
-                                        style={{ width: `${selectedDeal.progress}%` }}
-                                    ></div>
+            {/* Add/Edit Deal Modal */}
+            {showDealModal && (
+                <div
+                    className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4"
+                    onClick={() => setShowDealModal(false)}
+                >
+                    <div
+                        className="bg-white w-full max-w-3xl rounded-xl shadow-lg p-5 sm:p-6 relative border border-gray-200 scale-[0.95]"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <button
+                            onClick={() => setShowDealModal(false)}
+                            className="absolute top-3 right-3 text-gray-400 hover:text-black transition"
+                        >
+                            <FiX size={20} />
+                        </button>
+
+                        <h2 className="text-xl font-semibold text-gray-800 mb-4 text-center">
+                            {dealForm.id ? "Edit Deal" : "Add New Deal"}
+                        </h2>
+
+                        <form
+                            className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm"
+                            onSubmit={handleDealSubmit}
+                        >
+                            {[
+                                { label: "Deal Name", key: "name", type: "text" },
+                                { label: "Account", key: "account", type: "text" },
+                                { label: "Contact", key: "contact", type: "text" },
+                                {
+                                    label: "Stage",
+                                    key: "stage",
+                                    type: "select",
+                                    options: ["Proposal Stage", "Negotiation Stage", "Closed Won", "Closed Lost"],
+                                },
+                                { label: "Value", key: "value", type: "number" },
+                                { label: "Close Date", key: "closeDate", type: "date" },
+                                { label: "Owner", key: "owner", type: "text" },
+                                {
+                                    label: "Status",
+                                    key: "status",
+                                    type: "select",
+                                    options: ["Proposal", "Negotiation", "Closed"],
+                                },
+                            ].map((field) => (
+                                <div key={field.key} className="flex flex-col">
+                                    <label className="font-medium text-gray-700 mb-1">{field.label}</label>
+                                    {field.type === "select" ? (
+                                        <select
+                                            value={dealForm[field.key]}
+                                            onChange={(e) => handleInputChange(field.key, e.target.value)}
+                                            className="border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-400 outline-none"
+                                        >
+                                            {field.options.map((opt) => (
+                                                <option key={opt}>{opt}</option>
+                                            ))}
+                                        </select>
+                                    ) : (
+                                        <input
+                                            type={field.type}
+                                            value={dealForm[field.key]}
+                                            onChange={(e) => handleInputChange(field.key, e.target.value)}
+                                            className="border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-400 outline-none"
+                                        />
+                                    )}
                                 </div>
-                                <p className="text-xs text-gray-500 mt-1">
-                                    {selectedDeal.progress}% Complete
-                                </p>
-                            </div>
-
-                            <button
-                                onClick={closeModal}
-                                className="absolute top-4 right-4 text-gray-500 hover:text-gray-700"
-                            >
-                                <FiX size={20} />
-                            </button>
-                        </div>
-
-                        {/* Tabs */}
-                        <div className="flex space-x-7 ml-5 border-b-gray-200 px-6 py-2 bg-gray-50 rounded-md w-[64%]">
-                            {["Overview", "Activities", "Notes", "Edit"].map((tab) => (
-                                <button
-                                    key={tab}
-                                    onClick={() => setActiveTab(tab)}
-                                    className={`px-5 py-2 rounded-md text-sm font-medium transition border shadow ${activeTab === tab
-                                        ? "bg-gray-900 text-white border-gray-900"
-                                        : "bg-white text-gray-600 border-gray-300 hover:bg-gray-100"
-                                        }`}
-                                >
-                                    {tab}
-                                </button>
                             ))}
-                        </div>
 
-
-
-                        {/* Content */}
-                        <div className="p-6 grid lg:grid-cols-3 gap-6">
-                            <div className="lg:col-span-2 space-y-6">
-                                {activeTab === "Overview" && (
-                                    <div className="grid md:grid-cols-2 gap-6">
-                                        {/* Deal Info */}
-                                        <div className="bg-white border-gray-250 rounded-lg p-5 shadow-sm pb-20">
-                                            <h4 className="font-semibold text-gray-800 mb-3">
-                                                Deal Information
-                                            </h4>
-                                            <p className="text-sm text-gray-700 mb-2 py-10">
-                                                <strong>Description:</strong>{" "}
-                                                {selectedDeal.description}
-                                            </p>
-                                            <div className="h-px bg-gray-200 w-full" />
-
-                                            <p className="text-sm text-gray-700 mb-2 py-5">
-                                                <strong>Expected Close Date:</strong>{" "}
-                                                {selectedDeal.closeDate}
-                                            </p>
-                                            <div className="h-px bg-gray-200 w-full" />
-
-                                            {/* Progress bar */}
-                                            <div className="mt-4 py-5 ">
-                                                {/* Pipeline container */}
-                                                <div className="relative flex items-center justify-between w-full">
-                                                    {/* Circles and connectors */}
-                                                    <div className="flex items-center justify-between w-full absolute top-0 left-0 right-0">
-                                                        {["green", "green", "orange", "gray", "gray"].map((color, i) => (
-                                                            <React.Fragment key={i}>
-                                                                {/* Circle */}
-                                                                <div
-                                                                    className={`relative z-10 w-6 h-6 rounded-full border-2 ${color === "green"
-                                                                        ? "bg-green-500 border-green-500"
-                                                                        : color === "orange"
-                                                                            ? "bg-orange-400 border-orange-400"
-                                                                            : "bg-gray-300 border-gray-300"
-                                                                        }`}
-                                                                ></div>
-
-                                                                {/* Line (between circles) */}
-                                                                {i < 4 && <div className="flex-grow h-1 bg-gray-200 mx-1"></div>}
-                                                            </React.Fragment>
-                                                        ))}
-                                                    </div>
-
-                                                    {/* Labels under circles */}
-                                                    <div className="flex justify-between w-full mt-8 gap-5">
-                                                        {[
-                                                            "Prospecting",
-                                                            "Qualification",
-                                                            "Proposal",
-                                                            "Negotiation",
-                                                            "Closed",
-                                                        ].map((label, i) => (
-                                                            <span
-                                                                key={i}
-                                                                className="text-[9px] text-gray-600 text-center flex-1"
-                                                            >
-                                                                {label}
-                                                            </span>
-                                                        ))}
-                                                    </div>
-                                                </div>
-
-                                                {/* Current stage */}
-                                                <p className="text-sm text-orange-600 font-medium mt-6 text-center">
-                                                    {selectedDeal.stage}
-                                                </p>
-                                            </div>
-
-
-
-                                        </div>
-
-                                        {/* Contact Info */}
-                                        <div className="bg-white border-gray-250 rounded-lg p-5 shadow-sm">
-                                            <h4 className="font-semibold text-gray-800 mb-10">
-                                                Contact Information
-                                            </h4>
-                                            <div className="text-sm text-gray-700 space-y-5">
-                                                <p>
-                                                    <strong>Account:</strong> {selectedDeal.account}
-                                                </p>
-                                                <div className="h-px bg-gray-200 w-full" />
-                                                <p>
-                                                    <strong>Primary Contact:</strong>{" "}
-                                                    {selectedDeal.contact}
-                                                </p>
-                                                <div className="h-px bg-gray-200 w-full" />
-                                                <p>
-                                                    <strong>Phone:</strong> {selectedDeal.phone}
-                                                </p>
-                                                <div className="h-px bg-gray-200 w-full" />
-                                                <p>
-                                                    <strong>Email:</strong> {selectedDeal.email}
-                                                </p>
-                                                <div className="h-px bg-gray-200 w-full" />
-                                                <p>
-                                                    <strong>Assigned To:</strong> {selectedDeal.owner}
-                                                </p>
-                                            </div>
-                                        </div>
-                                    </div>
-                                )}
+                            {/* Description full width */}
+                            <div className="flex flex-col sm:col-span-2">
+                                <label className="font-medium text-gray-700 mb-1">Description</label>
+                                <textarea
+                                    rows={3}
+                                    value={dealForm.description}
+                                    onChange={(e) => handleInputChange("description", e.target.value)}
+                                    className="border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-400 outline-none resize-none"
+                                />
                             </div>
 
-                            {/* Right column */}
-                            <div className="space-y-6">
-                                {/* Quick Actions */}
-                                <div className="bg-white border-gray-250 rounded-lg p-5 shadow-sm">
-                                    <h4 className="font-semibold text-gray-800 mb-3">
-                                        Quick Actions
-                                    </h4>
-                                    <div className="flex flex-col gap-2 text-sm">
-                                        {[
-                                            { icon: FiPhone, text: "Schedule Call" },
-                                            { icon: FiMail, text: "Send E-mail" },
-                                            { icon: FiCalendar, text: "Book Meeting" },
-                                            { icon: FiFileText, text: "Create Quote" },
-                                        ].map(({ icon: Icon, text }) => (
-                                            <button
-                                                key={text}
-                                                className="flex items-center gap-2 border border-gray-100 rounded-md py-2 px-3 hover:bg-gray-50 transition"
-                                            >
-                                                <Icon className="text-gray-600 w-4 h-4" /> {text}
-                                            </button>
-                                        ))}
-                                    </div>
-                                </div>
-
-                                {/* Promote Deal */}
-                                <div className="bg-white border-gray-250 rounded-lg p-5 shadow-sm">
-                                    <h4 className="font-semibold text-gray-800 mb-3">
-                                        Promote Deal
-                                    </h4>
-                                    <select className="border border-gray-100 rounded-md px-3 py-2 w-full text-sm mb-3 focus:ring-2 focus:ring-gray-300">
-                                        <option>Negotiation Stage</option>
-                                        <option>Proposal Stage</option>
-                                        <option>Closed Won</option>
-                                        <option>Closed Lost</option>
-                                    </select>
-                                    <button className="w-full bg-gray-900 text-white py-2 rounded-md hover:bg-gray-800 transition">
-                                        Update
-                                    </button>
-                                </div>
+                            <div className="flex justify-end sm:col-span-2 mt-2 space-x-2">
+                                <button
+                                    type="button"
+                                    onClick={() => setShowDealModal(false)}
+                                    className="px-4 py-2 text-red-500 border border-red-300 rounded hover:bg-red-50 transition"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="submit"
+                                    className="px-4 py-2 text-green-600 border border-green-300 rounded hover:bg-green-50 transition"
+                                >
+                                    {dealForm.id ? "Save Changes" : "Add Deal"}
+                                </button>
                             </div>
-                        </div>
+                        </form>
                     </div>
                 </div>
             )}

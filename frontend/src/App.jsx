@@ -19,6 +19,8 @@ import AdminTargets from "./pages/AdminTargets";
 import AdminQuotes from "./pages/AdminQuotes";
 import AdminUser from "./pages/AdminUser";
 import AdminDeals from "./pages/AdminDeals";
+import AdminDealsInformation from "./components/AdminDealsInformation";
+import AdminDealsQuickAction from "./components/AdminDealsQuickAction";
 
 // 🔹 Sales layout + pages
 import SalesPanel from "./components/SalesPanel";
@@ -58,6 +60,8 @@ function App() {
           <Route path="quotes" element={<AdminQuotes />} />
           <Route path="users" element={<AdminUser />} />
           <Route path="deals" element={<AdminDeals />} />
+          <Route path="deals/info" element={<AdminDealsInformation />} />
+          <Route path="deals/quickaction" element={<AdminDealsQuickAction />} />
         </Route>
 
         {/* ================= Sales Layout ================= */}

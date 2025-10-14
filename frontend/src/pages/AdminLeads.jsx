@@ -37,7 +37,7 @@ export default function AdminLeads() {
   // FULL PAGE LEAD VIEW =========== Here is the page if you click the data in the table lead
   if (selectedLead) {
     return (
-      <div className="p-8 font-outfit min-h-screen">
+      <div className="p-8 font-inter min-h-screen">
         {/* Back Button */}
         <button
           onClick={handleBackToList}
@@ -264,10 +264,10 @@ export default function AdminLeads() {
       </div>
 
       {/* Table */}
-      <div className="bg-white shadow-sm overflow-hidden shadow-sm border-b border-gray-500">
+      <div className="bg-white shadow-sm overflow-hidden shadow-sm">
 
         {/* Table Header */}
-        <div className="grid grid-cols-9 bg-gray-100 font-medium text-gray-700 px-4 py-2 text-sm border-b border-gray-500 py-3 px-4">
+        <div className="grid grid-cols-9 bg-gray-100 font-medium text-gray-700 px-4 py-2 text-sm py-3 px-4">
           <div>Name</div>
           <div>Account</div>
           <div>Title</div>
@@ -283,7 +283,7 @@ export default function AdminLeads() {
         {leads.map((lead, i) => (
           <div
             key={i}
-            className="grid grid-cols-9 px-4 py-3 text-sm hover:bg-gray-100 transition cursor-pointer gap-x-6 py-3 px-4"
+            className="grid grid-cols-9 px-4 py-3 text-xs hover:bg-gray-100 transition cursor-pointer gap-x-6 py-3 px-4"
             onClick={() => handleLeadClick(lead)}
           >
             <div className="truncate">{lead.name}</div>

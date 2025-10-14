@@ -91,8 +91,8 @@ export default function AdminQuotes() {
       </div>
 
       {/* Table */}
-      <div className="bg-white shadow-sm overflow-hidden border-b border-gray-500">
-        <div className="grid grid-cols-9 bg-gray-100 font-medium text-gray-700 px-4 py-3 text-sm border-b border-gray-500">
+      <div className="bg-white shadow-sm overflow-hidden">
+        <div className="grid grid-cols-9 bg-gray-100 font-medium text-gray-700 px-4 py-3 text-sm">
           <div>Quotes ID</div>
           <div>Account</div>
           <div>Deal</div>
@@ -108,7 +108,7 @@ export default function AdminQuotes() {
           <div
             key={i}
             onClick={() => handleRowClick(quote)}
-            className="grid grid-cols-9 px-4 py-3 text-sm hover:bg-gray-50 transition gap-x-4 border-b border-gray-100 cursor-pointer"
+            className="grid grid-cols-9 px-4 py-3 text-xs hover:bg-gray-50 transition gap-x-4 cursor-pointer"
           >
             <div className="truncate">{quote.quoteId}</div>
             <div className="truncate">{quote.account}</div>
@@ -147,7 +147,7 @@ export default function AdminQuotes() {
         ))}
       </div>
 
-      {/* Add Qoutes */}
+      {/* ========================Add Qoutes====================================================== */}
       {showModal && (
         <div
           id="modalBackdrop"

@@ -1,6 +1,5 @@
 import { Dialog, Transition } from "@headlessui/react";
 import { Fragment, useState } from "react";
-import { X } from "lucide-react"; // optional: add for close icon (npm install lucide-react)
 
 export default function CreateTaskModal({ isOpen, onClose }) {
   const [title, setTitle] = useState("");
@@ -18,9 +17,10 @@ export default function CreateTaskModal({ isOpen, onClose }) {
   };
 
   return (
+    // root Transition keeps the enter/leave animation for the whole modal
     <Transition appear show={isOpen} as={Fragment}>
       <Dialog as="div" className="relative z-50" onClose={onClose}>
-        {/* Background overlay */}
+        {/* overlay */}
         <Transition.Child
           as={Fragment}
           enter="ease-out duration-200"
@@ -33,8 +33,9 @@ export default function CreateTaskModal({ isOpen, onClose }) {
           <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" />
         </Transition.Child>
 
-        {/* Modal content */}
+        {/* center container */}
         <div className="fixed inset-0 flex items-center justify-center p-4">
+          {/* animated panel (simplified - using the same Transition.Child for panel animation) */}
           <Transition.Child
             as={Fragment}
             enter="ease-out duration-200"
@@ -44,23 +45,21 @@ export default function CreateTaskModal({ isOpen, onClose }) {
             leaveFrom="opacity-100 scale-100"
             leaveTo="opacity-0 scale-95"
           >
-            <Dialog.Panel className="w-full max-w-xl rounded-2xl bg-white shadow-2xl ring-1 ring-gray-100 p-6">
-              {/* Header */}
-              <div className="flex justify-between items-center mb-4">
-                <Dialog.Title className="text-xl font-semibold text-gray-900">
-                  Create New Task
-                </Dialog.Title>
+            <div className="w-full max-w-xl rounded-2xl bg-white shadow-2xl ring-1 ring-gray-100 p-6">
+              {/* header */}
+              <div className="flex justify-between items-start gap-4 mb-4">
+                <h3 className="text-xl font-semibold text-gray-900">Create New Task</h3>
                 <button
                   onClick={onClose}
-                  className="text-gray-400 hover:text-gray-600 transition"
+                  aria-label="Close modal"
+                  className="text-gray-400 hover:text-gray-600 transition text-xl leading-none"
                 >
-                  <X size={20} />
+                  &times;
                 </button>
               </div>
 
-              {/* Form */}
+              {/* form */}
               <form onSubmit={handleSubmit} className="space-y-5">
-                {/* Title */}
                 <div>
                   <label className="text-sm font-medium text-gray-700">Title *</label>
                   <input
@@ -73,7 +72,6 @@ export default function CreateTaskModal({ isOpen, onClose }) {
                   />
                 </div>
 
-                {/* Description */}
                 <div>
                   <label className="text-sm font-medium text-gray-700">Description</label>
                   <textarea
@@ -82,10 +80,9 @@ export default function CreateTaskModal({ isOpen, onClose }) {
                     placeholder="Optional details about the task"
                     className="w-full mt-1 border border-gray-300 rounded-lg px-3 py-2 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
                     rows={2}
-                  ></textarea>
+                  />
                 </div>
 
-                {/* Type and Priority */}
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="text-sm font-medium text-gray-700">Type</label>
@@ -115,7 +112,6 @@ export default function CreateTaskModal({ isOpen, onClose }) {
                   </div>
                 </div>
 
-                {/* Due date and related to */}
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="text-sm font-medium text-gray-700">Due Date *</label>
@@ -143,7 +139,6 @@ export default function CreateTaskModal({ isOpen, onClose }) {
                   </div>
                 </div>
 
-                {/* Notes */}
                 <div>
                   <label className="text-sm font-medium text-gray-700">Notes</label>
                   <textarea
@@ -152,10 +147,9 @@ export default function CreateTaskModal({ isOpen, onClose }) {
                     placeholder="Add any internal notes or comments"
                     className="w-full mt-1 border border-gray-300 rounded-lg px-3 py-2 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
                     rows={2}
-                  ></textarea>
+                  />
                 </div>
 
-                {/* Buttons */}
                 <div className="flex justify-end gap-3 pt-4 border-t mt-6">
                   <button
                     type="button"
@@ -172,7 +166,7 @@ export default function CreateTaskModal({ isOpen, onClose }) {
                   </button>
                 </div>
               </form>
-            </Dialog.Panel>
+            </div>
           </Transition.Child>
         </div>
       </Dialog>

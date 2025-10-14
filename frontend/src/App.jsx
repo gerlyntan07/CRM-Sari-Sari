@@ -27,6 +27,7 @@ import SalesHub from "./pages/SalesHub"; // ✅ fixed typo
 import SalesActivities from "./pages/SalesActivities";
 import SalesMyTask from "./pages/SalesMyTask"; // ✅ add this new page
 import SalesPipeline from "./pages/SalesPipeline";
+import SalesPerformance from "./pages/SalesPerformance";
 
 // 🔹 Manager layout + pages
 import ManagerPanel from "./components/ManagerPanel";
@@ -68,6 +69,7 @@ function App() {
             <Route path="activities" element={<SalesActivities />} />
             <Route path="mytasks" element={<SalesMyTask />} />
             <Route path="pipeline" element={<SalesPipeline/>}/>
+            <Route path="performance" element={<SalesPerformance/>}/> 
           </Route>
         </Route>
 

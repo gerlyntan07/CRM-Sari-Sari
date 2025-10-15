@@ -22,6 +22,7 @@ import AdminUser from "./pages/AdminUser";
 import AdminDeals from "./pages/AdminDeals";
 import AdminDealsInformation from "./components/AdminDealsInformation";
 import AdminDealsQuickAction from "./components/AdminDealsQuickAction";
+import AdminTask from "./pages/AdminTask";
 
 // 🔹 Sales layout + pages
 import SalesPanel from "./components/SalesPanel";
@@ -64,6 +65,7 @@ function App() {
           <Route path="deals" element={<AdminDeals />} />
           <Route path="deals/info" element={<AdminDealsInformation />} />
           <Route path="deals/quickaction" element={<AdminDealsQuickAction />} />
+          <Route path="tasks" element={<AdminTask/>}/>
         </Route>
 
         {/* ================= Sales Layout ================= */}

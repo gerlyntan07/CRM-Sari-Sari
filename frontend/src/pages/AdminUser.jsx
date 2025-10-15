@@ -54,7 +54,7 @@ export default function AdminUser() {
   const roleColors = {
     Admin: "bg-red-100 text-red-700",
     Manager: "bg-blue-100 text-blue-700",
-    "Sales Representative": "bg-green-100 text-green-700",
+    Sales: "bg-green-100 text-green-700",
   };
 
   // ✅ Add new user
@@ -316,8 +316,8 @@ export default function AdminUser() {
                   className="w-full mt-1 px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-gray-700 focus:ring-2 focus:ring-yellow-400 focus:outline-none"
                 >
                   <option value="">Select role</option>
-                  <option value="Sales Representative">
-                    Sales Representative
+                  <option value="SALES">
+                    Sales 
                   </option>
                   <option value="Manager">Manager</option>
                   <option value="Admin">Admin</option>

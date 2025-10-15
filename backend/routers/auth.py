@@ -22,8 +22,6 @@ def get_db():
     finally:
         db.close()
 
-DEFAULT_PROFILE_PIC = "https://cdn-icons-png.flaticon.com/512/149/149071.png"
-
 from fastapi import Request
 from sqlalchemy.orm import joinedload
 

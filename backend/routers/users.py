@@ -2,9 +2,8 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List
 from database import get_db
-from routers.auth import DEFAULT_PROFILE_PIC
 from schemas.auth import UserCreate, UserResponse
-from .auth_utils import get_current_user, hash_password
+from .auth_utils import get_current_user, hash_password,get_default_avatar
 from models.auth import User
 
 router = APIRouter(
@@ -56,6 +55,8 @@ def create_user(
         else current_user.related_to_CEO
     )
     related_to_company = current_user.related_to_company
+    profile_pic_url = get_default_avatar(user_data.first_name)
+
 
     # ✅ Create user
     new_user = User(
@@ -66,9 +67,8 @@ def create_user(
         role=user_data.role,
         related_to_CEO=related_to_CEO,
         related_to_company=related_to_company,
-        profile_picture=DEFAULT_PROFILE_PIC,
+        profile_picture=profile_pic_url
     )
-
     db.add(new_user)
     db.commit()
     db.refresh(new_user)

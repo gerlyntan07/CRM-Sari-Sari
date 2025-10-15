@@ -6,11 +6,21 @@ import { HiArrowLeft } from "react-icons/hi";
 import api from '../api.js'
 import useAuth from "../hooks/useAuth.js";
 import {jwtDecode} from "jwt-decode";
+import LoadingScreen from "../components/LoadingScreen.jsx";
 
 // Helper for Tailwind class names
 const cn = (...i) => i.flat().filter(Boolean).join(" ");
 
-const COUNTRY_CODES = [{ code: "+1", name: "USA" }, { code: "+63", name: "Phil" }];
+import * as countryCodesList from "country-codes-list";
+
+const allCountries = countryCodesList.all();
+
+// Create an array like [{ code: "+63", name: "Philippines" }, ...]
+const COUNTRY_CODES = allCountries.map(country => ({
+  code: `+${country.countryCallingCode}`,
+  name: country.countryCode
+}));
+
 const STEPS = [
   { id: 1, title: "Your Account", subtitle: "Personal & Login Details" },
   { id: 2, title: "Company Setup", subtitle: "Business Information" },
@@ -119,9 +129,9 @@ const Step1Content = React.memo(({ formData, handleChange, handleCodeChange, han
         <label htmlFor="phoneNumber" className="text-sm font-medium text-gray-700 cursor-pointer">Contact Number</label>
         <div className="flex space-x-2">
           <select id="countryCode" value={formData.countryCode} onChange={handleCodeChange} className="flex-shrink-0 bg-gray-50 border border-gray-200 px-3 py-2.5 rounded-lg text-gray-800 transition shadow-inner focus:border-amber-500 focus:ring-2 focus:ring-amber-500/50 focus:outline-none cursor-pointer">
-            {COUNTRY_CODES.map((c) => <option key={c.code} value={c.code}>{c.code} ({c.name})</option>)}
+            {COUNTRY_CODES.map((c) => <option key={c.code} value={c.code}>{c.name} {c.code}</option>)}
           </select>
-          <input id="phone_number" type="tel" placeholder="000 000 0000" value={formData.phone_number} onChange={handleChange} className="w-full bg-gray-50 border border-gray-200 px-4 py-2.5 rounded-lg text-gray-800 transition shadow-inner placeholder-gray-400 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/50 focus:outline-none cursor-pointer" />
+          <input id="phone_number" type="tel" placeholder="0000000000" maxLength={10} value={formData.phone_number} onChange={handleChange} className="w-full bg-gray-50 border border-gray-200 px-4 py-2.5 rounded-lg text-gray-800 transition shadow-inner placeholder-gray-400 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/50 focus:outline-none cursor-pointer" />
         </div>
       </div>
 
@@ -144,11 +154,29 @@ const Step1Content = React.memo(({ formData, handleChange, handleCodeChange, han
 ));
 
 // Step 2 Content
-const Step2Content = React.memo(({ handleSubmit, companyData, handleCompanyChange, formError, isSubmitted, isButtonDisabled, setStep, setIsSubmitted, setFormError }) => (
+const Step2Content = React.memo(({ companyData, handleCodeChange1, handleSubmit, handleCompanyChange, formError, isSubmitted, isButtonDisabled, setStep, setIsSubmitted, setFormError }) => (
   <>
     <div className="space-y-6">
       <Input label="Company Name" id="company_name" placeholder="Acme Corp" value={companyData.company_name} onChange={handleCompanyChange} />
+
+      <div className="flex flex-col space-y-2">
+        <label htmlFor="phoneNumber" className="text-sm font-medium text-gray-700 cursor-pointer">Company Number</label>
+        <div className="flex space-x-2">
+          <select id="countryCode" value={companyData.countryCode} onChange={handleCodeChange1} className="flex-shrink-0 bg-gray-50 border border-gray-200 px-3 py-2.5 rounded-lg text-gray-800 transition shadow-inner focus:border-amber-500 focus:ring-2 focus:ring-amber-500/50 focus:outline-none cursor-pointer">
+            {COUNTRY_CODES.map((c) => <option key={c.code} value={c.code}>{c.name} {c.code}</option>)}
+          </select>
+          <input id="company_number" type="tel" placeholder="0000000000" maxLength={10} value={companyData.company_number} onChange={handleCompanyChange} className="w-full bg-gray-50 border border-gray-200 px-4 py-2.5 rounded-lg text-gray-800 transition shadow-inner placeholder-gray-400 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/50 focus:outline-none cursor-pointer" />
+        </div>
+      </div>
+
+      {/* <div className="flex flex-row">
+        <select id="countryCode" value={companyData.countryCode} onChange={handleCodeChange1} className="flex-shrink-0 bg-gray-50 border border-gray-200 px-3 py-2.5 rounded-lg text-gray-800 transition shadow-inner focus:border-amber-500 focus:ring-2 focus:ring-amber-500/50 focus:outline-none cursor-pointer">
+            {COUNTRY_CODES.map((c) => <option key={c.code} value={c.code}>{c.name} {c.code}</option>)}
+          </select>
       <Input label="Company Number" id="company_number" type="tel" placeholder="e.g., 555-123-4567" value={companyData.company_number} onChange={handleCompanyChange} />
+      </div>      */}
+
+
       <Input label="Company Website" id="company_website" type="url" placeholder="https://www.acme.com" value={companyData.company_website} onChange={handleCompanyChange} />
     </div>
 
@@ -185,12 +213,13 @@ const Signup = () => {
   const [step, setStep] = React.useState(1);
   const [formData, setFormData] = React.useState({
     first_name: '', last_name: '',
+    countryCode: "+63",
     phone_number: '', email: '',
     password: '', confirmPassword: '',
     role: 'CEO'
   });
   const [companyData, setCompanyData] = React.useState({
-    company_name: '', company_number: '', company_website: ''
+    company_name: '', company_number: '', company_website: '', countryCode: "+63",
   })
   const [isPassVisible, setIsPassVisible] = React.useState({});
   const [termsAccepted, setTermsAccepted] = React.useState(false);
@@ -201,6 +230,7 @@ const Signup = () => {
     plan_name: 'Free',
     price: 0.00,    
   })
+  const [isLoading, setIsLoading] = React.useState(false);
 
   React.useEffect(() => {
     document.title = "Sign Up | Sari-Sari CRM";
@@ -240,6 +270,7 @@ const Signup = () => {
 
   // ✅ When user signs up with Google
   const handleGoogleCallback = (response) => {
+    setIsLoading(true);
   try {
     const userObject = jwtDecode(response.credential);
     console.log("Google user:", userObject);
@@ -260,6 +291,8 @@ const Signup = () => {
     setStep(2);
   } catch (error) {
     console.error("Google login error:", error);
+  } finally{
+    setIsLoading(false);
   }
 };
 
@@ -290,6 +323,7 @@ const Signup = () => {
   }, []);
 
   const handleCodeChange = React.useCallback((e) => setFormData(p => ({ ...p, countryCode: e.target.value })), []);
+  const handleCodeChange1 = React.useCallback((e) => setCompanyData(p => ({ ...p, countryCode: e.target.value })), []);
   const handleTogglePass = React.useCallback((fieldId) => setIsPassVisible(p => ({ ...p, [fieldId]: !p[fieldId] })), []);
   const handleTerms = React.useCallback((e) => setTermsAccepted(e.target.checked), []);
 
@@ -297,6 +331,7 @@ const Signup = () => {
     e.preventDefault();
     setIsSubmitted(false);
     setFormError(null);
+    setIsLoading(true);
 
     if (step === 1) {
       const allRequiredFilled = REQUIRED_FIELDS_STEP_1.every(field => formData[field].trim() !== '');
@@ -326,6 +361,8 @@ const Signup = () => {
         } else {
           setFormError("Something went wrong. Please try again.");
         }
+      } finally{
+        setIsLoading(false);
       }
     } else if (step === 2) {
       const allRequiredFilled = REQUIRED_FIELDS_STEP_2.every(
@@ -342,7 +379,7 @@ const Signup = () => {
         const { confirmPassword, ...cleanedFormData } = formData;
         const companyPayload1 = {
             ...companyData,            
-            company_number: `+63${companyData.company_number}`,
+            company_number: `${companyData.countryCode}${companyData.company_number}`,
           };          
         const resCompany = await api.post(`/company/create`, companyPayload1);
         const companyID = resCompany.data.id;
@@ -351,7 +388,7 @@ const Signup = () => {
         const finalFormData = {
           ...cleanedFormData,
           company_id: companyID,
-          phone_number: `+63${cleanedFormData.phone_number}`,
+          phone_number: `${cleanedFormData.countryCode}${cleanedFormData.phone_number}`,
         };
 
         console.log("📤 Sending payload:", finalFormData);
@@ -403,6 +440,8 @@ const Signup = () => {
         } else {
           setFormError("Something went wrong. Please try again.");
         }
+      } finally{
+        setIsLoading(false);
       }
     }
   };
@@ -476,7 +515,11 @@ const handleGoogleLogin = React.useCallback(() => {
           <FiBriefcase className="size-6 text-amber-500 mr-2" />
           <span className="text-xl font-extrabold tracking-wider">CRM</span>
         </div>
-      </div>
+      </div>      
+
+      {isLoading && (
+        <LoadingScreen isLoading={isLoading} />
+      )}
 
       <div className="w-full max-w-lg px-4 pt-6">
         <BackButton />
@@ -523,6 +566,7 @@ const handleGoogleLogin = React.useCallback(() => {
                 setStep={setStep}
                 setIsSubmitted={setIsSubmitted}
                 setFormError={setFormError}
+                handleCodeChange1={handleCodeChange1}
               />
             )}
 

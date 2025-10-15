@@ -6,8 +6,10 @@ from enum import Enum
 
 class UserRole(str, Enum):
     CEO = "CEO"
-    MARKETING = "marketing"
+    ADMIN = "Admin"
+    GROUP_MANAGER = "Group Manager"
     MANAGER = "manager"
+    MARKETING = "marketing"
     SALES = "sales"
 
 class User(Base):

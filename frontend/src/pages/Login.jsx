@@ -6,6 +6,7 @@ import { FiEye, FiEyeOff } from "react-icons/fi";
 import api from "../api";
 import useAuth from "../hooks/useAuth";
 import { jwtDecode } from "jwt-decode"; 
+import LoadingScreen from "../components/LoadingScreen";
 // --- Back Button ---
 const BackButton = () => {
   const navigate = useNavigate();
@@ -59,6 +60,7 @@ const Login = () => {
   const [formData, setFormData] = React.useState({ email: "", password: "" });
   const [isPassVisible, setIsPassVisible] = React.useState(false);
   const [loginErr, setLoginErr] = React.useState(null);
+  const [isLoading, setIsLoading] = React.useState(false);
   const {isLoggedIn, login, userRole} = useAuth();
   const navigate = useNavigate();
 
@@ -74,7 +76,7 @@ const Login = () => {
         navigate(`/manager`)
       }else if(userRole === 'Sales Representative'){
         navigate(`/sales`)
-      }else if(userRole === 'admin'){
+      }else if(userRole === 'Admin'){
         navigate(`/admin-dashboard`);
       }
     }
@@ -128,6 +130,7 @@ const Login = () => {
   }, []);
 
 const handleGoogleCallback = async (response) => {
+  setIsLoading(true);
   try {
     const user = jwtDecode(response.credential);
     console.log("Decoded Google User:", user);
@@ -135,12 +138,12 @@ const handleGoogleCallback = async (response) => {
     // Send the ID token to backend for verification
     const res = await api.post("/auth/google", { id_token: response.credential });
 
-    login(res.data); // use your existing login hook
-    console.log("Logged in with Google:", res.data);
-
+    login(res.data); // use your existing login hook    
   } catch (error) {
     console.error("Google login failed:", error);
     setLoginErr("Google login failed. Please try again.");
+  } finally{
+    setIsLoading(false);
   }
 };
 
@@ -152,6 +155,10 @@ const handleGoogleCallback = async (response) => {
           <span className="text-xl font-extrabold tracking-wider">CRM</span>
         </div>
       </div>
+
+      {isLoading && (
+        <LoadingScreen isLoading={isLoading} />
+      )}      
 
       <main className="w-full max-w-lg font-inter mx-auto px-4 pt-6 pb-12">
         <BackButton />
@@ -165,7 +172,6 @@ const handleGoogleCallback = async (response) => {
           </header>
 
           <div id="googleLoginBtn"></div>
-
 
           {/* Separator */}
           <div className="flex items-center my-6">

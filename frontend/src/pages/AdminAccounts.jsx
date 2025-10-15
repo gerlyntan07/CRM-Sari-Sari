@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   FiSearch,
   FiEdit,
@@ -11,13 +11,13 @@ import {
   FiUser,
   FiUserX,
   FiX,
-  FiGlobe,
-  FiMapPin,
-  FiHome,
-  FiLayers,
 } from "react-icons/fi";
 
 export default function AdminAccounts() {
+  useEffect(() => {
+      document.title = "Accounts | Sari-Sari CRM";
+    }, []);
+
   const [showModal, setShowModal] = useState(false);
   const [selectedAccount, setSelectedAccount] = useState(null);
 
@@ -39,6 +39,9 @@ export default function AdminAccounts() {
 
   const handleAccountClick = (acc) => setSelectedAccount(acc);
   const handleBackToList = () => setSelectedAccount(null);
+  const handleBackdropClick = (e) => {
+    if (e.target.id === "modalBackdrop") setShowModal(false);
+  };
 
   // ===================== ACCOUNT DETAILS VIEW ===================== //
   if (selectedAccount) {
@@ -49,15 +52,14 @@ export default function AdminAccounts() {
             {selectedAccount.company}
           </h1>
           <span
-            className={`inline-block mt-1 text-xs px-2 py-0.5 rounded ${
-              selectedAccount.status === "CUSTOMER"
+            className={`inline-block mt-1 text-xs px-2 py-0.5 rounded ${selectedAccount.status === "CUSTOMER"
                 ? "bg-green-600 text-white"
                 : selectedAccount.status === "PROSPECT"
-                ? "bg-purple-600 text-white"
-                : selectedAccount.status === "PARTNER"
-                ? "bg-pink-600 text-white"
-                : "bg-gray-500 text-white"
-            }`}
+                  ? "bg-purple-600 text-white"
+                  : selectedAccount.status === "PARTNER"
+                    ? "bg-pink-600 text-white"
+                    : "bg-gray-500 text-white"
+              }`}
           >
             {selectedAccount.status}
           </span>
@@ -183,7 +185,7 @@ export default function AdminAccounts() {
       {/* Accounts Table */}
       <div className="overflow-x-auto">
         <table className="w-full border border-gray-200 rounded-lg bg-white shadow-sm">
-          <thead className="bg-gray-100 text-left text-sm text-gray-600 border-b">
+          <thead className="bg-gray-100 text-left text-sm text-gray-600">
             <tr>
               <th className="py-3 px-4">Company</th>
               <th className="py-3 px-4">Status</th>
@@ -197,7 +199,7 @@ export default function AdminAccounts() {
             {accounts.map((acc, i) => (
               <tr
                 key={i}
-                className="border-b hover:bg-gray-50 text-sm text-gray-700 cursor-pointer"
+                className="hover:bg-gray-50 text-sm text-gray-700 cursor-pointer"
                 onClick={() => handleAccountClick(acc)}
               >
                 <td className="py-3 px-4">
@@ -210,13 +212,12 @@ export default function AdminAccounts() {
                 </td>
                 <td className="py-3 px-4">
                   <span
-                    className={`px-3 py-1 rounded-full text-xs font-medium ${
-                      acc.status === "CUSTOMER"
+                    className={`px-3 py-1 rounded-full text-xs font-medium ${acc.status === "CUSTOMER"
                         ? "bg-green-100 text-green-700"
                         : acc.status === "PROSPECT"
-                        ? "bg-purple-100 text-purple-700"
-                        : "bg-gray-100 text-gray-700"
-                    }`}
+                          ? "bg-purple-100 text-purple-700"
+                          : "bg-gray-100 text-gray-700"
+                      }`}
                   >
                     {acc.status}
                   </span>
@@ -253,88 +254,64 @@ export default function AdminAccounts() {
       {showModal && (
         <div
           id="modalBackdrop"
-          onClick={(e) => e.target.id === "modalBackdrop" && setShowModal(false)}
-          className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50"
+          onClick={handleBackdropClick}
+          className="fixed inset-0 bg-black/40 flex items-center justify-center z-50"
         >
           <div
-            className="bg-white w-full max-w-2xl rounded-lg shadow-lg p-6 relative"
+            className="bg-white w-full max-w-3xl rounded-2xl shadow-lg p-8 relative border border-gray-200"
             onClick={(e) => e.stopPropagation()}
           >
             <button
               onClick={() => setShowModal(false)}
-              className="absolute top-3 right-3 text-gray-500 hover:text-black"
+              className="absolute top-4 right-4 text-gray-500 hover:text-black transition"
             >
-              <FiX size={20} />
+              <FiX size={22} />
             </button>
 
-            <h2 className="text-xl font-semibold mb-4">Add New Account</h2>
+            <h2 className="text-2xl font-semibold text-gray-800 mb-6 flex items-center justify-center">
+              Add New Account
+            </h2>
 
-            <form className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium">Name</label>
-                <input type="text" className="w-full border px-2 py-1 rounded" />
-              </div>
-              <div>
-                <label className="block text-sm font-medium">Website</label>
-                <div className="flex items-center border px-2 py-1 rounded">
-                  <FiGlobe className="text-gray-500 mr-2" />
-                  <input type="url" className="w-full outline-none" />
-                </div>
-              </div>
-              <div>
-                <label className="block text-sm font-medium">Phone Number</label>
-                <div className="flex items-center border px-2 py-1 rounded">
-                  <FiPhone className="text-gray-500 mr-2" />
-                  <input type="text" className="w-full outline-none" />
-                </div>
-              </div>
-              <div>
-                <label className="block text-sm font-medium">Industry</label>
-                <div className="flex items-center border px-2 py-1 rounded">
-                  <FiLayers className="text-gray-500 mr-2" />
-                  <input type="text" className="w-full outline-none" />
-                </div>
-              </div>
-              <div>
-                <label className="block text-sm font-medium">Billing Address</label>
-                <div className="flex items-center border px-2 py-1 rounded">
-                  <FiHome className="text-gray-500 mr-2" />
-                  <input type="text" className="w-full outline-none" />
-                </div>
-              </div>
-              <div>
-                <label className="block text-sm font-medium">Shipping Address</label>
-                <div className="flex items-center border px-2 py-1 rounded">
-                  <FiMapPin className="text-gray-500 mr-2" />
-                  <input type="text" className="w-full outline-none" />
-                </div>
-              </div>
-              <div>
-                <label className="block text-sm font-medium">Territory</label>
-                <input type="text" className="w-full border px-2 py-1 rounded" />
-              </div>
-              <div>
-                <label className="block text-sm font-medium">Status</label>
-                <select className="w-full border px-2 py-1 rounded">
-                  <option value="PROSPECT">Prospect</option>
-                  <option value="CUSTOMER">Customer</option>
-                  <option value="PARTNER">Partner</option>
-                  <option value="INACTIVE">Inactive</option>
-                </select>
-              </div>
-            </form>
+           <form className="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm">
+  {/* Column 1 */}
+  <div className="space-y-3">
+    <InputField label="Name" placeholder="Full name" />
+    <InputField label="Website" placeholder="Website Link" />
+    <InputField label="Phone Number" placeholder="09 --- --- ---" />
+    <InputField label="Industry" placeholder="" />
+  </div>
 
-            <div className="flex justify-end space-x-3 mt-6">
+  {/* Column 2 */}
+  <div className="space-y-3">
+    <InputField label="Billing Address" placeholder="" />
+    <InputField label="Shipping Address" placeholder="" />
+    <InputField label="Status" placeholder="" />
+
+    <div>
+      <label className="block text-gray-700 font-medium mb-1 text-sm">
+        Assign To
+      </label>
+      <select className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-400 outline-none">
+        <option value="">Assign To</option>
+        <option value="sales">Doe</option>
+         <option value="sales">Doe</option>
+      </select>
+    </div>
+  </div>
+</form>
+
+
+            <div className="flex justify-end space-x-2 mt-5 col-span-1 sm:col-span-2 lg:col-span-3">
               <button
                 type="button"
                 onClick={() => setShowModal(false)}
-                className="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400"
+                className="px-4 py-2 text-white bg-red-400 border border-red-300 rounded hover:bg-red-500 transition-100"
               >
                 Cancel
               </button>
               <button
                 type="submit"
-                className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600"
+                className="px-4 py-2 text-white border border-tertiary bg-tertiary rounded hover:bg-secondary transition-100"
               >
                 Save Account
               </button>
@@ -363,6 +340,20 @@ function Card({ title, value, color, icon }) {
       <div className="mb-2">{icon}</div>
       <div className="text-3xl font-semibold">{value}</div>
       <div className="text-sm font-medium">{title}</div>
+    </div>
+  );
+}
+
+// Reusable InputField Component
+function InputField({ label, placeholder, type = "text" }) {
+  return (
+    <div>
+      <label className="block text-gray-700 font-medium mb-1 text-sm">{label}</label>
+      <input
+        type={type}
+        placeholder={placeholder}
+        className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-400 outline-none"
+      />
     </div>
   );
 }

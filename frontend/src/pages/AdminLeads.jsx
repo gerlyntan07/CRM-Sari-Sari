@@ -309,7 +309,7 @@ export default function AdminLeads() {
                   type="submit"
                   className="px-4 py-2 text-white border border-tertiary bg-tertiary rounded hover:bg-secondary transition-100"
                 >
-                  Save Leads
+                  Save Lead
                 </button>
               </div>
             </form>

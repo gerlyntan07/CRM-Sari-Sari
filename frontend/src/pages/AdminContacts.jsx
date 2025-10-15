@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   FiSearch,
   FiEdit,
@@ -13,6 +13,10 @@ import {
 import { BsBuilding } from "react-icons/bs";
 
 export default function AdminContacts() {
+  useEffect(() => {
+    document.title = "Contacts | Sari-Sari CRM";
+  }, []);
+
   const [showModal, setShowModal] = useState(false);
   const [selectedContact, setSelectedContact] = useState(null);
 
@@ -161,7 +165,7 @@ export default function AdminContacts() {
       {/* Table */}
       <div className="overflow-x-auto">
         <table className="w-full border border-gray-200 rounded-lg bg-white shadow-sm">
-          <thead className="bg-gray-100 text-left text-sm text-gray-600 border-b">
+          <thead className="bg-gray-100 text-left text-sm text-gray-600">
             <tr>
               <th className="py-3 px-4">Contact</th>
               <th className="py-3 px-4">Account</th>
@@ -177,7 +181,7 @@ export default function AdminContacts() {
             {contacts.map((c, i) => (
               <tr
                 key={i}
-                className="border-b hover:bg-gray-50 cursor-pointer"
+                className="hover:bg-gray-50 cursor-pointer"
                 onClick={() => handleContactClick(c)}
               >
                 <td className="py-3 px-4">
@@ -250,10 +254,10 @@ export default function AdminContacts() {
         <div
           id="modalBackdrop"
           onClick={handleBackdropClick}
-          className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50"
+          className="fixed inset-0 bg-black/40 flex items-center justify-center z-50"
         >
           <div
-            className="bg-white w-full max-w-2xl rounded-2xl shadow-lg p-8 relative border border-gray-200"
+            className="bg-white w-full max-w-3xl rounded-2xl shadow-lg p-8 relative border border-gray-200"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Close Button */}
@@ -265,113 +269,118 @@ export default function AdminContacts() {
             </button>
 
             {/* Header */}
-            <h2 className="text-2xl font-semibold text-gray-800 mb-6 flex items-center space-x-2">
-              <FiUser className="text-blue-600" />
+            <h2 className="text-2xl font-semibold text-gray-800 mb-6 flex items-center justify-center space-x-2">
               <span>Add New Contact</span>
             </h2>
 
-            {/* Form */}
-            <form className="grid grid-cols-2 gap-5 text-sm">
-              <div>
-                <label className="block text-gray-700 font-medium mb-1">Name</label>
-                <input
-                  type="text"
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-400 outline-none"
-                  placeholder="Enter full name"
-                />
+            <form className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+              {/* Column 1 */}
+              <div className="space-y-3">
+                <div>
+                  <label className="block text-gray-700 font-medium mb-1 text-sm">Name</label>
+                  <input
+                    type="text"
+                    className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-400 outline-none"
+                    placeholder="Full name"
+                  />
+                </div>
+                <div>
+                  <label className="block text-gray-700 font-medium mb-1 text-sm">Email</label>
+                  <input
+                    type="email"
+                    className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-400 outline-none"
+                    placeholder="example@email.com"
+                  />
+                </div>
+                <div>
+                  <label className="block text-gray-700 font-medium mb-1 text-sm">Work Phone</label>
+                  <input
+                    type="text"
+                    className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-400 outline-none"
+                    placeholder="09 --- --- ---"
+                  />
+                </div>
               </div>
 
-              <div>
-                <label className="block text-gray-700 font-medium mb-1">Title</label>
-                <input
-                  type="text"
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-400 outline-none"
-                  placeholder="e.g. Sales Manager"
-                />
+              {/* Column 2 */}
+              <div className="space-y-3">
+                <div>
+                  <label className="block text-gray-700 font-medium mb-1 text-sm">Title</label>
+                  <input
+                    type="text"
+                    className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-400 outline-none"
+                    placeholder="Job title"
+                  />
+                </div>
+                <div>
+                  <label className="block text-gray-700 font-medium mb-1 text-sm">Department</label>
+                  <input
+                    type="text"
+                    className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-400 outline-none"
+                    placeholder="IT / Marketing"
+                  />
+                </div>
+                <div>
+                  <label className="block text-gray-700 font-medium mb-1 text-sm">Phone Number 1</label>
+                  <input
+                    type="text"
+                    className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-400 outline-none"
+                    placeholder="09 --- --- ---"
+                  />
+                </div>
               </div>
 
-              <div>
-                <label className="block text-gray-700 font-medium mb-1">Account</label>
-                <input
-                  type="text"
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-400 outline-none"
-                  placeholder="Company name"
-                />
+              {/* Column 3 */}
+              <div className="space-y-3">
+                <div>
+                  <label className="block text-gray-700 font-medium mb-1 text-sm">Account</label>
+                  <input
+                    type="text"
+                    className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-400 outline-none"
+                    placeholder=""
+                  />
+                </div>
+                <div>
+                  <label className="block text-gray-700 font-medium mb-1 text-sm">Assign To</label>
+                  <select className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-400 outline-none">
+                    <option value="">Assign To</option>
+                    <option value="">Smith</option>
+                    <option value="sales">Doe</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-gray-700 font-medium mb-1 text-sm">Phone Number 2</label>
+                  <input
+                    type="text"
+                    className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-400 outline-none"
+                    placeholder="09 --- --- ---"
+                  />
+                </div>
               </div>
-
-              <div>
-                <label className="block text-gray-700 font-medium mb-1">Email</label>
-                <input
-                  type="email"
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-400 outline-none"
-                  placeholder="example@email.com"
-                />
-              </div>
-
-              <div>
-                <label className="block text-gray-700 font-medium mb-1">Department</label>
-                <input
-                  type="text"
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-400 outline-none"
-                  placeholder="e.g. IT, Marketing"
-                />
-              </div>
-
-              <div>
-                <label className="block text-gray-700 font-medium mb-1">Work Phone</label>
-                <input
-                  type="text"
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-400 outline-none"
-                  placeholder="(555) 123-4567"
-                />
-              </div>
-
-              <div>
-                <label className="block text-gray-700 font-medium mb-1">Phone 1</label>
-                <input
-                  type="text"
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-400 outline-none"
-                />
-              </div>
-
-              <div>
-                <label className="block text-gray-700 font-medium mb-1">Phone 2</label>
-                <input
-                  type="text"
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-400 outline-none"
-                />
-              </div>
-
-              <div className="col-span-2">
-                <label className="block text-gray-700 font-medium mb-1">Assigned To</label>
-                <input
-                  type="text"
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-400 outline-none"
-                />
-              </div>
-
-              <div className="col-span-2">
-                <label className="block text-gray-700 font-medium mb-1">Notes</label>
+              {/* Notes */}
+              <div className="flex flex-col col-span-1 sm:col-span-2 lg:col-span-3">
+                <label className="text-gray-700 font-medium mb-1">Notes</label>
                 <textarea
-                  rows="3"
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-400 outline-none"
                   placeholder="Additional details..."
-                ></textarea>
+                  rows={3}
+                  className="border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-400 outline-none resize-none"
+                />
               </div>
             </form>
 
-            {/* Footer Buttons */}
-            <div className="flex justify-end space-x-3 mt-8">
+
+            {/* Footer */}
+            <div className="flex justify-end space-x-2 mt-4 col-span-1 sm:col-span-2 lg:col-span-3">
               <button
                 type="button"
                 onClick={() => setShowModal(false)}
-                className="px-5 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400 transition"
+                className="px-4 py-2 text-white bg-red-400 border border-red-300 rounded hover:bg-red-500 transition-100"
               >
                 Cancel
               </button>
               <button
                 type="submit"
-                className="px-5 py-2 bg-green-500 text-white rounded-md hover:bg-green-600 transition"
+                className="px-4 py-2 text-white border border-tertiary bg-tertiary rounded hover:bg-secondary transition-100"
               >
                 Save Contact
               </button>
@@ -379,6 +388,7 @@ export default function AdminContacts() {
           </div>
         </div>
       )}
+
     </div>
   );
 }

@@ -1,9 +1,12 @@
-import React, { useState } from "react";
-import { FiEdit, FiTrash2, FiBriefcase, FiX, FiSearch, } from "react-icons/fi";
+import React, { useState, useEffect } from "react";
+import { FiEdit, FiTrash2, FiBriefcase, FiX, FiSearch } from "react-icons/fi";
 import AdminDealsInformation from "../components/AdminDealsInformation";
 
-
 export default function AdminDeals() {
+    useEffect(() => {
+        document.title = "Deals | Sari-Sari CRM";
+    }, []);
+
     const [searchQuery, setSearchQuery] = useState("");
     const [stageFilter, setStageFilter] = useState("");
     const [ownerFilter, setOwnerFilter] = useState("");
@@ -114,13 +117,19 @@ export default function AdminDeals() {
     const handleDealSubmit = (e) => {
         e.preventDefault();
         if (dealForm.id) {
+            // Edit deal in local state
             setDeals((prev) =>
                 prev.map((d) => (d.id === dealForm.id ? dealForm : d))
             );
         } else {
+            // Add new deal to local state
             setDeals([...deals, { ...dealForm, id: deals.length + 1 }]);
         }
         setShowDealModal(false);
+    };
+
+    const handleDeleteDeal = (id) => {
+        setDeals(deals.filter((d) => d.id !== id));
     };
 
     return (
@@ -137,28 +146,6 @@ export default function AdminDeals() {
                 >
                     + New Deal
                 </button>
-            </div>
-
-            {/* Summary Boxes */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-                <div className="bg-white p-4 rounded-lg shadow border border-gray-200 flex flex-col items-start">
-                    <span className="text-sm text-gray-500">Total Deals</span>
-                </div>
-                <div className="bg-white p-4 rounded-lg shadow border border-gray-200 flex flex-col items-start">
-                    <span className="text-sm text-gray-500"></span>
-                    <span className="text-xl font-semibold text-orange-500">
-                    </span>
-                </div>
-                <div className="bg-white p-4 rounded-lg shadow border border-gray-200 flex flex-col items-start">
-                    <span className="text-sm text-gray-500"></span>
-                    <span className="text-xl font-semibold text-blue-500">
-                    </span>
-                </div>
-                <div className="bg-white p-4 rounded-lg shadow border border-gray-200 flex flex-col items-start">
-                    <span className="text-sm text-gray-500"></span>
-                    <span className="text-xl font-semibold text-green-500">
-                    </span>
-                </div>
             </div>
 
             {/* Search & Filters */}
@@ -219,7 +206,9 @@ export default function AdminDeals() {
                                     <tr
                                         key={deal.id}
                                         onClick={() => openDetailsModal(deal)}
-                                        className={`border-b border-gray-200 cursor-pointer ${isEven ? "bg-white hover:bg-gray-200" : "bg-yellow-50 hover:bg-yellow-200"
+                                        className={`border-b border-gray-200 cursor-pointer ${isEven
+                                            ? "bg-white hover:bg-gray-200"
+                                            : "bg-yellow-50 hover:bg-yellow-200"
                                             }`}
                                     >
                                         <td className="py-3 px-4">{deal.name}</td>
@@ -243,7 +232,7 @@ export default function AdminDeals() {
                                                 <button
                                                     onClick={(e) => {
                                                         e.stopPropagation();
-                                                        setDeals(deals.filter((d) => d.id !== deal.id));
+                                                        handleDeleteDeal(deal.id);
                                                     }}
                                                     className="text-red-500 hover:text-red-700"
                                                 >
@@ -262,9 +251,6 @@ export default function AdminDeals() {
                             </tr>
                         )}
                     </tbody>
-
-
-
                 </table>
             </div>
 
@@ -280,11 +266,11 @@ export default function AdminDeals() {
             {/* Add/Edit Deal Modal */}
             {showDealModal && (
                 <div
-                    className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4"
+                    className="fixed inset-0 bg-black/40 flex items-center justify-center z-50"
                     onClick={() => setShowDealModal(false)}
                 >
                     <div
-                        className="bg-white w-full max-w-3xl rounded-xl shadow-lg p-5 sm:p-6 relative border border-gray-200 scale-[0.95]"
+                        className="bg-white w-full max-w-3xl rounded-xl shadow-lg p-5 sm:p-6 relative border border-gray-200 my-10 scale-[0.95]"
                         onClick={(e) => e.stopPropagation()}
                     >
                         <button
@@ -294,87 +280,142 @@ export default function AdminDeals() {
                             <FiX size={20} />
                         </button>
 
-                        <h2 className="text-xl font-semibold text-gray-800 mb-4 text-center">
+                        <h2 className="text-lg sm:text-xl font-semibold text-gray-800 mb-4 text-center">
                             {dealForm.id ? "Edit Deal" : "Add New Deal"}
                         </h2>
 
                         <form
-                            className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm"
+                            className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs sm:text-sm"
                             onSubmit={handleDealSubmit}
                         >
-                            {[
-                                { label: "Deal Name", key: "name", type: "text" },
-                                { label: "Account", key: "account", type: "text" },
-                                { label: "Contact", key: "contact", type: "text" },
-                                {
-                                    label: "Stage",
-                                    key: "stage",
-                                    type: "select",
-                                    options: ["Proposal Stage", "Negotiation Stage", "Closed Won", "Closed Lost"],
-                                },
-                                { label: "Value", key: "value", type: "number" },
-                                { label: "Close Date", key: "closeDate", type: "date" },
-                                { label: "Owner", key: "owner", type: "text" },
-                                {
-                                    label: "Status",
-                                    key: "status",
-                                    type: "select",
-                                    options: ["Proposal", "Negotiation", "Closed"],
-                                },
-                            ].map((field) => (
-                                <div key={field.key} className="flex flex-col">
-                                    <label className="font-medium text-gray-700 mb-1">{field.label}</label>
-                                    {field.type === "select" ? (
-                                        <select
-                                            value={dealForm[field.key]}
-                                            onChange={(e) => handleInputChange(field.key, e.target.value)}
-                                            className="border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-400 outline-none"
-                                        >
-                                            {field.options.map((opt) => (
-                                                <option key={opt}>{opt}</option>
-                                            ))}
-                                        </select>
-                                    ) : (
-                                        <input
-                                            type={field.type}
-                                            value={dealForm[field.key]}
-                                            onChange={(e) => handleInputChange(field.key, e.target.value)}
-                                            className="border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-400 outline-none"
-                                        />
-                                    )}
-                                </div>
-                            ))}
+                            {/* Deal Name */}
+                            <div className="flex flex-col">
+                                <label className="text-gray-700 font-medium mb-1">Deal Name</label>
+                                <input
+                                    type="text"
+                                    placeholder="Enter deal name"
+                                    value={dealForm.name}
+                                    onChange={(e) => handleInputChange("name", e.target.value)}
+                                    className="border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-400 outline-none"
+                                />
+                            </div>
 
-                            {/* Description full width */}
-                            <div className="flex flex-col sm:col-span-2">
-                                <label className="font-medium text-gray-700 mb-1">Description</label>
+                            {/* Account */}
+                            <div className="flex flex-col">
+                                <label className="text-gray-700 font-medium mb-1">Account</label>
+                                <select
+                                    value={dealForm.account}
+                                    onChange={(e) => handleInputChange("account", e.target.value)}
+                                    className="border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-400 outline-none bg-white"
+                                >
+                                    <option value="">Select Account</option>
+                                    <option value="Gertan Corp.">Gertan Corp.</option>
+                                    <option value="ABC Company">ABC Company</option>
+                                </select>
+                            </div>
+
+                            {/* Primary Contact */}
+                            <div className="flex flex-col">
+                                <label className="text-gray-700 font-medium mb-1">Primary Contact</label>
+                                <select
+                                    value={dealForm.contact}
+                                    onChange={(e) => handleInputChange("contact", e.target.value)}
+                                    className="border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-400 outline-none bg-white"
+                                >
+                                    <option value="">Select Contact</option>
+                                    <option value="Joshua M.">Joshua M.</option>
+                                    <option value="Marcus Lee">Marcus Lee</option>
+                                </select>
+                            </div>
+
+                            {/* Stage */}
+                            <div className="flex flex-col">
+                                <label className="text-gray-700 font-medium mb-1">Stage</label>
+                                <select
+                                    value={dealForm.stage}
+                                    onChange={(e) => handleInputChange("stage", e.target.value)}
+                                    className="border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-400 outline-none bg-white"
+                                >
+                                    <option>Proposal Stage</option>
+                                    <option>Negotiation Stage</option>
+                                    <option>Closed Won</option>
+                                    <option>Closed Lost</option>
+                                </select>
+                            </div>
+
+                            {/* Amount */}
+                            <div className="flex flex-col">
+                                <label className="text-gray-700 font-medium mb-1">Amount</label>
+                                <input
+                                    type="number"
+                                    placeholder="₱0"
+                                    value={dealForm.value}
+                                    onChange={(e) => handleInputChange("value", e.target.value)}
+                                    className="border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-400 outline-none"
+                                />
+                            </div>
+
+                            {/* Currency */}
+                            <div className="flex flex-col">
+                                <label className="text-gray-700 font-medium mb-1">Currency</label>
+                                <select
+                                    value={dealForm.currency || ""}
+                                    onChange={(e) => handleInputChange("currency", e.target.value)}
+                                    className="border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-400 outline-none bg-white"
+                                >
+                                    <option value="">Select Currency</option>
+                                    <option value="PHP">PHP</option>
+                                    <option value="USD">USD</option>
+                                </select>
+                            </div>
+
+                            {/* Assign To */}
+                            <div className="flex flex-col">
+                                <label className="text-gray-700 font-medium mb-1">Assign To</label>
+                                <select
+                                    value={dealForm.owner}
+                                    onChange={(e) => handleInputChange("owner", e.target.value)}
+                                    className="border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-400 outline-none bg-white"
+                                >
+                                    <option value="">Assign To</option>
+                                    <option value="Dinosaur Roar">Dinosaur Roar</option>
+                                    <option value="Marcus Lee">Marcus Lee</option>
+                                </select>
+                            </div>
+
+                            {/* Description (full width) */}
+                            <div className="flex flex-col col-span-1 sm:col-span-2">
+                                <label className="text-gray-700 font-medium mb-1">Description</label>
                                 <textarea
                                     rows={3}
+                                    placeholder="Additional details..."
                                     value={dealForm.description}
                                     onChange={(e) => handleInputChange("description", e.target.value)}
                                     className="border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-400 outline-none resize-none"
                                 />
                             </div>
 
-                            <div className="flex justify-end sm:col-span-2 mt-2 space-x-2">
+                            {/* Footer buttons (full width) */}
+                            <div className="flex justify-end space-x-2 mt-2 col-span-1 sm:col-span-2">
                                 <button
                                     type="button"
                                     onClick={() => setShowDealModal(false)}
-                                    className="px-4 py-2 text-red-500 border border-red-300 rounded hover:bg-red-50 transition"
+                                    className="px-4 py-2 text-white bg-red-400 border border-red-300 rounded hover:bg-red-500 transition-100"
                                 >
                                     Cancel
                                 </button>
                                 <button
                                     type="submit"
-                                    className="px-4 py-2 text-green-600 border border-green-300 rounded hover:bg-green-50 transition"
+                                    className="px-4 py-2 text-white border border-tertiary bg-tertiary rounded hover:bg-secondary transition-100"
                                 >
-                                    {dealForm.id ? "Save Changes" : "Add Deal"}
+                                    Save Deal
                                 </button>
                             </div>
                         </form>
                     </div>
                 </div>
             )}
+
         </div>
     );
 }

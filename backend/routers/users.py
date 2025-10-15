@@ -63,7 +63,7 @@ def create_user(
         last_name=user_data.last_name,
         email=user_data.email,
         hashed_password=hashed_pw,
-        role=user_data.role.upper(),
+        role=user_data.role,
         related_to_CEO=related_to_CEO,
         related_to_company=related_to_company,
         profile_picture=DEFAULT_PROFILE_PIC,

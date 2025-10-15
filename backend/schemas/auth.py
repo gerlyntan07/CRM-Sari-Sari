@@ -14,8 +14,9 @@ class UserBase(BaseModel):
 
 # ✅ For creating a new user
 class UserCreate(UserBase):
-    company_id: int
+    company_id: Optional[int] = None  # ✅ make optional
     password: constr(min_length=6)
+
 
 
 # ✅ For login

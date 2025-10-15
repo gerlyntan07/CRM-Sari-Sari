@@ -45,33 +45,43 @@ export default function AdminUser() {
   // ✅ Filter users for search
   const filteredUsers = users.filter(
     (u) =>
-      `${u.first_name} ${u.last_name}`
-        .toLowerCase()
-        .includes(searchTerm.toLowerCase()) ||
+      `${u.first_name} ${u.last_name}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
       u.email.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  // ✅ Role badge colors
   const roleColors = {
+    CEO: "bg-purple-100 text-purple-700",
     Admin: "bg-red-100 text-red-700",
-    Manager: "bg-blue-100 text-blue-700",
-    Sales: "bg-green-100 text-green-700",
+    GroupManager: "bg-indigo-100 text-indigo-700",
+    manager: "bg-blue-100 text-blue-700",
+    marketing: "bg-yellow-100 text-yellow-700",
+    sales: "bg-green-100 text-green-700",
   };
 
   // ✅ Add new user
   const handleAddUser = async (e) => {
     e.preventDefault();
-    if (!newUser.firstName || !newUser.email) return;
+
+    if (!newUser.firstName || !newUser.email || !newUser.role || !newUser.password) {
+      alert("⚠️ Please fill in all required fields.");
+      return;
+    }
+
+    const payload = {
+      first_name: newUser.firstName,
+      last_name: newUser.lastName,
+      email: newUser.email,
+      password: newUser.password,
+      role: newUser.role,
+    };
+
+    console.log("🟡 Sending new user payload:", payload);
 
     try {
-      const res = await api.post("/users/createuser", {
-        first_name: newUser.firstName,
-        last_name: newUser.lastName,
-        email: newUser.email,
-        password: newUser.password,
-        role: newUser.role,
-      });
-
+      const res = await api.post("/users/createuser", payload);
       const createdUser = res.data;
+
       setUsers((prev) => [...prev, { ...createdUser, highlight: true }]);
       setShowAddModal(false);
       setNewUser({
@@ -88,7 +98,17 @@ export default function AdminUser() {
       }, 2000);
     } catch (error) {
       console.error("❌ Error creating user:", error.response?.data || error);
-      alert(error.response?.data?.detail || "Failed to add user.");
+      const errDetail = error.response?.data?.detail;
+
+      if (error.response?.status === 422) {
+        alert("⚠️ Invalid role or field format. Please check input values.");
+      } else if (error.response?.status === 400) {
+        alert(errDetail || "⚠️ Email already exists or invalid data.");
+      } else if (error.response?.status === 401) {
+        alert("⚠️ You are not authorized to perform this action.");
+      } else {
+        alert("❌ Failed to add user. Check backend logs.");
+      }
     }
   };
 
@@ -118,9 +138,7 @@ export default function AdminUser() {
       <div className="flex justify-between items-center mb-6">
         <div className="flex items-center gap-2">
           <FiShield className="text-xl text-gray-700" />
-          <h1 className="text-xl font-semibold text-gray-800">
-            User Management
-          </h1>
+          <h1 className="text-xl font-semibold text-gray-800">User Management</h1>
         </div>
         <button
           onClick={() => setShowAddModal(true)}
@@ -167,9 +185,8 @@ export default function AdminUser() {
               {filteredUsers.map((u) => (
                 <tr
                   key={u.id}
-                  className={`border-b transition-all duration-300 ${
-                    u.highlight ? "bg-green-50" : "hover:bg-gray-50"
-                  }`}
+                  className={`border-b transition-all duration-300 ${u.highlight ? "bg-green-50" : "hover:bg-gray-50"
+                    }`}
                 >
                   <td className="py-3 px-4">
                     {u.first_name} {u.last_name}
@@ -177,9 +194,8 @@ export default function AdminUser() {
                   <td className="py-3 px-4">{u.email}</td>
                   <td className="py-3 px-4">
                     <span
-                      className={`px-2 py-1 text-xs font-semibold rounded-md ${
-                        roleColors[u.role] || "bg-gray-100 text-gray-700"
-                      }`}
+                      className={`px-2 py-1 text-xs font-semibold rounded-md ${roleColors[u.role] || "bg-gray-100 text-gray-700"
+                        }`}
                     >
                       {u.role}
                     </span>
@@ -202,7 +218,7 @@ export default function AdminUser() {
         )}
       </div>
 
-      {/* 🟢 Add User Modal (with blur background) */}
+      {/* 🟢 Add User Modal */}
       {showAddModal && (
         <div className="fixed inset-0 flex items-center justify-center bg-black/30 backdrop-blur-sm z-50">
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg p-8 relative animate-fadeIn">
@@ -213,11 +229,10 @@ export default function AdminUser() {
               <FiX className="text-xl" />
             </button>
 
-            <h2 className="text-xl font-semibold text-gray-900 mb-1">
-              Add New User
-            </h2>
+            <h2 className="text-xl font-semibold text-gray-900 mb-1">Add New User</h2>
 
             <form onSubmit={handleAddUser} className="space-y-4">
+              {/* First / Last Name */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="text-sm font-medium text-gray-700">
@@ -227,14 +242,11 @@ export default function AdminUser() {
                     type="text"
                     placeholder="John"
                     value={newUser.firstName}
-                    onChange={(e) =>
-                      setNewUser({ ...newUser, firstName: e.target.value })
-                    }
+                    onChange={(e) => setNewUser({ ...newUser, firstName: e.target.value })}
                     required
                     className="w-full mt-1 px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-yellow-400 focus:outline-none"
                   />
                 </div>
-
                 <div>
                   <label className="text-sm font-medium text-gray-700">
                     Last Name <span className="text-red-500">*</span>
@@ -243,15 +255,14 @@ export default function AdminUser() {
                     type="text"
                     placeholder="Doe"
                     value={newUser.lastName}
-                    onChange={(e) =>
-                      setNewUser({ ...newUser, lastName: e.target.value })
-                    }
+                    onChange={(e) => setNewUser({ ...newUser, lastName: e.target.value })}
                     required
                     className="w-full mt-1 px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-yellow-400 focus:outline-none"
                   />
                 </div>
               </div>
 
+              {/* Email */}
               <div>
                 <label className="text-sm font-medium text-gray-700">
                   Email <span className="text-red-500">*</span>
@@ -260,14 +271,13 @@ export default function AdminUser() {
                   type="email"
                   placeholder="john.doe@company.com"
                   value={newUser.email}
-                  onChange={(e) =>
-                    setNewUser({ ...newUser, email: e.target.value })
-                  }
+                  onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
                   required
                   className="w-full mt-1 px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-yellow-400 focus:outline-none"
                 />
               </div>
 
+              {/* Password */}
               <div>
                 <label className="text-sm font-medium text-gray-700">
                   Password <span className="text-red-500">*</span>
@@ -277,9 +287,7 @@ export default function AdminUser() {
                     type="text"
                     placeholder="Enter or generate password"
                     value={newUser.password}
-                    onChange={(e) =>
-                      setNewUser({ ...newUser, password: e.target.value })
-                    }
+                    onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
                     required
                     className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-yellow-400 focus:outline-none"
                   />
@@ -290,9 +298,7 @@ export default function AdminUser() {
                         "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
                       let pass = "";
                       for (let i = 0; i < 8; i++) {
-                        pass += chars.charAt(
-                          Math.floor(Math.random() * chars.length)
-                        );
+                        pass += chars.charAt(Math.floor(Math.random() * chars.length));
                       }
                       setNewUser({ ...newUser, password: pass });
                     }}
@@ -303,24 +309,24 @@ export default function AdminUser() {
                 </div>
               </div>
 
+              {/* Role */}
               <div>
                 <label className="text-sm font-medium text-gray-700">
                   Role <span className="text-red-500">*</span>
                 </label>
                 <select
                   value={newUser.role}
-                  onChange={(e) =>
-                    setNewUser({ ...newUser, role: e.target.value })
-                  }
+                  onChange={(e) => setNewUser({ ...newUser, role: e.target.value })}
                   required
                   className="w-full mt-1 px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-gray-700 focus:ring-2 focus:ring-yellow-400 focus:outline-none"
                 >
-                  <option value="">Select role</option>
-                  <option value="SALES">
-                    Sales 
-                  </option>
-                  <option value="Manager">Manager</option>
+                  <option value="">Select Role</option>
+                  <option value="CEO">CEO</option>
                   <option value="Admin">Admin</option>
+                  <option value="Group Manager">Group Manager</option>
+                  <option value="manager">Manager</option>
+                  <option value="marketing">Marketing</option>
+                  <option value="sales">Sales</option>
                 </select>
               </div>
 

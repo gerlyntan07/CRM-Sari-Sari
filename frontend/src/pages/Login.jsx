@@ -5,7 +5,7 @@ import { FcGoogle } from "react-icons/fc";
 import { FiEye, FiEyeOff } from "react-icons/fi";
 import api from "../api";
 import useAuth from "../hooks/useAuth";
-import { jwtDecode } from "jwt-decode"; 
+import { jwtDecode } from "jwt-decode";
 import LoadingScreen from "../components/LoadingScreen";
 // --- Back Button ---
 const BackButton = () => {
@@ -61,7 +61,7 @@ const Login = () => {
   const [isPassVisible, setIsPassVisible] = React.useState(false);
   const [loginErr, setLoginErr] = React.useState(null);
   const [isLoading, setIsLoading] = React.useState(false);
-  const {isLoggedIn, login, userRole} = useAuth();
+  const { isLoggedIn, login, userRole } = useAuth();
   const navigate = useNavigate();
 
   React.useEffect(() => {
@@ -70,31 +70,36 @@ const Login = () => {
 
   React.useEffect(() => {
     if (isLoggedIn) {
-      if(userRole === 'CEO'){
-        navigate(`/admin`)
-      }else if(userRole === 'Manager'){
-        navigate(`/manager`)
-      }else if(userRole === 'Sales Representative'){
-        navigate(`/sales`)
-      }else if(userRole === 'Admin'){
-        navigate(`/admin-dashboard`);
+      if (userRole === "CEO") {
+        navigate("/admin");
+      } else if (userRole === "Admin") {
+        navigate("/admin-dashboard");
+      } else if (userRole === "Group Manager") {
+        navigate("/group-manager");
+      } else if (userRole === "manager") {
+        navigate("/manager");
+      } else if (userRole === "marketing") {
+        navigate("/marketing");
+      } else if (userRole === "sales") {
+        navigate("/sales");
       }
     }
   }, [isLoggedIn, navigate, userRole]);
+
 
   const handleChange = (e) => {
     const { id, value } = e.target;
     setFormData((prev) => ({ ...prev, [id]: value }));
   };
 
-  const handleLogin = async(e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
     setLoginErr(null);
-     try{
+    try {
       const res = await api.post(`/auth/login`, formData);
-      login(res.data);      
-      setLoginErr(null);      
-     } catch (err) {
+      login(res.data);
+      setLoginErr(null);
+    } catch (err) {
       if (err.response && err.response.data && err.response.data.detail) {
         setLoginErr(err.response.data.detail);
       } else {
@@ -129,23 +134,23 @@ const Login = () => {
     };
   }, []);
 
-const handleGoogleCallback = async (response) => {
-  setIsLoading(true);
-  try {
-    const user = jwtDecode(response.credential);
-    console.log("Decoded Google User:", user);
+  const handleGoogleCallback = async (response) => {
+    setIsLoading(true);
+    try {
+      const user = jwtDecode(response.credential);
+      console.log("Decoded Google User:", user);
 
-    // Send the ID token to backend for verification
-    const res = await api.post("/auth/google", { id_token: response.credential });
+      // Send the ID token to backend for verification
+      const res = await api.post("/auth/google", { id_token: response.credential });
 
-    login(res.data); // use your existing login hook    
-  } catch (error) {
-    console.error("Google login failed:", error);
-    setLoginErr("Google login failed. Please try again.");
-  } finally{
-    setIsLoading(false);
-  }
-};
+      login(res.data); // use your existing login hook    
+    } catch (error) {
+      console.error("Google login failed:", error);
+      setLoginErr("Google login failed. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
 
   return (
@@ -158,7 +163,7 @@ const handleGoogleCallback = async (response) => {
 
       {isLoading && (
         <LoadingScreen isLoading={isLoading} />
-      )}      
+      )}
 
       <main className="w-full max-w-lg font-inter mx-auto px-4 pt-6 pb-12">
         <BackButton />

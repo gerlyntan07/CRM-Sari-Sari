@@ -35,4 +35,4 @@ class User(Base):
     manager = relationship("User", remote_side=[id])
     company = relationship("Company", back_populates="users")
     audit_logs = relationship("Auditlog", back_populates="logger", cascade="all, delete-orphan")
-    territory = relationship("Territory", back_populates="managed_by", cascade="all, delete-orphan")
+    territory = relationship("Territory", back_populates="managed_by", uselist=False, cascade="all, delete-orphan")

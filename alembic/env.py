@@ -13,6 +13,9 @@ from backend.database import Base, DATABASE_URL
 # import your models here (add more as you create them)
 import backend.models.auth
 import backend.models.company
+import backend.models.auditlog
+import backend.models.territory
+import backend.models.subscription
 
 # Alembic Config object
 config = context.config

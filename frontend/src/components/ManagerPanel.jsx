@@ -17,6 +17,7 @@ import useFetchUser from "../hooks/useFetchUser";
 
 export default function ManagerPanel() {
   const [salesOpen, setSalesOpen] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const location = useLocation();
   const { fetchUser } = useFetchUser();
 
@@ -41,14 +42,17 @@ export default function ManagerPanel() {
   const isSalesActive = salesRoutes.includes(location.pathname);
 
   return (
-    <div className="flex h-screen bg-gray-100">
+    <div className="flex h-screen bg-gray-100 overflow-hidden">
       {/* Sidebar */}
-      <div className="w-64 bg-[#1e293b] text-white flex flex-col fixed top-0 left-0 h-screen shadow-lg">
+      <div
+        className={`fixed top-0 left-0 h-screen w-64 bg-[#1e293b] text-white shadow-lg transform transition-transform duration-300 z-50
+          ${sidebarOpen ? "translate-x-0" : "-translate-x-full"} lg:translate-x-0`}
+      >
         <div className="bg-[#fbbf24] text-gray-900 font-bold text-xl px-6 py-4 tracking-wide">
-          CRM ni Josh
+          Manager CRM
         </div>
 
-             <nav className="flex-1 overflow-y-auto p-4 space-y-2">
+        <nav className="flex-1 overflow-y-auto p-4 space-y-2">
           <NavLink
             to="/manager/overview"
             className={({ isActive }) => (isActive ? activeLink : normalLink)}
@@ -56,6 +60,7 @@ export default function ManagerPanel() {
             <FiHome className="text-lg" />
             <span>Overview</span>
           </NavLink>
+
           <div>
             <button
               className="w-full px-3 py-2 flex justify-between items-center text-sm font-medium text-gray-300 hover:bg-[#334155] rounded-lg transition"
@@ -66,9 +71,7 @@ export default function ManagerPanel() {
                 Sales
               </span>
               <FiChevronDown
-                className={`transition-transform ${
-                  salesOpen || isSalesActive ? "rotate-180" : ""
-                }`}
+                className={`transition-transform ${salesOpen || isSalesActive ? "rotate-180" : ""}`}
               />
             </button>
 
@@ -110,13 +113,13 @@ export default function ManagerPanel() {
                 >
                   <FiTarget /> Targets
                 </NavLink>
-                  <NavLink
+                <NavLink
                   to="/manager/audit"
                   className={({ isActive }) => (isActive ? activeLink : normalLink)}
                 >
                   <FiClipboard /> Audit
                 </NavLink>
-                  <NavLink
+                <NavLink
                   to="/manager/teams"
                   className={({ isActive }) => (isActive ? activeLink : normalLink)}
                 >
@@ -132,9 +135,21 @@ export default function ManagerPanel() {
         </div>
       </div>
 
-      <div className="flex-1 ml-64 flex flex-col">
-        <ManagerHeader />
-        <main className="flex-1 p-6" style={{ backgroundColor: "#fffeee" }}>
+      {/* Overlay for mobile */}
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
+      {/* Main content */}
+      <div className="flex-1 flex flex-col lg:ml-64 overflow-hidden">
+        <ManagerHeader toggleSidebar={() => setSidebarOpen(!sidebarOpen)} />
+        <main
+          className="flex-1 p-6 overflow-auto"
+          style={{ backgroundColor: "#fffeee" }}
+        >
           <Outlet />
         </main>
       </div>

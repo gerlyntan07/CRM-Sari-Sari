@@ -1,7 +1,7 @@
 import React from "react";
 import { HiArrowLeft } from "react-icons/hi";
 
-export default function AdminLeadsInformation({ lead, onBack }) {
+export default function ManagerLeadsInformation({ lead, onBack }) {
   if (!lead) return null;
 
   return (

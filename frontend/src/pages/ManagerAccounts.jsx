@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   FiSearch,
   FiEdit,
@@ -14,6 +14,10 @@ import {
 } from "react-icons/fi";
 
 export default function ManagerAccounts() {
+  useEffect(() => {
+    document.title = "Accounts | Sari-Sari CRM";
+  }, []);
+
   const [showModal, setShowModal] = useState(false);
   const [selectedAccount, setSelectedAccount] = useState(null);
 
@@ -42,9 +46,10 @@ export default function ManagerAccounts() {
   // ===================== ACCOUNT DETAILS VIEW ===================== //
   if (selectedAccount) {
     return (
-      <div className="p-8">
+      <div className="p-4 sm:p-6 lg:p-8">
+        {/* Header */}
         <div className="mb-6">
-          <h1 className="text-2xl font-semibold text-gray-800">
+          <h1 className="text-xl sm:text-2xl font-semibold text-gray-800">
             {selectedAccount.company}
           </h1>
           <span
@@ -62,32 +67,33 @@ export default function ManagerAccounts() {
           </span>
         </div>
 
-        <div className="flex space-x-3 mb-6">
-          <button className="bg-red-500 text-white px-5 py-2 rounded-md hover:bg-red-600">
+        {/* Actions */}
+        <div className="flex flex-col sm:flex-row sm:space-x-3 space-y-2 sm:space-y-0 mb-6">
+          <button className="w-full sm:w-auto bg-red-500 text-white px-4 py-2 rounded-md hover:bg-red-600">
             Delete
           </button>
-          <button className="bg-gray-800 text-white px-5 py-2 rounded-md hover:bg-gray-900">
+          <button className="w-full sm:w-auto bg-gray-800 text-white px-4 py-2 rounded-md hover:bg-gray-900">
             Export
           </button>
           <button
             onClick={handleBackToList}
-            className="bg-gray-400 text-white px-5 py-2 rounded-md hover:bg-gray-500"
+            className="w-full sm:w-auto bg-gray-400 text-white px-4 py-2 rounded-md hover:bg-gray-500"
           >
             Back to List
           </button>
         </div>
 
-        <div className="bg-white border border-gray-200 rounded-lg p-6 w-full max-w-3xl shadow-sm">
-          <h2 className="text-lg font-semibold mb-4 text-gray-800">
+        {/* Account Details */}
+        <div className="bg-white border border-gray-200 rounded-lg p-4 sm:p-6 shadow-sm overflow-x-auto">
+          <h2 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4 text-gray-800">
             Account Details
           </h2>
-
-          <div className="grid grid-cols-2 gap-y-4 text-sm text-gray-700">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm text-gray-700">
             <p>
               <span className="font-semibold">Website:</span> <br />
               <a
                 href={selectedAccount.url}
-                className="text-blue-600 hover:underline"
+                className="text-blue-600 hover:underline break-all"
               >
                 {selectedAccount.url}
               </a>
@@ -135,24 +141,24 @@ export default function ManagerAccounts() {
 
   // ===================== ACCOUNTS TABLE VIEW ===================== //
   return (
-    <div className="p-8">
+    <div className="p-4 sm:p-6 lg:p-8">
       {/* Header */}
-      <div className="mb-6 flex items-center justify-between">
-        <h1 className="flex items-center text-2xl font-semibold text-gray-800">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 sm:mb-6 space-y-2 sm:space-y-0">
+        <h1 className="flex items-center text-xl sm:text-2xl font-semibold text-gray-800">
           <FiUsers className="mr-2 text-blue-600" />
           Accounts Management
         </h1>
 
         <button
           onClick={() => setShowModal(true)}
-          className="flex items-center bg-black text-white px-4 py-2 rounded-md hover:bg-gray-800"
+          className="flex items-center bg-black text-white px-3 sm:px-4 py-2 rounded-md hover:bg-gray-800 text-sm sm:text-base ml-auto sm:ml-0"
         >
           <FiPlus className="mr-2" /> Add Account
         </button>
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-5 gap-4 mb-8">
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4 mb-6">
         <Card title="Total" value="3" color="blue" icon={<FiUsers size={24} />} />
         <Card title="Customers" value="2" color="green" icon={<FiUserCheck size={24} />} />
         <Card title="Prospects" value="1" color="purple" icon={<FiUserPlus size={24} />} />
@@ -160,9 +166,9 @@ export default function ManagerAccounts() {
         <Card title="Inactive" value="0" color="gray" icon={<FiUserX size={24} />} />
       </div>
 
-      {/* Search and Filter */}
-      <div className="flex items-center space-x-3 mb-6">
-        <div className="flex items-center bg-white border border-gray-200 rounded-md px-3 py-2 w-1/3 shadow-sm">
+      {/* Search & Filter */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-2 sm:space-y-0 sm:space-x-3 mb-4 sm:mb-6">
+        <div className="flex items-center bg-white border border-gray-200 rounded-md px-3 py-2 w-full sm:w-1/3 shadow-sm">
           <FiSearch className="text-gray-500" />
           <input
             type="text"
@@ -170,7 +176,7 @@ export default function ManagerAccounts() {
             className="ml-2 bg-transparent w-full outline-none text-sm"
           />
         </div>
-        <select className="border border-gray-300 rounded-md px-3 py-2 text-sm text-gray-600 bg-white shadow-sm">
+        <select className="border border-gray-300 rounded-md px-3 py-2 text-sm text-gray-600 bg-white shadow-sm w-full sm:w-auto">
           <option>All Status</option>
           <option>Customer</option>
           <option>Prospect</option>
@@ -181,8 +187,8 @@ export default function ManagerAccounts() {
 
       {/* Accounts Table */}
       <div className="overflow-x-auto">
-        <table className="w-full border border-gray-200 rounded-lg bg-white shadow-sm">
-          <thead className="bg-gray-100 text-left text-sm text-gray-600 border-b">
+        <table className="w-full min-w-[500px] border border-gray-200 rounded-lg bg-white shadow-sm text-sm">
+          <thead className="bg-gray-100 text-left text-gray-600">
             <tr>
               <th className="py-3 px-4">Company</th>
               <th className="py-3 px-4">Status</th>
@@ -196,15 +202,15 @@ export default function ManagerAccounts() {
             {accounts.map((acc, i) => (
               <tr
                 key={i}
-                className="border-b hover:bg-gray-50 text-sm text-gray-700 cursor-pointer"
+                className="hover:bg-gray-50 cursor-pointer"
                 onClick={() => handleAccountClick(acc)}
               >
                 <td className="py-3 px-4">
                   <div>
-                    <div className="font-medium text-blue-600 hover:underline">
+                    <div className="font-medium text-blue-600 hover:underline break-all">
                       {acc.company}
                     </div>
-                    <div className="text-gray-500 text-xs">{acc.url}</div>
+                    <div className="text-gray-500 text-xs break-all">{acc.url}</div>
                   </div>
                 </td>
                 <td className="py-3 px-4">
@@ -248,84 +254,64 @@ export default function ManagerAccounts() {
         </table>
       </div>
 
-      {/* ✅ Add Account Modal */}
+      {/* Add Account Modal */}
       {showModal && (
         <div
           id="modalBackdrop"
           onClick={handleBackdropClick}
-          className="fixed inset-0 bg-black/40 flex items-center justify-center z-50"
+          className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4"
         >
           <div
-            className="bg-white w-full max-w-3xl rounded-xl shadow-lg p-5 sm:p-6 relative border border-gray-200 my-10 scale-[0.95]"
+            className="bg-white w-full max-w-full sm:max-w-3xl rounded-2xl shadow-lg p-4 sm:p-6 md:p-8 relative border border-gray-200 overflow-y-auto max-h-[90vh]"
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Close */}
+            {/* Close Button */}
             <button
               onClick={() => setShowModal(false)}
-              className="absolute top-3 right-3 text-gray-400 hover:text-black transition"
+              className="absolute top-4 right-4 text-gray-500 hover:text-black transition"
             >
-              <FiX size={20} />
+              <FiX size={22} />
             </button>
 
-            {/* Title */}
-            <h2 className="text-xl font-semibold text-gray-800 mb-4 text-center">
+            {/* Modal Header */}
+            <h2 className="text-xl sm:text-2xl font-semibold text-gray-800 mb-4 sm:mb-6 flex items-center justify-center">
               Add New Account
             </h2>
 
-            {/* Form - 8 Fields */}
-            <form className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
-              {[
-                { label: "Company Name", key: "company", type: "text" },
-                { label: "Website / URL", key: "url", type: "text" },
-                { label: "Status", key: "status", type: "select" },
-                { label: "Industry", key: "industry", type: "text" },
-                { label: "Territory", key: "territory", type: "text" },
-                { label: "Phone Number", key: "phone", type: "text" },
-                {
-                  label: "Billing Address",
-                  key: "billing_address",
-                  type: "text",
-                },
-                {
-                  label: "Shipping Address",
-                  key: "shipping_address",
-                  type: "text",
-                },
-              ].map((field) => (
-                <div key={field.key} className="flex flex-col">
-                  <label className="font-medium text-gray-700 mb-1">
-                    {field.label}
-                  </label>
-                  {field.type === "select" ? (
-                    <select className="border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-400 outline-none">
-                      <option>Customer</option>
-                      <option>Prospect</option>
-                      <option>Partner</option>
-                      <option>Inactive</option>
-                    </select>
-                  ) : (
-                    <input
-                      type={field.type}
-                      className="border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-400 outline-none"
-                    />
-                  )}
-                </div>
-              ))}
+            {/* Form */}
+            <form className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+              <InputField label="Name" placeholder="Full name" />
+              <InputField label="Website" placeholder="Website Link" />
+              <InputField label="Phone Number" placeholder="09 --- --- ---" />
+              <InputField label="Industry" placeholder="" />
+              <InputField label="Billing Address" placeholder="" />
+              <InputField label="Shipping Address" placeholder="" />
+              <InputField label="Status" placeholder="" />
+              <div>
+                <label className="block text-gray-700 font-medium mb-1 text-sm">
+                  Assign To
+                </label>
+                <select className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-400 outline-none">
+                  <option value="">Assign To</option>
+                  <option value="sales">Doe</option>
+                  <option value="sales">Smith</option>
+                </select>
+              </div>
 
-              {/* Footer */}
-              <div className="flex justify-end sm:col-span-2 mt-2 space-x-2">
+              {/* Buttons full width on mobile */}
+              <div className="flex flex-col sm:flex-row justify-end space-y-2 sm:space-y-0 sm:space-x-2 col-span-1 md:col-span-2 mt-4">
                 <button
                   type="button"
                   onClick={() => setShowModal(false)}
-                  className="px-4 py-2 text-red-500 border border-red-300 rounded hover:bg-red-50 transition"
+                  className="px-4 py-2 text-white bg-red-400 border border-red-300 rounded hover:bg-red-500 transition"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 text-green-600 border border-green-300 rounded hover:bg-green-50 transition"
+                  className="px-4 py-2 text-white border border-tertiary bg-tertiary rounded hover:bg-secondary transition"
                 >
-                  Save
+                  Save Account
                 </button>
               </div>
             </form>
@@ -336,17 +322,37 @@ export default function ManagerAccounts() {
   );
 }
 
-/* ✅ Reuse your existing Card Component */
+// ===================== Reusable Components ===================== //
+
 function Card({ title, value, color, icon }) {
+  const colorClasses = {
+    blue: "text-blue-600 bg-blue-50 border-blue-100",
+    green: "text-green-600 bg-green-50 border-green-100",
+    purple: "text-purple-600 bg-purple-50 border-purple-100",
+    pink: "text-pink-600 bg-pink-50 border-pink-100",
+    gray: "text-gray-600 bg-gray-50 border-gray-100",
+  };
+
   return (
     <div
-      className={`flex items-center p-4 rounded-lg shadow-sm border border-gray-200 bg-white`}
+      className={`flex flex-col items-center justify-center border rounded-xl p-4 ${colorClasses[color]}`}
     >
-      <div className={`mr-3 text-${color}-600`}>{icon}</div>
-      <div>
-        <p className="text-sm text-gray-500">{title}</p>
-        <p className="text-lg font-semibold text-gray-800">{value}</p>
-      </div>
+      <div className="mb-2">{icon}</div>
+      <div className="text-3xl font-semibold">{value}</div>
+      <div className="text-sm font-medium">{title}</div>
+    </div>
+  );
+}
+
+function InputField({ label, placeholder, type = "text" }) {
+  return (
+    <div>
+      <label className="block text-gray-700 font-medium mb-1 text-sm">{label}</label>
+      <input
+        type={type}
+        placeholder={placeholder}
+        className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-400 outline-none"
+      />
     </div>
   );
 }

@@ -1,15 +1,15 @@
 import { useState, useRef, useEffect } from "react";
 import { FiBell, FiUser } from "react-icons/fi";
 import { useLocation } from "react-router-dom";
-import useAuth from '../hooks/useAuth.js'
+import useAuth from '../hooks/useAuth.js';
 import useFetchUser from "../hooks/useFetchUser.js";
 
-export default function AdminHeader() {
+export default function AdminHeader({ toggleSidebar }) {
   const [open, setOpen] = useState(false);
   const dropdownRef = useRef(null);
   const location = useLocation();
-  const {logout} = useAuth();
-  const {user, fetchUser} = useFetchUser();
+  const { logout } = useAuth();
+  const { user, fetchUser } = useFetchUser();
 
   // Map routes to titles
   const routeTitles = {
@@ -24,14 +24,12 @@ export default function AdminHeader() {
     "/admin/quotes": "Quotes",
     "/admin/users": "Users",
     "/admin/deals": "Deals",
-
   };
 
   useEffect(() => {
     fetchUser();
-  }, [])
+  }, []);
 
-  // Get current title from route
   const currentTitle = routeTitles[location.pathname] || "Admin Panel";
 
   // Close dropdown if clicked outside
@@ -46,9 +44,31 @@ export default function AdminHeader() {
   }, []);
 
   return (
-    <header className="flex justify-between items-center bg-white shadow px-6 py-3 border-b relative">
-      {/* Left Side - Page Title */}
-      <h1 className="text-lg font-semibold text-gray-800">{currentTitle}</h1>
+    <header className="flex justify-between items-center bg-white shadow px-4 sm:px-6 py-3 border-b relative">
+      {/* Left Side - Hamburger & Title */}
+      <div className="flex items-center gap-3">
+        {/* Hamburger Button - Mobile Only */}
+        <button
+          onClick={toggleSidebar}
+          className="lg:hidden text-gray-700 hover:text-gray-900"
+        >
+          <svg
+            className="w-6 h-6"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M4 6h16M4 12h16M4 18h16"
+            />
+          </svg>
+        </button>
+
+        <h1 className="text-lg font-semibold text-gray-800">{currentTitle}</h1>
+      </div>
 
       {/* Right Side */}
       <div className="flex items-center space-x-4">
@@ -66,7 +86,11 @@ export default function AdminHeader() {
             onClick={() => setOpen(!open)}
             className="flex items-center gap-2 cursor-pointer hover:bg-gray-100 px-2 py-1 rounded"
           >
-            <img src={user?.profile_picture} alt="" className="w-8 aspect-square object-cover rounded-full" />
+            <img
+              src={user?.profile_picture}
+              alt=""
+              className="w-8 aspect-square object-cover rounded-full"
+            />
             <span className="text-sm font-medium text-gray-700">
               {user?.first_name} {user?.last_name}
             </span>
@@ -82,7 +106,10 @@ export default function AdminHeader() {
                   Manage Account
                 </button>
                 <div className="border-t my-1"></div>
-                <button onClick={logout} className="px-4 py-2 text-sm bg-red-500 text-white rounded mx-2 my-2 hover:bg-red-600">
+                <button
+                  onClick={logout}
+                  className="px-4 py-2 text-sm bg-red-500 text-white rounded mx-2 my-2 hover:bg-red-600"
+                >
                   Logout
                 </button>
               </div>

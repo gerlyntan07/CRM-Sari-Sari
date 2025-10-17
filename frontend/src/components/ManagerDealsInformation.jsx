@@ -1,8 +1,8 @@
 import React, { useState } from "react";
 import { FiX, FiPhone, FiMail, FiCalendar, FiFileText } from "react-icons/fi";
-import AdminDealsQuickAction from "../components/AdminDealsQuickAction";
+import ManagerDealsQuickAction from "../components/ManagerDealsQuickAction";
 
-export default function AdminDealsInformation({
+export default function ManagerDealsInformation({
   selectedDeal,
   show,
   onClose,
@@ -287,7 +287,7 @@ export default function AdminDealsInformation({
 
           {/* RIGHT COLUMN */}
           <div className="w-full lg:w-auto">
-            <AdminDealsQuickAction selectedDeal={selectedDeal} />
+            <ManagerDealsQuickAction selectedDeal={selectedDeal} />
           </div>
         </div>
 

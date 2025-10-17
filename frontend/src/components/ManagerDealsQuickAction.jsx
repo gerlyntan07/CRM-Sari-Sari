@@ -1,7 +1,7 @@
 import React from "react";
 import { FiPhone, FiMail, FiCalendar, FiFileText } from "react-icons/fi";
 
-export default function AdminDealsQuickAction() {
+export default function ManagerDealsQuickAction() {
   return (
     <div className="space-y-4 font-inter text-[13px] w-full sm:w-[85%] mx-auto">
       {/* Quick Actions */}

@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { FiEdit, FiTrash2, FiBriefcase, FiX, FiSearch } from "react-icons/fi";
-import AdminDealsInformation from "../components/AdminDealsInformation";
+import ManagerDealsInformation from "../components/ManagerDealsInformation";
 
-export default function AdminDeals() {
+export default function ManagerDeals() {
     useEffect(() => {
         document.title = "Deals | Sari-Sari CRM";
     }, []);
@@ -263,7 +263,7 @@ export default function AdminDeals() {
     </div>
 
     {/* Deal Details Modal */}
-    <AdminDealsInformation
+    <ManagerDealsInformation
         selectedDeal={selectedDeal}
         show={!!selectedDeal}
         onClose={closeDetailsModal}

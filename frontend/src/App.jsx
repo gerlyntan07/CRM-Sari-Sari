@@ -38,6 +38,11 @@ import ManagerPanel from "./components/ManagerPanel";
 import ManagerOverview from "./pages/ManagerOverview";
 import ManagerAccounts from "./pages/ManagerAccounts";
 import ManagerContacts from "./pages/ManagerContacts";
+import ManagerLeads from "./pages/ManagerLeads";
+import ManagerLeadsInformation from "./components/ManagerLeadsInformation";
+import ManagerDeals from "./pages/ManagerDeals";
+import ManagerDealsInformation from "./components/ManagerDealsInformation";
+import ManagerDealsQuickAction from "./components/ManagerDealsQuickAction";
 
 function App() {
   return (
@@ -87,6 +92,11 @@ function App() {
           <Route path="overview" element={<ManagerOverview />} />
           <Route path="accounts" element={<ManagerAccounts />} />
           <Route path="contacts" element={<ManagerContacts />} />
+          <Route path="leads" element={<ManagerLeads />} />
+          <Route path="leads/info" element={<ManagerLeadsInformation />} />
+          <Route path="deals" element={<ManagerDeals />} />
+          <Route path="deals/info" element={<ManagerDealsInformation />} />
+          <Route path="deals/quickaction" element={<ManagerDealsQuickAction />} />
         </Route>
       </Routes>
     </Router>

@@ -1,12 +1,5 @@
 import React, { useState, useEffect } from "react";
-import {
-  FiSearch,
-  FiEdit,
-  FiTrash2,
-  FiDownload,
-  FiX,
-  FiFileText,
-} from "react-icons/fi";
+import { FiSearch, FiEdit, FiTrash2, FiDownload, FiX, FiFileText, } from "react-icons/fi";
 
 export default function AdminQuotes() {
   const [showModal, setShowModal] = useState(false);
@@ -154,138 +147,153 @@ export default function AdminQuotes() {
           onClick={handleBackdropClick}
           className="fixed inset-0 bg-black/40 flex items-center justify-center z-50"
         >
-           <div
+          <div
             className="bg-white w-full max-w-3xl rounded-xl shadow-lg p-5 sm:p-6 relative border border-gray-200 my-10 scale-[0.95]"
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Close */}
             <button
-              onClick={handleBackdropClick}
+              onClick={() => setShowModal(false)}
               className="absolute top-3 right-3 text-gray-400 hover:text-black transition"
             >
               <FiX size={20} />
             </button>
 
-            {/* View Quote (1 Column) */}
-            {selectedQuote && !isEditing ? (
-              <>
-                <h2 className="text-xl font-semibold text-gray-800 mb-4 text-center">
-                  Quote Details
-                </h2>
-                <div className="space-y-3 text-sm text-gray-700">
-                  <div><span className="font-medium">Quote ID:</span> {selectedQuote.quoteId}</div>
-                  <div><span className="font-medium">Account:</span> {selectedQuote.account}</div>
-                  <div><span className="font-medium">Deal:</span> {selectedQuote.deal}</div>
-                  <div>
-                    <span className="font-medium">Status:</span>{" "}
-                    <span
-                      className={`px-2 py-1 text-xs rounded-full font-medium ${
-                        selectedQuote.status === "Pending"
-                          ? "bg-yellow-100 text-yellow-700"
-                          : selectedQuote.status === "Approved"
-                          ? "bg-green-100 text-green-700"
-                          : "bg-red-100 text-red-700"
-                      }`}
-                    >
-                      {selectedQuote.status}
-                    </span>
-                  </div>
-                  <div><span className="font-medium">Total Amount:</span> {selectedQuote.totalAmount}</div>
-                  <div><span className="font-medium">Presented By:</span> {selectedQuote.presentedBy}</div>
-                  <div><span className="font-medium">Expiry Date:</span> {selectedQuote.expiryDate}</div>
-                  <div><span className="font-medium">Assigned To:</span> {selectedQuote.assignedTo}</div>
-                  <div>
-                    <span className="font-medium">Notes:</span>
-                    <p className="text-gray-600 mt-1 text-sm">{selectedQuote.notes}</p>
-                  </div>
-                </div>
+            <h2 className="text-lg sm:text-xl font-semibold text-gray-800 mb-4 text-center">
+              Add New Quotes
+            </h2>
 
-                {/* Action Buttons */}
-                <div className="flex justify-end mt-6 space-x-2">
-                  <button
-                    onClick={() => setIsEditing(true)}
-                    className="flex items-center gap-2 px-4 py-2 text-blue-600 border border-blue-300 rounded hover:bg-blue-50"
-                  >
-                    <FiEdit /> Edit
-                  </button>
-                  <button
-                    onClick={() => alert('Quote deleted')}
-                    className="flex items-center gap-2 px-4 py-2 text-red-600 border border-red-300 rounded hover:bg-red-50"
-                  >
-                    <FiTrash2 /> Delete
-                  </button>
-                </div>
-              </>
-            ) : (
-              <>
-                {/* Add/Edit Quote (2 Columns) */}
-                <h2 className="text-xl font-semibold text-gray-800 mb-4 text-center">
-                  {selectedQuote ? "Edit Quote" : "Add New Quote"}
-                </h2>
+            {/* Form grid */}
+            <form className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 text-xs sm:text-sm">
+              {/* Deal Name*/}
+              <div className="flex flex-col">
+                <label className="text-gray-700 font-medium mb-1">Deal Name</label>
+                <input
+                  type="text"
+                  placeholder="Deals"
+                  className="border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-400 outline-none"
+                />
+              </div>
 
-                <form className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
-                  {[
-                    { label: "Quote ID", key: "quoteId", type: "text" },
-                    { label: "Account", key: "account", type: "text" },
-                    { label: "Deal", key: "deal", type: "text" },
-                    { label: "Status", key: "status", type: "select" },
-                    { label: "Total Amount", key: "totalAmount", type: "text" },
-                    { label: "Presented By", key: "presentedBy", type: "text" },
-                    { label: "Expiry Date", key: "expiryDate", type: "date" },
-                    { label: "Assigned To", key: "assignedTo", type: "text" },
-                  ].map((field) => (
-                    <div key={field.key} className="flex flex-col">
-                      <label className="font-medium text-gray-700 mb-1">
-                        {field.label}
-                      </label>
-                      {field.type === "select" ? (
-                        <select
-                          defaultValue={selectedQuote?.[field.key] || "Pending"}
-                          className="border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-400 outline-none"
-                        >
-                          <option>Pending</option>
-                          <option>Approved</option>
-                          <option>Rejected</option>
-                        </select>
-                      ) : (
-                        <input
-                          type={field.type}
-                          defaultValue={selectedQuote?.[field.key] || ""}
-                          className="border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-400 outline-none"
-                        />
-                      )}
-                    </div>
-                  ))}
+              {/* Amount */}
+              <div className="flex flex-col">
+                <label className="text-gray-700 font-medium mb-1">Amount</label>
+                <input
+                  type="text"
+                  placeholder=""
+                  className="border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-400 outline-none"
+                />
+              </div>
 
-                  {/* Notes full width */}
-                  <div className="flex flex-col sm:col-span-2">
-                    <label className="font-medium text-gray-700 mb-1">Notes</label>
-                    <textarea
-                      rows={3}
-                      defaultValue={selectedQuote?.notes || ""}
-                      className="border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-400 outline-none resize-none"
-                    />
-                  </div>
+              {/* Contact */}
+              <div className="flex flex-col">
+                <label className="text-gray-700 font-medium mb-1">Contact</label>
+                   <select
+                  className="border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-400 outline-none"
+                  defaultValue=""
+                >
+                  <option value="" disabled>
+                   Contact
+                  </option>
+                  <option value="">galing sa contact po to</option>
+                </select>
+              </div>
 
-                  {/* Footer */}
-                  <div className="flex justify-end sm:col-span-2 mt-2 space-x-2">
-                    <button
-                      type="button"
-                      onClick={() => setIsEditing(false)}
-                      className="px-4 py-2 text-red-500 border border-red-300 rounded hover:bg-red-50 transition"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      type="submit"
-                      className="px-4 py-2 text-green-600 border border-green-300 rounded hover:bg-green-50 transition"
-                    >
-                      Save
-                    </button>
-                  </div>
-                </form>
-              </>
-            )}
+             {/* Presented Date */}
+              <div className="flex flex-col">
+                <label className="text-gray-700 font-medium mb-1">Presented Date</label>
+                <input
+                  type="date"
+                  className="border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-400 outline-none"
+                />
+              </div>
+              {/* Validity Date */}
+              <div className="flex flex-col">
+                <label className="text-gray-700 font-medium mb-1">Validity Date</label>
+                <input
+                  type="text"
+                  placeholder=""
+                  className="border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-400 outline-none"
+                />
+              </div>
+
+
+              {/* Status */}
+              <div className="flex flex-col">
+                <label className="text-gray-700 font-medium mb-1">Status</label>
+                 <select
+                  className="border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-400 outline-none"
+                  defaultValue=""
+                >
+                  <option value="" disabled>
+                   Draft
+                  </option>
+                  <option value="">Presented</option>
+                  <option value="">Accepted</option>
+                  <option value="">Rejected</option>
+                </select>
+              </div>
+
+              {/* Total Amount  */}
+              <div className="flex flex-col">
+                <label className="text-gray-700 font-medium mb-1">Total Amount</label>
+                <input
+                  type="text"
+                  placeholder=""
+                  className="border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-400 outline-none"
+                />
+              </div>
+
+              {/* Created By */}
+              <div className="flex flex-col">
+                <label className="text-gray-700 font-medium mb-1">Created By</label>
+                <input
+                  type="text"
+                  placeholder=""
+                  className="border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-400 outline-none"
+                />
+              </div>
+
+              {/*Assign to */}
+              <div className="flex flex-col">
+                <label className="text-gray-700 font-medium mb-1">Assign To</label>
+                 <select
+                  className="border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-400 outline-none"
+                  defaultValue=""
+                >
+                  <option value="" disabled>
+                    Assign To
+                  </option>
+                  <option value="">Smith</option>
+                  <option value="">Dinosaur</option>
+
+                </select>
+              </div>
+               {/* Notes */}
+              <div className="flex flex-col col-span-1 sm:col-span-2 lg:col-span-3">
+                <label className="text-gray-700 font-medium mb-1">Notes</label>
+                <textarea
+                  placeholder="Additional details..."
+                  rows={3}
+                  className="border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-400 outline-none resize-none"
+                />
+              </div>
+              {/* Footer */}
+              <div className="flex justify-end space-x-2 mt-2 col-span-1 sm:col-span-2 lg:col-span-3">
+                <button
+                  type="button"
+                  onClick={() => setShowModal(false)}
+                  className="px-4 py-2 text-white bg-red-400 border border-red-300 rounded hover:bg-red-500 transition-100"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 text-white border border-tertiary bg-tertiary rounded hover:bg-secondary transition-100"
+                >
+                  Save Quotes
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

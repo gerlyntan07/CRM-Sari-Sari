@@ -66,7 +66,7 @@ export default function AdminTask() {
   };
 
   return (
-    <div className="p-6 bg-gray-50 min-h-screen">
+    <div className="p-8 min-h-screen">
       {/* Header */}
       <div className="flex justify-between items-start mb-6">
         <div>
@@ -79,7 +79,7 @@ export default function AdminTask() {
         </div>
         <button
           onClick={() => setShowModal(true)}
-          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 shadow-sm transition"
+           className="flex items-center bg-black text-white px-4 py-2 rounded-md hover:bg-gray-800 gap-1"
         >
           <FiPlus /> Create Task
         </button>

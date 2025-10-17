@@ -94,7 +94,7 @@ export default function AdminDealsInformation({
           </button>
         </div>
 {/* TABS */}
-<div className="flex justify-start border border-gray-200 bg-[#6A727D] w-[62%] mx-10 text-white">
+<div className="flex justify-start bg-[#6A727D] w-[62%] mx-10 text-white mt-1">
   <div className="w-full max-w-5xl flex">
     {["Overview", "Activities", "Notes", "Edit"].map((tab) => (
       <button
@@ -103,7 +103,7 @@ export default function AdminDealsInformation({
         className={`flex-1 px-4 py-2.5 text-sm font-medium text-center transition-all duration-200 border-b-2
           ${
             activeTab === tab
-              ? "bg-white text-[#6A727D] border-white"
+              ? "bg-paper-white text-[#6A727D] border-white"
               : "text-white hover:bg-[#5c636d]"
           }`}
       >

@@ -133,23 +133,38 @@ export default function AdminDeals() {
     };
 
     return (
-        <div className="min-h-screen p-6 font-inter">
+        <div className="p-8 font-inter">
             {/* Header */}
-            <div className="flex items-center justify-between mb-4">
-                <h1 className="text-2xl font-semibold flex items-center gap-2">
-                    <FiBriefcase className="text-blue-600" />
-                    Deals Management
-                </h1>
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="flex items-center text-2xl font-semibold text-gray-800">
+                <FiBriefcase className="mr-2 text-blue-600" /> Deals Management
+                </h2>
                 <button
                     onClick={openNewDealModal}
-                    className="bg-gray-900 text-white px-4 py-2 rounded-md hover:bg-gray-800 transition"
-                >
+                   className="flex items-center bg-black text-white px-4 py-2 rounded-md hover:bg-gray-800">
                     + New Deal
                 </button>
             </div>
 
+            
+             {/* ✅ Top Summary Boxes */}
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+      <div className="bg-white shadow-sm rounded-lg p-4 text-center font-semibold">
+        Deals
+      </div>
+      <div className="bg-white shadow-sm rounded-lg p-4 text-center font-semibold">
+
+      </div>
+      <div className="bg-white shadow-sm rounded-lg p-4 text-center font-semibold">
+        
+      </div>
+      <div className="bg-white shadow-sm rounded-lg p-4 text-center font-semibold">
+    
+      </div>
+    </div>
+
             {/* Search & Filters */}
-            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-4 gap-4">
+         <div className="flex flex-wrap items-center space-x-3 mb-3">
                 <div className="relative w-full lg:w-1/3">
                     <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
                     <input
@@ -184,8 +199,8 @@ export default function AdminDeals() {
             </div>
 
             {/* Deals Table */}
-            <div className="overflow-x-auto rounded-lg shadow-sm">
-                <table className="w-full bg-white text-left table-auto mt-5">
+            <div className="overflow-x-auto shadow-sm mt-7">
+                <table className="w-full bg-white text-left table-auto">
                     <thead className="bg-gray-100 text-sm text-gray-600 sticky top-0 z-10">
                         <tr>
                             <th className="py-3 px-4 font-medium">Deal Name</th>
@@ -208,7 +223,7 @@ export default function AdminDeals() {
                                         onClick={() => openDetailsModal(deal)}
                                         className={`border-b border-gray-200 cursor-pointer ${isEven
                                             ? "bg-white hover:bg-gray-200"
-                                            : "bg-yellow-50 hover:bg-yellow-200"
+                                            : "bg-yellow-50 hover:bg-gray-200"
                                             }`}
                                     >
                                         <td className="py-3 px-4">{deal.name}</td>

@@ -54,42 +54,40 @@ export default function AdminTargets() {
       {/* Toolbar */}
       <div className="flex flex-col md:flex-row justify-between items-center mb-4">
         {/* Search Bar */}
-        <div className="relative w-full md:w-1/3 mb-3 md:mb-0">
-          <FiSearch className="absolute top-3 left-3 text-gray-400" />
+         <div className="flex items-center bg-white border border-gray-200 rounded-md px-3 py-2 w-full sm:w-1/3 shadow-sm">
+          <FiSearch className="text-gray-500" />
           <input
             type="text"
-            placeholder="Search user..."
-            className="pl-10 pr-4 py-2 border border-gray-200 rounded-lg w-full focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            placeholder="Search Users..."
+            className="ml-2 bg-transparent w-full outline-none text-sm"
           />
         </div>
 
         {/* Add Target Button */}
-        <button className="bg-indigo-600 text-white px-5 py-2 rounded-lg hover:bg-indigo-700 transition">
+        <button className="flex items-center bg-black text-white px-4 py-2 rounded-md hover:bg-gray-800">
           + Add Target
         </button>
       </div>
 
       {/* Table */}
-      <div className="overflow-x-auto bg-white shadow rounded-2xl border border-gray-100">
+      <div className="overflow-x-auto bg-white shadow border border-gray-100">
         <table className="w-full text-sm text-left text-gray-600">
-          <thead className="bg-gray-50 text-gray-700 uppercase text-xs">
+          <thead className="bg-gray-100 text-gray-600 text-sm">
             <tr>
-              <th className="px-6 py-3">User</th>
-              <th className="px-6 py-3">Target Period</th>
-              <th className="px-6 py-3">Target Amount</th>
-              <th className="px-6 py-3">Achieved</th>
-              <th className="px-6 py-3">Achievement %</th>
-              <th className="px-6 py-3">Status</th>
-              <th className="px-6 py-3 text-center">Actions</th>
+              <th className="px-6 py-3 font-medium">User</th>
+              <th className="px-6 py-3 font-medium">Target Period</th>
+              <th className="px-6 py-3 font-medium">Target Amount</th>
+              <th className="px-6 py-3 font-medium">Achieved</th>
+              <th className="px-6 py-3 font-medium">Achievement %</th>
+              <th className="px-6 py-3 font-medium">Status</th>
+              <th className="px-6 py-3 font-medium">Actions</th>
             </tr>
           </thead>
           <tbody>
             {filteredTargets.map((t) => (
               <tr
                 key={t.id}
-                className="border-t hover:bg-gray-50 transition duration-150"
+                className="hover:bg-gray-50 transition duration-150"
               >
                 <td className="px-6 py-3 font-medium text-gray-800">{t.user}</td>
                 <td className="px-6 py-3">{t.period}</td>

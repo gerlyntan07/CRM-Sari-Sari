@@ -8,9 +8,9 @@ class UserRole(str, Enum):
     CEO = "CEO"
     ADMIN = "Admin"
     GROUP_MANAGER = "Group Manager"
-    MANAGER = "manager"
-    MARKETING = "marketing"
-    SALES = "sales"
+    MANAGER = "Manager"
+    MARKETING = "Marketing"
+    SALES = "Sales"
 
 class User(Base):
     __tablename__ = "users"
@@ -34,3 +34,5 @@ class User(Base):
 
     manager = relationship("User", remote_side=[id])
     company = relationship("Company", back_populates="users")
+    audit_logs = relationship("Auditlog", back_populates="logger", cascade="all, delete-orphan")
+    territory = relationship("Territory", back_populates="managed_by", cascade="all, delete-orphan")

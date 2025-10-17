@@ -1,5 +1,5 @@
 // AdminLeads.jsx
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect} from "react";
 import {
   FiSearch,
   FiEdit,
@@ -9,11 +9,13 @@ import {
   FiX,
 } from "react-icons/fi";
 import AdminLeadsInformation from "../components/AdminLeadsInformation";
+import api from "../api";
 
 
 export default function AdminLeads() {
   const [selectedLead, setSelectedLead] = useState(null);
   const [showModal, setShowModal] = useState(false);
+  const [users, setUsers] = useState(null);
 
   useEffect(() => {
     document.title = "Leads | Sari-Sari CRM";
@@ -39,6 +41,20 @@ export default function AdminLeads() {
     },
   ];
 
+  const fetchAccounts = async() => {
+    try{
+      const res = await api.get(`/users/all`);
+      console.log(res.data);
+      setUsers(res.data);
+    } catch (err){
+      console.error(`Error fetching users: ${err}`);
+    }
+  }
+
+  useEffect(() => {
+    fetchAccounts();
+  },[])
+
   // Handlers
   const handleLeadClick = (lead) => setSelectedLead(lead);
   const handleBackToList = () => setSelectedLead(null);
@@ -50,6 +66,7 @@ export default function AdminLeads() {
       <AdminLeadsInformation lead={selectedLead} onBack={handleBackToList} />
     );
   }
+  
 
   return (
     <div className="p-8 font-inter">
@@ -249,6 +266,33 @@ export default function AdminLeads() {
                 />
               </div>
 
+              {/* Address */}
+              <div className="flex flex-col col-span-3">
+                <label className="text-gray-700 font-medium mb-1">Address</label>
+                <input
+                  type="text"
+                  placeholder="Street No., Street Name, City, State/Province, Postal Code"
+                  className="border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-400 outline-none"
+                />
+              </div>
+
+              {/* Assign To */}
+              <div className="flex flex-col">
+                <label className="text-gray-700 font-medium mb-1">Assign To</label>                
+                <select
+                  className="border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-400 outline-none"
+                  defaultValue=""
+                >
+                  <option value="" disabled>
+                    Select user
+                  </option>
+                  {Array.isArray(users) && users.length > 0 &&         
+                  users.map((user) => (            
+                    <option value={user.id}>{user.first_name} {user.last_name}</option>
+                  ))}
+                </select>
+              </div>
+
               {/* Territory */}
               <div className="flex flex-col">
                 <label className="text-gray-700 font-medium mb-1">Territory</label>
@@ -264,17 +308,7 @@ export default function AdminLeads() {
                   <option value="visayas">Visayas</option>
                   <option value="mindanao">Mindanao</option>
                 </select>
-              </div>
-
-              {/* Assign To */}
-              <div className="flex flex-col">
-                <label className="text-gray-700 font-medium mb-1">Assign To</label>
-                <input
-                  type="text"
-                  placeholder="Smith"
-                  className="border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-400 outline-none"
-                />
-              </div>
+              </div>          
 
               {/* Created By */}
               <div className="flex flex-col">

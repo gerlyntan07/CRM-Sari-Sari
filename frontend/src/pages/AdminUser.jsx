@@ -54,9 +54,9 @@ export default function AdminUser() {
     CEO: "bg-purple-100 text-purple-700",
     Admin: "bg-red-100 text-red-700",
     GroupManager: "bg-indigo-100 text-indigo-700",
-    manager: "bg-blue-100 text-blue-700",
-    marketing: "bg-yellow-100 text-yellow-700",
-    sales: "bg-green-100 text-green-700",
+    Manager: "bg-blue-100 text-blue-700",
+    Marketing: "bg-yellow-100 text-yellow-700",
+    Sales: "bg-green-100 text-green-700",
   };
 
   // ✅ Add new user
@@ -324,9 +324,9 @@ export default function AdminUser() {
                   <option value="CEO">CEO</option>
                   <option value="Admin">Admin</option>
                   <option value="Group Manager">Group Manager</option>
-                  <option value="manager">Manager</option>
-                  <option value="marketing">Marketing</option>
-                  <option value="sales">Sales</option>
+                  <option value="Manager">Manager</option>
+                  <option value="Marketing">Marketing</option>
+                  <option value="Sales">Sales</option>
                 </select>
               </div>
 

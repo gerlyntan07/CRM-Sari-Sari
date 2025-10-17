@@ -137,8 +137,7 @@ const Login = () => {
   const handleGoogleCallback = async (response) => {
     setIsLoading(true);
     try {
-      const user = jwtDecode(response.credential);
-      console.log("Decoded Google User:", user);
+      const user = jwtDecode(response.credential);      
 
       // Send the ID token to backend for verification
       const res = await api.post("/auth/google", { id_token: response.credential });

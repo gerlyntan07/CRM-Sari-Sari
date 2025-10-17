@@ -1,10 +1,11 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Request
 from sqlalchemy.orm import Session
 from typing import List
 from database import get_db
 from schemas.auth import UserCreate, UserResponse
 from .auth_utils import get_current_user, hash_password,get_default_avatar
 from models.auth import User
+from .logs_utils import serialize_instance, create_audit_log
 
 router = APIRouter(
     prefix="/users",
@@ -29,13 +30,13 @@ def get_users(
 
     return users
 
-
 # ✅ CREATE new user
 @router.post("/createuser", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
 def create_user(
     user_data: UserCreate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
+    request: Request = None
 ):
     # Only CEO or Admin can create users
     if current_user.role.upper() not in ["CEO", "ADMIN"]:
@@ -72,6 +73,18 @@ def create_user(
     db.add(new_user)
     db.commit()
     db.refresh(new_user)
+
+    new_data = serialize_instance(new_user)    
+
+    create_audit_log(
+        db=db,
+        current_user=current_user,
+        instance=new_user,
+        action="CREATE",
+        request=request,
+        new_data=new_data,
+        custom_message=f" - new user '{new_user.first_name} {new_user.last_name}' with role '{new_user.role}'"
+    )
 
     return new_user
 

@@ -1,7 +1,7 @@
 import axios from "axios";
 
 // Use environment variable if available (e.g. for production)
-const BASE_URL = import.meta.env.VITE_API_URL || 
+const BASE_URL = //import.meta.env.VITE_API_URL || 
 "http://localhost:8000";
 
 // Create an Axios instance

@@ -23,6 +23,7 @@ import AdminDeals from "./pages/AdminDeals";
 import AdminDealsInformation from "./components/AdminDealsInformation";
 import AdminDealsQuickAction from "./components/AdminDealsQuickAction";
 import AdminTask from "./pages/AdminTask";
+import AdminTerritory from "./pages/AdminTerritory";
 
 // 🔹 Sales layout + pages
 import SalesPanel from "./components/SalesPanel";
@@ -35,7 +36,7 @@ import SalesPerformance from "./pages/SalesPerformance";
 
 // 🔹 Manager layout + pages
 import ManagerPanel from "./components/ManagerPanel";
-import ManagerOverview from "./pages/ManagerOverview";
+import ManagerDashboard from "./pages/ManagerDashboard";
 import ManagerAccounts from "./pages/ManagerAccounts";
 import ManagerContacts from "./pages/ManagerContacts";
 import ManagerLeads from "./pages/ManagerLeads";
@@ -43,6 +44,9 @@ import ManagerLeadsInformation from "./components/ManagerLeadsInformation";
 import ManagerDeals from "./pages/ManagerDeals";
 import ManagerDealsInformation from "./components/ManagerDealsInformation";
 import ManagerDealsQuickAction from "./components/ManagerDealsQuickAction";
+import ManagerQuotes from "./pages/ManagerQuotes";
+import ManagerTargets from "./pages/ManagerTargets";
+import ManagerMeetings from "./pages/ManagerMeetings";
 
 function App() {
   return (
@@ -71,6 +75,7 @@ function App() {
           <Route path="deals/info" element={<AdminDealsInformation />} />
           <Route path="deals/quickaction" element={<AdminDealsQuickAction />} />
           <Route path="tasks" element={<AdminTask/>}/>
+          <Route path="territory" element={<AdminTerritory/>}/>
         </Route>
 
         {/* ================= Sales Layout ================= */}
@@ -88,8 +93,8 @@ function App() {
 
         {/* ================= Manager Layout ================= */}
         <Route path="/manager" element={<ManagerPanel />}>
-          <Route index element={<Navigate to="overview" replace />} />
-          <Route path="overview" element={<ManagerOverview />} />
+          <Route index element={<Navigate to="dashboard" replace />} />
+          <Route path="dashboard" element={<ManagerDashboard />} />
           <Route path="accounts" element={<ManagerAccounts />} />
           <Route path="contacts" element={<ManagerContacts />} />
           <Route path="leads" element={<ManagerLeads />} />
@@ -97,6 +102,11 @@ function App() {
           <Route path="deals" element={<ManagerDeals />} />
           <Route path="deals/info" element={<ManagerDealsInformation />} />
           <Route path="deals/quickaction" element={<ManagerDealsQuickAction />} />
+          <Route path="quotes" element={<ManagerQuotes />} />
+          <Route path="targets" element={<ManagerTargets />} />
+          <Route path="meetings" element={<ManagerMeetings />} />
+
+
         </Route>
       </Routes>
     </Router>

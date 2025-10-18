@@ -16,6 +16,7 @@ import {
   FiSettings,
   FiShield,
 } from "react-icons/fi";
+import { LuMapPin } from "react-icons/lu";
 import AdminHeader from "./AdminHeader";
 import useFetchUser from "../hooks/useFetchUser";
 
@@ -23,6 +24,7 @@ export default function AdminPanel() {
   const [salesOpen, setSalesOpen] = useState(true);
   const [activityOpen, setActivityOpen] = useState(false);
   const [userMgmtOpen, setUserMgmtOpen] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false); // mobile sidebar
   const location = useLocation();
   const { fetchUser } = useFetchUser();
 
@@ -32,15 +34,13 @@ export default function AdminPanel() {
 
   useEffect(() => {
     document.title = `Panel | Sari-Sari CRM`;
-  },[])
+  }, []);
 
-  // styles
   const activeLink =
     "flex items-center gap-3 px-3 py-2 rounded-lg bg-white text-[#1e293b] font-semibold shadow-sm";
   const normalLink =
     "flex items-center gap-3 px-3 py-2 rounded-lg text-gray-300 hover:bg-[#334155] hover:text-white transition";
 
-  // expand Sales if a child is active
   const salesRoutes = [
     "/admin/accounts",
     "/admin/contacts",
@@ -52,9 +52,12 @@ export default function AdminPanel() {
   const isSalesActive = salesRoutes.includes(location.pathname);
 
   return (
-    <div className="flex h-screen bg-gray-100">
+    <div className="flex h-screen bg-gray-100 overflow-hidden">
       {/* Sidebar */}
-      <div className="w-64 bg-[#1e293b] text-white flex flex-col fixed top-0 left-0 h-screen shadow-lg">
+      <div
+        className={`fixed top-0 left-0 h-screen w-64 bg-[#1e293b] text-white flex flex-col shadow-lg transform transition-transform duration-300 z-50
+          ${sidebarOpen ? "translate-x-0" : "-translate-x-full"} lg:translate-x-0`}
+      >
         {/* Logo */}
         <div className="bg-[#fbbf24] text-gray-900 font-bold text-xl px-6 py-4 tracking-wide">
           CRM ni Josh
@@ -82,9 +85,7 @@ export default function AdminPanel() {
                 Sales
               </span>
               <FiChevronDown
-                className={`transition-transform ${
-                  salesOpen || isSalesActive ? "rotate-180" : ""
-                }`}
+                className={`transition-transform ${salesOpen || isSalesActive ? "rotate-180" : ""}`}
               />
             </button>
 
@@ -141,9 +142,7 @@ export default function AdminPanel() {
                 Activity
               </span>
               <FiChevronDown
-                className={`transition-transform ${
-                  activityOpen ? "rotate-180" : ""
-                }`}
+                className={`transition-transform ${activityOpen ? "rotate-180" : ""}`}
               />
             </button>
 
@@ -176,6 +175,18 @@ export default function AdminPanel() {
               </div>
             )}
           </div>
+          {/* Territory */}
+          <div>
+            <NavLink
+              to="/admin/territory"
+              className={({ isActive }) => (isActive ? activeLink : normalLink)}
+            >
+              <span className="flex items-center gap-2">
+                <LuMapPin className="text-lg" />
+                Territory
+              </span>
+            </NavLink>
+          </div>
 
           {/* User Management Dropdown */}
           <div>
@@ -188,9 +199,7 @@ export default function AdminPanel() {
                 User Management
               </span>
               <FiChevronDown
-                className={`transition-transform ${
-                  userMgmtOpen ? "rotate-180" : ""
-                }`}
+                className={`transition-transform ${userMgmtOpen ? "rotate-180" : ""}`}
               />
             </button>
 
@@ -213,13 +222,21 @@ export default function AdminPanel() {
         </div>
       </div>
 
-      {/* Main content */}
-      <div className="flex-1 ml-64 flex flex-col">
-        {/* Header */}
-        <AdminHeader />
+      {/* Overlay for mobile */}
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
 
-        {/* Page Content */}
-        <main className="flex-1 p-6" style={{ backgroundColor: "#fffeee" }}>
+      {/* Main content */}
+      <div className="flex-1 flex flex-col lg:ml-64 overflow-hidden">
+        <AdminHeader toggleSidebar={() => setSidebarOpen(!sidebarOpen)} />
+        <main
+          className="flex-1 p-6 overflow-auto"
+          style={{ backgroundColor: "#fffeee" }}
+        >
           <Outlet />
         </main>
       </div>

@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { FiSearch, FiEdit2, FiTrash2, FiTarget, FiX } from "react-icons/fi";
 
-export default function AdminTargets() {
+export default function ManagerTargets() {
   const [searchTerm, setSearchTerm] = useState("");
   const [showModal, setShowModal] = useState(false);
   const [selectedTarget, setSelectedTarget] = useState(null);

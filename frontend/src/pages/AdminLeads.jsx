@@ -1,5 +1,4 @@
-// AdminLeads.jsx
-import React, { useState, useEffect} from "react";
+import React, { useState, useEffect } from "react";
 import {
   FiSearch,
   FiEdit,
@@ -10,7 +9,6 @@ import {
 } from "react-icons/fi";
 import AdminLeadsInformation from "../components/AdminLeadsInformation";
 import api from "../api";
-
 
 export default function AdminLeads() {
   const [selectedLead, setSelectedLead] = useState(null);
@@ -41,51 +39,47 @@ export default function AdminLeads() {
     },
   ];
 
-  const fetchAccounts = async() => {
-    try{
+  const fetchAccounts = async () => {
+    try {
       const res = await api.get(`/users/all`);
-      console.log(res.data);
       setUsers(res.data);
-    } catch (err){
+    } catch (err) {
       console.error(`Error fetching users: ${err}`);
     }
-  }
+  };
 
   useEffect(() => {
     fetchAccounts();
-  },[])
+  }, []);
 
-  // Handlers
   const handleLeadClick = (lead) => setSelectedLead(lead);
   const handleBackToList = () => setSelectedLead(null);
   const handleBackdropClick = () => setShowModal(false);
 
-  // Full-page lead view
   if (selectedLead) {
     return (
       <AdminLeadsInformation lead={selectedLead} onBack={handleBackToList} />
     );
   }
-  
 
   return (
-    <div className="p-8 font-inter">
+    <div className="p-4 sm:p-6 lg:p-8 font-inter">
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <h2 className="flex items-center text-2xl font-semibold text-gray-800">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-3">
+        <h2 className="flex items-center text-xl sm:text-2xl font-semibold text-gray-800">
           <FiUserPlus className="mr-2 text-blue-600" /> Leads
         </h2>
 
-        <div className="flex gap-3">
+        <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
           <button
             onClick={() => setShowModal(true)}
-            className="flex items-center border border-tertiary text-tertiary px-4 py-2 gap-2 rounded-md hover:bg-gray-800 hover:text-white transition"
+            className="flex items-center justify-center border border-tertiary text-tertiary px-4 py-2 gap-2 rounded-md hover:bg-gray-800 hover:text-white transition w-full sm:w-auto"
           >
             <FiDownload /> Download
           </button>
           <button
             onClick={() => setShowModal(true)}
-            className="flex items-center bg-black text-white px-4 py-2 rounded-md hover:bg-gray-800"
+            className="flex items-center justify-center bg-black text-white px-4 py-2 rounded-md hover:bg-gray-800 transition w-full sm:w-auto"
           >
             ＋ Add Leads
           </button>
@@ -93,7 +87,7 @@ export default function AdminLeads() {
       </div>
 
       {/* Search and Filter */}
-      <div className="flex flex-wrap items-center space-x-3 mb-8">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center sm:space-x-3 mb-8 gap-3">
         <div className="flex items-center bg-white border border-gray-200 rounded-md px-3 py-2 w-full sm:w-1/3 shadow-sm">
           <FiSearch className="text-gray-500" />
           <input
@@ -102,7 +96,7 @@ export default function AdminLeads() {
             className="ml-2 bg-transparent w-full outline-none text-sm"
           />
         </div>
-        <select className="border border-gray-300 rounded-md px-3 py-2 text-sm text-gray-600 bg-white shadow-sm mt-2 sm:mt-0">
+        <select className="border border-gray-300 rounded-md px-3 py-2 text-sm text-gray-600 bg-white shadow-sm w-full sm:w-auto">
           <option>All Leads</option>
           <option>Subject</option>
           <option>Assign To</option>
@@ -110,10 +104,9 @@ export default function AdminLeads() {
       </div>
 
       {/* Table */}
-      <div className="bg-white shadow-sm overflow-hidden">
-
+      <div className="bg-white shadow-sm overflow-x-auto rounded-md border border-gray-200">
         {/* Table Header */}
-        <div className="grid grid-cols-9 bg-gray-100 font-medium text-gray-700 text-sm px-4 py-3">
+        <div className="grid grid-cols-9 min-w-[800px] bg-gray-100 font-medium text-gray-700 text-sm px-4 py-3">
           <div>Name</div>
           <div>Account</div>
           <div>Title</div>
@@ -129,7 +122,7 @@ export default function AdminLeads() {
         {leads.map((lead, i) => (
           <div
             key={i}
-            className="grid grid-cols-9 px-4 py-3 text-xs hover:bg-gray-100 transition cursor-pointer gap-x-6"
+            className="grid grid-cols-9 min-w-[800px] px-4 py-3 text-xs hover:bg-gray-100 transition cursor-pointer gap-x-4"
             onClick={() => handleLeadClick(lead)}
           >
             <div className="truncate">{lead.name}</div>
@@ -157,10 +150,10 @@ export default function AdminLeads() {
         <div
           id="modalBackdrop"
           onClick={handleBackdropClick}
-          className="fixed inset-0 bg-black/40 flex items-center justify-center z-50"
+          className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4"
         >
           <div
-            className="bg-white w-full max-w-3xl rounded-xl shadow-lg p-5 sm:p-6 relative border border-gray-200 my-10 scale-[0.95]"
+            className="bg-white w-full max-w-3xl rounded-xl shadow-lg p-5 sm:p-6 relative border border-gray-200 my-6 max-h-[90vh] overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
           >
             <button
@@ -178,7 +171,9 @@ export default function AdminLeads() {
             <form className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 text-xs sm:text-sm">
               {/* First Name */}
               <div className="flex flex-col">
-                <label className="text-gray-700 font-medium mb-1">First Name</label>
+                <label className="text-gray-700 font-medium mb-1">
+                  First Name
+                </label>
                 <input
                   type="text"
                   placeholder="Joe"
@@ -188,7 +183,9 @@ export default function AdminLeads() {
 
               {/* Last Name */}
               <div className="flex flex-col">
-                <label className="text-gray-700 font-medium mb-1">Last Name</label>
+                <label className="text-gray-700 font-medium mb-1">
+                  Last Name
+                </label>
                 <input
                   type="text"
                   placeholder="Smith"
@@ -218,7 +215,9 @@ export default function AdminLeads() {
 
               {/* Department */}
               <div className="flex flex-col">
-                <label className="text-gray-700 font-medium mb-1">Department</label>
+                <label className="text-gray-700 font-medium mb-1">
+                  Department
+                </label>
                 <input
                   type="text"
                   placeholder="Sales"
@@ -238,7 +237,9 @@ export default function AdminLeads() {
 
               {/* Work Phone */}
               <div className="flex flex-col">
-                <label className="text-gray-700 font-medium mb-1">Work Phone</label>
+                <label className="text-gray-700 font-medium mb-1">
+                  Work Phone
+                </label>
                 <input
                   type="text"
                   placeholder="09----------"
@@ -248,7 +249,9 @@ export default function AdminLeads() {
 
               {/* Mobile Phone 1 */}
               <div className="flex flex-col">
-                <label className="text-gray-700 font-medium mb-1">Mobile Phone 1</label>
+                <label className="text-gray-700 font-medium mb-1">
+                  Mobile Phone 1
+                </label>
                 <input
                   type="text"
                   placeholder="09----------"
@@ -258,7 +261,9 @@ export default function AdminLeads() {
 
               {/* Mobile Phone 2 */}
               <div className="flex flex-col">
-                <label className="text-gray-700 font-medium mb-1">Mobile Phone 2</label>
+                <label className="text-gray-700 font-medium mb-1">
+                  Mobile Phone 2
+                </label>
                 <input
                   type="text"
                   placeholder="09----------"
@@ -267,7 +272,7 @@ export default function AdminLeads() {
               </div>
 
               {/* Address */}
-              <div className="flex flex-col col-span-3">
+              <div className="flex flex-col col-span-1 sm:col-span-2 lg:col-span-3">
                 <label className="text-gray-700 font-medium mb-1">Address</label>
                 <input
                   type="text"
@@ -278,7 +283,9 @@ export default function AdminLeads() {
 
               {/* Assign To */}
               <div className="flex flex-col">
-                <label className="text-gray-700 font-medium mb-1">Assign To</label>                
+                <label className="text-gray-700 font-medium mb-1">
+                  Assign To
+                </label>
                 <select
                   className="border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-400 outline-none"
                   defaultValue=""
@@ -286,16 +293,21 @@ export default function AdminLeads() {
                   <option value="" disabled>
                     Select user
                   </option>
-                  {Array.isArray(users) && users.length > 0 &&         
-                  users.map((user) => (            
-                    <option value={user.id}>{user.first_name} {user.last_name}</option>
-                  ))}
+                  {Array.isArray(users) &&
+                    users.length > 0 &&
+                    users.map((user) => (
+                      <option key={user.id} value={user.id}>
+                        {user.first_name} {user.last_name}
+                      </option>
+                    ))}
                 </select>
               </div>
 
               {/* Territory */}
               <div className="flex flex-col">
-                <label className="text-gray-700 font-medium mb-1">Territory</label>
+                <label className="text-gray-700 font-medium mb-1">
+                  Territory
+                </label>
                 <select
                   className="border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-400 outline-none"
                   defaultValue=""
@@ -308,11 +320,13 @@ export default function AdminLeads() {
                   <option value="visayas">Visayas</option>
                   <option value="mindanao">Mindanao</option>
                 </select>
-              </div>          
+              </div>
 
               {/* Created By */}
               <div className="flex flex-col">
-                <label className="text-gray-700 font-medium mb-1">Created By</label>
+                <label className="text-gray-700 font-medium mb-1">
+                  Created By
+                </label>
                 <input
                   type="text"
                   placeholder="William Doe"
@@ -331,17 +345,17 @@ export default function AdminLeads() {
               </div>
 
               {/* Footer */}
-              <div className="flex justify-end space-x-2 mt-2 col-span-1 sm:col-span-2 lg:col-span-3">
+              <div className="flex flex-col sm:flex-row justify-end space-y-2 sm:space-y-0 sm:space-x-2 mt-2 col-span-1 sm:col-span-2 lg:col-span-3">
                 <button
                   type="button"
                   onClick={() => setShowModal(false)}
-                  className="px-4 py-2 text-white bg-red-400 border border-red-300 rounded hover:bg-red-500 transition-100"
+                  className="px-4 py-2 text-white bg-red-400 border border-red-300 rounded hover:bg-red-500 transition"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 text-white border border-tertiary bg-tertiary rounded hover:bg-secondary transition-100"
+                  className="px-4 py-2 text-white border border-tertiary bg-tertiary rounded hover:bg-secondary transition"
                 >
                   Save Lead
                 </button>

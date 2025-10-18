@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { FiSearch, FiEdit, FiTrash2, FiDownload, FiX, FiFileText } from "react-icons/fi";
 
-export default function AdminQuotes() {
+export default function ManagerQuotes() {
   const [showModal, setShowModal] = useState(false);
   const [selectedQuote, setSelectedQuote] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
@@ -40,7 +40,7 @@ export default function AdminQuotes() {
   return (
     <div className="p-4 sm:p-8 font-inter">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 gap-3 sm:gap-0">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-7 gap-3 sm:gap-0">
         <h2 className="flex items-center text-2xl font-semibold text-gray-800">
           <FiFileText className="mr-2 text-blue-600" /> Quotes
         </h2>

@@ -17,6 +17,7 @@ import backend.models.auditlog
 import backend.models.territory
 import backend.models.subscription
 import backend.models.lead
+import backend.models.account
 
 # Alembic Config object
 config = context.config

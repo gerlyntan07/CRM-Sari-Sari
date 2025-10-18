@@ -12,6 +12,7 @@ import models.subscription
 import models.auditlog
 import models.territory
 import models.lead
+import models.account
 
 # Import routers
 import routers.auth as auth_router

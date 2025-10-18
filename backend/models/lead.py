@@ -35,3 +35,5 @@ class Lead(Base):
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())    
         
     territory = relationship("Territory", back_populates="leads")
+    assigned_to = relationship("User", back_populates="leads")
+    creator = relationship("User", back_populates="created_leads")

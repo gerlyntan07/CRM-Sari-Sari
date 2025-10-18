@@ -6,3 +6,4 @@ from .territory import Territory
 from .subscription import Subscription
 from .auditlog import Auditlog
 from .lead import Lead
+from .account import Account

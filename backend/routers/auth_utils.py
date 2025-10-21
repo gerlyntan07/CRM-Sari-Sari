@@ -1,7 +1,7 @@
 from passlib.context import CryptContext
 from jose import JWTError, jwt
 from sqlalchemy.orm import Session
-from database import SessionLocal
+from database import SessionLocal, SECRET_KEY
 from datetime import datetime, timedelta
 import os
 from fastapi import Depends, HTTPException, Request
@@ -18,9 +18,9 @@ def get_db():
 # ✅ Use Argon2 instead of bcrypt (no 72-byte limit)
 pwd_context = CryptContext(schemes=["argon2"], deprecated="auto")
 
-SECRET_KEY = os.getenv("SECRET_KEY", "defaultsecretkey")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60
+
 
 def hash_password(password: str) -> str:
     """Hash password safely using Argon2"""

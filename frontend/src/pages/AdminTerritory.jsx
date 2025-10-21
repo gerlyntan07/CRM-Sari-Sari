@@ -1,5 +1,6 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { FiUser, FiPlus, FiX, FiCalendar, FiSearch } from "react-icons/fi";
+import api from "../api";
 
 const territorysData = [
   {
@@ -37,14 +38,93 @@ export default function AdminTerritory() {
   const [userFilter, setUserFilter] = useState("All User");
   const [selectedMeeting, setSelectedMeeting] = useState(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [territoryList, setTerritoryList] = useState([]);
+  const [users, setUsers] = useState([]);
+  const [territoryData, setTerritoryData] = useState({
+    name: '',
+    description: '',
+    user_id: '',
+    company_id: '',
+  })
+  const [selectedUser, setSelectedUser] = useState(null);
 
-  const filteredMeetings = territorysData.filter((meeting) => {
-    return (
-      meeting.title.toLowerCase().includes(searchQuery.toLowerCase()) &&
-      (statusFilter === "All Status" || meeting.status === statusFilter) &&
-      (userFilter === "All User" || meeting.user === userFilter)
-    );
+  const filteredTerritories = territoryList.filter((t) => {
+    const nameMatch = t.name
+      ?.toLowerCase()
+      .includes(searchQuery.toLowerCase());
+
+    const managerName = t.managed_by
+      ? `${t.managed_by.first_name} ${t.managed_by.last_name}`.toLowerCase()
+      : "";
+
+    const managerMatch = managerName.includes(searchQuery.toLowerCase());
+
+    const statusMatch =
+      statusFilter === "All Status" || t.status === statusFilter;
+
+    const userMatch =
+      userFilter === "All User" ||
+      managerName === userFilter.toLowerCase();
+
+    return (nameMatch || managerMatch) && statusMatch && userMatch;
   });
+
+
+
+  const fetchUsers = async () => {
+    try {
+      const response = await api.get('/users/all');
+      setUsers(response.data);
+    } catch (error) {
+      console.error('Error fetching users:', error);
+    }
+  }
+
+  const fetchTerritories = async () => {
+    try {
+      const response = await api.get('/territories/fetch');
+      console.log('Fetched territories:', response.data);
+      setTerritoryList(response.data);
+    } catch (error) {
+      console.error('Error fetching territories:', error);
+    }
+  }
+
+  useEffect(() => {
+    fetchUsers();
+    fetchTerritories();
+  }, [])
+
+  const handleTerritoryChange = (e) => {
+    const { name, value } = e.target;
+    setTerritoryData((prevData) => ({
+      ...prevData,
+      [name]: value,
+    }));
+
+    if (name === 'user_id') {
+      const user = users.find((user) => user.id === parseInt(value));
+      setSelectedUser(user);
+    }
+  }
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    const finalData = {
+      ...territoryData,
+      user_id: parseInt(territoryData.user_id),
+      company_id: selectedUser?.company?.id || '',
+    }
+
+    try {
+      const res = await api.post(`/territories/assign`, finalData);
+      console.log('Territory created successfully:', res.data);
+      setShowCreateModal(false);
+    } catch (error) {
+      console.error('Error creating territory:', error.response?.data?.detail || error.message);
+
+    }
+  }
 
   return (
     <div className="p-6 min-h-screen">
@@ -97,41 +177,63 @@ export default function AdminTerritory() {
           value={userFilter}
           onChange={(e) => setUserFilter(e.target.value)}
         >
-          <option>All User</option>
-          <option>Jesselle Ramos</option>
-          <option>Gerlyn Tan</option>
+          <option value="All User">All User</option>
+          {Array.isArray(users) &&
+            users.map((user) => (
+              <option
+                key={user.id}
+                value={`${user.first_name} ${user.last_name}`}
+              >
+                {user.first_name} {user.last_name}
+              </option>
+            ))}
         </select>
+
       </div>
 
       {/* Cards Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 rounded-md">
-        {filteredMeetings.map((meeting) => (
+        {filteredTerritories.map((territory) => (
           <div
-            key={meeting.id}
-            onClick={() => setSelectedMeeting(meeting)}
+            key={territory.id}
+            onClick={() => setSelectedMeeting(territory)}
             className="bg-white p-4 shadow border border-gray-200 flex flex-col justify-between relative cursor-pointer hover:shadow-md transition"
           >
             {/* Top horizontal line */}
             <div className="absolute top-0 left-0 w-full h-5 bg-secondary rounded-t-md" />
 
-            <h3 className="font-medium text-gray-900 mb-2 py-7">{meeting.title}</h3>
+            <h3 className="font-medium text-gray-900 mb-2 py-7">{territory.name}</h3>
 
             <div className="flex items-center gap-2 text-gray-500 text-sm mb-2">
-              <FiUser /> {meeting.user}
+              <FiUser /> {territory.managed_by.first_name} {territory.managed_by.last_name}
             </div>
 
             <div className="h-px bg-gray-200 w-full" />
 
             <div className="flex items-center justify-between text-sm p-1">
-              <div className="text-gray-400">{meeting.date}</div>
-              <div className="flex items-center gap-2 font-medium">
+              <div className="text-gray-400">
+                {territory.created_at
+                  ? new Date(territory.created_at)
+                    .toLocaleString("en-US", {
+                      month: "numeric",
+                      day: "numeric",
+                      year: "numeric",
+                      hour: "numeric",
+                      minute: "2-digit",
+                      hour12: true,
+                    })
+                    .replace(",", "")
+                  : "—"}
+              </div>
+
+              {/* <div className="flex items-center gap-2 font-medium">
                 <span
                   className={`h-2 w-2 rounded-full ${
-                    meeting.status === "Active" ? "bg-green-500" : "bg-yellow-500"
+                    territory.status === "Active" ? "bg-green-500" : "bg-yellow-500"
                   }`}
                 ></span>
-                {meeting.status}
-              </div>
+                {territory.status}
+              </div> */}
             </div>
           </div>
         ))}
@@ -159,11 +261,10 @@ export default function AdminTerritory() {
               <div className="flex items-center gap-2 text-sm font-medium text-gray-600 mt-6">
                 {selectedMeeting.status}
                 <span
-                  className={`h-2.5 w-2.5 rounded-full ${
-                    selectedMeeting.status === "Active"
+                  className={`h-2.5 w-2.5 rounded-full ${selectedMeeting.status === "Active"
                       ? "bg-green-500"
                       : "bg-yellow-500"
-                  }`}
+                    }`}
                 ></span>
               </div>
             </div>
@@ -231,6 +332,9 @@ export default function AdminTerritory() {
                 </label>
                 <input
                   type="text"
+                  name="name"
+                  value={territoryData.name}
+                  onChange={handleTerritoryChange}
                   placeholder="e.g. North Luzon Enterprise"
                   className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-400"
                 />
@@ -240,10 +344,13 @@ export default function AdminTerritory() {
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Assigned To
                 </label>
-                <select className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-gray-400">
-                  <option>Assign User</option>
-                  <option>Jesselle Ramos</option>
-                  <option>Gerlyn Tan</option>
+                <select name="user_id" value={territoryData.user_id} onChange={handleTerritoryChange} className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-gray-400">
+                  <option value='' disabled>Assign User</option>
+                  {Array.isArray(users) && users.length > 0 && (
+                    users.map((user) => (
+                      <option value={user.id} key={user.id}>{user.first_name} {user.last_name}</option>
+                    ))
+                  )}
                 </select>
               </div>
 
@@ -253,6 +360,9 @@ export default function AdminTerritory() {
                 </label>
                 <textarea
                   rows="3"
+                  name="description"
+                  value={territoryData.description}
+                  onChange={handleTerritoryChange}
                   placeholder="Add Territory Description"
                   className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-400"
                 ></textarea>
@@ -263,13 +373,14 @@ export default function AdminTerritory() {
                 <button
                   type="button"
                   onClick={() => setShowCreateModal(false)}
-                 className="px-4 py-2 text-white bg-red-400 border border-red-300 rounded hover:bg-red-500 transition-100 w-full sm:w-auto"
-                 >
+                  className="px-4 py-2 text-white bg-red-400 border border-red-300 rounded hover:bg-red-500 transition-100 w-full sm:w-auto"
+                >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                   className="px-4 py-2 text-white border border-tertiary bg-tertiary rounded hover:bg-secondary transition-100 w-full sm:w-auto"
+                  onClick={handleSubmit}
+                  className="px-4 py-2 text-white border border-tertiary bg-tertiary rounded hover:bg-secondary transition-100 w-full sm:w-auto"
                 >
                   Save
                 </button>

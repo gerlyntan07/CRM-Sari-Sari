@@ -3,14 +3,31 @@ from sqlalchemy.orm import Session
 from typing import List
 from database import get_db
 from schemas.territory import TerritoryCreate, TerritoryResponse
+from schemas.auth import UserCreate, UserResponse, UserTerritoriesResponse
 from .auth_utils import get_current_user, hash_password,get_default_avatar
 from models.auth import User
+from models.territory import Territory
 from .logs_utils import serialize_instance, create_audit_log
 
 router = APIRouter(
     prefix="/territories",
     tags=["territories"]
 )
+
+@router.get("/fetch", response_model=List[UserTerritoriesResponse])
+def get_territories(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    if not current_user.related_to_company:
+        return []
+
+    territories = db.query(Territory).filter(
+        Territory.company_id == current_user.related_to_company
+    ).all()
+    return territories
+
+
 
 # ✅ CREATE new territory
 @router.post("/assign", response_model=TerritoryResponse, status_code=status.HTTP_201_CREATED)
@@ -29,11 +46,11 @@ def assign_territory(
         raise HTTPException(status_code=404, detail="Assigned user not found")
 
     # ✅ Ssign territory
-    new_territory = User(
+    new_territory = Territory(
         name=data.name,
         description=data.description,
         user_id=data.user_id,
-        company_id=current_user.related_to_company,
+        company_id=data.company_id,
     )
     db.add(new_territory)
     db.commit()

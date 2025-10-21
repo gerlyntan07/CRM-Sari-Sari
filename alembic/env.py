@@ -8,16 +8,10 @@ from alembic import context
 # Add backend folder to path
 sys.path.append(os.path.join(os.path.dirname(os.path.dirname(__file__)), "backend"))
 
-# Load your database & models
-from backend.database import Base, DATABASE_URL
+
 # import your models here (add more as you create them)
-import backend.models.auth
-import backend.models.company
-import backend.models.auditlog
-import backend.models.territory
-import backend.models.subscription
-import backend.models.lead
-import backend.models.account
+from backend.models import account, auditlog, auth, company, lead, subscription, territory
+from backend.database import Base, DATABASE_URL
 
 # Alembic Config object
 config = context.config

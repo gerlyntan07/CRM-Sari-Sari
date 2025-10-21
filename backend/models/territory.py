@@ -1,4 +1,4 @@
-#backend/models/auth.py
+#backend/models/territory.py
 from sqlalchemy import Column, Integer, String, Boolean, DateTime, func, ForeignKey, UniqueConstraint
 from sqlalchemy.orm import relationship
 from database import Base
@@ -12,6 +12,8 @@ class Territory(Base):
     description = Column(String)
     user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=True)
     company_id = Column(Integer, ForeignKey("companies.id", ondelete="CASCADE"), nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
     # ✅ Enforce uniqueness per company
     __table_args__ = (

@@ -54,6 +54,21 @@ class UserWithCompany(UserBase):
     class Config:
         orm_mode = True
 
+class UserTerritories(BaseModel):
+    id: int
+    name: str
+    description: str
+    created_at: datetime
+
+    class Config:
+        orm_mode = True
+
+class UserTerritoriesResponse(UserTerritories):
+    id: int
+    territories: Optional[list[UserTerritories]] = None
+    class Config:
+        orm_mode = True
+
 # ✅ Response model (includes extra fields)
 class UserResponse(UserBase):
     id: int
@@ -62,6 +77,7 @@ class UserResponse(UserBase):
     is_active: bool
     created_at: Optional[datetime]  # Date joined
     last_login: Optional[datetime]  # Last login
+    company: Optional[CompanyOut] = None
 
     class Config:
         orm_mode = True

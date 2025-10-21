@@ -1,8 +1,8 @@
-"""fix alembic
+"""fix territory-user relationship
 
-Revision ID: 78d5f731f8fc
+Revision ID: 32ebbe61dd14
 Revises: 
-Create Date: 2025-10-18 14:34:16.367857
+Create Date: 2025-10-21 09:00:44.757360
 
 """
 from typing import Sequence, Union
@@ -12,7 +12,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = '78d5f731f8fc'
+revision: str = '32ebbe61dd14'
 down_revision: Union[str, Sequence[str], None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None

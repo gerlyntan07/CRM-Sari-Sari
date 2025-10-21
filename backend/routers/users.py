@@ -169,7 +169,8 @@ def update_user(
 def delete_user(
     user_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
+    request: Request = None
 ):
     user = db.query(User).filter(User.id == user_id).first()
 
@@ -185,8 +186,21 @@ def delete_user(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You are not authorized to delete this user."
         )
+    
+    deleted_user_data = serialize_instance(user)
+
+    # ✅ Create log BEFORE deletion
+    create_audit_log(
+        db=db,
+        current_user=current_user,
+        instance=user,
+        action="DELETE",
+        request=request,
+        new_data=deleted_user_data,
+        custom_message=f" - deleted user '{user.first_name} {user.last_name}' with role '{user.role}'"
+    )
 
     db.delete(user)
-    db.commit()
+    db.commit()    
 
     return {"detail": f"✅ User '{user.first_name} {user.last_name}' deleted successfully."}

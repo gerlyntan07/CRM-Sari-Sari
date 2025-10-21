@@ -17,7 +17,7 @@ export default function AdminLeadsInformation({ lead, onBack }) {
       {/* Header */}
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-6 sm:mb-8 gap-2 sm:gap-4">
         <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-          <h1 className="text-xl sm:text-2xl font-semibold">{lead.name}</h1>
+          <h1 className="text-xl sm:text-2xl font-semibold">{lead.first_name} {lead.last_name}</h1>
           <span className="bg-blue-100 text-blue-700 text-xs sm:text-sm font-medium px-2 sm:px-3 py-1 rounded-full">
             {lead.status}
           </span>
@@ -45,11 +45,11 @@ export default function AdminLeadsInformation({ lead, onBack }) {
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6 text-sm text-gray-700">
           <div>
             <p className="font-semibold">Name:</p>
-            <p>{lead.name}</p>
+            <p>{lead.first_name} {lead.last_name}</p>
           </div>
           <div>
             <p className="font-semibold">Company:</p>
-            <p>{lead.company}</p>
+            <p>{lead.company_name}</p>
           </div>
           <div>
             <p className="font-semibold">Title:</p>
@@ -65,27 +65,27 @@ export default function AdminLeadsInformation({ lead, onBack }) {
           </div>
           <div>
             <p className="font-semibold">Territory:</p>
-            <p>{lead.territory}</p>
+            <p>{lead.assigned_to.territory?.name || ""}</p>
           </div>
           <div>
-            <p className="font-semibold">Assign To:</p>
-            <p>{lead.assignedTo}</p>
+            <p className="font-semibold">Assigned To:</p>
+            <p>{lead.assigned_to.first_name} {lead.assigned_to.last_name}</p>
           </div>
           <div>
             <p className="font-semibold">Created By:</p>
-            <p>{lead.createdBy}</p>
+            <p>{lead.creator.first_name} {lead.creator.last_name}</p>
           </div>
           <div>
             <p className="font-semibold">Work Phone:</p>
-            <p>{lead.workPhone}</p>
+            <p>{lead.work_phone}</p>
           </div>
           <div>
             <p className="font-semibold">Mobile Phone 1:</p>
-            <p>{lead.phone1}</p>
+            <p>{lead.mobile_phone_1}</p>
           </div>
           <div>
             <p className="font-semibold">Mobile Phone 2:</p>
-            <p>{lead.phone2}</p>
+            <p>{lead.mobile_phone_2}</p>
           </div>
           <div>
             <p className="font-semibold">Source:</p>
@@ -99,9 +99,7 @@ export default function AdminLeadsInformation({ lead, onBack }) {
         <div className="bg-white p-4 sm:p-6 rounded-xl border border-gray-200">
           <h3 className="font-semibold text-gray-800 mb-2">Address:</h3>
           <p className="text-sm text-gray-700 leading-relaxed">
-            {lead.addressLine1 || "123 Main Street"} <br />
-            {lead.addressLine2 || "Suite 400"} <br />
-            {lead.city || "New York"}, {lead.state || "NY"} {lead.zipCode || "10001"}
+            {lead.address}
           </p>
         </div>
 

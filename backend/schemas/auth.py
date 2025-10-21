@@ -54,20 +54,15 @@ class UserWithCompany(UserBase):
     class Config:
         orm_mode = True
 
-class UserTerritories(BaseModel):
+class UserTerritory(BaseModel):
     id: int
     name: str
-    description: str
+    description: Optional[str] = None
     created_at: datetime
 
     class Config:
         orm_mode = True
 
-class UserTerritoriesResponse(UserTerritories):
-    id: int
-    territories: Optional[list[UserTerritories]] = None
-    class Config:
-        orm_mode = True
 
 # ✅ Response model (includes extra fields)
 class UserResponse(UserBase):
@@ -78,6 +73,12 @@ class UserResponse(UserBase):
     created_at: Optional[datetime]  # Date joined
     last_login: Optional[datetime]  # Last login
     company: Optional[CompanyOut] = None
+
+    class Config:
+        orm_mode = True
+
+class UserWithTerritories(UserResponse):
+    territory: Optional[UserTerritory] = []
 
     class Config:
         orm_mode = True

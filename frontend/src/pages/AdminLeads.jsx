@@ -14,42 +14,52 @@ export default function AdminLeads() {
   const [selectedLead, setSelectedLead] = useState(null);
   const [showModal, setShowModal] = useState(false);
   const [users, setUsers] = useState(null);
+  const [selectedUser, setSelectedUser] = useState(null);
+  const [leads, setLeads] = useState([]);
+  const [leadData, setLeadData] = useState({
+    first_name: "",
+    last_name: "",
+    company_name: "",
+    title: "",
+    department: "",
+    email: "",
+    work_phone: "",
+    mobile_phone_1: "",
+    mobile_phone_2: "",
+    address: "",
+    notes: "",
+    source: "",
+    territory_id: null,
+    lead_owner: null,
+    status: "New",
+  });
 
   useEffect(() => {
     document.title = "Leads | Sari-Sari CRM";
   }, []);
 
-  const leads = [
-    {
-      name: "Joshua Vergara",
-      status: "Qualified",
-      title: "Marketing Director",
-      email: "sarah.williams@innovateco.com",
-      phone1: "09271229484",
-      phone2: "---------",
-      workPhone: "(555) 123-4567",
-      territory: "East Coast",
-      department: "Marketing",
-      company: "Innovate Co.",
-      createdBy: "John Appleseed",
-      createdAt: "2025-09-10 09:30",
-      lastUpdated: "2025-09-12 14:45",
-      source: "Website",
-      assignedTo: "Jane Doe",
-    },
-  ];
-
   const fetchAccounts = async () => {
     try {
-      const res = await api.get(`/users/all`);
+      const res = await api.get(`/leads/getUsers`);
       setUsers(res.data);
     } catch (err) {
       console.error(`Error fetching users: ${err}`);
     }
   };
 
+  const fetchLeads = async () => {
+    try {
+      const res = await api.get(`/leads/admin/getLeads`);
+      console.log(res.data);
+      setLeads(res.data);
+    } catch (err) {
+      console.error(`Error fetching leads: ${err}`);
+    }
+  }
+
   useEffect(() => {
     fetchAccounts();
+    fetchLeads();
   }, []);
 
   const handleLeadClick = (lead) => setSelectedLead(lead);
@@ -60,6 +70,36 @@ export default function AdminLeads() {
     return (
       <AdminLeadsInformation lead={selectedLead} onBack={handleBackToList} />
     );
+  }
+
+  const handleLeadChange = (e) => {
+    const { name, value } = e.target;
+    setLeadData((prevData) => ({
+      ...prevData,
+      [name]: value,
+    }));
+
+    if (name === 'lead_owner') {
+      const user = users.find((user) => user.id === parseInt(value));
+      setSelectedUser(user);
+    }
+  }
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    const finalForm = {
+      ...leadData,
+      territory_id: selectedUser && selectedUser.territories && selectedUser.territories.length > 0 ? selectedUser.territories[0].id : null,
+      lead_owner: parseInt(leadData.lead_owner),
+    }
+
+    try {
+      const res = await api.post('/leads/create', finalForm);
+      setShowModal(false);
+      fetchLeads();
+    } catch (err) {
+      console.error("Error creating lead:", err);
+    }
   }
 
   return (
@@ -119,30 +159,44 @@ export default function AdminLeads() {
         </div>
 
         {/* Table Rows */}
-        {leads.map((lead, i) => (
-          <div
-            key={i}
-            className="grid grid-cols-9 min-w-[800px] px-4 py-3 text-xs hover:bg-gray-100 transition cursor-pointer gap-x-4"
-            onClick={() => handleLeadClick(lead)}
-          >
-            <div className="truncate">{lead.name}</div>
-            <div className="truncate">{lead.company}</div>
-            <div className="truncate">{lead.title}</div>
-            <div className="truncate">{lead.department}</div>
-            <div className="truncate">{lead.email}</div>
-            <div className="truncate">{lead.workPhone}</div>
-            <div className="truncate">{lead.assignedTo}</div>
-            <div className="truncate">{lead.lastUpdated}</div>
-            <div className="flex justify-center space-x-2">
-              <button className="text-blue-500 hover:text-blue-700">
-                <FiEdit />
-              </button>
-              <button className="text-red-500 hover:text-red-700">
-                <FiTrash2 />
-              </button>
+        {(Array.isArray(leads) && leads.length > 0) ? (
+          leads.map((lead, i) => (
+            <div
+              key={i}
+              className="grid grid-cols-9 min-w-[800px] px-4 py-3 text-xs hover:bg-gray-100 transition cursor-pointer gap-x-4"
+              onClick={() => handleLeadClick(lead)}
+            >
+              <div className="truncate">{lead.first_name} {lead.last_name}</div>
+              <div className="truncate">{lead.company_name}</div>
+              <div className="truncate">{lead.title}</div>
+              <div className="truncate">{lead.department}</div>
+              <div className="truncate">{lead.email}</div>
+              <div className="truncate">{lead.work_phone}</div>
+              <div className="truncate">{lead.assigned_to.first_name} {lead.assigned_to.last_name}</div>
+              <div className="truncate">
+                {new Date(lead.updated_at || lead.created_at).toLocaleString("en-US", {
+                  month: "numeric",
+                  day: "numeric",
+                  year: "numeric",
+                  hour: "numeric",
+                  minute: "2-digit",
+                  hour12: true,
+                }).replace(",", "")}
+              </div>
+
+              <div className="flex justify-center space-x-2">
+                <button className="text-blue-500 hover:text-blue-700">
+                  <FiEdit />
+                </button>
+                <button className="text-red-500 hover:text-red-700">
+                  <FiTrash2 />
+                </button>
+              </div>
             </div>
-          </div>
-        ))}
+          ))
+        ) : (
+          <p className="w-full text-center py-3">No leads</p>
+        )}
       </div>
 
       {/* Add Leads Modal */}
@@ -176,6 +230,9 @@ export default function AdminLeads() {
                 </label>
                 <input
                   type="text"
+                  name="first_name"
+                  value={leadData.first_name}
+                  onChange={handleLeadChange}
                   placeholder="Joe"
                   className="border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-400 outline-none"
                 />
@@ -189,6 +246,9 @@ export default function AdminLeads() {
                 <input
                   type="text"
                   placeholder="Smith"
+                  name="last_name"
+                  value={leadData.last_name}
+                  onChange={handleLeadChange}
                   className="border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-400 outline-none"
                 />
               </div>
@@ -199,6 +259,9 @@ export default function AdminLeads() {
                 <input
                   type="text"
                   placeholder="ABC Company"
+                  name="company_name"
+                  value={leadData.company_name}
+                  onChange={handleLeadChange}
                   className="border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-400 outline-none"
                 />
               </div>
@@ -209,6 +272,9 @@ export default function AdminLeads() {
                 <input
                   type="text"
                   placeholder="ABC Agenda"
+                  name="title"
+                  value={leadData.title}
+                  onChange={handleLeadChange}
                   className="border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-400 outline-none"
                 />
               </div>
@@ -221,6 +287,9 @@ export default function AdminLeads() {
                 <input
                   type="text"
                   placeholder="Sales"
+                  name="department"
+                  value={leadData.department}
+                  onChange={handleLeadChange}
                   className="border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-400 outline-none"
                 />
               </div>
@@ -229,8 +298,11 @@ export default function AdminLeads() {
               <div className="flex flex-col">
                 <label className="text-gray-700 font-medium mb-1">Email</label>
                 <input
-                  type="text"
+                  type="email"
                   placeholder="abc@gmail.com"
+                  name="email"
+                  value={leadData.email}
+                  onChange={handleLeadChange}
                   className="border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-400 outline-none"
                 />
               </div>
@@ -243,6 +315,9 @@ export default function AdminLeads() {
                 <input
                   type="text"
                   placeholder="09----------"
+                  name="work_phone"
+                  value={leadData.work_phone}
+                  onChange={handleLeadChange}
                   className="border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-400 outline-none"
                 />
               </div>
@@ -255,6 +330,9 @@ export default function AdminLeads() {
                 <input
                   type="text"
                   placeholder="09----------"
+                  name="mobile_phone_1"
+                  value={leadData.mobile_phone_1}
+                  onChange={handleLeadChange}
                   className="border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-400 outline-none"
                 />
               </div>
@@ -267,6 +345,9 @@ export default function AdminLeads() {
                 <input
                   type="text"
                   placeholder="09----------"
+                  name="mobile_phone_2"
+                  value={leadData.mobile_phone_2}
+                  onChange={handleLeadChange}
                   className="border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-400 outline-none"
                 />
               </div>
@@ -276,6 +357,9 @@ export default function AdminLeads() {
                 <label className="text-gray-700 font-medium mb-1">Address</label>
                 <input
                   type="text"
+                  name="address"
+                  value={leadData.address}
+                  onChange={handleLeadChange}
                   placeholder="Street No., Street Name, City, State/Province, Postal Code"
                   className="border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-400 outline-none"
                 />
@@ -289,6 +373,9 @@ export default function AdminLeads() {
                 <select
                   className="border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-400 outline-none"
                   defaultValue=""
+                  name="lead_owner"
+                  value={leadData.lead_owner}
+                  onChange={handleLeadChange}
                 >
                   <option value="" disabled>
                     Select user
@@ -308,30 +395,38 @@ export default function AdminLeads() {
                 <label className="text-gray-700 font-medium mb-1">
                   Territory
                 </label>
-                <select
+                <input
+                  type="text"
+                  disabled
+                  name="territory_id"
+                  value={selectedUser && selectedUser.territories && selectedUser.territories.length > 0 ? selectedUser.territories.map(territory => territory.name).join(", ") : ""}
+                  placeholder="Select Assign To first"
+                  onChange={handleLeadChange}
                   className="border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-400 outline-none"
-                  defaultValue=""
-                >
-                  <option value="" disabled>
-                    Select Territory
-                  </option>
-                  <option value="southern-luzon">Southern Luzon</option>
-                  <option value="northern-luzon">Northern Luzon</option>
-                  <option value="visayas">Visayas</option>
-                  <option value="mindanao">Mindanao</option>
-                </select>
+                />
               </div>
 
               {/* Created By */}
               <div className="flex flex-col">
                 <label className="text-gray-700 font-medium mb-1">
-                  Created By
+                  Source
                 </label>
-                <input
-                  type="text"
-                  placeholder="William Doe"
+                <select
                   className="border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-400 outline-none"
-                />
+                  defaultValue=""
+                  name="source"
+                  value={leadData.source}
+                  onChange={handleLeadChange}
+                >
+                  <option value="" disabled>
+                    Select Source
+                  </option>
+                  <option value="Website">Website</option>
+                  <option value="Referral">Referral</option>
+                  <option value="Cold call">Cold call</option>
+                  <option value="Event">Event</option>
+                  <option value="Other">Other</option>
+                </select>
               </div>
 
               {/* Notes */}
@@ -339,6 +434,9 @@ export default function AdminLeads() {
                 <label className="text-gray-700 font-medium mb-1">Notes</label>
                 <textarea
                   placeholder="Additional details..."
+                  name="notes"
+                  value={leadData.notes}
+                  onChange={handleLeadChange}
                   rows={3}
                   className="border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-400 outline-none resize-none"
                 />
@@ -355,6 +453,7 @@ export default function AdminLeads() {
                 </button>
                 <button
                   type="submit"
+                  onClick={handleSubmit}
                   className="px-4 py-2 text-white border border-tertiary bg-tertiary rounded hover:bg-secondary transition"
                 >
                   Save Lead

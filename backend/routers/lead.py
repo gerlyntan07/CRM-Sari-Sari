@@ -3,9 +3,10 @@ from sqlalchemy.orm import Session
 from typing import List
 from database import get_db
 from schemas.lead import LeadCreate, LeadResponse
-from schemas.auth import UserResponse
+from schemas.auth import UserResponse, UserWithTerritories
 from .auth_utils import get_current_user, hash_password,get_default_avatar
 from models.auth import User
+from models.lead import Lead
 from .logs_utils import serialize_instance, create_audit_log
 
 router = APIRouter(
@@ -13,12 +14,28 @@ router = APIRouter(
     tags=["Leads"]
 )
 
-@router.get("/getUsers", response_model=UserResponse)
+@router.get("/admin/getLeads", response_model=List[LeadResponse])
+def get_leads_admin(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    # ✅ Get all leads whose owners belong to the same company as the current user
+    leads = (
+        db.query(Lead)
+        .join(User, Lead.lead_owner == User.id)
+        .filter(User.related_to_company == current_user.related_to_company)
+        .all()
+    )
+
+    return leads
+
+
+@router.get("/getUsers", response_model=list[UserWithTerritories])
 def get_users(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    users = db.query(User).filter(User.company_id == current_user.company_id).all()
+    users = db.query(User).filter(User.related_to_company == current_user.related_to_company).all()
     return users
 
 # ✅ CREATE new territory
@@ -28,33 +45,43 @@ def create_lead(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
     request: Request = None
-):    
-    
-    assigned_user = db.query(User).filter(User.id == data.user_id).first()
-    if not assigned_user:
+):                
+    lead_owner = db.query(User).filter(User.id == data.lead_owner).first()
+    if not lead_owner:
         raise HTTPException(status_code=404, detail="Assigned user not found")
 
-    # ✅ Ssign territory
-    new_territory = User(
-        name=data.name,
-        description=data.description,
-        user_id=data.user_id,
-        company_id=current_user.related_to_company,
+    new_lead = Lead(
+        first_name=data.first_name,
+        last_name=data.last_name,
+        company_name=data.company_name,
+        title=data.title,
+        department=data.department,
+        email=data.email,
+        work_phone=data.work_phone,
+        mobile_phone_1=data.mobile_phone_1,
+        mobile_phone_2=data.mobile_phone_2,
+        address=data.address,
+        notes=data.notes,
+        status=data.status,
+        source=data.source,
+        territory_id=data.territory_id,
+        lead_owner=data.lead_owner,
+        created_by=current_user.id,
     )
-    db.add(new_territory)
+    db.add(new_lead)
     db.commit()
-    db.refresh(new_territory)
+    db.refresh(new_lead)
 
-    new_data = serialize_instance(new_territory)    
+    new_data = serialize_instance(new_lead)    
 
     create_audit_log(
         db=db,
         current_user=current_user,
-        instance=new_territory,
+        instance=new_lead,
         action="CREATE",
         request=request,
         new_data=new_data,
-        custom_message=f" - assign territory '{data.name}' to user: {assigned_user.first_name} {assigned_user.last_name}"
+        custom_message=f" - add lead '{data.title}' to user: {lead_owner.first_name} {lead_owner.last_name}"
     )
 
-    return new_territory
+    return new_lead

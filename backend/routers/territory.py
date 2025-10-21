@@ -3,7 +3,6 @@ from sqlalchemy.orm import Session
 from typing import List
 from database import get_db
 from schemas.territory import TerritoryCreate, TerritoryResponse
-from schemas.auth import UserCreate, UserResponse, UserTerritoriesResponse
 from .auth_utils import get_current_user, hash_password,get_default_avatar
 from models.auth import User
 from models.territory import Territory

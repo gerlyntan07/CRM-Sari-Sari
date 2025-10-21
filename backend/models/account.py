@@ -30,5 +30,6 @@ class Account(Base):
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())    
         
     territory = relationship("Territory", back_populates="accounts")
-    assigned_accs = relationship("User", back_populates="accounts")
-    acc_creator = relationship("User", back_populates="created_acc")
+
+    assigned_accs = relationship("User", back_populates="accounts", foreign_keys=[assigned_to])
+    acc_creator = relationship("User", back_populates="created_acc", foreign_keys=[created_by])

@@ -21,3 +21,4 @@ class Territory(Base):
     managed_by = relationship("User", back_populates="territory")
     under_company = relationship("Company", back_populates="territory")
     leads = relationship("Lead", back_populates="territory", cascade="all, delete-orphan")
+    accounts = relationship("Account", back_populates="territory", cascade="all, delete-orphan")

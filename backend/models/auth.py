@@ -37,8 +37,8 @@ class User(Base):
     audit_logs = relationship("Auditlog", back_populates="logger", cascade="all, delete-orphan")
     territory = relationship("Territory", back_populates="managed_by", uselist=False, cascade="all, delete-orphan")
 
-    leads = relationship("Lead", back_populates="assigned_to", cascade="all, delete-orphan")
-    created_leads = relationship("Lead", back_populates="creator", cascade="all, delete-orphan")
+    leads = relationship("Lead", back_populates="assigned_to", foreign_keys="[Lead.lead_owner]", cascade="all, delete-orphan")
+    created_leads = relationship("Lead", back_populates="creator", foreign_keys="[Lead.created_by]", cascade="all, delete-orphan")
 
-    accounts = relationship("Account", back_populates="assigned_accs", cascade="all, delete-orphan")
-    created_acc = relationship("Account", back_populates="acc_creator", cascade="all, delete-orphan")
+    accounts = relationship("Account", back_populates="assigned_accs", foreign_keys="[Account.assigned_to]", cascade="all, delete-orphan")
+    created_acc = relationship("Account", back_populates="acc_creator", foreign_keys="[Account.created_by]", cascade="all, delete-orphan")

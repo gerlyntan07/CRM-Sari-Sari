@@ -36,7 +36,7 @@ export default function AdminTerritory() {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("All Status");
   const [userFilter, setUserFilter] = useState("All User");
-  const [selectedMeeting, setSelectedMeeting] = useState(null);
+  const [selectedTerritory, setSelectedTerritory] = useState(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [territoryList, setTerritoryList] = useState([]);
   const [users, setUsers] = useState([]);
@@ -73,7 +73,7 @@ export default function AdminTerritory() {
 
   const fetchUsers = async () => {
     try {
-      const response = await api.get('/users/all');
+      const response = await api.get('/users/sales/read');      
       setUsers(response.data);
     } catch (error) {
       console.error('Error fetching users:', error);
@@ -196,7 +196,7 @@ export default function AdminTerritory() {
         {filteredTerritories.map((territory) => (
           <div
             key={territory.id}
-            onClick={() => setSelectedMeeting(territory)}
+            onClick={() => setSelectedTerritory(territory)}
             className="bg-white p-4 shadow border border-gray-200 flex flex-col justify-between relative cursor-pointer hover:shadow-md transition"
           >
             {/* Top horizontal line */}
@@ -240,14 +240,14 @@ export default function AdminTerritory() {
       </div>
 
       {/* Details Popup Modal */}
-      {selectedMeeting && (
+      {selectedTerritory && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg shadow-lg w-full max-w-xl p-8 relative">
             {/* Top horizontal line */}
             <div className="absolute top-0 left-0 w-full h-10 bg-secondary rounded-t-md flex justify-end items-center px-4">
               <button
                 className="text-white hover:text-gray-200 transition"
-                onClick={() => setSelectedMeeting(null)}
+                onClick={() => setSelectedTerritory(null)}
               >
                 <FiX size={20} />
               </button>
@@ -256,12 +256,12 @@ export default function AdminTerritory() {
             {/* Header */}
             <div className="flex items-center justify-between mb-6 py-6">
               <h2 className="text-3xl font-semibold text-gray-900 mt-6">
-                {selectedMeeting.title}
+                {selectedTerritory.name}
               </h2>
               <div className="flex items-center gap-2 text-sm font-medium text-gray-600 mt-6">
-                {selectedMeeting.status}
+                {selectedTerritory.status}
                 <span
-                  className={`h-2.5 w-2.5 rounded-full ${selectedMeeting.status === "Active"
+                  className={`h-2.5 w-2.5 rounded-full ${selectedTerritory.status === "Active"
                       ? "bg-green-500"
                       : "bg-yellow-500"
                     }`}
@@ -275,13 +275,24 @@ export default function AdminTerritory() {
               <div>
                 <p className="text-gray-500">Assigned To</p>
                 <div className="flex items-center gap-2 text-gray-800 font-medium mt-1">
-                  <FiUser /> {selectedMeeting.user}
+                  <FiUser /> {selectedTerritory.managed_by.first_name} {selectedTerritory.managed_by.last_name}
                 </div>
               </div>
               <div>
                 <p className="text-gray-500">Created Date</p>
                 <div className="flex items-center gap-2 text-gray-800 font-medium mt-1">
-                  <FiCalendar /> {selectedMeeting.date}
+                  <FiCalendar /> {selectedTerritory.created_at
+                  ? new Date(selectedTerritory.created_at)
+                    .toLocaleString("en-US", {
+                      month: "numeric",
+                      day: "numeric",
+                      year: "numeric",
+                      hour: "numeric",
+                      minute: "2-digit",
+                      hour12: true,
+                    })
+                    .replace(",", "")
+                  : "—"}
                 </div>
               </div>
             </div>
@@ -290,7 +301,7 @@ export default function AdminTerritory() {
             <div>
               <p className="text-gray-500 mb-1">Description</p>
               <p className="text-gray-700 text-sm leading-relaxed">
-                {selectedMeeting.description}
+                {selectedTerritory.description}
               </p>
             </div>
 

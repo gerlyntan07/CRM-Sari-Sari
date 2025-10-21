@@ -13,6 +13,23 @@ router = APIRouter(
 )
 
 # ✅ GET all users (CEO/Admin can see subordinates from same company)
+@router.get("/sales/read", response_model=List[UserResponse])
+def get_sales(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    # CEO → see all users related to their company
+    # Admin → see all users under same company
+    # Others → only themselves
+    if current_user.role.upper() in ["CEO", "Admin", "Manager", "Group Manager"]:
+        users = db.query(User).filter(
+            User.related_to_company == current_user.related_to_company
+        ).filter(User.role == "Sales").all()
+    else:
+        users = db.query(User).filter(User.id == current_user.id).all()
+
+    return users
+
 @router.get("/all", response_model=List[UserResponse])
 def get_users(
     db: Session = Depends(get_db),

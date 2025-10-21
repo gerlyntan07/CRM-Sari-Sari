@@ -34,6 +34,7 @@ import SalesMyTask from "./pages/SalesMyTask"; // ✅ add this new page
 import SalesPipeline from "./pages/SalesPipeline";
 import SalesPerformance from "./pages/SalesPerformance";
 import SalesAccounts from "./pages/SalesAccounts";
+import SalesContacts from "./pages/SalesContacts";
 
 
 // 🔹 Manager layout + pages
@@ -85,6 +86,7 @@ function App() {
           <Route index element={<Navigate to="overview" replace />} />
           <Route path="overview" element={<SalesOverview />} />
           <Route path="accounts" element={<SalesAccounts/>}/>
+          <Route path="contacts" element={<SalesContacts/>}/>
           <Route path="hub/*" element={<SalesHub />}>
             <Route index element={<Navigate to="mytasks" replace />} />
             <Route path="activities" element={<SalesActivities />} />

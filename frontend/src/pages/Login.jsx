@@ -80,7 +80,7 @@ const Login = () => {
         navigate("/manager");
       } else if (userRole === "marketing") {
         navigate("/marketing");
-      } else if (userRole === "sales") {
+      } else if (userRole === "Sales") {
         navigate("/sales");
       }
     }

@@ -82,8 +82,7 @@ export default function AdminTerritory() {
 
   const fetchTerritories = async () => {
     try {
-      const response = await api.get('/territories/fetch');
-      console.log('Fetched territories:', response.data);
+      const response = await api.get('/territories/fetch');      
       setTerritoryList(response.data);
     } catch (error) {
       console.error('Error fetching territories:', error);
@@ -118,7 +117,8 @@ export default function AdminTerritory() {
 
     try {
       const res = await api.post(`/territories/assign`, finalData);
-      console.log('Territory created successfully:', res.data);
+      fetchTerritories();
+      fetchUsers();
       setShowCreateModal(false);
     } catch (error) {
       console.error('Error creating territory:', error.response?.data?.detail || error.message);

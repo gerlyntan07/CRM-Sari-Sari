@@ -20,7 +20,7 @@ class Territory(Base):
         UniqueConstraint("company_id", "name", name="uq_territory_company_name"),
     )
     
-    managed_by = relationship("User", back_populates="territory")
+    managed_by = relationship("User", back_populates="territories")
     under_company = relationship("Company", back_populates="territory")
     leads = relationship("Lead", back_populates="territory", cascade="all, delete-orphan")
     accounts = relationship("Account", back_populates="territory", cascade="all, delete-orphan")

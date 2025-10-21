@@ -14,7 +14,7 @@ router = APIRouter(
     tags=["territories"]
 )
 
-@router.get("/fetch", response_model=List[UserTerritoriesResponse])
+@router.get("/fetch", response_model=List[TerritoryResponse])
 def get_territories(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),

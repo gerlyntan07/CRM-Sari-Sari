@@ -124,7 +124,7 @@ export default function AdminTask() {
   ];
 
   return (
-    <div className="p-8 min-h-screen bg-gray-50">
+    <div className="p-8 min-h-screen">
       {/* Header */}
       <div className="flex justify-between items-start mb-6">
         <div>

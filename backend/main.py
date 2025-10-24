@@ -3,7 +3,7 @@ from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
-from backend.database import Base, engine
+from database import Base, engine
 from dotenv import load_dotenv
 load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), ".env"))
 
@@ -17,6 +17,7 @@ import models.lead
 import models.account
 import models.contact
 import models.deal
+import models.task
 
 # Import routers
 import routers.auth as auth_router
@@ -25,6 +26,7 @@ import routers.users as users_router
 import routers.subscription as subscription_router
 import routers.territory as territory_router
 import routers.lead as lead_router
+import routers.task as task_router
 
 
 app = FastAPI()
@@ -36,6 +38,7 @@ app.include_router(users_router.router, prefix='/api')
 app.include_router(subscription_router.router, prefix='/api')
 app.include_router(territory_router.router, prefix='/api')
 app.include_router(lead_router.router, prefix='/api')
+app.include_router(task_router.router, prefix='/api')
 
 # === Database initialization ===
 Base.metadata.create_all(bind=engine)

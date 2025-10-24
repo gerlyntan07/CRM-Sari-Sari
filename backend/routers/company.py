@@ -1,7 +1,7 @@
 # backend/routers/auth.py (should actually be routers/company.py)
 from fastapi import APIRouter, Depends, HTTPException, Response
 from sqlalchemy.orm import Session
-from backend.database import SessionLocal
+from database import SessionLocal
 from models.company import Company
 from schemas.company import CompanyCreate, CompanyResponse
 

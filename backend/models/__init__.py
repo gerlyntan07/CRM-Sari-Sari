@@ -1,4 +1,4 @@
-from backend.database import Base
+from database import Base
 
 from .auth import User
 from .company import Company
@@ -9,3 +9,4 @@ from .lead import Lead
 from .account import Account
 from .contact import Contact
 from .deal import Deal
+from .task import Task

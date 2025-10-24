@@ -1,7 +1,7 @@
 #backend/models/subscription.py
 from sqlalchemy import Column, Integer, String, Boolean, DateTime, func, ForeignKey, Float
 from sqlalchemy.orm import relationship
-from backend.database import Base
+from database import Base
 from enum import Enum
 from datetime import datetime, timedelta
 

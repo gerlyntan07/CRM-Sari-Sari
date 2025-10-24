@@ -1,5 +1,6 @@
 import { Dialog, Transition } from "@headlessui/react";
-import { Fragment, useState } from "react";
+import { Fragment, useState, useEffect } from "react";
+import api from "../api"; // make sure you have your axios instance here
 
 export default function TaskModal({ isOpen, onClose, onSave }) {
   const [formData, setFormData] = useState({
@@ -13,6 +14,24 @@ export default function TaskModal({ isOpen, onClose, onSave }) {
     relatedTo: "",
     notes: "",
   });
+
+  const [salesList, setSalesList] = useState([]); // ✅ store fetched sales
+
+  // 🔄 Fetch Sales reps on open
+  useEffect(() => {
+    if (isOpen) {
+      fetchSales();
+    }
+  }, [isOpen]);
+
+  const fetchSales = async () => {
+    try {
+      const response = await api.get("/users/sales/read");
+      setSalesList(response.data || []);
+    } catch (error) {
+      console.error("Error fetching sales:", error);
+    }
+  };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -179,7 +198,7 @@ export default function TaskModal({ isOpen, onClose, onSave }) {
                     </div>
                   </div>
 
-                  {/* Assign To */}
+                  {/* Assign To - dynamic fetch */}
                   <div>
                     <label className="text-sm font-medium text-gray-700">
                       Assign To
@@ -191,9 +210,11 @@ export default function TaskModal({ isOpen, onClose, onSave }) {
                       className="w-full mt-1 border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                     >
                       <option value="">Select sales representative</option>
-                      <option>John Doe</option>
-                      <option>Jane Smith</option>
-                      <option>Michael Lee</option>
+                      {salesList.map((user) => (
+                        <option key={user.id} value={user.id}>
+                          {user.first_name} {user.last_name}
+                        </option>
+                      ))}
                     </select>
                   </div>
 
@@ -232,18 +253,18 @@ export default function TaskModal({ isOpen, onClose, onSave }) {
                 </form>
 
                 {/* Buttons */}
-              <div className="flex justify-end gap-3 pt-4 border-t mt-6">
+                <div className="flex justify-end gap-3 pt-4 border-t mt-6">
                   <button
                     type="button"
                     onClick={onClose}
-                     className="px-5 py-2 text-gray-700 bg-gray-100 border border-gray-300 rounded hover:bg-gray-200 transition"
+                    className="px-4 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 transition"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
                     onClick={handleSubmit}
-                       className="px-5 py-2 text-white bg-gray-900 rounded hover:bg-gray-800 transition"
+                    className="px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 focus:ring-2 focus:ring-blue-400 transition"
                   >
                     Save Task
                   </button>

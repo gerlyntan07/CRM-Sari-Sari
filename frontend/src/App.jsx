@@ -24,6 +24,8 @@ import AdminDealsInformation from "./components/AdminDealsInformation";
 import AdminDealsQuickAction from "./components/AdminDealsQuickAction";
 import AdminTask from "./pages/AdminTask";
 import AdminTerritory from "./pages/AdminTerritory";
+import AdminCalls from "./pages/AdminCalls";
+import AdminMeeting from "./pages/AdminMeeting";
 
 // 🔹 Sales layout + pages
 import SalesPanel from "./components/SalesPanel";
@@ -49,7 +51,11 @@ import ManagerDealsInformation from "./components/ManagerDealsInformation";
 import ManagerDealsQuickAction from "./components/ManagerDealsQuickAction";
 import ManagerQuotes from "./pages/ManagerQuotes";
 import ManagerTargets from "./pages/ManagerTargets";
+import ManagerAudit from "./pages/ManagerAudit";
+import ManagerCalls from "./pages/ManagerCalls";
+import ManagerTask from "./pages/ManagerTask";
 import ManagerMeetings from "./pages/ManagerMeetings";
+import ManagerUser from "./pages/ManagerUser";
 
 function App() {
   return (
@@ -79,6 +85,9 @@ function App() {
           <Route path="deals/quickaction" element={<AdminDealsQuickAction />} />
           <Route path="tasks" element={<AdminTask/>}/>
           <Route path="territory" element={<AdminTerritory/>}/>
+          <Route path="calls" element={<AdminCalls/>}/>
+          <Route path="meetings" element={<AdminMeeting/>}/>
+
         </Route>
 
         {/* ================= Sales Layout ================= */}
@@ -110,6 +119,10 @@ function App() {
           <Route path="quotes" element={<ManagerQuotes />} />
           <Route path="targets" element={<ManagerTargets />} />
           <Route path="meetings" element={<ManagerMeetings />} />
+          <Route path="audit" element={<ManagerAudit />} />
+          <Route path="calls" element={<ManagerCalls />} />
+          <Route path="tasks" element={<ManagerTask/>}/>
+          <Route path="users" element={<ManagerUser/>}/>
 
 
         </Route>

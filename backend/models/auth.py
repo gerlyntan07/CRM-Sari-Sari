@@ -1,7 +1,7 @@
 #backend/models/auth.py
 from sqlalchemy import Column, Integer, String, Boolean, DateTime, func, ForeignKey
 from sqlalchemy.orm import relationship
-from database import Base
+from backend.database import Base
 from enum import Enum
 
 class UserRole(str, Enum):
@@ -45,3 +45,6 @@ class User(Base):
 
     contacts = relationship("Contact", back_populates="assigned_contact", foreign_keys="[Contact.assigned_to]", cascade="all, delete-orphan")
     created_contact = relationship("Contact", back_populates="contact_creator", foreign_keys="[Contact.created_by]", cascade="all, delete-orphan")
+
+    deals = relationship("Deal", back_populates="assigned_deals", foreign_keys="[Deal.assigned_to]", cascade="all, delete-orphan")
+    created_deals = relationship("Deal", back_populates="deal_creator", foreign_keys="[Deal.created_by]", cascade="all, delete-orphan")

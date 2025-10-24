@@ -3,7 +3,7 @@ from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
-from database import Base, engine
+from backend.database import Base, engine
 from dotenv import load_dotenv
 load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), ".env"))
 
@@ -15,6 +15,8 @@ import models.auditlog
 import models.territory
 import models.lead
 import models.account
+import models.contact
+import models.deal
 
 # Import routers
 import routers.auth as auth_router

@@ -1,7 +1,7 @@
 #backend/models/auth.py
 from sqlalchemy import Column, Integer, String, Boolean, DateTime, func, ForeignKey, UniqueConstraint
 from sqlalchemy.orm import relationship
-from database import Base
+from backend.database import Base
 from enum import Enum
 
 class LeadStatus(str, Enum):

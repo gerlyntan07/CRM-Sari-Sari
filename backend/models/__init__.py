@@ -1,4 +1,4 @@
-from database import Base
+from backend.database import Base
 
 from .auth import User
 from .company import Company
@@ -7,3 +7,5 @@ from .subscription import Subscription
 from .auditlog import Auditlog
 from .lead import Lead
 from .account import Account
+from .contact import Contact
+from .deal import Deal

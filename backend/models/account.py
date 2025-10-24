@@ -1,7 +1,7 @@
 #backend/models/auth.py
 from sqlalchemy import Column, Integer, String, Boolean, DateTime, func, ForeignKey, UniqueConstraint
 from sqlalchemy.orm import relationship
-from database import Base
+from backend.database import Base
 from enum import Enum
 
 class AccountStatus(str, Enum):
@@ -33,4 +33,6 @@ class Account(Base):
 
     assigned_accs = relationship("User", back_populates="accounts", foreign_keys=[assigned_to])
     acc_creator = relationship("User", back_populates="created_acc", foreign_keys=[created_by])
-    contact = relationship("Contact", uselist=False, back_populates="account", cascade="all, delete-orphan")
+    contacts = relationship("Contact", back_populates="account", cascade="all, delete-orphan")
+
+    deals = relationship("Deal", back_populates="account", cascade="all, delete-orphan")

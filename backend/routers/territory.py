@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Request
 from sqlalchemy.orm import Session
 from typing import List
-from database import get_db
+from backend.database import get_db
 from schemas.territory import TerritoryCreate, TerritoryResponse
 from .auth_utils import get_current_user, hash_password,get_default_avatar
 from models.auth import User

@@ -2,7 +2,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Response, Cookie, Request
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session, joinedload
-from database import SessionLocal
+from backend.database import SessionLocal
 from jose import jwt, JWTError
 from models.auth import User
 from schemas.auth import UserCreate, UserLogin, UserResponse, EmailCheck, EmailCheckResponse, UserWithCompany

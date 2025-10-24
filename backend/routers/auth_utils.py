@@ -1,7 +1,7 @@
 from passlib.context import CryptContext
 from jose import JWTError, jwt
 from sqlalchemy.orm import Session
-from database import SessionLocal, SECRET_KEY
+from backend.database import SessionLocal, SECRET_KEY
 from datetime import datetime, timedelta
 import os
 from fastapi import Depends, HTTPException, Request

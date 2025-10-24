@@ -1,5 +1,5 @@
 import React, { useEffect } from "react";
-import { FiEye, FiDownload } from "react-icons/fi";
+import { FiEye, FiDownload, FiSearch } from "react-icons/fi";
 
 export default function AdminAudit() {
   useEffect(() => {
@@ -63,6 +63,24 @@ export default function AdminAudit() {
           Export Logs
         </button>
       </div>
+
+       {/* Search and Filter */}
+            <div className="flex flex-col sm:flex-row flex-wrap items-start sm:items-center gap-3 mb-7">
+              <div className="flex items-center bg-white border border-gray-200 rounded-md px-3 py-2 w-full sm:w-1/3 shadow-sm">
+                <FiSearch className="text-gray-500" />
+                <input
+                  type="text"
+                  placeholder="Search Audit..."
+                  className="ml-2 bg-transparent w-full outline-none text-sm"
+                />
+              </div>
+              <select className="border border-gray-300 rounded-md px-3 py-2 text-sm text-gray-600 bg-white shadow-sm cursor-pointer w-full sm:w-auto">
+                <option>Date</option>
+                <option>Day</option>
+                <option>Week</option>
+                <option>Month</option>
+              </select>
+            </div>
 
       <div className="bg-white rounded-md shadow-sm overflow-hidden">
         <div className="overflow-x-auto">

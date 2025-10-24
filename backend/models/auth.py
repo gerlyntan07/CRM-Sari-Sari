@@ -42,3 +42,6 @@ class User(Base):
 
     accounts = relationship("Account", back_populates="assigned_accs", foreign_keys="[Account.assigned_to]", cascade="all, delete-orphan")
     created_acc = relationship("Account", back_populates="acc_creator", foreign_keys="[Account.created_by]", cascade="all, delete-orphan")
+
+    contacts = relationship("Contact", back_populates="assigned_contact", foreign_keys="[Contact.assigned_to]", cascade="all, delete-orphan")
+    created_contact = relationship("Contact", back_populates="contact_creator", foreign_keys="[Contact.created_by]", cascade="all, delete-orphan")

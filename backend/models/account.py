@@ -33,3 +33,4 @@ class Account(Base):
 
     assigned_accs = relationship("User", back_populates="accounts", foreign_keys=[assigned_to])
     acc_creator = relationship("User", back_populates="created_acc", foreign_keys=[created_by])
+    contact = relationship("Contact", uselist=False, back_populates="account", cascade="all, delete-orphan")

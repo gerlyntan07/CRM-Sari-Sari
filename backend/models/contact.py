@@ -1,0 +1,28 @@
+#backend/models/auth.py
+from sqlalchemy import Column, Integer, String, Boolean, DateTime, func, ForeignKey, UniqueConstraint
+from sqlalchemy.orm import relationship
+from database import Base
+from enum import Enum
+
+class Contact(Base):
+    __tablename__ = "contacts"
+
+    id = Column(Integer, primary_key=True, index=True)
+    first_name = Column(String, index=True, nullable=False)
+    last_name = Column(String, index=True, nullable=False)
+    account_id = Column(Integer, ForeignKey("accounts.id", ondelete="CASCADE"), nullable=False)
+    title = Column(String, nullable=True)
+    department = Column(String, nullable=True)
+    email = Column(String, nullable=True)    
+    work_phone = Column(String(20), nullable=True)
+    mobile_phone_1 = Column(String(20), nullable=True)
+    mobile_phone_2 = Column(String(20), nullable=True)
+    notes = Column(String, nullable=True)
+    assigned_to = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    created_by = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())         
+
+    account = relationship("Account", uselist=False, back_populates="contact")
+    assigned_contact = relationship("User", back_populates="contacts", foreign_keys=[assigned_to])
+    contact_creator = relationship("User", back_populates="created_contact", foreign_keys=[created_by])

@@ -1,7 +1,11 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { FiEye, FiDownload } from "react-icons/fi";
 
 export default function AdminAudit() {
+  useEffect(() => {
+    document.title = "Audit | Sari-Sari CRM";
+  }, []);
+
   const logs = [
     {
       timestamp: "1/30/2024, 6:30:00 PM",
@@ -45,56 +49,59 @@ export default function AdminAudit() {
   };
 
   return (
-    <div className="p-6">
+    <div className="p-4 sm:p-6">
       {/* Header */}
-      <div className="flex items-center justify-between mb-5">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-5 space-y-3 sm:space-y-0">
         <div className="flex items-center space-x-2">
-          <FiEye className="text-gray-700" size={20} />
-          <h2 className="text-xl font-semibold text-gray-700">Audit Logs</h2>
+          <FiEye className="text-blue-600" size={20} />
+          <h2 className="text-lg sm:text-xl font-semibold text-gray-700">
+            Audit Logs
+          </h2>
         </div>
-        <button className="flex items-center border border-gray-300 hover:bg-gray-50 text-gray-700 px-3 py-2 rounded-md text-sm font-medium transition">
+        <button className="flex items-center justify-center border border-tertiary hover:text-white hover:bg-secondary text-gray-700 px-3 py-2 rounded-md text-sm font-medium transition w-full sm:w-auto">
           <FiDownload className="mr-2" />
           Export Logs
         </button>
       </div>
 
-      {/* Table */}
-      <div className="bg-white border rounded-lg shadow-sm overflow-hidden">
-        <table className="min-w-full text-sm">
-          <thead className="bg-gray-50 text-gray-600 text-left">
-            <tr>
-              <th className="px-6 py-3 border-b">Timestamp</th>
-              <th className="px-6 py-3 border-b">User</th>
-              <th className="px-6 py-3 border-b">Action</th>
-              <th className="px-6 py-3 border-b">Resource</th>
-              <th className="px-6 py-3 border-b">Details</th>
-            </tr>
-          </thead>
-          <tbody>
-            {logs.map((log, i) => (
-              <tr
-                key={i}
-                className="hover:bg-gray-50 border-t transition-colors"
-              >
-                <td className="px-6 py-3 whitespace-nowrap text-gray-700">
-                  {log.timestamp}
-                </td>
-                <td className="px-6 py-3 text-gray-700">{log.user}</td>
-                <td className="px-6 py-3">
-                  <span
-                    className={`px-2 py-1 border text-xs font-semibold rounded-md ${getTagColor(
-                      log.type
-                    )}`}
-                  >
-                    {log.action}
-                  </span>
-                </td>
-                <td className="px-6 py-3 text-gray-700">{log.resource}</td>
-                <td className="px-6 py-3 text-gray-700">{log.details}</td>
+      <div className="bg-white rounded-md shadow-sm overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="min-w-full text-sm">
+            <thead className="bg-gray-100 text-gray-600 text-left">
+              <tr>
+                <th className="px-6 py-3 whitespace-nowrap">Timestamp</th>
+                <th className="px-6 py-3 whitespace-nowrap">User</th>
+                <th className="px-6 py-3 whitespace-nowrap">Action</th>
+                <th className="px-6 py-3 whitespace-nowrap">Resource</th>
+                <th className="px-6 py-3 whitespace-nowrap">Details</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {logs.map((log, i) => (
+                <tr
+                  key={i}
+                  className="hover:bg-gray-50 transition-colors text-xs" 
+                >
+                  <td className="px-6 py-3 text-gray-700 whitespace-nowrap">
+                    {log.timestamp}
+                  </td>
+                  <td className="px-6 py-3 text-gray-700">{log.user}</td>
+                  <td className="px-6 py-3">
+                    <span
+                      className={`px-2 py-1 border text-xs font-semibold rounded-md ${getTagColor(
+                        log.type
+                      )}`}
+                    >
+                      {log.action}
+                    </span>
+                  </td>
+                  <td className="px-6 py-3 text-gray-700">{log.resource}</td>
+                  <td className="px-6 py-3 text-gray-700">{log.details}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );

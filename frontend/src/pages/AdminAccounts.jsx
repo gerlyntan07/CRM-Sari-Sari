@@ -12,6 +12,7 @@ import {
   FiUserX,
   FiX,
 } from "react-icons/fi";
+import { HiArrowLeft } from "react-icons/hi";
 
 export default function AdminAccounts() {
   useEffect(() => {
@@ -46,42 +47,47 @@ export default function AdminAccounts() {
   // ===================== ACCOUNT DETAILS VIEW ===================== //
   if (selectedAccount) {
     return (
-      <div className="p-4 sm:p-6 lg:p-8">
+      <div className="p-4 sm:p-6 lg:p-8 font-inter">
         {/* Header */}
         <div className="mb-6">
-          <h1 className="text-xl sm:text-2xl font-semibold text-gray-800">
-            {selectedAccount.company}
-          </h1>
-          <span
-            className={`inline-block mt-1 text-xs px-2 py-0.5 rounded ${
-              selectedAccount.status === "CUSTOMER"
-                ? "bg-green-600 text-white"
-                : selectedAccount.status === "PROSPECT"
-                ? "bg-purple-600 text-white"
-                : selectedAccount.status === "PARTNER"
-                ? "bg-pink-600 text-white"
-                : "bg-gray-500 text-white"
-            }`}
-          >
-            {selectedAccount.status}
-          </span>
-        </div>
-
-        {/* Actions */}
-        <div className="flex flex-col sm:flex-row sm:space-x-3 space-y-2 sm:space-y-0 mb-6">
-          <button className="w-full sm:w-auto bg-red-500 text-white px-4 py-2 rounded-md hover:bg-red-600">
-            Delete
-          </button>
-          <button className="w-full sm:w-auto bg-gray-800 text-white px-4 py-2 rounded-md hover:bg-gray-900">
-            Export
-          </button>
+          {/* Back Button */}
           <button
             onClick={handleBackToList}
-            className="w-full sm:w-auto bg-gray-400 text-white px-4 py-2 rounded-md hover:bg-gray-500"
+            className="inline-flex items-center text-sm sm:text-base text-gray-500 hover:text-gray-700 transition mb-4 sm:mb-6 cursor-pointer"
           >
-            Back to List
+            <HiArrowLeft className="mr-1 w-4 h-4 sm:w-5 sm:h-5" /> Back
           </button>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">
+            <div>
+              <h1 className="text-xl sm:text-2xl font-semibold text-gray-800 flex items-center gap-2">
+                {selectedAccount.company}
+                <span
+                  className={`inline-block text-xs px-2 py-0.5 rounded ${selectedAccount.status === "CUSTOMER"
+                      ? "bg-green-600 text-white"
+                      : selectedAccount.status === "PROSPECT"
+                        ? "bg-purple-600 text-white"
+                        : selectedAccount.status === "PARTNER"
+                          ? "bg-pink-600 text-white"
+                          : "bg-gray-500 text-white"
+                    }`}
+                >
+                  {selectedAccount.status}
+                </span>
+              </h1>
+            </div>
+
+            {/* Right Side: Action Buttons */}
+            <div className="flex flex-col sm:flex-row sm:space-x-3 space-y-2 sm:space-y-0 mt-3 sm:mt-0">
+              <button className="w-full sm:w-auto bg-red-500 text-white px-4 py-2 rounded-md hover:bg-red-600">
+                Delete
+              </button>
+              <button className="w-full sm:w-auto bg-gray-800 text-white px-4 py-2 rounded-md hover:bg-gray-900">
+                Export
+              </button>
+            </div>
+          </div>
         </div>
+
 
         {/* Account Details */}
         <div className="bg-white border border-gray-200 rounded-lg p-4 sm:p-6 shadow-sm overflow-x-auto">
@@ -202,7 +208,7 @@ export default function AdminAccounts() {
             {accounts.map((acc, i) => (
               <tr
                 key={i}
-                className="hover:bg-gray-50 cursor-pointer"
+                className="hover:bg-gray-50 text-xs cursor-pointer"
                 onClick={() => handleAccountClick(acc)}
               >
                 <td className="py-3 px-4">
@@ -215,13 +221,12 @@ export default function AdminAccounts() {
                 </td>
                 <td className="py-3 px-4">
                   <span
-                    className={`px-3 py-1 rounded-full text-xs font-medium ${
-                      acc.status === "CUSTOMER"
+                    className={`px-3 py-1 rounded-full text-xs font-medium ${acc.status === "CUSTOMER"
                         ? "bg-green-100 text-green-700"
                         : acc.status === "PROSPECT"
-                        ? "bg-purple-100 text-purple-700"
-                        : "bg-gray-100 text-gray-700"
-                    }`}
+                          ? "bg-purple-100 text-purple-700"
+                          : "bg-gray-100 text-gray-700"
+                      }`}
                   >
                     {acc.status}
                   </span>
@@ -298,18 +303,18 @@ export default function AdminAccounts() {
                 </select>
               </div>
 
-              {/* Buttons full width on mobile */}
-              <div className="flex flex-col sm:flex-row justify-end space-y-2 sm:space-y-0 sm:space-x-2 col-span-1 md:col-span-2 mt-4">
+              {/* Fixed Buttons */}
+              <div className="flex flex-col sm:flex-row justify-end sm:justify-end space-y-2 sm:space-y-0 sm:space-x-2 col-span-1 md:col-span-2 mt-4 w-full">
                 <button
                   type="button"
                   onClick={() => setShowModal(false)}
-                  className="px-4 py-2 text-white bg-red-400 border border-red-300 rounded hover:bg-red-500 transition"
+                  className="w-full sm:w-auto px-4 py-2 text-white bg-red-400 border border-red-300 rounded hover:bg-red-500 transition"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 text-white border border-tertiary bg-tertiary rounded hover:bg-secondary transition"
+                  className="w-full sm:w-auto px-4 py-2 text-white border border-tertiary bg-tertiary rounded hover:bg-secondary transition"
                 >
                   Save Account
                 </button>

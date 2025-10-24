@@ -236,14 +236,14 @@ export default function ManagerTaskModal({ isOpen, onClose, onSave }) {
                   <button
                     type="button"
                     onClick={onClose}
-                    className="px-4 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 transition"
+                     className="px-5 py-2 text-gray-700 bg-gray-100 border border-gray-300 rounded hover:bg-gray-200 transition"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
                     onClick={handleSubmit}
-                    className="px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 focus:ring-2 focus:ring-blue-400 transition"
+                       className="px-5 py-2 text-white bg-gray-900 rounded hover:bg-gray-800 transition"
                   >
                     Save Task
                   </button>

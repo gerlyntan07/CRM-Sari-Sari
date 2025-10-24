@@ -1,7 +1,7 @@
 import React, { useEffect } from "react";
 import { FiEye, FiDownload } from "react-icons/fi";
 
-export default function AdminAudit() {
+export default function ManagerAudit() {
   useEffect(() => {
     document.title = "Audit | Sari-Sari CRM";
   }, []);

@@ -10,6 +10,7 @@ import {
   FiCalendar,
   FiUsers,
 } from "react-icons/fi";
+import { HiArrowLeft } from "react-icons/hi";
 import { BsBuilding } from "react-icons/bs";
 
 export default function ManagerContacts() {
@@ -53,35 +54,43 @@ export default function ManagerContacts() {
   // ===================== CONTACT DETAILS VIEW ===================== //
   if (selectedContact) {
     return (
-      <div className="p-4 sm:p-6 lg:p-8">
-        <div className="mb-6">
-          <h1 className="text-xl sm:text-2xl font-semibold text-gray-800">
-            {selectedContact.account}
-          </h1>
-          <span className="inline-block mt-1 bg-blue-600 text-white text-xs sm:text-sm px-2 py-0.5 rounded">
-            Active
-          </span>
+      <div className="p-4 sm:p-6 lg:p-8 font-inter">
+        {/* Back Button */}
+        <button
+          onClick={handleBackToList}
+          className="inline-flex items-center text-sm sm:text-base text-gray-500 hover:text-gray-700 transition mb-4 sm:mb-6 cursor-pointer"
+        >
+          <HiArrowLeft className="mr-1 w-4 h-4 sm:w-5 sm:h-5" /> Back
+        </button>
+
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">
+          {/* Left side: Account name + Active badge */}
+          <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-3">
+            <h1 className="text-xl sm:text-2xl font-semibold text-gray-800">
+              {selectedContact.account}
+            </h1>
+            <span className="mt-1 sm:mt-0 bg-blue-600 text-white text-xs sm:text-sm px-2 py-0.5 rounded w-fit">
+              Active
+            </span>
+          </div>
+
+          {/* Right side: Buttons */}
+          <div className="flex flex-col sm:flex-row sm:space-x-3 space-y-2 sm:space-y-0 mt-3 sm:mt-0">
+            <button className="w-full sm:w-auto bg-red-500 text-white px-5 py-2 rounded-md hover:bg-red-600">
+              Delete
+            </button>
+            <button className="w-full sm:w-auto bg-gray-800 text-white px-5 py-2 rounded-md hover:bg-gray-900">
+              Export
+            </button>
+          </div>
         </div>
 
-        <div className="flex flex-col sm:flex-row sm:space-x-3 space-y-2 sm:space-y-0 mb-6">
-          <button className="w-full sm:w-auto bg-red-500 text-white px-5 py-2 rounded-md hover:bg-red-600">
-            Delete
-          </button>
-          <button className="w-full sm:w-auto bg-gray-800 text-white px-5 py-2 rounded-md hover:bg-gray-900">
-            Export
-          </button>
-          <button
-            onClick={handleBackToList}
-            className="w-full sm:w-auto bg-gray-400 text-white px-5 py-2 rounded-md hover:bg-gray-500"
-          >
-            Back to List
-          </button>
-        </div>
-
-        <div className="bg-white border border-gray-200 rounded-lg p-4 sm:p-6 w-full max-w-full sm:max-w-3xl shadow-sm overflow-x-auto">
+        <div className="bg-white border border-gray-200 rounded-lg p-4 sm:p-6 w-full max-w-full lg:max-w-6xl shadow-sm overflow-x-auto mx-auto">
           <h2 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4 text-gray-800">
             Contact Details
           </h2>
+
+          {/* Details Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 text-sm text-gray-700">
             <p>
               <span className="font-semibold">Primary Contact:</span> <br />
@@ -122,7 +131,20 @@ export default function ManagerContacts() {
               {selectedContact.lastUpdated}
             </p>
           </div>
+
+          {/* Notes Section */}
+          <div className="mt-6 border-gray-200 pt-4">
+            <h3 className="text-md sm:text-lg font-semibold text-gray-800 mb-2">
+              Notes
+            </h3>
+            <p className="text-sm text-gray-700 leading-relaxed">
+              {selectedContact.notes
+                ? selectedContact.notes
+                : "No additional notes were provided for this contact."}
+            </p>
+          </div>
         </div>
+
       </div>
     );
   }
@@ -136,12 +158,12 @@ export default function ManagerContacts() {
           <FiUsers className="mr-2 text-blue-600" /> Contacts Management
         </h2>
 
-   <button
-  onClick={() => setShowModal(true)}
-  className="flex items-center bg-black text-white px-3 sm:px-4 py-2 rounded-md hover:bg-gray-800 w-auto sm:w-auto ml-auto sm:ml-0 text-sm sm:text-base"
->
-  ＋ Add Contact
-</button>
+        <button
+          onClick={() => setShowModal(true)}
+          className="flex items-center bg-black text-white px-3 sm:px-4 py-2 rounded-md hover:bg-gray-800 w-auto sm:w-auto ml-auto sm:ml-0 text-sm sm:text-base"
+        >
+          ＋ Add Contact
+        </button>
 
       </div>
 
@@ -178,7 +200,7 @@ export default function ManagerContacts() {
             </tr>
           </thead>
 
-          <tbody className="text-sm text-gray-700">
+          <tbody className="text-xs text-gray-700">
             {contacts.map((c, i) => (
               <tr
                 key={i}
@@ -250,146 +272,146 @@ export default function ManagerContacts() {
         </table>
       </div>
 
-  {/* Modal */}
-{showModal && (
-  <div
-    id="modalBackdrop"
-    onClick={handleBackdropClick}
-    className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4"
-  >
-    <div
-      className="bg-white w-full max-w-full sm:max-w-3xl rounded-2xl shadow-lg p-4 sm:p-6 md:p-8 relative border border-gray-200 overflow-y-auto max-h-[90vh]"
-      onClick={(e) => e.stopPropagation()}
-    >
-      {/* Close Button */}
-      <button
-        onClick={() => setShowModal(false)}
-        className="absolute top-4 right-4 text-gray-500 hover:text-black transition"
-      >
-        <FiX size={22} />
-      </button>
-
-      {/* Header */}
-      <h2 className="text-xl sm:text-2xl font-semibold text-gray-800 mb-4 sm:mb-6 flex items-center justify-center space-x-2">
-        Add New Contact
-      </h2>
-
-      {/* FORM */}
-      <form className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 text-sm">
-        {/* Column 1 */}
-        <div className="space-y-2 sm:space-y-3">
-          <div>
-            <label className="block text-gray-700 font-medium mb-1 text-sm">Name</label>
-            <input
-              type="text"
-              placeholder="Full name"
-              className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-400 outline-none"
-            />
-          </div>
-          <div>
-            <label className="block text-gray-700 font-medium mb-1 text-sm">Email</label>
-            <input
-              type="email"
-              placeholder="example@email.com"
-              className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-400 outline-none"
-            />
-          </div>
-          <div>
-            <label className="block text-gray-700 font-medium mb-1 text-sm">Work Phone</label>
-            <input
-              type="text"
-              placeholder="09 --- --- ---"
-              className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-400 outline-none"
-            />
-          </div>
-        </div>
-
-        {/* Column 2 */}
-        <div className="space-y-2 sm:space-y-3">
-          <div>
-            <label className="block text-gray-700 font-medium mb-1 text-sm">Title</label>
-            <input
-              type="text"
-              placeholder="Job title"
-              className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-400 outline-none"
-            />
-          </div>
-          <div>
-            <label className="block text-gray-700 font-medium mb-1 text-sm">Department</label>
-            <input
-              type="text"
-              placeholder="IT / Marketing"
-              className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-400 outline-none"
-            />
-          </div>
-          <div>
-            <label className="block text-gray-700 font-medium mb-1 text-sm">Phone Number 1</label>
-            <input
-              type="text"
-              placeholder="09 --- --- ---"
-              className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-400 outline-none"
-            />
-          </div>
-        </div>
-
-        {/* Column 3 */}
-        <div className="space-y-2 sm:space-y-3">
-          <div>
-            <label className="block text-gray-700 font-medium mb-1 text-sm">Account</label>
-            <input
-              type="text"
-              placeholder=""
-              className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-400 outline-none"
-            />
-          </div>
-          <div>
-            <label className="block text-gray-700 font-medium mb-1 text-sm">Assign To</label>
-            <select className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-400 outline-none">
-              <option value="">Assign To</option>
-              <option value="smith">Smith</option>
-              <option value="doe">Doe</option>
-            </select>
-          </div>
-          <div>
-            <label className="block text-gray-700 font-medium mb-1 text-sm">Phone Number 2</label>
-            <input
-              type="text"
-              placeholder="09 --- --- ---"
-              className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-400 outline-none"
-            />
-          </div>
-        </div>
-
-        {/* Notes */}
-        <div className="flex flex-col col-span-1 sm:col-span-2 md:col-span-3">
-          <label className="text-gray-700 font-medium mb-1 text-sm">Notes</label>
-          <textarea
-            placeholder="Additional details..."
-            rows={3}
-            className="border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-400 outline-none resize-none"
-          />
-        </div>
-
-        {/* Footer Buttons */}
-        <div className="flex flex-col sm:flex-row justify-end space-y-2 sm:space-y-0 sm:space-x-2 mt-4 col-span-1 sm:col-span-2 md:col-span-3">
-          <button
-            type="button"
-            onClick={() => setShowModal(false)}
-            className="px-4 py-2 text-white bg-red-400 border border-red-300 rounded hover:bg-red-500 transition"
+      {/* Modal */}
+      {showModal && (
+        <div
+          id="modalBackdrop"
+          onClick={handleBackdropClick}
+          className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4"
+        >
+          <div
+            className="bg-white w-full max-w-full sm:max-w-3xl rounded-2xl shadow-lg p-4 sm:p-6 md:p-8 relative border border-gray-200 overflow-y-auto max-h-[90vh]"
+            onClick={(e) => e.stopPropagation()}
           >
-            Cancel
-          </button>
-          <button
-            type="submit"
-            className="px-4 py-2 text-white border border-tertiary bg-tertiary rounded hover:bg-secondary transition"
-          >
-            Save Contact
-          </button>
+            {/* Close Button */}
+            <button
+              onClick={() => setShowModal(false)}
+              className="absolute top-4 right-4 text-gray-500 hover:text-black transition"
+            >
+              <FiX size={22} />
+            </button>
+
+            {/* Header */}
+            <h2 className="text-xl sm:text-2xl font-semibold text-gray-800 mb-4 sm:mb-6 flex items-center justify-center space-x-2">
+              Add New Contact
+            </h2>
+
+            {/* FORM */}
+            <form className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 text-sm">
+              {/* Column 1 */}
+              <div className="space-y-2 sm:space-y-3">
+                <div>
+                  <label className="block text-gray-700 font-medium mb-1 text-sm">Name</label>
+                  <input
+                    type="text"
+                    placeholder="Full name"
+                    className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-400 outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-gray-700 font-medium mb-1 text-sm">Email</label>
+                  <input
+                    type="email"
+                    placeholder="example@email.com"
+                    className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-400 outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-gray-700 font-medium mb-1 text-sm">Work Phone</label>
+                  <input
+                    type="text"
+                    placeholder="09 --- --- ---"
+                    className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-400 outline-none"
+                  />
+                </div>
+              </div>
+
+              {/* Column 2 */}
+              <div className="space-y-2 sm:space-y-3">
+                <div>
+                  <label className="block text-gray-700 font-medium mb-1 text-sm">Title</label>
+                  <input
+                    type="text"
+                    placeholder="Job title"
+                    className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-400 outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-gray-700 font-medium mb-1 text-sm">Department</label>
+                  <input
+                    type="text"
+                    placeholder="IT / Marketing"
+                    className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-400 outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-gray-700 font-medium mb-1 text-sm">Phone Number 1</label>
+                  <input
+                    type="text"
+                    placeholder="09 --- --- ---"
+                    className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-400 outline-none"
+                  />
+                </div>
+              </div>
+
+              {/* Column 3 */}
+              <div className="space-y-2 sm:space-y-3">
+                <div>
+                  <label className="block text-gray-700 font-medium mb-1 text-sm">Account</label>
+                  <input
+                    type="text"
+                    placeholder=""
+                    className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-400 outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-gray-700 font-medium mb-1 text-sm">Assign To</label>
+                  <select className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-400 outline-none">
+                    <option value="">Assign To</option>
+                    <option value="smith">Smith</option>
+                    <option value="doe">Doe</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-gray-700 font-medium mb-1 text-sm">Phone Number 2</label>
+                  <input
+                    type="text"
+                    placeholder="09 --- --- ---"
+                    className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-400 outline-none"
+                  />
+                </div>
+              </div>
+
+              {/* Notes */}
+              <div className="flex flex-col col-span-1 sm:col-span-2 md:col-span-3">
+                <label className="text-gray-700 font-medium mb-1 text-sm">Notes</label>
+                <textarea
+                  placeholder="Additional details..."
+                  rows={3}
+                  className="border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-400 outline-none resize-none"
+                />
+              </div>
+
+              {/* Footer Buttons */}
+              <div className="flex flex-col sm:flex-row justify-end space-y-2 sm:space-y-0 sm:space-x-2 mt-4 col-span-1 sm:col-span-2 md:col-span-3">
+                <button
+                  type="button"
+                  onClick={() => setShowModal(false)}
+                  className="px-4 py-2 text-white bg-red-400 border border-red-300 rounded hover:bg-red-500 transition"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 text-white border border-tertiary bg-tertiary rounded hover:bg-secondary transition"
+                >
+                  Save Contact
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
-      </form>
-    </div>
-  </div>
-)}
+      )}
     </div>
   );
 }

@@ -1,12 +1,16 @@
 import { FiSearch } from "react-icons/fi";
 import useFetchUser from "../hooks/useFetchUser";
+import { useEffect } from "react";
 
 export default function AdminDashboard() {
   const {user} = useFetchUser();
 
+    useEffect(() => {
+      document.title = "Dashboard | Sari-Sari CRM";
+    }, []);
 
   return (
-    <div className="p-6">
+    <div className="p-6 font-inter">
       {/* Welcome */}
       <h1 className="text-xl font-semibold mb-6">
         Welcome back, <span className="text-gray-700">{user?.first_name} {user?.last_name}!</span>

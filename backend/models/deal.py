@@ -53,8 +53,8 @@ class Deal(Base):
     # Relationships
     account = relationship("Account", back_populates="deals")
     contact = relationship("Contact", back_populates="deals", foreign_keys=[primary_contact_id])
-    assigned_user = relationship("User", back_populates="deals", foreign_keys=[assigned_to])
-    creator = relationship("User", back_populates="created_deals", foreign_keys=[created_by])
+    assigned_deals = relationship("User", back_populates="deals", foreign_keys=[assigned_to])
+    deal_creator = relationship("User", back_populates="created_deals", foreign_keys=[created_by])
 
     def generate_deal_id(self, year_prefix: str = None):
         """Generates a unique deal ID like D25-00001"""

@@ -43,14 +43,25 @@ def run_migrations_online():
         poolclass=pool.NullPool,
     )
 
+    # 🔹 This function tells Alembic NOT to drop tables that exist in the DB but not in models
+    def include_object(object, name, type_, reflected, compare_to):
+        # Skip automatic drop for tables
+        if type_ == "table" and compare_to is None:
+            return False
+        return True
+
     with connectable.connect() as connection:
         context.configure(
             connection=connection,
-            target_metadata=target_metadata
+            target_metadata=target_metadata,
+            include_object=include_object,  # ✅ Added here
+            compare_type=True,              # Optional: detect column type changes
+            compare_server_default=True     # Optional: detect default value changes
         )
 
         with context.begin_transaction():
             context.run_migrations()
+
 
 if context.is_offline_mode():
     run_migrations_offline()

@@ -3,7 +3,6 @@ import { FiSearch, FiEdit, FiTrash2, FiDownload, FiX, FiFileText } from "react-i
 
 export default function AdminQuotes() {
   const [showModal, setShowModal] = useState(false);
-  const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [selectedQuote, setSelectedQuote] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
 
@@ -28,14 +27,13 @@ export default function AdminQuotes() {
 
   const handleBackdropClick = () => {
     setShowModal(false);
-    setShowDetailsModal(false);
     setSelectedQuote(null);
     setIsEditing(false);
   };
 
   const handleRowClick = (quote) => {
     setSelectedQuote(quote);
-    setShowDetailsModal(true);
+    setShowModal(true);
     setIsEditing(false);
   };
 
@@ -87,7 +85,7 @@ export default function AdminQuotes() {
 
       {/* Table */}
       <div className="bg-white shadow-sm overflow-x-auto">
-        <div className="min-w-[900px] grid grid-cols-9 bg-gray-100 font-medium text-gray-700 px-4 py-3 text-xs">
+        <div className="min-w-[900px] grid grid-cols-9 bg-gray-100 font-medium text-gray-700 px-4 py-3 text-sm">
           <div>Quotes ID</div>
           <div>Account</div>
           <div>Deal</div>
@@ -144,28 +142,29 @@ export default function AdminQuotes() {
 
       {/* ======================== Add Quotes Modal ======================= */}
       {showModal && (
-        <div
-          id="modalBackdrop"
-          onClick={handleBackdropClick}
-          className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4 sm:p-0"
-        >
-          <div
-            className="bg-white w-full max-w-3xl rounded-xl shadow-lg p-5 sm:p-6 relative border border-gray-200 my-10 scale-[0.95] max-h-[90vh] overflow-y-auto"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <button
-              onClick={() => setShowModal(false)}
-              className="absolute top-3 right-3 text-gray-400 hover:text-black transition"
-            >
-              <FiX size={20} />
-            </button>
+      <div
+    id="modalBackdrop"
+    onClick={handleBackdropClick}
+    className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4 sm:p-0"
+  >
+    <div
+      className="bg-white w-full max-w-3xl rounded-xl shadow-lg p-5 sm:p-6 relative border border-gray-200 my-10 scale-[0.95] max-h-[90vh] overflow-y-auto"
+      onClick={(e) => e.stopPropagation()}
+    >
+      <button
+        onClick={() => setShowModal(false)}
+        className="absolute top-3 right-3 text-gray-400 hover:text-black transition"
+      >
+        <FiX size={20} />
+      </button>
 
-            <h2 className="text-lg sm:text-xl font-semibold text-gray-800 mb-4 text-center">
-              Add New Quotes
-            </h2>
+      <h2 className="text-lg sm:text-xl font-semibold text-gray-800 mb-4 text-center">
+        Add New Quotes
+      </h2>
 
             {/* Form grid */}
             <form className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 text-xs sm:text-sm">
+              {/* Deal Name */}
               <div className="flex flex-col">
                 <label className="text-gray-700 font-medium mb-1">Deal Name</label>
                 <input
@@ -175,6 +174,7 @@ export default function AdminQuotes() {
                 />
               </div>
 
+              {/* Amount */}
               <div className="flex flex-col">
                 <label className="text-gray-700 font-medium mb-1">Amount</label>
                 <input
@@ -184,14 +184,21 @@ export default function AdminQuotes() {
                 />
               </div>
 
+              {/* Contact */}
               <div className="flex flex-col">
                 <label className="text-gray-700 font-medium mb-1">Contact</label>
-                <select className="border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-400 outline-none">
-                  <option value="">Contact</option>
+                <select
+                  className="border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-400 outline-none"
+                  defaultValue=""
+                >
+                  <option value="" disabled>
+                    Contact
+                  </option>
                   <option value="">galing sa contact po to</option>
                 </select>
               </div>
 
+              {/* Presented Date */}
               <div className="flex flex-col">
                 <label className="text-gray-700 font-medium mb-1">Presented Date</label>
                 <input
@@ -200,6 +207,7 @@ export default function AdminQuotes() {
                 />
               </div>
 
+              {/* Validity Date */}
               <div className="flex flex-col">
                 <label className="text-gray-700 font-medium mb-1">Validity Date</label>
                 <input
@@ -209,16 +217,23 @@ export default function AdminQuotes() {
                 />
               </div>
 
+              {/* Status */}
               <div className="flex flex-col">
                 <label className="text-gray-700 font-medium mb-1">Status</label>
-                <select className="border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-400 outline-none">
-                  <option>Draft</option>
-                  <option>Presented</option>
-                  <option>Accepted</option>
-                  <option>Rejected</option>
+                <select
+                  className="border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-400 outline-none"
+                  defaultValue=""
+                >
+                  <option value="" disabled>
+                    Draft
+                  </option>
+                  <option value="">Presented</option>
+                  <option value="">Accepted</option>
+                  <option value="">Rejected</option>
                 </select>
               </div>
 
+              {/* Total Amount */}
               <div className="flex flex-col">
                 <label className="text-gray-700 font-medium mb-1">Total Amount</label>
                 <input
@@ -228,6 +243,7 @@ export default function AdminQuotes() {
                 />
               </div>
 
+              {/* Created By */}
               <div className="flex flex-col">
                 <label className="text-gray-700 font-medium mb-1">Created By</label>
                 <input
@@ -237,15 +253,22 @@ export default function AdminQuotes() {
                 />
               </div>
 
+              {/* Assign to */}
               <div className="flex flex-col">
                 <label className="text-gray-700 font-medium mb-1">Assign To</label>
-                <select className="border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-400 outline-none">
-                  <option>Assign To</option>
-                  <option>Smith</option>
-                  <option>Dinosaur</option>
+                <select
+                  className="border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-400 outline-none"
+                  defaultValue=""
+                >
+                  <option value="" disabled>
+                    Assign To
+                  </option>
+                  <option value="">Smith</option>
+                  <option value="">Dinosaur</option>
                 </select>
               </div>
 
+              {/* Notes */}
               <div className="flex flex-col col-span-1 sm:col-span-2 lg:col-span-3">
                 <label className="text-gray-700 font-medium mb-1">Notes</label>
                 <textarea
@@ -255,6 +278,7 @@ export default function AdminQuotes() {
                 />
               </div>
 
+              {/* Footer */}
               <div className="flex flex-col sm:flex-row justify-end space-y-2 sm:space-y-0 sm:space-x-2 mt-2 col-span-1 sm:col-span-2 lg:col-span-3">
                 <button
                   type="button"
@@ -271,85 +295,6 @@ export default function AdminQuotes() {
                 </button>
               </div>
             </form>
-          </div>
-        </div>
-      )}
-
-      {/* ======================== Quote Details Modal ======================= */}
-      {showDetailsModal && selectedQuote && (
-        <div
-          onClick={handleBackdropClick}
-          className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4"
-        >
-          <div
-            onClick={(e) => e.stopPropagation()}
-            className="bg-white w-full max-w-3xl rounded-xl shadow-lg p-6 relative border border-gray-200 overflow-y-auto max-h-[85vh]"
-          >
-            <button
-              onClick={() => setShowDetailsModal(false)}
-              className="absolute top-3 right-3 text-gray-400 hover:text-black transition"
-            >
-              <FiX size={20} />
-            </button>
-
-            <h2 className="text-lg sm:text-xl font-semibold text-gray-800 mb-4 text-center">
-              Quote Details
-            </h2>
-
-            <div className="space-y-3 text-sm text-gray-700">
-              <p>
-                <strong>Quote ID:</strong> {selectedQuote.quoteId}
-              </p>
-              <p>
-                <strong>Account:</strong> {selectedQuote.account}
-              </p>
-              <p>
-                <strong>Deal:</strong> {selectedQuote.deal}
-              </p>
-              <p>
-                <strong>Status:</strong> {selectedQuote.status}
-              </p>
-              <p>
-                <strong>Total Amount:</strong> {selectedQuote.totalAmount}
-              </p>
-              <p>
-                <strong>Presented By:</strong> {selectedQuote.presentedBy}
-              </p>
-              <p>
-                <strong>Expiry Date:</strong> {selectedQuote.expiryDate}
-              </p>
-              <p>
-                <strong>Assigned To:</strong> {selectedQuote.assignedTo}
-              </p>
-              <p>
-                <strong>Notes:</strong> {selectedQuote.notes}
-              </p>
-            </div>
-
-            {/* Action Buttons */}
-            <div className="flex justify-end gap-3 mt-6">
-              <button
-                onClick={() => {
-                  setIsEditing(true);
-                  setShowModal(true);
-                  setShowDetailsModal(false);
-                }}
-                className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white text-sm rounded-md hover:bg-blue-600 transition"
-              >
-                 Edit
-              </button>
-              <button
-                onClick={() => {
-                  if (window.confirm('Are you sure you want to delete this quote?')) {
-                    alert(`Deleted quote ${selectedQuote.quoteId}`);
-                    setShowDetailsModal(false);
-                  }
-                }}
-                className="flex items-center gap-2 px-4 py-2 bg-red-500 text-white text-sm rounded-md hover:bg-red-600 transition"
-              >
-                 Delete
-              </button>
-            </div>
           </div>
         </div>
       )}

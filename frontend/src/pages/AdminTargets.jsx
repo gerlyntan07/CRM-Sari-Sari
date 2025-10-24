@@ -1,16 +1,11 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { FiSearch, FiEdit2, FiTrash2, FiTarget, FiX } from "react-icons/fi";
 
 export default function AdminTargets() {
-  
   const [searchTerm, setSearchTerm] = useState("");
   const [showModal, setShowModal] = useState(false);
   const [selectedTarget, setSelectedTarget] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
-
-    useEffect(() => {
-      document.title = "Target | Sari-Sari CRM";
-    }, []);
 
   const targets = [
     {
@@ -113,7 +108,7 @@ export default function AdminTargets() {
             {filteredTargets.map((t) => (
               <tr
                 key={t.id}
-                className="hover:bg-gray-50 text-xs transition duration-150"
+                className="hover:bg-gray-50 transition duration-150"
               >
                 <td className="px-6 py-3 font-medium text-gray-800">{t.user}</td>
                 <td className="px-6 py-3">{t.period}</td>

@@ -48,7 +48,6 @@ export default function AdminPanel() {
     "/admin/deals",
     "/admin/quotes",
     "/admin/targets",
-    "/admin/meetings",
   ];
   const isSalesActive = salesRoutes.includes(location.pathname);
 

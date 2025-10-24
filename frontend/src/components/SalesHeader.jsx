@@ -1,10 +1,10 @@
 import { useState, useRef, useEffect } from "react";
-import { FiBell, FiMenu } from "react-icons/fi"; // ✅ Added FiMenu
+import { FiBell } from "react-icons/fi";
 import { useLocation } from "react-router-dom";
 import useAuth from "../hooks/useAuth.js";
 import useFetchUser from "../hooks/useFetchUser.js";
 
-export default function SalesHeader({ toggleSidebar }) { // ✅ Accept prop for sidebar toggle
+export default function SalesHeader() {
   const [open, setOpen] = useState(false);
   const dropdownRef = useRef(null);
   const location = useLocation();
@@ -28,7 +28,7 @@ export default function SalesHeader({ toggleSidebar }) { // ✅ Accept prop for 
     fetchUser();
   }, []);
 
-  // Get current page title
+  // Get current page title based on route
   const currentTitle = routeTitles[location.pathname] || "Sales Panel";
 
   // Close dropdown when clicking outside
@@ -43,29 +43,16 @@ export default function SalesHeader({ toggleSidebar }) { // ✅ Accept prop for 
   }, []);
 
   return (
-    <header className="flex justify-between items-center bg-white shadow px-4 sm:px-6 py-3 border-b relative">
-      {/* ✅ Left Side - Burger + Page Title */}
-      <div className="flex items-center gap-3">
-        {/* Mobile Burger Menu */}
-        <button
-          onClick={toggleSidebar}
-          className="lg:hidden text-gray-700 hover:text-gray-900"
-        >
-          <FiMenu className="text-2xl" />
-        </button>
+    <header className="flex justify-between items-center bg-white shadow px-6 py-3 border-b relative">
+      {/* Left Side - Page Title */}
+      <h1 className="text-lg font-semibold text-gray-800">{currentTitle}</h1>
 
-        {/* Page Title */}
-        <h1 className="text-lg sm:text-xl font-semibold text-gray-800 truncate max-w-[150px] sm:max-w-none">
-          {currentTitle}
-        </h1>
-      </div>
-
-      {/* ✅ Right Side */}
-      <div className="flex items-center space-x-3 sm:space-x-4">
+      {/* Right Side */}
+      <div className="flex items-center space-x-4">
         {/* Notification Icon */}
         <button className="relative text-gray-600 hover:text-gray-800">
-          <FiBell className="text-xl sm:text-2xl" />
-          <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] w-4 h-4 flex items-center justify-center rounded-full">
+          <FiBell className="text-xl" />
+          <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs w-4 h-4 flex items-center justify-center rounded-full">
             3
           </span>
         </button>
@@ -79,10 +66,9 @@ export default function SalesHeader({ toggleSidebar }) { // ✅ Accept prop for 
             <img
               src={user?.profile_picture || "/default-avatar.png"}
               alt="User Avatar"
-              className="w-8 h-8 sm:w-9 sm:h-9 object-cover rounded-full"
+              className="w-8 aspect-square object-cover rounded-full"
             />
-            {/* Hide name on mobile to save space */}
-            <span className="hidden sm:inline text-sm font-medium text-gray-700">
+            <span className="text-sm font-medium text-gray-700">
               {user?.first_name} {user?.last_name}
             </span>
           </button>

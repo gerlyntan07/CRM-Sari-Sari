@@ -219,14 +219,14 @@ export default function AdminDeals() {
                                     isEven ? "bg-white hover:bg-gray-200" : "bg-yellow-50 hover:bg-gray-200"
                                 }`}
                             >
-                                <td className="py-3 px-2 sm:px-4">{deal.name}</td>
-                                <td className="py-3 px-2 sm:px-4">{deal.account}</td>
-                                <td className="py-3 px-2 sm:px-4">{deal.contact}</td>
-                                <td className="py-3 px-2 sm:px-4 text-orange-500">{deal.stage}</td>
-                                <td className="py-3 px-2 sm:px-4">₱ {deal.value.toLocaleString()}</td>
-                                <td className="py-3 px-2 sm:px-4">{deal.closeDate}</td>
-                                <td className="py-3 px-2 sm:px-4">{deal.owner}</td>
-                                <td className="py-3 px-2 sm:px-4 text-center">
+                                <td className="py-2 px-2 sm:px-4">{deal.name}</td>
+                                <td className="py-2 px-2 sm:px-4">{deal.account}</td>
+                                <td className="py-2 px-2 sm:px-4">{deal.contact}</td>
+                                <td className="py-2 px-2 sm:px-4 text-orange-500">{deal.stage}</td>
+                                <td className="py-2 px-2 sm:px-4">₱ {deal.value.toLocaleString()}</td>
+                                <td className="py-2 px-2 sm:px-4">{deal.closeDate}</td>
+                                <td className="py-2 px-2 sm:px-4">{deal.owner}</td>
+                                <td className="py-2 px-2 sm:px-4 text-center">
                                     <div className="flex justify-center space-x-2">
                                         <button
                                             onClick={(e) => {

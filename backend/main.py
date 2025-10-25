@@ -27,6 +27,7 @@ import routers.subscription as subscription_router
 import routers.territory as territory_router
 import routers.lead as lead_router
 import routers.task as task_router
+import routers.auditlog as auditlog_router
 
 
 app = FastAPI()
@@ -39,6 +40,7 @@ app.include_router(subscription_router.router, prefix='/api')
 app.include_router(territory_router.router, prefix='/api')
 app.include_router(lead_router.router, prefix='/api')
 app.include_router(task_router.router, prefix='/api')
+app.include_router(auditlog_router.router, prefix='/api')
 
 # === Database initialization ===
 Base.metadata.create_all(bind=engine)

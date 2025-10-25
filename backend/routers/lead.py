@@ -81,7 +81,7 @@ def create_lead(
         action="CREATE",
         request=request,
         new_data=new_data,
-        custom_message=f" - add lead '{data.title}' to user: {lead_owner.first_name} {lead_owner.last_name}"
+        custom_message=f"add lead '{data.title}' to user: {lead_owner.first_name} {lead_owner.last_name}"
     )
 
     return new_lead

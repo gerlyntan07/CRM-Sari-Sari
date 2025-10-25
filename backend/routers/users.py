@@ -100,7 +100,7 @@ def create_user(
         action="CREATE",
         request=request,
         new_data=new_data,
-        custom_message=f" - new user '{new_user.first_name} {new_user.last_name}' with role '{new_user.role}'"
+        custom_message=f"new user '{new_user.first_name} {new_user.last_name}' with role '{new_user.role}'"
     )
 
     return new_user
@@ -197,7 +197,7 @@ def delete_user(
         action="DELETE",
         request=request,
         new_data=deleted_user_data,
-        custom_message=f" - deleted user '{user.first_name} {user.last_name}' with role '{user.role}'"
+        custom_message=f"deleted user '{user.first_name} {user.last_name}' with role '{user.role}'"
     )
 
     db.delete(user)

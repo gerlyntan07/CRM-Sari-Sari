@@ -93,24 +93,24 @@ export default function ManagerTargets() {
       {/* Table */}
       <div className="overflow-x-auto bg-white shadow border border-gray-100 rounded-md">
         <table className="min-w-[800px] w-full text-sm text-left text-gray-600">
-          <thead className="bg-gray-100 text-gray-600 text-sm">
+          <thead className="bg-gray-100 text-gray-600 text-sm font-bold">
             <tr>
-              <th className="px-6 py-3 font-medium">User</th>
-              <th className="px-6 py-3 font-medium">Target Period</th>
-              <th className="px-6 py-3 font-medium">Target Amount</th>
-              <th className="px-6 py-3 font-medium">Achieved</th>
-              <th className="px-6 py-3 font-medium">Achievement %</th>
-              <th className="px-6 py-3 font-medium">Status</th>
-              <th className="px-6 py-3 font-medium">Actions</th>
+              <th className="px-6 py-3">User</th>
+              <th className="px-6 py-3">Target Period</th>
+              <th className="px-6 py-3">Target Amount</th>
+              <th className="px-6 py-3">Achieved</th>
+              <th className="px-6 py-3">Achievement %</th>
+              <th className="px-6 py-3">Status</th>
+              <th className="px-6 py-3">Actions</th>
             </tr>
           </thead>
           <tbody>
             {filteredTargets.map((t) => (
               <tr
                 key={t.id}
-                className="hover:bg-gray-50 transition duration-150"
+                className="hover:bg-gray-50 transition duration-150 text-xs"
               >
-                <td className="px-6 py-3 font-medium text-gray-800">{t.user}</td>
+                <td className="px-6 py-3 text-gray-800">{t.user}</td>
                 <td className="px-6 py-3">{t.period}</td>
                 <td className="px-6 py-3">₱{t.targetAmount.toLocaleString()}</td>
                 <td className="px-6 py-3">₱{t.achieved.toLocaleString()}</td>

@@ -87,7 +87,7 @@ export default function AdminQuotes() {
 
       {/* Table */}
       <div className="bg-white shadow-sm overflow-x-auto">
-        <div className="min-w-[900px] grid grid-cols-9 bg-gray-100 font-medium text-gray-700 px-4 py-3 text-xs">
+        <div className="min-w-[900px] grid grid-cols-9 bg-gray-100 font-bold text-gray-600 px-4 py-3 text-sm">
           <div>Quotes ID</div>
           <div>Account</div>
           <div>Deal</div>
@@ -110,7 +110,7 @@ export default function AdminQuotes() {
             <div className="truncate">{quote.deal}</div>
             <div>
               <span
-                className={`px-3 py-1 text-xs rounded-full font-medium ${
+                className={`px-3 py-1 text rounded-full font-medium ${
                   quote.status === "Pending"
                     ? "bg-yellow-100 text-yellow-700"
                     : quote.status === "Approved"

@@ -1,7 +1,10 @@
-import React from "react";
+import React, { useState }  from "react";
 import { HiArrowLeft } from "react-icons/hi";
+import AdminLeadsConvert from "./AdminLeadsConvert";
+
 
 export default function AdminLeadsInformation({ lead, onBack }) {
+   const [isModalOpen, setIsModalOpen] = useState(false);
   if (!lead) return null;
 
   return (
@@ -22,7 +25,11 @@ export default function AdminLeadsInformation({ lead, onBack }) {
             {lead.status}
           </span>
           <div className="flex flex-wrap items-center ml-0 sm:ml-1">
-            <button className="bg-green-600 hover:bg-green-700 text-white px-3 sm:px-5 py-1.5 sm:py-2 rounded-lg font-medium text-xs sm:text-sm">
+            {/* Convert Button */}
+            <button
+              onClick={() => setIsModalOpen(true)}
+              className="bg-green-600 hover:bg-green-700 text-white px-3 sm:px-5 py-1.5 sm:py-2 rounded-lg font-medium text-xs sm:text-sm"
+            >
               Convert
             </button>
           </div>
@@ -154,6 +161,12 @@ export default function AdminLeadsInformation({ lead, onBack }) {
           </div>
         </div>
       </div>
-    </div>
+    
+          {/* Convert Lead Popup */}
+          <AdminLeadsConvert
+            isOpen={isModalOpen}
+            onClose={() => setIsModalOpen(false)}
+          />
+        </div>
   );
 }

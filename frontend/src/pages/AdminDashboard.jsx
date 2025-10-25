@@ -1,12 +1,42 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Search, Bell, User, LayoutGrid, BarChart, TrendingUp, TrendingDown, DollarSign, Users, Clock, Calendar, CheckCircle, FileText, Phone, List, Bookmark, Edit2, ArrowRight } from 'lucide-react';
+
+import { 
+  FiSearch, FiUsers, FiDollarSign, FiClock, FiArrowUpRight, FiArrowDownRight, FiUser, FiCalendar, FiCheckCircle, FiFileText, FiPhone, FiList, FiBookmark, FiEdit, FiArrowRight 
+} from "react-icons/fi";
+
+import { HiOutlineOfficeBuilding } from "react-icons/hi";
+import { FaHandshakeAngle } from "react-icons/fa6";
+
+// --- Icon Components using React Icons ---
+
+export const IconSearch = (props) => <FiSearch {...props} />;
+export const IconUsers = (props) => <FiUsers {...props} />;
+export const IconDollarSign = (props) => <FiDollarSign {...props} />;
+export const IconBuilding = (props) => <HiOutlineOfficeBuilding {...props} />;
+export const IconTableCells = (props) => <FiList {...props} />; // optional replacement
+export const IconClock = (props) => <FiClock {...props} />;
+export const IconTrendUp = (props) => <FiArrowUpRight {...props} />;
+export const IconTrendDown = (props) => <FiArrowDownRight {...props} />;
+export const IconUser = (props) => <FiUser {...props} />;
+export const IconCalendar = (props) => <FiCalendar {...props} />;
+export const IconCircleCheck = (props) => <FiCheckCircle {...props} />;
+export const IconFileLines = (props) => <FiFileText {...props} />;
+export const IconPhone = (props) => <FiPhone {...props} />;
+export const IconList = (props) => <FiList {...props} />;
+export const IconBookmark = (props) => <FiBookmark {...props} />;
+export const IconPenToSquare = (props) => <FiEdit {...props} />;
+export const IconArrowRight = (props) => <FiArrowRight {...props} />;
+export const IconHand = (props) => <FaHandshakeAngle {...props}/>;
+
 
 // --- Constants and Mock Data ---
 const METRICS = [
-  { icon: Users, title: "Active Leads", value: 200, color: "text-blue-600", bgColor: "bg-blue-50" },
-  { icon: DollarSign, title: "Total Deals", value: 99, color: "text-yellow-600", bgColor: "bg-yellow-50" },
-  { icon: LayoutGrid, title: "Active Account", value: 12, color: "text-green-600", bgColor: "bg-green-50" },
-  { icon: Clock, title: "Overdue Tasks", value: 20, color: "text-red-600", bgColor: "bg-red-50" },
+  // Updated with Inline SVG Components
+  { icon: IconUsers, title: "Active Leads", value: 200, color: "text-blue-600", bgColor: "bg-blue-50" },
+  { icon: IconDollarSign, title: "Total Deals", value: 99, color: "text-yellow-600", bgColor: "bg-yellow-50" },
+  // REPLACED IconTableCells with the new IconBuilding
+  { icon: IconBuilding, title: "Active Account", value: 12, color: "text-green-600", bgColor: "bg-green-50" },
+  { icon: IconClock, title: "Overdue Tasks", value: 20, color: "text-red-600", bgColor: "bg-red-50" },
 ];
 
 const LATEST_LEADS = [
@@ -97,14 +127,15 @@ const getLeadSourceClasses = (source) => {
 
 // Utility function for Activity Stages
 const getActivityType = (type) => {
+  // Updated with Inline SVG Components
   switch (type) {
     case 'call':
-      return { Icon: Phone, color: 'text-red-500', bgColor: 'bg-red-100' };
+      return { Icon: IconPhone, color: 'text-red-500', bgColor: 'bg-red-100' };
     case 'qualification':
-      return { Icon: Bookmark, color: 'text-green-600', bgColor: 'bg-green-100' };
+      return { Icon: IconBookmark, color: 'text-green-600', bgColor: 'bg-green-100' };
     case 'meeting':
     default:
-      return { Icon: Calendar, color: 'text-blue-500', bgColor: 'bg-blue-100' };
+      return { Icon: IconCalendar, color: 'text-blue-500', bgColor: 'bg-blue-100' };
   }
 };
 
@@ -124,24 +155,25 @@ const getPriorityClasses = (priority) => {
 // --- Components ---
 
 const TopBar = () => {
-  // Mock action icons as seen in the image
+  // Mock action icons as seen in the image - updated with Inline SVG Components
   const actionIcons = [
-    { icon: List, label: "List" },
-    { icon: Users, label: "People" },
-    { icon: User, label: "Contacts" },
-    { icon: Calendar, label: "Schedule" },
-    { icon: Edit2, label: "Notes" },
-    { icon: CheckCircle, label: "Checklist" },
-    { icon: FileText, label: "Document" },
-    { icon: Phone, label: "Call" },
+    { icon: IconBuilding, label: "New Account" },
+    { icon: IconUsers, label: "New Contact" },
+    { icon: IconUser, label: "New Deals" },
+    { icon: IconHand, label: "New leads" },
+    { icon: IconCalendar, label: "New Meeting" },
+    { icon: IconCircleCheck, label: "New Task" },
+    { icon: IconFileLines, label: "New Qoutes" },
+    { icon: IconPhone, label: "Log Calls " },
   ];
     
   return (
     <div className="bg-white rounded-xl shadow-lg p-3 sm:p-4 flex flex-col md:flex-row items-center space-y-3 md:space-y-0 md:space-x-4">
       
-      {/* Large Search Bar */}
+      {/* Large Search Bar - Updated Icon */}
       <div className="flex items-center border border-gray-300 rounded-lg px-4 py-2 flex-grow max-w-full sm:max-w-md focus-within:ring-2 focus-within:ring-blue-500 transition duration-150 w-full">
-        <Search size={20} className="text-gray-400 mr-3 flex-shrink-0" />
+        {/* Replaced FaMagnifyingGlass with IconSearch */}
+        <IconSearch size={20} className="text-gray-400 mr-3 flex-shrink-0" />
         <input
           type="text"
           placeholder="Search Leads, Deals, or Accounts..."
@@ -194,11 +226,12 @@ const AuditLogItem = ({ action, target, time }) => (
 const RecentLogsCard = () => (
     <div className="bg-white p-6 rounded-xl shadow-lg border border-gray-100 flex flex-col h-full">
         <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl font-semibold text-gray-800">Recent Logs</h2>
+            <h2 className="text-md font-semibold text-gray-800">Recent Logs</h2>
             <span className="text-sm text-blue-500 cursor-pointer hover:underline flex items-center space-x-1 font-medium"
                   onClick={() => console.log('Clicked See All Logs')}>
                 <span>See All</span>
-                <ArrowRight size={14} className="transform -rotate-45" />
+                {/* Replaced FaArrowRight with IconArrowRight */}
+                <IconArrowRight size={14} className="transform -rotate-45" />
             </span>
         </div>
         
@@ -219,6 +252,7 @@ const MetricCard = ({ icon: Icon, title, value, color, bgColor }) => (
     onClick={() => console.log(`Clicked metric card: ${title}`)}
   >
     <div className={`p-3 rounded-full ${bgColor} ${color} mr-4`}>
+      {/* Icon is now the inline SVG Component */}
       <Icon size={20} />
     </div>
     <div>
@@ -360,7 +394,8 @@ const DealItem = ({ name, value, company, status, contact, trend }) => {
   const { text } = getStatusClasses(status);
 
   // Determine the correct icon and color based on the 'trend' prop
-  const TrendIcon = trend === 'up' ? TrendingUp : TrendingDown;
+  // Updated Icons with SVG Components
+  const TrendIcon = trend === 'up' ? IconTrendUp : IconTrendDown;
   const trendColor = trend === 'up' ? 'text-green-400' : 'text-red-400';
   
   return (
@@ -398,6 +433,7 @@ const DealItem = ({ name, value, company, status, contact, trend }) => {
 
 // --- ACTIVITY ITEM COMPONENT ---
 const ActivityItem = ({ type, title, assigned, time, priority }) => {
+  // getActivityType now returns Inline SVG Components
   const { Icon, color, bgColor } = getActivityType(type);
   const { text, bg, border } = getPriorityClasses(priority);
   
@@ -413,6 +449,7 @@ const ActivityItem = ({ type, title, assigned, time, priority }) => {
     >
       {/* Icon (Left side) */}
       <div className={`p-2 rounded-lg ${bgColor} mr-3 flex-shrink-0 mt-1`}>
+        {/* Icon is now the inline SVG Component */}
         <Icon size={20} className={`${color}`} />
       </div>
       
@@ -424,16 +461,18 @@ const ActivityItem = ({ type, title, assigned, time, priority }) => {
             {title}
         </p>
         
-        {/* Time and Assigned Group */}
+        {/* Time and Assigned Group - Updated Icons */}
         <div className="space-y-1 text-xs text-gray-500">
             {/* Time/Date */}
             <p className="flex items-center">
-                <Clock size={14} className="mr-1.5 text-gray-400" />
+                {/* Replaced FaClock with IconClock */}
+                <IconClock size={14} className="mr-1.5 text-gray-400" />
                 {time}
             </p>
             {/* Assigned To */}
             <p className="flex items-center">
-                <User size={14} className="mr-1.5 text-gray-400" />
+                {/* Replaced FaUser with IconUser */}
+                <IconUser size={14} className="mr-1.5 text-gray-400" />
                 Assigned to: {assigned}
             </p>
         </div>

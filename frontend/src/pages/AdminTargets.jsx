@@ -92,29 +92,29 @@ export default function AdminTargets() {
 
       {/* Table */}
       <div className="overflow-x-auto bg-white shadow border border-gray-100 rounded-md">
-        <table className="min-w-[800px] w-full text-sm text-left text-gray-600">
-          <thead className="bg-gray-100 text-gray-600 text-sm">
+        <table className="min-w-[600px] w-full border border-gray-200 rounded-lg bg-white shadow-sm">
+          <thead className="bg-gray-100 text-left text-sm text-gray-600">
             <tr>
-              <th className="px-6 py-3 font-medium">User</th>
-              <th className="px-6 py-3 font-medium">Target Period</th>
-              <th className="px-6 py-3 font-medium">Target Amount</th>
-              <th className="px-6 py-3 font-medium">Achieved</th>
-              <th className="px-6 py-3 font-medium">Achievement %</th>
-              <th className="px-6 py-3 font-medium">Status</th>
-              <th className="px-6 py-3 font-medium">Actions</th>
+              <th className="px-4 py-3 font-medium">User</th>
+              <th className="px-4 py-3 font-medium">Target Period</th>
+              <th className="px-4 py-3 font-medium">Target Amount</th>
+              <th className="px-4 py-3 font-medium">Achieved</th>
+              <th className="px-4 py-3 font-medium">Achievement %</th>
+              <th className="px-4 py-3 font-medium">Status</th>
+              <th className="px-4 py-3 font-medium">Actions</th>
             </tr>
           </thead>
           <tbody>
             {filteredTargets.map((t) => (
               <tr
                 key={t.id}
-                className="hover:bg-gray-50 transition duration-150"
+                className="hover:bg-gray-50 transition duration-150 text-xs"
               >
-                <td className="px-6 py-3 font-medium text-gray-800">{t.user}</td>
-                <td className="px-6 py-3">{t.period}</td>
-                <td className="px-6 py-3">₱{t.targetAmount.toLocaleString()}</td>
-                <td className="px-6 py-3">₱{t.achieved.toLocaleString()}</td>
-                <td className="px-6 py-3 text-green-600 font-semibold">
+                <td className="px-4 py-3 font-medium text-gray-800">{t.user}</td>
+                <td className="px-4 py-3">{t.period}</td>
+                <td className="px-4 py-3">₱{t.targetAmount.toLocaleString()}</td>
+                <td className="px-4 py-3">₱{t.achieved.toLocaleString()}</td>
+                <td className="px-4 py-3 text-green-600 font-semibold">
                   {t.achievement}%
                 </td>
                 <td className="px-6 py-3">

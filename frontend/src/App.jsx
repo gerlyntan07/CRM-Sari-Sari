@@ -26,6 +26,7 @@ import AdminTask from "./pages/AdminTask";
 import AdminTerritory from "./pages/AdminTerritory";
 import AdminCalls from "./pages/AdminCalls";
 import AdminMeeting from "./pages/AdminMeeting";
+import AdminLeadsConvert from "./components/AdminLeadsConvert";
 
 // 🔹 Sales layout + pages
 import SalesPanel from "./components/SalesPanel";
@@ -56,6 +57,8 @@ import ManagerCalls from "./pages/ManagerCalls";
 import ManagerTask from "./pages/ManagerTask";
 import ManagerMeetings from "./pages/ManagerMeetings";
 import ManagerUser from "./pages/ManagerUser";
+import ManagerLeadsConvert from "./components/ManagerLeadsConvert";
+
 
 function App() {
   return (
@@ -87,6 +90,7 @@ function App() {
           <Route path="territory" element={<AdminTerritory/>}/>
           <Route path="calls" element={<AdminCalls/>}/>
           <Route path="meetings" element={<AdminMeeting/>}/>
+           <Route path="leads/convert" element={<AdminLeadsConvert/>} />
 
         </Route>
 
@@ -123,6 +127,8 @@ function App() {
           <Route path="calls" element={<ManagerCalls />} />
           <Route path="tasks" element={<ManagerTask/>}/>
           <Route path="users" element={<ManagerUser/>}/>
+          <Route path="leads/convert" element={<ManagerLeadsConvert/>} />
+
 
 
         </Route>

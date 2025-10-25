@@ -147,14 +147,16 @@ export default function ManagerDeals() {
         </button>
     </div>
 
-    {/* ✅ Top Summary Boxes */}
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+     {/* ✅ Top Summary Boxes */}
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4 mb-6">
         <div className="bg-white shadow-sm rounded-lg p-4 text-center font-semibold w-full">
-            Deals
+           Preprositing
         </div>
-        <div className="bg-white shadow-sm rounded-lg p-4 text-center font-semibold w-full"></div>
-        <div className="bg-white shadow-sm rounded-lg p-4 text-center font-semibold w-full"></div>
-        <div className="bg-white shadow-sm rounded-lg p-4 text-center font-semibold w-full"></div>
+        <div className="bg-white shadow-sm rounded-lg p-4 text-center font-semibold w-full">Qualification</div>
+        <div className="bg-white shadow-sm rounded-lg p-4 text-center font-semibold w-full">Proposal</div>
+        <div className="bg-white shadow-sm rounded-lg p-4 text-center font-semibold w-full">Negotiation</div>
+         <div className="bg-white shadow-sm rounded-lg p-4 text-center font-semibold w-full">Closed Won</div>
+          <div className="bg-white shadow-sm rounded-lg p-4 text-center font-semibold w-full">Closed Lost</div>
     </div>
 
     {/* Search & Filters */}
@@ -195,16 +197,16 @@ export default function ManagerDeals() {
     {/* Deals Table */}
     <div className="overflow-x-auto w-full shadow-sm mt-7">
         <table className="min-w-full bg-white text-left table-auto">
-            <thead className="bg-gray-100 text-sm text-gray-600 sticky top-0 z-10">
+            <thead className="bg-gray-100 text-sm text-gray-600 sticky top-0 z-10 font-bold">
                 <tr>
-                    <th className="py-3 px-2 sm:px-4 font-medium">Deal Name</th>
-                    <th className="py-3 px-2 sm:px-4 font-medium">Account</th>
-                    <th className="py-3 px-2 sm:px-4 font-medium">Contact</th>
-                    <th className="py-3 px-2 sm:px-4 font-medium">Stage</th>
-                    <th className="py-3 px-2 sm:px-4 font-medium">Value</th>
-                    <th className="py-3 px-2 sm:px-4 font-medium">Close Date</th>
-                    <th className="py-3 px-2 sm:px-4 font-medium">Owner</th>
-                    <th className="py-3 px-2 sm:px-4 font-medium text-center">Actions</th>
+                    <th className="py-3 px-2 sm:px-4">Deal Name</th>
+                    <th className="py-3 px-2 sm:px-4">Account</th>
+                    <th className="py-3 px-2 sm:px-4">Contact</th>
+                    <th className="py-3 px-2 sm:px-4">Stage</th>
+                    <th className="py-3 px-2 sm:px-4">Value</th>
+                    <th className="py-3 px-2 sm:px-4">Close Date</th>
+                    <th className="py-3 px-2 sm:px-4">Owner</th>
+                    <th className="py-3 px-2 sm:px-4 text-center">Actions</th>
                 </tr>
             </thead>
             <tbody className="text-xs">
@@ -216,7 +218,7 @@ export default function ManagerDeals() {
                                 key={deal.id}
                                 onClick={() => openDetailsModal(deal)}
                                 className={`border-b border-gray-200 cursor-pointer ${
-                                    isEven ? "bg-white hover:bg-gray-200" : "bg-yellow-50 hover:bg-gray-200"
+                                    isEven ? "bg-white hover:bg-gray-200" : "bg-gray-50 hover:bg-gray-200"
                                 }`}
                             >
                                 <td className="py-2 px-2 sm:px-4">{deal.name}</td>

@@ -107,7 +107,7 @@ export default function ManagerLeads() {
       {/* Table */}
       <div className="bg-white shadow-sm overflow-x-auto rounded-md border border-gray-200">
         {/* Table Header */}
-        <div className="grid grid-cols-9 min-w-[800px] bg-gray-100 font-medium text-gray-700 text-sm px-4 py-3">
+        <div className="grid grid-cols-9 min-w-[800px] bg-gray-100 font-bold text-gray-600 text-sm px-4 py-3">
           <div>Name</div>
           <div>Account</div>
           <div>Title</div>

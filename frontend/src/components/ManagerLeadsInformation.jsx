@@ -1,7 +1,33 @@
-import React from "react";
+import React, { useState } from "react";
 import { HiArrowLeft } from "react-icons/hi";
+import ManagerLeadsConvert from "./ManagerLeadsConvert";
 
-export default function ManagerLeadsInformation({ lead, onBack }) {
+// Mock lead data
+const mockLead = {
+  name: "Josh Vergara",
+  status: "New",
+  company: "Josh Inc.",
+  title: "CEO",
+  department: "Administration",
+  email: "josh@joshinc.com",
+  territory: "Cavite",
+  assignedTo: "Admin",
+  createdBy: "Admin",
+  workPhone: "09253677323",
+  phone1: "09253677323",
+  phone2: "0907452874",
+  source: "Website",
+  addressLine1: "#1 Pilar Las Pinas",
+  addressLine2: "Suite 400",
+  city: "Las Pinas",
+  state: "Metro Manila",
+  zipCode: "1740",
+  notes: "Interested in our premium plan.",
+};
+
+export default function ManagerLeadsInformation({ lead = mockLead, onBack }) {
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
   if (!lead) return null;
 
   return (
@@ -22,7 +48,11 @@ export default function ManagerLeadsInformation({ lead, onBack }) {
             {lead.status}
           </span>
           <div className="flex flex-wrap items-center ml-0 sm:ml-1">
-            <button className="bg-green-600 hover:bg-green-700 text-white px-3 sm:px-5 py-1.5 sm:py-2 rounded-lg font-medium text-xs sm:text-sm">
+            {/* Convert Button */}
+            <button
+              onClick={() => setIsModalOpen(true)}
+              className="bg-green-600 hover:bg-green-700 text-white px-3 sm:px-5 py-1.5 sm:py-2 rounded-lg font-medium text-xs sm:text-sm"
+            >
               Convert
             </button>
           </div>
@@ -41,7 +71,6 @@ export default function ManagerLeadsInformation({ lead, onBack }) {
       {/* Lead Details */}
       <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6 md:p-8 border border-gray-200 mb-6 sm:mb-8">
         <h2 className="text-lg sm:text-xl font-semibold mb-4 sm:mb-6">Lead Details</h2>
-
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6 text-sm text-gray-700">
           <div>
             <p className="font-semibold">Name:</p>
@@ -99,16 +128,16 @@ export default function ManagerLeadsInformation({ lead, onBack }) {
         <div className="bg-white p-4 sm:p-6 rounded-xl border border-gray-200">
           <h3 className="font-semibold text-gray-800 mb-2">Address:</h3>
           <p className="text-sm text-gray-700 leading-relaxed">
-            {lead.addressLine1 || "123 Main Street"} <br />
-            {lead.addressLine2 || "Suite 400"} <br />
-            {lead.city || "New York"}, {lead.state || "NY"} {lead.zipCode || "10001"}
+            {lead.addressLine1} <br />
+            {lead.addressLine2} <br />
+            {lead.city}, {lead.state} {lead.zipCode}
           </p>
         </div>
 
         <div className="bg-white p-4 sm:p-6 rounded-xl border border-gray-200">
           <h3 className="font-semibold text-gray-800 mb-2">Notes:</h3>
           <p className="text-sm text-gray-700 leading-relaxed">
-            {lead.notes || "No notes available. Add details about this lead’s background or communication history."}
+            {lead.notes || "No notes available."}
           </p>
         </div>
       </div>
@@ -116,11 +145,9 @@ export default function ManagerLeadsInformation({ lead, onBack }) {
       {/* Related Activities */}
       <div className="bg-white p-4 sm:p-6 rounded-xl border border-gray-200">
         <h3 className="font-semibold text-gray-800 mb-4 sm:mb-6">Related Activities</h3>
-
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8 text-sm">
-          {/* Tasks */}
           <div>
-            <h4 className="font-semibold mb-2">Task (2)</h4>
+            <h4 className="font-semibold mb-2">Tasks (2)</h4>
             <div className="space-y-1 text-gray-700">
               <p>Schedule follow-up call</p>
               <p className="text-xs text-gray-500">Due: 2025-09-15 | In Progress</p>
@@ -131,8 +158,6 @@ export default function ManagerLeadsInformation({ lead, onBack }) {
               View All Tasks
             </a>
           </div>
-
-          {/* Calls */}
           <div>
             <h4 className="font-semibold mb-2">Calls (2)</h4>
             <div className="space-y-1 text-gray-700">
@@ -145,8 +170,6 @@ export default function ManagerLeadsInformation({ lead, onBack }) {
               View All Calls
             </a>
           </div>
-
-          {/* Meetings */}
           <div>
             <h4 className="font-semibold mb-2">Meeting (0)</h4>
             <p className="text-gray-500">No meetings associated.</p>
@@ -156,6 +179,12 @@ export default function ManagerLeadsInformation({ lead, onBack }) {
           </div>
         </div>
       </div>
+
+      {/* Convert Lead Popup */}
+      <ManagerLeadsConvert
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+      />
     </div>
   );
 }

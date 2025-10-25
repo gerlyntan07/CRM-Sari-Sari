@@ -89,7 +89,7 @@ export default function AdminLeads() {
     e.preventDefault();
     const finalForm = {
       ...leadData,
-      territory_id: selectedUser && selectedUser.territories && selectedUser.territories.length > 0 ? selectedUser.territories[0].id : null,
+      territory_id: selectedUser && selectedUser.territory && selectedUser.territory.length > 0 ? selectedUser.territory[0].id : null,
       lead_owner: parseInt(leadData.lead_owner),
     }
 
@@ -399,8 +399,12 @@ export default function AdminLeads() {
                   type="text"
                   disabled
                   name="territory_id"
-                  value={selectedUser && selectedUser.territories && selectedUser.territories.length > 0 ? selectedUser.territories.map(territory => territory.name).join(", ") : ""}
-                  placeholder="Select Assign To first"
+                  value={
+                    selectedUser && selectedUser.territory
+                      ? selectedUser.territory.name
+                      : ""
+                  }
+                  placeholder="Assign a user"                  
                   onChange={handleLeadChange}
                   className="border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-400 outline-none"
                 />

@@ -2,19 +2,13 @@ import { Dialog, Transition } from "@headlessui/react";
 import { Fragment, useState, useEffect } from "react";
 import api from "../api"; // make sure you have your axios instance here
 
-export default function TaskModal({ isOpen, onClose, onSave }) {
-  const [formData, setFormData] = useState({
-    title: "",
-    description: "",
-    type: "Call",
-    priority: "Medium",
-    status: "To Do",
-    dueDate: "",
-    assignedTo: "",
-    relatedTo: "",
-    notes: "",
-  });
-
+export default function TaskModal({
+  isOpen,
+  onClose,
+  onSave,
+  setFormData,
+  formData,
+}) {
   const [salesList, setSalesList] = useState([]); // ✅ store fetched sales
 
   // 🔄 Fetch Sales reps on open
@@ -179,7 +173,7 @@ export default function TaskModal({ isOpen, onClose, onSave }) {
                       >
                         <option>To Do</option>
                         <option>In Progress</option>
-                        <option>Done</option>
+                        <option>Completed</option>
                       </select>
                     </div>
 

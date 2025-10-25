@@ -64,7 +64,7 @@ def assign_territory(
         action="CREATE",
         request=request,
         new_data=new_data,
-        custom_message=f" - assign territory '{data.name}' to user: {assigned_user.first_name} {assigned_user.last_name}"
+        custom_message=f"assign territory '{data.name}' to user: {assigned_user.first_name} {assigned_user.last_name}"
     )
 
     return new_territory

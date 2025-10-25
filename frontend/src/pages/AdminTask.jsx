@@ -22,6 +22,17 @@ export default function AdminTask() {
   const [filterStatus, setFilterStatus] = useState("All");
   const [filterPriority, setFilterPriority] = useState("All");
   const [filterUser, setFilterUser] = useState("All");
+  const [formData, setFormData] = useState({
+    title: "",
+    description: "",
+    type: "Call",
+    priority: "Low",
+    status: "To Do",
+    dueDate: "",
+    assignedTo: "",
+    relatedTo: "",
+    notes: "",
+  });
 
   // Fetch tasks on load
   useEffect(() => {
@@ -55,6 +66,17 @@ export default function AdminTask() {
       }
       setShowModal(false);
       setSelectedTask(null);
+      setFormData({
+        title: "",
+        description: "",
+        type: "Call",
+        priority: "Low",
+        status: "To Do",
+        dueDate: "",
+        assignedTo: "",
+        relatedTo: "",
+        notes: "",
+      });
     } catch (error) {
       console.error("Failed to save task:", error);
       alert("Failed to save task. Check console for details.");
@@ -217,19 +239,21 @@ export default function AdminTask() {
       <div className="flex items-center gap-3 mb-6">
         <button
           onClick={() => setView("board")}
-          className={`px-4 py-2 rounded-full text-sm ${view === "board"
+          className={`px-4 py-2 rounded-full text-sm ${
+            view === "board"
               ? "bg-gray-800 text-white"
               : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-            }`}
+          }`}
         >
           Board View
         </button>
         <button
           onClick={() => setView("list")}
-          className={`px-4 py-2 rounded-full text-sm ${view === "list"
+          className={`px-4 py-2 rounded-full text-sm ${
+            view === "list"
               ? "bg-gray-800 text-white"
               : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-            }`}
+          }`}
         >
           List View
         </button>
@@ -355,6 +379,8 @@ export default function AdminTask() {
         }}
         onSave={handleSaveTask}
         task={selectedTask}
+        setFormData={setFormData}
+        formData={formData}
       />
     </div>
   );

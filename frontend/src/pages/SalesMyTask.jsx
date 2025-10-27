@@ -25,12 +25,31 @@ export default function SalesMyTasks() {
   const [filterStatus, setFilterStatus] = useState("All Tasks");
   const [isStatusDropdownOpen, setStatusDropdownOpen] = useState(false);
 
+  const today = new Date();
+
+  // Check if task is overdue
+  const isTaskOverdue = (task) => {
+    return (
+      task.dueDate &&
+      new Date(task.dueDate) < today &&
+      task.status !== "Completed"
+    );
+  };
+
   // ✅ Fetch tasks
   const fetchTasks = async () => {
     try {
       const res = await api.get("/tasks/assigned");
-      setTasks(res.data);
-      setFilteredTasks(res.data); // initialize filtered list
+
+      // Sort tasks by dueDate descending (most recent first)
+      const sortedTasks = res.data.sort((a, b) => {
+        const dateA = new Date(a.dueDate || a.dateAssigned);
+        const dateB = new Date(b.dueDate || b.dateAssigned);
+        return dateB - dateA; // descending
+      });
+
+      setTasks(sortedTasks);
+      setFilteredTasks(sortedTasks); // initialize filtered list
     } catch (error) {
       console.error("Error fetching tasks:", error);
     }
@@ -161,7 +180,12 @@ export default function SalesMyTasks() {
           filteredTasks.map((task) => (
             <div
               key={task.id}
-              className="bg-white rounded-xl shadow-sm p-5 border border-gray-100 flex flex-col gap-3 hover:shadow-md transition"
+              className={`rounded-xl shadow-sm p-5 flex flex-col gap-3 hover:shadow-md transition
+                ${
+                  isTaskOverdue(task)
+                    ? "bg-red-50 border border-red-200"
+                    : "bg-white border border-gray-100"
+                }`}
             >
               <div className="flex justify-between items-start">
                 <div className="flex items-center gap-3">
@@ -171,7 +195,9 @@ export default function SalesMyTasks() {
                       {task.title}
                       <span
                         className={`text-xs font-medium px-2 py-0.5 rounded-full ${
-                          priorityColors[task.priority]
+                          isTaskOverdue(task)
+                            ? "bg-red-100 text-red-700"
+                            : priorityColors[task.priority]
                         }`}
                       >
                         {task.priority}
@@ -200,10 +226,22 @@ export default function SalesMyTasks() {
                 </div>
               </div>
 
-              <div className="flex flex-wrap items-center gap-4 text-sm text-gray-500">
-                <p>📅 {task.dateAssigned}</p>
-                <p>👤 {task.assignedTo}</p>
-                <p>📞 {task.type}</p>
+              <div className="flex flex-wrap items-center gap-4 text-sm">
+                <p
+                  className={`flex items-center gap-1 ${
+                    isTaskOverdue(task)
+                      ? "text-red-600 font-medium"
+                      : "text-gray-500"
+                  }`}
+                >
+                  📅 {task.dueDate?.split("T")[0]}
+                </p>
+                <p className="text-gray-500 flex items-center gap-1">
+                  👤 {task.assignedTo}
+                </p>
+                <p className="text-gray-500 flex items-center gap-1">
+                  📞 {task.type}
+                </p>
               </div>
             </div>
           ))
@@ -215,7 +253,7 @@ export default function SalesMyTasks() {
       </div>
 
       {/* ====================== */}
-      {/* ✅ Edit Task Modal */}
+      {/* Edit Task Modal */}
       {/* ====================== */}
       <Transition appear show={!!editingTask} as={Fragment}>
         <Dialog
@@ -445,9 +483,7 @@ export default function SalesMyTasks() {
         </Dialog>
       </Transition>
 
-      {/* ====================== */}
-      {/* ✅ Update Confirmation Modal */}
-      {/* ====================== */}
+      {/* Update Confirmation Modal */}
       <Transition appear show={isUpdateConfirmationOpen} as={Fragment}>
         <Dialog
           as="div"
@@ -503,9 +539,7 @@ export default function SalesMyTasks() {
         </Dialog>
       </Transition>
 
-      {/* ====================== */}
-      {/* ✅ Delete Confirmation Modal */}
-      {/* ====================== */}
+      {/* Delete Confirmation Modal */}
       <Transition appear show={isDeleteConfirmationOpen} as={Fragment}>
         <Dialog
           as="div"

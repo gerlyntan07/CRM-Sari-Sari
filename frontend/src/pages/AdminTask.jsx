@@ -48,27 +48,26 @@ export default function AdminTask() {
   }, []);
 
   const fetchTasks = async () => {
-  try {
-    setLoading(true);
-    const res = await api.get("/tasks/all");
+    try {
+      setLoading(true);
+      const res = await api.get("/tasks/all");
+      const formatted = res.data.map((task) => ({
+        ...task,
+        dueDate: task.dueDate || task.due_date,
+        dateAssigned: task.dateAssigned || task.date_assigned,
+        assignedTo: task.assignedTo || task.assigned_to,
+        relatedTo: task.relatedTo || task.related_to,
+      }));
 
-    // Normalize backend → frontend
-    const formatted = res.data.map(task => ({
-      ...task,
-      dueDate: task.dueDate || task.due_date,
-      dateAssigned: task.dateAssigned || task.date_assigned,
-      assignedTo: task.assignedTo || task.assigned_to,
-      relatedTo: task.relatedTo || task.related_to,
-    }));
+      formatted.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
-    setTasks(formatted);
-  } catch (error) {
-    console.error("Failed to load tasks:", error);
-  } finally {
-    setLoading(false);
-  }
-};
-
+      setTasks(formatted);
+    } catch (error) {
+      console.error("Failed to load tasks:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const fetchUsers = async () => {
     try {
@@ -79,47 +78,64 @@ export default function AdminTask() {
     }
   };
 
-  // ✅ Handle save with confirmation
+  const handleOpenModal = (task = null) => {
+    setSelectedTask(task);
+    if (task) {
+      setFormData({
+        title: task.title || "",
+        description: task.description || "",
+        type: task.type || "Call",
+        priority: task.priority || "Low",
+        status: task.status || "To Do",
+        dueDate: task.dueDate || "",
+        assignedTo: task.assignedTo || "",
+        relatedTo: task.relatedTo || "",
+        notes: task.notes || "",
+      });
+    } else {
+      resetForm();
+    }
+    setShowModal(true);
+  };
+
   const handleSaveTask = (newTask) => {
     setFormData(newTask);
     setUpdateConfirmOpen(true);
   };
 
-  // ✅ Confirm and perform actual update/create
   const handleConfirmUpdate = async () => {
-  try {
-    // Convert camelCase -> snake_case for backend
-    const payload = {
-      title: formData.title,
-      description: formData.description,
-      type: formData.type,
-      priority: formData.priority,
-      status: formData.status,
-      due_date: formData.dueDate || null,
-      assigned_to: formData.assignedTo || null,
-      related_to: formData.relatedTo || null,
-      notes: formData.notes || "",
-    };
+    try {
+      const payload = {
+        title: formData.title,
+        description: formData.description,
+        type: formData.type,
+        priority: formData.priority,
+        status: formData.status,
+        due_date: formData.dueDate || null,
+        assigned_to: formData.assignedTo || null,
+        related_to: formData.relatedTo || null,
+        notes: formData.notes || "",
+      };
 
-    if (selectedTask && selectedTask.id) {
-      // ✅ Update existing task
-      await api.put(`/tasks/${selectedTask.id}`, payload);
-    } else {
-      // ✅ Create new task
-      await api.post("/tasks/createtask", payload);
+      if (selectedTask && selectedTask.id) {
+        await api.put(`/tasks/${selectedTask.id}`, payload);
+      } else {
+        await api.post("/tasks/createtask", payload);
+      }
+
+      await fetchTasks();
+      resetForm();
+      setSelectedTask(null);
+      setShowModal(false);
+      setUpdateConfirmOpen(false);
+    } catch (error) {
+      console.error(
+        "Failed to save task:",
+        error.response?.data || error.message
+      );
+      alert("Failed to save task. Check console for details.");
     }
-
-    await fetchTasks();
-    resetForm();
-    setSelectedTask(null);
-    setShowModal(false);
-    setUpdateConfirmOpen(false);
-  } catch (error) {
-    console.error("❌ Failed to save task:", error.response?.data || error.message);
-    alert("Failed to save task. Check console for details.");
-  }
-};
-
+  };
 
   const resetForm = () => {
     setFormData({
@@ -151,26 +167,6 @@ export default function AdminTask() {
     }
   };
 
-  const handleOpenModal = (task = null) => {
-    setSelectedTask(task);
-    if (task) {
-      setFormData({
-        title: task.title || "",
-        description: task.description || "",
-        type: task.type || "Call",
-        priority: task.priority || "Low",
-        status: task.status || "To Do",
-        dueDate: task.dueDate || "",
-        assignedTo: task.assignedTo || "",
-        relatedTo: task.relatedTo || "",
-        notes: task.notes || "",
-      });
-    } else {
-      resetForm();
-    }
-    setShowModal(true);
-  };
-
   const filteredTasks = tasks.filter((task) => {
     const matchesSearch =
       task.title.toLowerCase().includes(search.toLowerCase()) ||
@@ -183,6 +179,8 @@ export default function AdminTask() {
     const matchesUser = filterUser === "All" || task.assignedTo === filterUser;
     return matchesSearch && matchesStatus && matchesPriority && matchesUser;
   });
+
+  const today = new Date();
 
   const summaryCards = [
     {
@@ -205,7 +203,10 @@ export default function AdminTask() {
     },
     {
       label: "Overdue",
-      count: 0,
+      count: tasks.filter(
+        (t) =>
+          t.dueDate && new Date(t.dueDate) < today && t.status !== "Completed"
+      ).length,
       icon: <FiAlertCircle />,
       color: "border-red-500 text-red-600",
     },
@@ -216,6 +217,11 @@ export default function AdminTask() {
       color: "border-orange-500 text-orange-600",
     },
   ];
+
+  const isTaskOverdue = (task) =>
+    task.dueDate &&
+    new Date(task.dueDate) < today &&
+    task.status !== "Completed";
 
   return (
     <div className="p-8 min-h-screen">
@@ -330,7 +336,6 @@ export default function AdminTask() {
         </button>
       </div>
 
-      {/* Loading */}
       {loading && <p className="text-gray-500">Loading tasks...</p>}
 
       {/* Board View */}
@@ -353,7 +358,11 @@ export default function AdminTask() {
                   .map((task) => (
                     <div
                       key={task.id}
-                      className="border border-gray-100 rounded-lg p-3 bg-gray-50 hover:bg-gray-100 transition flex justify-between items-center"
+                      className={`border border-gray-100 rounded-lg p-3 transition flex justify-between items-center ${
+                        isTaskOverdue(task)
+                          ? "bg-red-50 hover:bg-red-100"
+                          : "bg-gray-50 hover:bg-gray-100"
+                      }`}
                     >
                       <div
                         onClick={() => handleOpenModal(task)}
@@ -368,11 +377,19 @@ export default function AdminTask() {
                         <p className="text-xs text-gray-500 mt-1">
                           Assigned To: {task.assignedTo}
                         </p>
-                        <p className="text-xs text-gray-500 mt-1">
-                          Date: {task.dateAssigned?.split("T")[0]}
+                        <p className="text-xs mt-1">
+                          Date:{" "}
+                          <span
+                            className={
+                              isTaskOverdue(task)
+                                ? "text-red-600"
+                                : "text-gray-500"
+                            }
+                          >
+                            {task.dateAssigned?.split("T")[0]}
+                          </span>
                         </p>
                       </div>
-
                       <div className="flex items-center gap-3">
                         <button
                           onClick={() => handleOpenModal(task)}
@@ -418,7 +435,9 @@ export default function AdminTask() {
               {filteredTasks.map((task) => (
                 <tr
                   key={task.id}
-                  className="border-b border-gray-100 hover:bg-gray-50"
+                  className={`border-b border-gray-100 hover:bg-gray-50 ${
+                    isTaskOverdue(task) ? "bg-red-50 hover:bg-red-100" : ""
+                  }`}
                 >
                   <td
                     className="py-3 px-4 text-gray-800 text-sm font-medium cursor-pointer"
@@ -435,7 +454,11 @@ export default function AdminTask() {
                   <td className="py-3 px-4 text-sm text-gray-600">
                     {task.assignedTo}
                   </td>
-                  <td className="py-3 px-4 text-sm text-gray-600">
+                  <td
+                    className={`py-3 px-4 text-sm ${
+                      isTaskOverdue(task) ? "text-red-600" : "text-gray-600"
+                    }`}
+                  >
                     {task.dateAssigned?.split("T")[0]}
                   </td>
                   <td className="py-3 px-4 flex items-center gap-3">
@@ -565,8 +588,8 @@ export default function AdminTask() {
                   Delete Task
                 </h3>
                 <p className="text-gray-600 text-sm mb-6">
-                  Are you sure you want to delete this task? <br />
-                  This action cannot be undone.
+                  Are you sure you want to delete this task? This action cannot
+                  be undone.
                 </p>
                 <div className="flex justify-center gap-3">
                   <button

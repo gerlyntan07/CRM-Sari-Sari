@@ -38,6 +38,14 @@ import SalesPipeline from "./pages/SalesPipeline";
 import SalesPerformance from "./pages/SalesPerformance";
 import SalesAccounts from "./pages/SalesAccounts";
 import SalesContacts from "./pages/SalesContacts";
+import SalesLeads from "./pages/SalesLeads";
+import SalesLeadsInformation from "./components/SalesLeadsInformation";
+import SalesLeadsConvert from "./components/SalesLeadsConvert";
+import SalesDeals from "./pages/SalesDeals";
+import SalesDealsInformation from "./components/SalesDealsInformation";
+import SalesDealsQuickAction from "./components/SalesDealsQuickAction";
+import SalesQuotes from "./pages/SalesQuotes";
+import SalesTargets from "./pages/SalesTargets";
 
 
 // 🔹 Manager layout + pages
@@ -47,6 +55,7 @@ import ManagerAccounts from "./pages/ManagerAccounts";
 import ManagerContacts from "./pages/ManagerContacts";
 import ManagerLeads from "./pages/ManagerLeads";
 import ManagerLeadsInformation from "./components/ManagerLeadsInformation";
+import ManagerLeadsConvert from "./components/ManagerLeadsConvert";
 import ManagerDeals from "./pages/ManagerDeals";
 import ManagerDealsInformation from "./components/ManagerDealsInformation";
 import ManagerDealsQuickAction from "./components/ManagerDealsQuickAction";
@@ -57,7 +66,7 @@ import ManagerCalls from "./pages/ManagerCalls";
 import ManagerTask from "./pages/ManagerTask";
 import ManagerMeetings from "./pages/ManagerMeetings";
 import ManagerUser from "./pages/ManagerUser";
-import ManagerLeadsConvert from "./components/ManagerLeadsConvert";
+
 
 
 function App() {
@@ -100,12 +109,22 @@ function App() {
           <Route path="overview" element={<SalesOverview />} />
           <Route path="accounts" element={<SalesAccounts/>}/>
           <Route path="contacts" element={<SalesContacts/>}/>
+           <Route path="leads" element={<SalesLeads />} />
+            <Route path="leads/info" element={<SalesLeadsInformation />} />
+            <Route path="leads/convert" element={<SalesLeadsConvert/>} />\
+          <Route path="deals" element={<SalesDeals />} />
+          <Route path="deals/info" element={<SalesDealsInformation />} />
+          <Route path="deals/quickaction" element={<SalesDealsQuickAction />} />
+          <Route path="quotes" element={<SalesQuotes />} />
+          <Route path="targets" element={<SalesTargets />} />
+
           <Route path="hub/*" element={<SalesHub />}>
             <Route index element={<Navigate to="mytasks" replace />} />
             <Route path="activities" element={<SalesActivities />} />
             <Route path="mytasks" element={<SalesMyTask />} />
             <Route path="pipeline" element={<SalesPipeline/>}/>
             <Route path="performance" element={<SalesPerformance/>}/> 
+           
           </Route>
         </Route>
 
@@ -128,8 +147,6 @@ function App() {
           <Route path="tasks" element={<ManagerTask/>}/>
           <Route path="users" element={<ManagerUser/>}/>
           <Route path="leads/convert" element={<ManagerLeadsConvert/>} />
-
-
 
         </Route>
       </Routes>

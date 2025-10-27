@@ -8,9 +8,9 @@ import {
   FiDownload,
   FiX,
 } from "react-icons/fi";
-import ManagerLeadsInformation from "../components/ManagerLeadsInformation";
+import SalesLeadsInformation from "../components/SalesLeadsInformation";
 
-export default function ManagerLeads() {
+export default function SalesLeads() {
   const [selectedLead, setSelectedLead] = useState(null);
   const [showModal, setShowModal] = useState(false);
   const [users, setUsers] = useState([
@@ -49,7 +49,7 @@ export default function ManagerLeads() {
 
   if (selectedLead) {
     return (
-      <ManagerLeadsInformation lead={selectedLead} onBack={handleBackToList} />
+      <SalesLeadsInformation lead={selectedLead} onBack={handleBackToList} />
     );
   }
 

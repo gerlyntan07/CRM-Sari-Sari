@@ -138,16 +138,16 @@ export default function ManagerCalls() {
       </div>
 
       {/* Activities Table */}
-      <div className="overflow-x-auto w-full shadow-sm mt-7">
-        <table className="min-w-full bg-white text-left table-auto border border-gray-200">
-          <thead className="bg-gray-100 text-sm text-gray-600">
+      <div className="overflow-x-auto bg-white shadow border border-gray-100 rounded-md">
+        <table className="min-w-[600px] w-full border border-gray-200 rounded-lg bg-white shadow-sm">
+          <thead className="bg-gray-100 text-left text-sm text-gray-600 font-bold">
             <tr>
-              <th className="py-3 px-4 font-medium">Priority</th>
-              <th className="py-3 px-4 font-medium">Activity</th>
-              <th className="py-3 px-4 font-medium">Related To</th>
-              <th className="py-3 px-4 font-medium">Due Date</th>
-              <th className="py-3 px-4 font-medium">Assigned To</th>
-              <th className="py-3 px-4 font-medium">Status</th>
+              <th className="py-3 px-4">Priority</th>
+              <th className="py-3 px-4">Activity</th>
+              <th className="py-3 px-4">Related To</th>
+              <th className="py-3 px-4">Due Date</th>
+              <th className="py-3 px-4">Assigned To</th>
+              <th className="py-3 px-4">Status</th>
             </tr>
           </thead>
 

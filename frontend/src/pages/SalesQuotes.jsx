@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { FiSearch, FiEdit, FiTrash2, FiDownload, FiX, FiFileText } from "react-icons/fi";
 
-export default function ManagerQuotes() {
+export default function SalesQuotes() {
   const [showModal, setShowModal] = useState(false);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [selectedQuote, setSelectedQuote] = useState(null);

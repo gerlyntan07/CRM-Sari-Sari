@@ -1,6 +1,6 @@
 import { Dialog, Transition } from "@headlessui/react";
 import { Fragment, useState, useEffect } from "react";
-import api from "../api"; // make sure you have your axios instance here
+import api from "../api";
 
 export default function TaskModal({
   isOpen,
@@ -9,13 +9,10 @@ export default function TaskModal({
   setFormData,
   formData,
 }) {
-  const [salesList, setSalesList] = useState([]); // ✅ store fetched sales
+  const [salesList, setSalesList] = useState([]);
 
-  // 🔄 Fetch Sales reps on open
   useEffect(() => {
-    if (isOpen) {
-      fetchSales();
-    }
+    if (isOpen) fetchSales();
   }, [isOpen]);
 
   const fetchSales = async () => {
@@ -34,14 +31,12 @@ export default function TaskModal({
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    onSave?.(formData);
-    onClose();
+    onSave?.(formData); // modal does not close immediately; update handled in AdminTask
   };
 
   return (
     <Transition appear show={isOpen} as={Fragment}>
       <Dialog as="div" className="relative z-50" onClose={onClose}>
-        {/* Overlay */}
         <Transition.Child
           as={Fragment}
           enter="ease-out duration-200"
@@ -54,7 +49,6 @@ export default function TaskModal({
           <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" />
         </Transition.Child>
 
-        {/* Center Modal */}
         <div className="fixed inset-0 flex items-center justify-center p-4 overflow-y-auto">
           <div className="flex min-h-full items-center justify-center text-center">
             <Transition.Child
@@ -66,16 +60,14 @@ export default function TaskModal({
               leaveFrom="opacity-100 scale-100"
               leaveTo="opacity-0 scale-95"
             >
-              {/* Modal Container */}
               <Dialog.Panel className="w-full max-w-xl rounded-2xl bg-white shadow-2xl ring-1 ring-gray-100 p-6 text-left align-middle transform transition-all max-h-[90vh] flex flex-col">
-                {/* Header */}
                 <div className="flex justify-between items-start gap-4 mb-4">
                   <div>
                     <h3 className="text-xl font-semibold text-gray-900">
-                      Create New Task
+                      {formData.title ? "Edit Task" : "Create New Task"}
                     </h3>
                     <p className="text-sm text-gray-500">
-                      Create a new task and assign it to a sales representative.
+                      Fill in the task details.
                     </p>
                   </div>
                   <button
@@ -87,12 +79,10 @@ export default function TaskModal({
                   </button>
                 </div>
 
-                {/* Scrollable Form */}
                 <form
                   onSubmit={handleSubmit}
                   className="space-y-5 overflow-y-auto pr-2"
                 >
-                  {/* Title */}
                   <div>
                     <label className="text-sm font-medium text-gray-700">
                       Title *
@@ -108,7 +98,6 @@ export default function TaskModal({
                     />
                   </div>
 
-                  {/* Description */}
                   <div>
                     <label className="text-sm font-medium text-gray-700">
                       Description
@@ -123,7 +112,6 @@ export default function TaskModal({
                     />
                   </div>
 
-                  {/* Type / Priority */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                       <label className="text-sm font-medium text-gray-700">
@@ -159,7 +147,6 @@ export default function TaskModal({
                     </div>
                   </div>
 
-                  {/* Status / Due Date */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                       <label className="text-sm font-medium text-gray-700">
@@ -192,7 +179,6 @@ export default function TaskModal({
                     </div>
                   </div>
 
-                  {/* Assign To - dynamic fetch */}
                   <div>
                     <label className="text-sm font-medium text-gray-700">
                       Assign To
@@ -212,7 +198,6 @@ export default function TaskModal({
                     </select>
                   </div>
 
-                  {/* Related To */}
                   <div>
                     <label className="text-sm font-medium text-gray-700">
                       Related To
@@ -230,7 +215,6 @@ export default function TaskModal({
                     </select>
                   </div>
 
-                  {/* Notes */}
                   <div>
                     <label className="text-sm font-medium text-gray-700">
                       Notes
@@ -246,7 +230,6 @@ export default function TaskModal({
                   </div>
                 </form>
 
-                {/* Buttons */}
                 <div className="flex justify-end gap-3 pt-4 border-t mt-6">
                   <button
                     type="button"

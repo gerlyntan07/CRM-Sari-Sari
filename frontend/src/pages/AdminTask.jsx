@@ -1,16 +1,18 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, Fragment } from "react";
 import {
   FiClock,
   FiActivity,
   FiCheckCircle,
   FiAlertCircle,
   FiStar,
+  FiEdit2,
   FiSearch,
   FiPlus,
   FiTrash2,
 } from "react-icons/fi";
+import { Dialog, Transition } from "@headlessui/react";
 import TaskModal from "../components/TaskModal";
-import api from "../api"; // Make sure api.js has axios with baseURL = "http://localhost:8000/api"
+import api from "../api";
 
 export default function AdminTask() {
   const [view, setView] = useState("board");
@@ -22,6 +24,7 @@ export default function AdminTask() {
   const [filterStatus, setFilterStatus] = useState("All");
   const [filterPriority, setFilterPriority] = useState("All");
   const [filterUser, setFilterUser] = useState("All");
+
   const [formData, setFormData] = useState({
     title: "",
     description: "",
@@ -34,16 +37,31 @@ export default function AdminTask() {
     notes: "",
   });
 
-  // Fetch tasks on load
+  const [users, setUsers] = useState([]);
+  const [isDeleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [taskToDelete, setTaskToDelete] = useState(null);
+  const [isUpdateConfirmOpen, setUpdateConfirmOpen] = useState(false);
+
   useEffect(() => {
     fetchTasks();
+    fetchUsers();
   }, []);
 
   const fetchTasks = async () => {
     try {
       setLoading(true);
       const res = await api.get("/tasks/all");
-      setTasks(res.data);
+      const formatted = res.data.map((task) => ({
+        ...task,
+        dueDate: task.dueDate || task.due_date,
+        dateAssigned: task.dateAssigned || task.date_assigned,
+        assignedTo: task.assignedTo || task.assigned_to,
+        relatedTo: task.relatedTo || task.related_to,
+      }));
+
+      formatted.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+      setTasks(formatted);
     } catch (error) {
       console.error("Failed to load tasks:", error);
     } finally {
@@ -51,54 +69,104 @@ export default function AdminTask() {
     }
   };
 
-  const handleSaveTask = async (newTask) => {
+  const fetchUsers = async () => {
     try {
-      if (selectedTask) {
-        // Update existing
-        const res = await api.put(`/tasks/${selectedTask.id}`, newTask);
-        setTasks((prev) =>
-          prev.map((t) => (t.id === selectedTask.id ? res.data : t))
-        );
-      } else {
-        // Create new
-        const res = await api.post("/tasks/createtask", newTask);
-        setTasks((prev) => [...prev, res.data]);
-      }
-      setShowModal(false);
-      setSelectedTask(null);
-      setFormData({
-        title: "",
-        description: "",
-        type: "Call",
-        priority: "Low",
-        status: "To Do",
-        dueDate: "",
-        assignedTo: "",
-        relatedTo: "",
-        notes: "",
-      });
+      const res = await api.get("/users");
+      setUsers(res.data);
     } catch (error) {
-      console.error("Failed to save task:", error);
-      alert("Failed to save task. Check console for details.");
-    }
-  };
-
-  const handleDeleteTask = async (taskId) => {
-    if (!window.confirm("Are you sure you want to delete this task?")) return;
-    try {
-      await api.delete(`/tasks/${taskId}`);
-      setTasks((prev) => prev.filter((t) => t.id !== taskId));
-    } catch (error) {
-      console.error("Failed to delete task:", error);
+      console.error("Failed to fetch users:", error);
     }
   };
 
   const handleOpenModal = (task = null) => {
     setSelectedTask(task);
+    if (task) {
+      setFormData({
+        title: task.title || "",
+        description: task.description || "",
+        type: task.type || "Call",
+        priority: task.priority || "Low",
+        status: task.status || "To Do",
+        dueDate: task.dueDate || "",
+        assignedTo: task.assignedTo || "",
+        relatedTo: task.relatedTo || "",
+        notes: task.notes || "",
+      });
+    } else {
+      resetForm();
+    }
     setShowModal(true);
   };
 
-  // Apply filters
+  const handleSaveTask = (newTask) => {
+    setFormData(newTask);
+    setUpdateConfirmOpen(true);
+  };
+
+  const handleConfirmUpdate = async () => {
+    try {
+      const payload = {
+        title: formData.title,
+        description: formData.description,
+        type: formData.type,
+        priority: formData.priority,
+        status: formData.status,
+        due_date: formData.dueDate || null,
+        assigned_to: formData.assignedTo || null,
+        related_to: formData.relatedTo || null,
+        notes: formData.notes || "",
+      };
+
+      if (selectedTask && selectedTask.id) {
+        await api.put(`/tasks/${selectedTask.id}`, payload);
+      } else {
+        await api.post("/tasks/createtask", payload);
+      }
+
+      await fetchTasks();
+      resetForm();
+      setSelectedTask(null);
+      setShowModal(false);
+      setUpdateConfirmOpen(false);
+    } catch (error) {
+      console.error(
+        "Failed to save task:",
+        error.response?.data || error.message
+      );
+      alert("Failed to save task. Check console for details.");
+    }
+  };
+
+  const resetForm = () => {
+    setFormData({
+      title: "",
+      description: "",
+      type: "Call",
+      priority: "Low",
+      status: "To Do",
+      dueDate: "",
+      assignedTo: "",
+      relatedTo: "",
+      notes: "",
+    });
+  };
+
+  const handleDeleteTask = (task) => {
+    setTaskToDelete(task);
+    setDeleteConfirmOpen(true);
+  };
+
+  const confirmDeleteTask = async () => {
+    try {
+      await api.delete(`/tasks/${taskToDelete.id}`);
+      await fetchTasks();
+      setTaskToDelete(null);
+      setDeleteConfirmOpen(false);
+    } catch (error) {
+      console.error("Failed to delete task:", error);
+    }
+  };
+
   const filteredTasks = tasks.filter((task) => {
     const matchesSearch =
       task.title.toLowerCase().includes(search.toLowerCase()) ||
@@ -108,9 +176,11 @@ export default function AdminTask() {
       filterStatus === "All" || task.status === filterStatus;
     const matchesPriority =
       filterPriority === "All" || task.priority === filterPriority;
-    const matchesUser = filterUser === "All" || task.assigned_to === filterUser;
+    const matchesUser = filterUser === "All" || task.assignedTo === filterUser;
     return matchesSearch && matchesStatus && matchesPriority && matchesUser;
   });
+
+  const today = new Date();
 
   const summaryCards = [
     {
@@ -133,7 +203,10 @@ export default function AdminTask() {
     },
     {
       label: "Overdue",
-      count: 0,
+      count: tasks.filter(
+        (t) =>
+          t.dueDate && new Date(t.dueDate) < today && t.status !== "Completed"
+      ).length,
       icon: <FiAlertCircle />,
       color: "border-red-500 text-red-600",
     },
@@ -144,6 +217,11 @@ export default function AdminTask() {
       color: "border-orange-500 text-orange-600",
     },
   ];
+
+  const isTaskOverdue = (task) =>
+    task.dueDate &&
+    new Date(task.dueDate) < today &&
+    task.status !== "Completed";
 
   return (
     <div className="p-8 min-h-screen">
@@ -223,13 +301,12 @@ export default function AdminTask() {
             className="border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-600"
           >
             <option>All</option>
-            {[...new Set(tasks.map((t) => t.assigned_to))].map(
-              (user, index) =>
-                user && (
-                  <option key={index} value={user}>
-                    {user}
-                  </option>
-                )
+            {[...new Set(tasks.map((t) => t.assignedTo).filter(Boolean))].map(
+              (assigned, idx) => (
+                <option key={idx} value={assigned}>
+                  {assigned}
+                </option>
+              )
             )}
           </select>
         </div>
@@ -259,7 +336,6 @@ export default function AdminTask() {
         </button>
       </div>
 
-      {/* Loading */}
       {loading && <p className="text-gray-500">Loading tasks...</p>}
 
       {/* Board View */}
@@ -282,9 +358,16 @@ export default function AdminTask() {
                   .map((task) => (
                     <div
                       key={task.id}
-                      className="border border-gray-100 rounded-lg p-3 bg-gray-50 hover:bg-gray-100 transition cursor-pointer flex justify-between items-center"
+                      className={`border border-gray-100 rounded-lg p-3 transition flex justify-between items-center ${
+                        isTaskOverdue(task)
+                          ? "bg-red-50 hover:bg-red-100"
+                          : "bg-gray-50 hover:bg-gray-100"
+                      }`}
                     >
-                      <div onClick={() => handleOpenModal(task)}>
+                      <div
+                        onClick={() => handleOpenModal(task)}
+                        className="cursor-pointer"
+                      >
                         <p className="font-medium text-gray-800 text-sm">
                           {task.title}
                         </p>
@@ -292,18 +375,35 @@ export default function AdminTask() {
                           Priority: {task.priority}
                         </p>
                         <p className="text-xs text-gray-500 mt-1">
-                          Assigned To: {task.assigned_to}
+                          Assigned To: {task.assignedTo}
                         </p>
-                        <p className="text-xs text-gray-500 mt-1">
-                          Date: {task.date_assigned?.split("T")[0]}
+                        <p className="text-xs mt-1">
+                          Date:{" "}
+                          <span
+                            className={
+                              isTaskOverdue(task)
+                                ? "text-red-600"
+                                : "text-gray-500"
+                            }
+                          >
+                            {task.dateAssigned?.split("T")[0]}
+                          </span>
                         </p>
                       </div>
-                      <button
-                        onClick={() => handleDeleteTask(task.id)}
-                        className="text-red-500 hover:text-red-700"
-                      >
-                        <FiTrash2 />
-                      </button>
+                      <div className="flex items-center gap-3">
+                        <button
+                          onClick={() => handleOpenModal(task)}
+                          className="text-blue-500 hover:text-blue-700"
+                        >
+                          <FiEdit2 />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteTask(task)}
+                          className="text-red-500 hover:text-red-700"
+                        >
+                          <FiTrash2 />
+                        </button>
+                      </div>
                     </div>
                   ))}
                 {filteredTasks.filter((t) => t.status === col).length === 0 && (
@@ -335,7 +435,9 @@ export default function AdminTask() {
               {filteredTasks.map((task) => (
                 <tr
                   key={task.id}
-                  className="border-b border-gray-100 hover:bg-gray-50"
+                  className={`border-b border-gray-100 hover:bg-gray-50 ${
+                    isTaskOverdue(task) ? "bg-red-50 hover:bg-red-100" : ""
+                  }`}
                 >
                   <td
                     className="py-3 px-4 text-gray-800 text-sm font-medium cursor-pointer"
@@ -350,14 +452,24 @@ export default function AdminTask() {
                     {task.priority}
                   </td>
                   <td className="py-3 px-4 text-sm text-gray-600">
-                    {task.assigned_to}
+                    {task.assignedTo}
                   </td>
-                  <td className="py-3 px-4 text-sm text-gray-600">
-                    {task.date_assigned?.split("T")[0]}
+                  <td
+                    className={`py-3 px-4 text-sm ${
+                      isTaskOverdue(task) ? "text-red-600" : "text-gray-600"
+                    }`}
+                  >
+                    {task.dateAssigned?.split("T")[0]}
                   </td>
-                  <td className="py-3 px-4">
+                  <td className="py-3 px-4 flex items-center gap-3">
                     <button
-                      onClick={() => handleDeleteTask(task.id)}
+                      onClick={() => handleOpenModal(task)}
+                      className="text-blue-500 hover:text-blue-700 flex items-center gap-1"
+                    >
+                      <FiEdit2 /> Edit
+                    </button>
+                    <button
+                      onClick={() => handleDeleteTask(task)}
                       className="text-red-500 hover:text-red-700 flex items-center gap-1"
                     >
                       <FiTrash2 /> Delete
@@ -376,12 +488,128 @@ export default function AdminTask() {
         onClose={() => {
           setShowModal(false);
           setSelectedTask(null);
+          resetForm();
         }}
         onSave={handleSaveTask}
         task={selectedTask}
         setFormData={setFormData}
         formData={formData}
+        users={users}
       />
+
+      {/* Update Confirmation Modal */}
+      <Transition appear show={isUpdateConfirmOpen} as={Fragment}>
+        <Dialog
+          as="div"
+          className="relative z-50"
+          onClose={() => setUpdateConfirmOpen(false)}
+        >
+          <Transition.Child
+            as={Fragment}
+            enter="ease-out duration-200"
+            enterFrom="opacity-0"
+            enterTo="opacity-100"
+            leave="ease-in duration-150"
+            leaveFrom="opacity-100"
+            leaveTo="opacity-0"
+          >
+            <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" />
+          </Transition.Child>
+
+          <div className="fixed inset-0 flex items-center justify-center p-4">
+            <Transition.Child
+              as={Fragment}
+              enter="ease-out duration-200"
+              enterFrom="opacity-0 scale-95"
+              enterTo="opacity-100 scale-100"
+              leave="ease-in duration-150"
+              leaveFrom="opacity-100 scale-100"
+              leaveTo="opacity-0 scale-95"
+            >
+              <Dialog.Panel className="w-full max-w-sm rounded-2xl bg-white shadow-2xl ring-1 ring-gray-100 p-6 text-center transform transition-all">
+                <h3 className="text-lg font-semibold text-gray-900 mb-3">
+                  Confirm Update
+                </h3>
+                <p className="text-gray-600 text-sm mb-6">
+                  Are you sure you want to{" "}
+                  {selectedTask?.id ? "update" : "create"} this task?
+                </p>
+                <div className="flex justify-center gap-3">
+                  <button
+                    onClick={() => setUpdateConfirmOpen(false)}
+                    className="px-4 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 transition"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleConfirmUpdate}
+                    className="px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition"
+                  >
+                    Confirm
+                  </button>
+                </div>
+              </Dialog.Panel>
+            </Transition.Child>
+          </div>
+        </Dialog>
+      </Transition>
+
+      {/* Delete Confirmation Modal */}
+      <Transition appear show={isDeleteConfirmOpen} as={Fragment}>
+        <Dialog
+          as="div"
+          className="relative z-50"
+          onClose={() => setDeleteConfirmOpen(false)}
+        >
+          <Transition.Child
+            as={Fragment}
+            enter="ease-out duration-200"
+            enterFrom="opacity-0"
+            enterTo="opacity-100"
+            leave="ease-in duration-150"
+            leaveFrom="opacity-100"
+            leaveTo="opacity-0"
+          >
+            <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" />
+          </Transition.Child>
+
+          <div className="fixed inset-0 flex items-center justify-center p-4">
+            <Transition.Child
+              as={Fragment}
+              enter="ease-out duration-200"
+              enterFrom="opacity-0 scale-95"
+              enterTo="opacity-100 scale-100"
+              leave="ease-in duration-150"
+              leaveFrom="opacity-100 scale-100"
+              leaveTo="opacity-0 scale-95"
+            >
+              <Dialog.Panel className="w-full max-w-sm rounded-2xl bg-white shadow-2xl ring-1 ring-gray-100 p-6 text-center transform transition-all">
+                <h3 className="text-lg font-semibold text-gray-900 mb-3">
+                  Delete Task
+                </h3>
+                <p className="text-gray-600 text-sm mb-6">
+                  Are you sure you want to delete this task? This action cannot
+                  be undone.
+                </p>
+                <div className="flex justify-center gap-3">
+                  <button
+                    onClick={() => setDeleteConfirmOpen(false)}
+                    className="px-4 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 transition"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={confirmDeleteTask}
+                    className="px-4 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700 transition"
+                  >
+                    Delete
+                  </button>
+                </div>
+              </Dialog.Panel>
+            </Transition.Child>
+          </div>
+        </Dialog>
+      </Transition>
     </div>
   );
 }

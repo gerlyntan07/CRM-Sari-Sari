@@ -1,5 +1,7 @@
 import React from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 // 🔹 Public pages
 import Landing from "./pages/Landing";
@@ -72,6 +74,19 @@ import ManagerUser from "./pages/ManagerUser";
 function App() {
   return (
     <Router>
+      <ToastContainer
+        position="top-right"
+        autoClose={3000}
+        hideProgressBar={false}
+        newestOnTop
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+        theme="colored"
+        className="z-[9999]"
+      />
       <Routes>
         {/* ================= Public Routes ================= */}
         <Route path="/" element={<Landing />} />

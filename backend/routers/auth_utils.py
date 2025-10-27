@@ -19,7 +19,7 @@ def get_db():
 pwd_context = CryptContext(schemes=["argon2"], deprecated="auto")
 
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 60
+ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 * 7  # 7 days
 
 
 def hash_password(password: str) -> str:

@@ -68,7 +68,7 @@ export default function AdminLeads() {
 
   if (selectedLead) {
     return (
-      <AdminLeadsInformation lead={selectedLead} onBack={handleBackToList} />
+      <AdminLeadsInformation lead={selectedLead} setSelectedLead={setSelectedLead} onBack={handleBackToList} fetchLeads={fetchLeads} />
     );
   }
 
@@ -316,6 +316,7 @@ export default function AdminLeads() {
                   type="text"
                   placeholder="09----------"
                   name="work_phone"
+                  maxLength={11}
                   value={leadData.work_phone}
                   onChange={handleLeadChange}
                   className="border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-400 outline-none"
@@ -331,6 +332,7 @@ export default function AdminLeads() {
                   type="text"
                   placeholder="09----------"
                   name="mobile_phone_1"
+                  maxLength={11}
                   value={leadData.mobile_phone_1}
                   onChange={handleLeadChange}
                   className="border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-400 outline-none"
@@ -346,6 +348,7 @@ export default function AdminLeads() {
                   type="text"
                   placeholder="09----------"
                   name="mobile_phone_2"
+                  maxLength={11}
                   value={leadData.mobile_phone_2}
                   onChange={handleLeadChange}
                   className="border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-400 outline-none"

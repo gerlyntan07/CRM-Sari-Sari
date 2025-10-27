@@ -76,9 +76,9 @@ const Login = () => {
         navigate("/admin-dashboard");
       } else if (userRole === "Group Manager") {
         navigate("/group-manager");
-      } else if (userRole === "manager") {
+      } else if (userRole === "Manager") {
         navigate("/manager");
-      } else if (userRole === "marketing") {
+      } else if (userRole === "Marketing") {
         navigate("/marketing");
       } else if (userRole === "Sales") {
         navigate("/sales");

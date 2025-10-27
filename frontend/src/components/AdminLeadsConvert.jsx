@@ -1,103 +1,174 @@
 import React, { useState } from "react";
 import { X, ArrowLeft, Check } from "lucide-react";
-
-// --- Mock data for demo purposes ---
-const initialFormData = {
-  accountName: "Josh Inc.",
-  companyNumber: "09135007323",
-  companyWebsite: "joshenc.com",
-  industry: "Agriculture",
-  billingAddress: "#1 Pilar Las Pinas City",
-  shippingAddress: "#3 BNW ASS-CBN",
-
-  firstName: "Josh",
-  lastName: "Vergara",
-  department: "Administration",
-  title: "CEO",
-  workPhone: "09253677323",
-  email: "josh@joshinc.com",
-  mobile1: "09253677323",
-  mobile2: "0907452874",
-
-  dealName: "Josh Deal",
-  dealAmount: "60.00",
-  stage: "Prospecting",
-  territory: "Cavite",
-  description: "Initial lead conversion deal.",
-  dealTitle: "New Client Agreement",
-};
-
+import api from "../api.js";
 // --- Form Field Component ---
-const FormField = ({ label, value, name, className = "" }) => (
+const FormField = ({ label, value, name, placeholder, readOnly, onChange, className = "" }) => (
+
   <div className={`flex flex-col ${className}`}>
-    <label className="text-xs text-gray-500 mb-1">{label}</label>
+    <label className="text-xs text-gray-700 mb-1">{label}</label>
     <input
       type="text"
       name={name}
-      defaultValue={value}
-      readOnly
+      value={value}
+      onChange={onChange}
+      readOnly={readOnly || false}
+      placeholder={placeholder}
       className="w-full border border-gray-300 p-2 rounded-lg text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none bg-gray-50"
     />
   </div>
 );
 
 // --- Step Components ---
-const AccountStep = ({ data }) => (
+const AccountStep = ({ data, handleAccountChange, setAccountData }) => (
   <div className="space-y-6 p-4">
     <h3 className="text-lg font-semibold text-gray-700">Account Information</h3>
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-      <FormField label="Company Number" name="companyNumber" value={data.companyNumber} />
-      <FormField label="Company Website" name="companyWebsite" value={data.companyWebsite} />
-      <FormField label="Industry" name="industry" value={data.industry} />
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <FormField label="Company Number" name="phone_number" placeholder='09xxxxxxxxx' onChange={handleAccountChange} value={data.phone_number} />
+      <div className={`flex flex-col`}>
+        <label className="text-xs text-gray-700 mb-1">Company Website</label>
+        <input
+          type="url"
+          name='website'
+          value={data.website}
+          onChange={handleAccountChange}
+          className="w-full border border-gray-300 p-2 rounded-lg text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none bg-gray-50"
+        />
+      </div>
+
+      <FormField label="Industry" name="industry" onChange={handleAccountChange} value={data.industry} />
+      <div className="flex flex-col">
+        <label className="text-xs text-gray-700 mb-1">Status</label>
+        <select name="status" onChange={handleAccountChange} value={data.status} className="w-full border border-gray-300 p-2 rounded-lg text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none bg-gray-50">
+          <option value="Prospect">Prospect</option>
+          <option value="Customer">Customer</option>
+          <option value="Partner">Partner</option>
+          <option value="Former">Former</option>
+          <option value="Active">Active</option>
+          <option value="Inactive">Inactive</option>
+        </select>
+      </div>
     </div>
 
-    <FormField label="Billing Address" name="billingAddress" value={data.billingAddress} className="col-span-3" />
-    <FormField label="Shipping Address" name="shippingAddress" value={data.shippingAddress} className="col-span-3" />
+    <FormField label="Billing Address" name="billing_address" onChange={handleAccountChange} value={data.billing_address} className="col-span-3" />
+
+    <div className={`flex flex-col`}>
+    <label className="text-xs text-gray-700 mb-1">Shipping Address 
+      <button 
+      type="button" 
+      onClick={() => setAccountData((prev) => ({
+        ...prev,
+        shipping_address: prev.billing_address
+      }))} 
+      className="ml-2 text-blue-500 hover:underline"
+    >
+      same as billing address
+    </button>
+    </label>
+    <input
+      type="text"
+      name='shipping_address'
+      value={data.shipping_address}
+      onChange={handleAccountChange}      
+      className="w-full border border-gray-300 p-2 rounded-lg text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none bg-gray-50"
+    />
+  </div>    
   </div>
 );
 
-const ContactStep = ({ data }) => (
+const ContactStep = ({ data, handleContactChange }) => (
   <div className="space-y-6 p-4">
     <h3 className="text-lg font-semibold text-gray-700">Contact Information</h3>
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-      <FormField label="First Name" name="firstName" value={data.firstName} />
-      <FormField label="Last Name" name="lastName" value={data.lastName} />
-      <FormField label="Department" name="department" value={data.department} />
-      <FormField label="Title" name="title" value={data.title} />
-      <FormField label="Work Phone" name="workPhone" value={data.workPhone} />
-      <FormField label="Email" name="email" value={data.email} />
-      <FormField label="Mobile Number 1" name="mobile1" value={data.mobile1} />
-      <FormField label="Mobile Number 2" name="mobile2" value={data.mobile2} />
+      <FormField label="First Name" name="first_name" readOnly={true} onChange={handleContactChange} value={data.first_name} />
+      <FormField label="Last Name" name="last_name" readOnly={true} onChange={handleContactChange} value={data.last_name} />
+      <FormField label="Department" name="department" readOnly={true} onChange={handleContactChange} value={data.department} />
+      <FormField label="Title" name="title" readOnly={true} onChange={handleContactChange} value={data.title} />
+      <FormField label="Work Phone" name="work_phone" readOnly={true} onChange={handleContactChange} value={data.work_phone} />
+      <FormField label="Email" name="email" readOnly={true} onChange={handleContactChange} value={data.email} />
+      <FormField label="Mobile Number 1" name="mobile_phone_1" readOnly={true} onChange={handleContactChange} value={data.mobile_phone_1} />
+      <FormField label="Mobile Number 2" name="mobile_phone_2" readOnly={true} onChange={handleContactChange} value={data.mobile_phone_2} />
+
+      <div className="flex flex-col w-full col-span-2">
+        <label className="text-xs text-gray-700 mb-1">Notes</label> 
+        <textarea
+          type="text"
+          name='notes'
+          value={data.notes}
+          onChange={handleContactChange}
+          rows={3}
+          className="w-full border border-gray-300 p-2 rounded-lg text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none bg-gray-50"
+        />
+      </div>
     </div>
   </div>
 );
 
-const DealStep = ({ data }) => (
+const DealStep = ({ data, handleDealChange }) => (
   <div className="space-y-6 p-4">
     <h3 className="text-lg font-semibold text-gray-700">Deal</h3>
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-      <FormField label="Deal Name" name="dealName" value={data.dealName} />
+      <FormField className="col-span-2" label="Deal Name" name="name" onChange={handleDealChange} readOnly={false} value={data.name} />
+    </div>
+
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
       <div className="flex">
-        <FormField label="Deal Amount" name="dealAmount" value={data.dealAmount} className="flex-grow" />
+        <FormField label="Deal Amount" name="amount" onChange={handleDealChange} value={data.amount} className="flex-grow" />
         <div className="flex flex-col justify-end ml-1">
           <span className="text-sm font-medium text-gray-600 border border-gray-300 bg-gray-100 p-2 rounded-r-lg h-10 flex items-center">
             PHP
           </span>
         </div>
       </div>
-      <FormField label="Stage" name="stage" value={data.stage} />
-      <FormField label="Territory" name="territory" value={data.territory} />
+
+      <div className="flex flex-col">
+        <label className="text-xs text-gray-700 mb-1">Status</label>
+        <select name="stage" onChange={handleDealChange} value={data.stage} className="w-full border border-gray-300 p-2 rounded-lg text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none bg-gray-50">
+          <option value="PROSPECTING">PROSPECTING</option>
+          <option value="PROPOSAL">PROPOSAL</option>
+          <option value="QUALIFICATION">QUALIFICATION</option>
+          <option value="NEGOTIATION">NEGOTIATION</option>
+          <option value="CLOSED_WON">CLOSED_WON</option>
+          <option value="CLOSED_LOST">CLOSED_LOST</option>
+        </select>
+      </div>
     </div>
 
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-      <FormField label="Description" name="description" value={data.description} />
-      <FormField label="Title" name="dealTitle" value={data.dealTitle} />
+
+      <div className="flex flex-col w-full col-span-2">
+        <label className="text-xs text-gray-700 mb-1">Description</label>
+        <textarea
+          type="text"
+          name='description'
+          value={data.description}
+          onChange={handleDealChange}
+          rows={3}
+          className="w-full border border-gray-300 p-2 rounded-lg text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none bg-gray-50"
+        />
+      </div>
     </div>
   </div>
 );
 
 // --- Main Component (Fixed-size Popup) ---
-export default function AdminLeadsConvert({ isOpen, onClose }) {
+export default function AdminLeadsConvert({ isOpen, onClose, lead, accountData, contactData, dealData, setAccountData, setContactData, setDealData }) {
+  console.log(`Fetch lead from leads info`, lead)
+
+  const handleAccountChange = (e) => {
+    const { name, value } = e.target;
+    setAccountData((prev) => ({ ...prev, [name]: value }));
+  }
+
+  const handleContactChange = (e) => {
+    const { name, value } = e.target;
+    setContactData((prev) => ({ ...prev, [name]: value }));
+  }
+
+  const handleDealChange = (e) => {
+    const { name, value } = e.target;
+    setDealData((prev) => ({ ...prev, [name]: value }));
+  }
+
   const [currentStep, setCurrentStep] = useState(1);
   const totalSteps = 3;
 
@@ -112,6 +183,30 @@ export default function AdminLeadsConvert({ isOpen, onClose }) {
     }
   };
 
+  const handleSubmit = async(e) => {
+    e.preventDefault();
+
+    console.log("Submitting data:", { accountData, contactData, dealData });
+
+    try{
+      const res = await api.post(`/accounts/convertedLead`, accountData);
+      console.log("Conversion successful:", res.data);
+      const accInsertId = res.data.id;
+      console.log(`insert id: `, accInsertId);
+
+      const finalContactData = {
+        ...contactData,
+        account_id: accInsertId
+      }
+      const res1 = await api.post(`/contacts/convertedLead`, finalContactData);
+      console.log("Contact Creation successful:", res1.data);
+      const contactInsertId =  res1.data.id;
+      console.log(`contact insert id: `, contactInsertId);
+    } catch (error) {
+      console.error("Error during conversion:", error);
+    }
+  }
+
   const prevStep = () => {
     if (currentStep > 1) setCurrentStep(currentStep - 1);
   };
@@ -125,11 +220,11 @@ export default function AdminLeadsConvert({ isOpen, onClose }) {
   const renderStepContent = () => {
     switch (currentStep) {
       case 1:
-        return <AccountStep data={initialFormData} />;
+        return <AccountStep data={accountData} handleAccountChange={handleAccountChange} setAccountData={setAccountData} />;
       case 2:
-        return <ContactStep data={initialFormData} />;
+        return <ContactStep data={contactData} handleContactChange={handleContactChange} />;
       case 3:
-        return <DealStep data={initialFormData} />;
+        return <DealStep data={dealData} handleDealChange={handleDealChange} />;
       default:
         return null;
     }
@@ -143,7 +238,7 @@ export default function AdminLeadsConvert({ isOpen, onClose }) {
         <div className="p-6 border-b border-gray-200 flex justify-between items-start">
           <div>
             <p className="text-xs text-gray-500 uppercase tracking-wider">Convert Lead</p>
-            <h1 className="text-2xl font-bold text-gray-900 mt-1">{initialFormData.accountName}</h1>
+            <h1 className="text-2xl font-bold text-gray-900 mt-1">meow</h1>
           </div>
           <button
             onClick={onClose} // removed handleCancel
@@ -159,11 +254,10 @@ export default function AdminLeadsConvert({ isOpen, onClose }) {
             <button
               key={tab.id}
               onClick={() => setCurrentStep(tab.id)}
-              className={`flex-1 py-3 px-6 text-sm font-medium transition ${
-                currentStep === tab.id
-                  ? "bg-white text-gray-800 border-b-2 border-indigo-600"
-                  : "bg-gray-600 text-white hover:bg-gray-700"
-              }`}
+              className={`flex-1 py-3 px-6 text-sm font-medium transition ${currentStep === tab.id
+                ? "bg-white text-gray-800 border-b-2 border-indigo-600"
+                : "bg-gray-600 text-white hover:bg-gray-700"
+                }`}
             >
               {tab.name}
             </button>
@@ -192,7 +286,7 @@ export default function AdminLeadsConvert({ isOpen, onClose }) {
             </button>
           ) : (
             <button
-              onClick={nextStep}
+              onClick={handleSubmit}
               className="px-5 py-2 text-white bg-gray-900 rounded-xl hover:bg-gray-800 transition"
             >
               Convert

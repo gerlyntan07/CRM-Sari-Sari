@@ -1,10 +1,51 @@
-import React, { useState }  from "react";
+import React, { useState } from "react";
 import { HiArrowLeft } from "react-icons/hi";
 import AdminLeadsConvert from "./AdminLeadsConvert";
+import { toast } from 'react-toastify';
 
 
 export default function AdminLeadsInformation({ lead, onBack }) {
-   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [accountData, setAccountData] = useState({
+    name: lead.company_name || "",
+    website: '',
+    phone_number: '',
+    billing_address: '',
+    shipping_address: '',
+    industry: '',
+    status: 'Prospect',
+    territory_id: lead.assigned_to.territory?.id || null,
+    assigned_to: lead.assigned_to?.id || null,
+    created_by: lead.creator?.id || null,
+  });
+
+  const [contactData, setContactData] = useState({
+    last_name: lead.last_name || "",
+    first_name: lead.first_name || "",
+    account_id: null,
+    title: lead.title || "",
+    department: lead.department || "",
+    email: lead.email || "",
+    work_phone: lead.work_phone || "",
+    mobile_phone_1: lead.mobile_phone_1 || "",
+    mobile_phone_2: lead.mobile_phone_2 || "",
+    notes: '',
+    assigned_to: lead.assigned_to?.id || null,
+    created_by: lead.creator?.id || null,    
+  });
+
+  const [dealData, setDealData] = useState({
+    name: 'Converted from Lead',
+    account_id: null,
+    primary_contact_id: null,
+    stage: 'Prospecting',
+    amount: 0.0,
+    currency: 'PHP',
+    description: 'Initial deal from lead conversion.',
+    assigned_to: lead.assigned_to?.id || null,
+    created_by: lead.creator?.id || null,
+  });  
+
   if (!lead) return null;
 
   return (
@@ -27,7 +68,13 @@ export default function AdminLeadsInformation({ lead, onBack }) {
           <div className="flex flex-wrap items-center ml-0 sm:ml-1">
             {/* Convert Button */}
             <button
-              onClick={() => setIsModalOpen(true)}
+              onClick={() => {
+                if (lead.status === "Qualified") {
+                  setIsModalOpen(true);
+                } else {
+                  toast.warn("Cannot convert lead. Only leads with 'Qualified' status can be converted.")
+                }
+              }}
               className="bg-green-600 hover:bg-green-700 text-white px-3 sm:px-5 py-1.5 sm:py-2 rounded-lg font-medium text-xs sm:text-sm"
             >
               Convert
@@ -161,12 +208,60 @@ export default function AdminLeadsInformation({ lead, onBack }) {
           </div>
         </div>
       </div>
-    
-          {/* Convert Lead Popup */}
-          <AdminLeadsConvert
-            isOpen={isModalOpen}
-            onClose={() => setIsModalOpen(false)}
-          />
-        </div>
+
+      {/* Convert Lead Popup */}
+      <AdminLeadsConvert
+        isOpen={isModalOpen}
+        onClose={() => {
+          setIsModalOpen(false);
+          setAccountData({
+            name: lead.company_name || "",
+            website: '',
+            phone_number: '',
+            billing_address: '',
+            shipping_address: '',
+            industry: '',
+            status: 'Prospect',
+            territory_id: lead.assigned_to.territory_id?.id || null,
+            assigned_to: lead.assigned_to?.id || null,
+            created_by: lead.creator?.id || null,
+          });
+
+          setContactData({
+            last_name: lead.last_name || "",
+            first_name: lead.first_name || "",
+            account_id: null,
+            title: lead.title || "",
+            department: lead.department || "",
+            email: lead.email || "",
+            work_phone: lead.work_phone || "",
+            mobile_phone_1: lead.mobile_phone_1 || "",
+            mobile_phone_2: lead.mobile_phone_2 || "",
+            notes: lead.notes || "",
+            assigned_to: lead.assigned_to?.id || null,
+            created_by: lead.creator?.id || null,
+          });
+
+          setDealData({
+            name: 'Converted from Lead',
+            account_id: null,
+            primary_contact_id: null,
+            stage: 'Prospecting',
+            amount: 0.0,
+            currency: 'PHP',
+            description: 'Initial deal from lead conversion.',
+            assigned_to: lead.assigned_to?.id || null,
+            created_by: lead.creator?.id || null,
+          });
+        }}
+        lead={lead}
+        accountData={accountData}
+        contactData={contactData}
+        dealData={dealData}
+        setAccountData={setAccountData}
+        setContactData={setContactData}
+        setDealData={setDealData}
+      />
+    </div>
   );
 }

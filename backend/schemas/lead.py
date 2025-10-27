@@ -2,7 +2,6 @@
 from pydantic import BaseModel, HttpUrl, EmailStr
 from typing import Optional
 from datetime import datetime
-from .auth import UserBase
 
 class LeadBase(BaseModel):    
     first_name: str
@@ -44,6 +43,14 @@ class UserWithTerritories(BaseModel):
 
     class Config:
         orm_mode = True
+
+class UserBase(BaseModel):
+    id: int
+    first_name: str
+    last_name: str
+    email: EmailStr
+    role: str
+    phone_number: Optional[str] = None
 
 class LeadResponse(LeadBase):
     id: int    

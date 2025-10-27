@@ -24,5 +24,28 @@ dist-ssr
 *.sw?
 
 # Environment variables
+venv/
+.venv/
+pc_venv/
+.pc_venv/
+dv_venv_311/
+.dv_venv_311/
 .env
 .env.*
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Distribution / packaging
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# Production build
+frontend/dist/
+frontend/.vite/
+frontend/build/
+frontend/.cache/

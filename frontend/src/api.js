@@ -28,8 +28,8 @@ api.interceptors.response.use(
   (error) => {
     if (error.response?.status === 401) {
       console.warn("⚠️ Unauthorized — possible expired token or not logged in.");
-      // Optional: redirect to login page or show toast
-      // window.location.href = "/login";
+      localStorage.clear();
+      window.location.href = "/login";
     }
     return Promise.reject(error);
   }

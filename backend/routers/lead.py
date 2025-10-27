@@ -85,3 +85,32 @@ def create_lead(
     )
 
     return new_lead
+
+@router.put("/convert/{lead_id}", response_model=LeadResponse)
+def convert_lead(
+    lead_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    request: Request = None
+):
+    lead = db.query(Lead).filter(Lead.id == lead_id).first()
+    if not lead:
+        raise HTTPException(status_code=404, detail="Lead not found")
+
+    lead.status = 'Converted'
+    db.commit()
+    db.refresh(lead)
+
+    new_data = serialize_instance(lead)
+
+    create_audit_log(
+        db=db,
+        current_user=current_user,
+        instance=lead,
+        action="UPDATE",
+        request=request,
+        new_data=new_data,
+        custom_message=f"converted lead '{lead.first_name} {lead.last_name}'"
+    )
+
+    return lead

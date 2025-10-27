@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { X, ArrowLeft, Check } from "lucide-react";
 import api from "../api.js";
+import { toast } from "react-toastify";
 // --- Form Field Component ---
 const FormField = ({ label, value, name, placeholder, readOnly, onChange, className = "" }) => (
 
@@ -151,7 +152,7 @@ const DealStep = ({ data, handleDealChange }) => (
 );
 
 // --- Main Component (Fixed-size Popup) ---
-export default function AdminLeadsConvert({ isOpen, onClose, lead, accountData, contactData, dealData, setAccountData, setContactData, setDealData }) {
+export default function AdminLeadsConvert({ setSelectedLead, fetchLeads, isOpen, onClose, lead, accountData, contactData, dealData, setAccountData, setContactData, setDealData }) {
   console.log(`Fetch lead from leads info`, lead)
 
   const handleAccountChange = (e) => {
@@ -202,6 +203,28 @@ export default function AdminLeadsConvert({ isOpen, onClose, lead, accountData, 
       console.log("Contact Creation successful:", res1.data);
       const contactInsertId =  res1.data.id;
       console.log(`contact insert id: `, contactInsertId);
+
+      const finalDealData = {
+        ...dealData,
+        account_id: accInsertId,
+        primary_contact_id: contactInsertId
+      }
+      const res2 =  await api.post(`/deals/convertedLead`, finalDealData);
+      console.log("Deal Creation successful:", res2.data);            
+
+      const res3 = await api.put(`/leads/convert/${lead.id}`);
+      console.log("Lead conversion status updated:", res3.data);
+
+      if (setSelectedLead) {
+  setSelectedLead(prev => ({
+    ...prev,
+    status: res3.data.status
+  }));
+}
+
+      fetchLeads(); // Refresh the leads list after conversion
+      toast.success("Lead converted successfully!");
+      onClose();
     } catch (error) {
       console.error("Error during conversion:", error);
     }

@@ -10,7 +10,7 @@ class UserBase(BaseModel):
     email: EmailStr
     role: str
     phone_number: Optional[str] = None
-
+    
 
 # ✅ For creating a new user
 class UserCreate(UserBase):

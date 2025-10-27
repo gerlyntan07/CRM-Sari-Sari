@@ -15,7 +15,7 @@ router = APIRouter(
 )
 
 @router.post("/convertedLead", response_model=ContactResponse, status_code=status.HTTP_201_CREATED)
-def create_lead(
+def create_contact(
     data: ContactBase,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),

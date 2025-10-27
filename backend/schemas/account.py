@@ -1,4 +1,4 @@
-# backend/schemas/auth.py
+# backend/schemas/account.py
 from pydantic import BaseModel, HttpUrl, EmailStr
 from typing import Optional
 from datetime import datetime

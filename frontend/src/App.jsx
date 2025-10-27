@@ -69,6 +69,11 @@ import ManagerTask from "./pages/ManagerTask";
 import ManagerMeetings from "./pages/ManagerMeetings";
 import ManagerUser from "./pages/ManagerUser";
 
+// 🔹 Marketing layout + pages
+import MarketingPanel from "./components/MarketingPanel";
+import MarketingDashboard from "./pages/MarketingDashboard";
+
+
 
 
 function App() {
@@ -110,11 +115,11 @@ function App() {
           <Route path="deals" element={<AdminDeals />} />
           <Route path="deals/info" element={<AdminDealsInformation />} />
           <Route path="deals/quickaction" element={<AdminDealsQuickAction />} />
-          <Route path="tasks" element={<AdminTask/>}/>
-          <Route path="territory" element={<AdminTerritory/>}/>
-          <Route path="calls" element={<AdminCalls/>}/>
-          <Route path="meetings" element={<AdminMeeting/>}/>
-           <Route path="leads/convert" element={<AdminLeadsConvert/>} />
+          <Route path="tasks" element={<AdminTask />} />
+          <Route path="territory" element={<AdminTerritory />} />
+          <Route path="calls" element={<AdminCalls />} />
+          <Route path="meetings" element={<AdminMeeting />} />
+          <Route path="leads/convert" element={<AdminLeadsConvert />} />
 
         </Route>
 
@@ -122,11 +127,11 @@ function App() {
         <Route path="/sales" element={<SalesPanel />}>
           <Route index element={<Navigate to="overview" replace />} />
           <Route path="overview" element={<SalesOverview />} />
-          <Route path="accounts" element={<SalesAccounts/>}/>
-          <Route path="contacts" element={<SalesContacts/>}/>
-           <Route path="leads" element={<SalesLeads />} />
-            <Route path="leads/info" element={<SalesLeadsInformation />} />
-            <Route path="leads/convert" element={<SalesLeadsConvert/>} />\
+          <Route path="accounts" element={<SalesAccounts />} />
+          <Route path="contacts" element={<SalesContacts />} />
+          <Route path="leads" element={<SalesLeads />} />
+          <Route path="leads/info" element={<SalesLeadsInformation />} />
+          <Route path="leads/convert" element={<SalesLeadsConvert />} />\
           <Route path="deals" element={<SalesDeals />} />
           <Route path="deals/info" element={<SalesDealsInformation />} />
           <Route path="deals/quickaction" element={<SalesDealsQuickAction />} />
@@ -137,9 +142,9 @@ function App() {
             <Route index element={<Navigate to="mytasks" replace />} />
             <Route path="activities" element={<SalesActivities />} />
             <Route path="mytasks" element={<SalesMyTask />} />
-            <Route path="pipeline" element={<SalesPipeline/>}/>
-            <Route path="performance" element={<SalesPerformance/>}/> 
-           
+            <Route path="pipeline" element={<SalesPipeline />} />
+            <Route path="performance" element={<SalesPerformance />} />
+
           </Route>
         </Route>
 
@@ -159,10 +164,20 @@ function App() {
           <Route path="meetings" element={<ManagerMeetings />} />
           <Route path="audit" element={<ManagerAudit />} />
           <Route path="calls" element={<ManagerCalls />} />
-          <Route path="tasks" element={<ManagerTask/>}/>
-          <Route path="users" element={<ManagerUser/>}/>
-          <Route path="leads/convert" element={<ManagerLeadsConvert/>} />
+          <Route path="tasks" element={<ManagerTask />} />
+          <Route path="users" element={<ManagerUser />} />
+          <Route path="leads/convert" element={<ManagerLeadsConvert />} />
 
+        </Route>
+
+        <Route>
+          <Route path="/marketing" element={<MarketingPanel />}>
+            <Route index element={<Navigate to="dashboard" replace />} />
+            <Route path="dashboard" element={<MarketingDashboard />} />
+
+
+
+          </Route>
         </Route>
       </Routes>
     </Router>

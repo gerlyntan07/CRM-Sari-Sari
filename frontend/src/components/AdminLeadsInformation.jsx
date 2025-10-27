@@ -4,7 +4,7 @@ import AdminLeadsConvert from "./AdminLeadsConvert";
 import { toast } from 'react-toastify';
 
 
-export default function AdminLeadsInformation({ lead, onBack }) {
+export default function AdminLeadsInformation({ lead, onBack, fetchLeads }) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [accountData, setAccountData] = useState({
     name: lead.company_name || "",
@@ -45,6 +45,8 @@ export default function AdminLeadsInformation({ lead, onBack }) {
     assigned_to: lead.assigned_to?.id || null,
     created_by: lead.creator?.id || null,
   });  
+  const [selectedLead, setSelectedLead] = useState(null);
+  const handleLeadClick = (lead) => setSelectedLead(lead);
 
   if (!lead) return null;
 
@@ -237,7 +239,7 @@ export default function AdminLeadsInformation({ lead, onBack }) {
             work_phone: lead.work_phone || "",
             mobile_phone_1: lead.mobile_phone_1 || "",
             mobile_phone_2: lead.mobile_phone_2 || "",
-            notes: lead.notes || "",
+            notes: "",
             assigned_to: lead.assigned_to?.id || null,
             created_by: lead.creator?.id || null,
           });
@@ -261,6 +263,9 @@ export default function AdminLeadsInformation({ lead, onBack }) {
         setAccountData={setAccountData}
         setContactData={setContactData}
         setDealData={setDealData}
+        fetchLeads={fetchLeads}
+        handleLeadClick={handleLeadClick}
+        setSelectedLead={setSelectedLead}
       />
     </div>
   );

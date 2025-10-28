@@ -75,6 +75,25 @@ import MarketingDashboard from "./pages/MarketingDashboard";
 
 
 
+// 🔹 Team Manager layout + pages
+import TManagerPanel from "./components/TManagerPanel";
+import TManagerDashboard from "./pages/TManagerDashboard";
+import TManagerAccounts from "./pages/TManagerAccounts";
+import TManagerContacts from "./pages/TManagerContacts";
+import TManagerLeads from "./pages/TManagerLeads";
+import TManagerLeadsInformation from "./components/TManagerLeadsInformation";
+import TManagerLeadsConvert from "./components/TManagerLeadsConvert";
+import TManagerDeals from "./pages/TManagerDeals";
+import TManagerDealsInformation from "./components/TManagerDealsInformation";
+import TManagerDealsQuickAction from "./components/TManagerDealsQuickAction";
+import TManagerQuotes from "./pages/TManagerQuotes";
+import TManagerTargets from "./pages/TManagerTargets";
+import TManagerTask from "./pages/TManagerTask";
+import TManagerMeetings from "./pages/TManagerMeetings";
+import TManagerCalls from "./pages/TManagerCalls";
+import TManagerAudit from "./pages/TManagerAudit";
+import TManagerUser from "./pages/TManagerUser";
+
 
 function App() {
   return (
@@ -131,7 +150,7 @@ function App() {
           <Route path="contacts" element={<SalesContacts />} />
           <Route path="leads" element={<SalesLeads />} />
           <Route path="leads/info" element={<SalesLeadsInformation />} />
-          <Route path="leads/convert" element={<SalesLeadsConvert />} />\
+          <Route path="leads/convert" element={<SalesLeadsConvert />} />
           <Route path="deals" element={<SalesDeals />} />
           <Route path="deals/info" element={<SalesDealsInformation />} />
           <Route path="deals/quickaction" element={<SalesDealsQuickAction />} />
@@ -156,6 +175,7 @@ function App() {
           <Route path="contacts" element={<ManagerContacts />} />
           <Route path="leads" element={<ManagerLeads />} />
           <Route path="leads/info" element={<ManagerLeadsInformation />} />
+           <Route path="leads/convert" element={<ManagerLeadsConvert />} />
           <Route path="deals" element={<ManagerDeals />} />
           <Route path="deals/info" element={<ManagerDealsInformation />} />
           <Route path="deals/quickaction" element={<ManagerDealsQuickAction />} />
@@ -166,7 +186,7 @@ function App() {
           <Route path="calls" element={<ManagerCalls />} />
           <Route path="tasks" element={<ManagerTask />} />
           <Route path="users" element={<ManagerUser />} />
-          <Route path="leads/convert" element={<ManagerLeadsConvert />} />
+         
 
         </Route>
 
@@ -174,11 +194,33 @@ function App() {
           <Route path="/marketing" element={<MarketingPanel />}>
             <Route index element={<Navigate to="dashboard" replace />} />
             <Route path="dashboard" element={<MarketingDashboard />} />
-
-
-
+            <Route path="leads" element={<TManagerLeads />} />
+          <Route path="leads/info" element={<TManagerLeadsInformation />} />
           </Route>
         </Route>
+
+
+         {/* ================= Team Manager Layout ================= */}
+        <Route path="/group-manager" element={<TManagerPanel />}>
+          <Route index element={<Navigate to="dashboard" replace />} />
+          <Route path="dashboard" element={<TManagerDashboard />} />
+          <Route path="accounts" element={<TManagerAccounts />} />
+          <Route path="contacts" element={<TManagerContacts />} />
+          <Route path="leads" element={<TManagerLeads />} />
+          <Route path="leads/info" element={<TManagerLeadsInformation />} />
+          <Route path="leads/convert" element={<TManagerLeadsConvert />} />
+          <Route path="deals" element={<TManagerDeals />} />
+          <Route path="deals/info" element={<TManagerDealsInformation />} />
+          <Route path="deals/quickaction" element={<TManagerDealsQuickAction />} />
+          <Route path="quotes" element={<TManagerQuotes />} />
+          <Route path="targets" element={<TManagerTargets />} />
+          <Route path="tasks" element={<TManagerTask />} />
+          <Route path="meetings" element={<TManagerMeetings />} />
+          <Route path="calls" element={<TManagerCalls />} />
+          <Route path="audit" element={<TManagerAudit />} /> 
+          <Route path="users" element={<TManagerUser />} />
+        
+            </Route>
       </Routes>
     </Router>
   );

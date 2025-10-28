@@ -55,6 +55,8 @@ class Deal(Base):
     contact = relationship("Contact", back_populates="deals", foreign_keys=[primary_contact_id])
     assigned_deals = relationship("User", back_populates="deals", foreign_keys=[assigned_to])
     deal_creator = relationship("User", back_populates="created_deals", foreign_keys=[created_by])
+    meetings = relationship("Meeting", back_populates="deal", cascade="all, delete-orphan")
+    tasks = relationship("Task", back_populates="deal", cascade="all, delete-orphan")
 
     def generate_deal_id(self, year_prefix: str = None):
         """Generates a unique deal ID like D25-00001"""

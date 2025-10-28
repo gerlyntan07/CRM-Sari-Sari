@@ -28,3 +28,5 @@ class Contact(Base):
     contact_creator = relationship("User", back_populates="created_contact", foreign_keys=[created_by])
 
     deals = relationship("Deal", back_populates="contact", cascade="all, delete-orphan")
+    meetings = relationship("Meeting", back_populates="contact", cascade="all, delete-orphan")
+    tasks = relationship("Task", back_populates="contact", cascade="all, delete-orphan")

@@ -51,3 +51,9 @@ class User(Base):
     
     tasks_assigned = relationship("Task", back_populates="assigned_user")
 
+    meetings_created = relationship("Meeting", back_populates="meet_creator", foreign_keys="[Meeting.created_by]", cascade="all, delete-orphan")
+    meetings_assigned = relationship("Meeting", back_populates="meet_assign_to", foreign_keys="[Meeting.assigned_to]", cascade="all, delete-orphan")
+
+    tasks_created = relationship("Task", back_populates="task_creator", foreign_keys="[Task.created_by]", cascade="all, delete-orphan")
+    tasks_assigned = relationship("Task", back_populates="task_assign_to", foreign_keys="[Task.assigned_to]", cascade="all, delete-orphan")
+

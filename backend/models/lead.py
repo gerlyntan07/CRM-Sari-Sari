@@ -38,3 +38,5 @@ class Lead(Base):
 
     assigned_to = relationship("User", back_populates="leads", foreign_keys=[lead_owner])
     creator = relationship("User", back_populates="created_leads", foreign_keys=[created_by])
+    meetings = relationship("Meeting", back_populates="lead", cascade="all, delete-orphan")
+    tasks = relationship("Task", back_populates="lead", cascade="all, delete-orphan")

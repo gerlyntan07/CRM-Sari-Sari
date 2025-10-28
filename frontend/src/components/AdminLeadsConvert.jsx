@@ -2,6 +2,15 @@ import React, { useState } from "react";
 import { X, ArrowLeft, Check } from "lucide-react";
 import api from "../api.js";
 import { toast } from "react-toastify";
+import * as countryCodesList from "country-codes-list";
+
+const allCountries = countryCodesList.all();
+
+// Create an array like [{ code: "+63", name: "Philippines" }, ...]
+const COUNTRY_CODES = allCountries.map(country => ({
+  code: `+${country.countryCallingCode}`,
+  name: country.countryCode
+}));
 // --- Form Field Component ---
 const FormField = ({ label, value, name, placeholder, readOnly, onChange, className = "" }) => (
 
@@ -24,7 +33,26 @@ const AccountStep = ({ data, handleAccountChange, setAccountData }) => (
   <div className="space-y-6 p-4">
     <h3 className="text-lg font-semibold text-gray-700">Account Information</h3>
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-      <FormField label="Company Number" name="phone_number" placeholder='09xxxxxxxxx' onChange={handleAccountChange} value={data.phone_number} />
+      {/* <FormField label="Company Number" name="phone_number" placeholder='09xxxxxxxxx' onChange={handleAccountChange} value={data.phone_number} /> */}
+
+      <div className={`flex flex-col`}>
+        <label className="text-xs text-gray-700 mb-1">Company Number</label>
+
+        <div className="w-full border border-gray-300 rounded-lg text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none bg-gray-50 gap-3 flex flex-row">
+          <select name="countryCode" value={data.countryCode} onChange={handleAccountChange} className="outline-none cursor-pointer py-2 border-r border-gray-400 w-20">
+            {COUNTRY_CODES.map((c) => <option key={c.code} value={c.code}>{c.code}</option>)}
+          </select>
+          <input
+            type="text"
+            name='phone_number'
+            value={data.phone_number}
+            onChange={handleAccountChange}
+            placeholder='9xxxxxxxxx'
+            className="w-full outline-none"
+          />
+        </div>
+      </div>
+
       <div className={`flex flex-col`}>
         <label className="text-xs text-gray-700 mb-1">Company Website</label>
         <input
@@ -53,26 +81,26 @@ const AccountStep = ({ data, handleAccountChange, setAccountData }) => (
     <FormField label="Billing Address" name="billing_address" onChange={handleAccountChange} value={data.billing_address} className="col-span-3" />
 
     <div className={`flex flex-col`}>
-    <label className="text-xs text-gray-700 mb-1">Shipping Address 
-      <button 
-      type="button" 
-      onClick={() => setAccountData((prev) => ({
-        ...prev,
-        shipping_address: prev.billing_address
-      }))} 
-      className="ml-2 text-blue-500 hover:underline"
-    >
-      same as billing address
-    </button>
-    </label>
-    <input
-      type="text"
-      name='shipping_address'
-      value={data.shipping_address}
-      onChange={handleAccountChange}      
-      className="w-full border border-gray-300 p-2 rounded-lg text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none bg-gray-50"
-    />
-  </div>    
+      <label className="text-xs text-gray-700 mb-1">Shipping Address
+        <button
+          type="button"
+          onClick={() => setAccountData((prev) => ({
+            ...prev,
+            shipping_address: prev.billing_address
+          }))}
+          className="ml-2 text-blue-500 hover:underline"
+        >
+          same as billing address
+        </button>
+      </label>
+      <input
+        type="text"
+        name='shipping_address'
+        value={data.shipping_address}
+        onChange={handleAccountChange}
+        className="w-full border border-gray-300 p-2 rounded-lg text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none bg-gray-50"
+      />
+    </div>
   </div>
 );
 
@@ -90,7 +118,7 @@ const ContactStep = ({ data, handleContactChange }) => (
       <FormField label="Mobile Number 2" name="mobile_phone_2" readOnly={true} onChange={handleContactChange} value={data.mobile_phone_2} />
 
       <div className="flex flex-col w-full col-span-2">
-        <label className="text-xs text-gray-700 mb-1">Notes</label> 
+        <label className="text-xs text-gray-700 mb-1">Notes</label>
         <textarea
           type="text"
           name='notes'
@@ -153,7 +181,6 @@ const DealStep = ({ data, handleDealChange }) => (
 
 // --- Main Component (Fixed-size Popup) ---
 export default function AdminLeadsConvert({ setSelectedLead, fetchLeads, isOpen, onClose, lead, accountData, contactData, dealData, setAccountData, setContactData, setDealData }) {
-  console.log(`Fetch lead from leads info`, lead)
 
   const handleAccountChange = (e) => {
     const { name, value } = e.target;
@@ -184,43 +211,39 @@ export default function AdminLeadsConvert({ setSelectedLead, fetchLeads, isOpen,
     }
   };
 
-  const handleSubmit = async(e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
-    console.log("Submitting data:", { accountData, contactData, dealData });
-
-    try{
-      const res = await api.post(`/accounts/convertedLead`, accountData);
-      console.log("Conversion successful:", res.data);
+    try {
+      const finalAccountData = {
+        ...accountData,
+        phone_number: `${accountData.countryCode} ${accountData.phone_number}`
+      }
+      const res = await api.post(`/accounts/convertedLead`, finalAccountData);
       const accInsertId = res.data.id;
-      console.log(`insert id: `, accInsertId);
 
       const finalContactData = {
         ...contactData,
         account_id: accInsertId
       }
       const res1 = await api.post(`/contacts/convertedLead`, finalContactData);
-      console.log("Contact Creation successful:", res1.data);
-      const contactInsertId =  res1.data.id;
-      console.log(`contact insert id: `, contactInsertId);
+      const contactInsertId = res1.data.id;
 
       const finalDealData = {
         ...dealData,
         account_id: accInsertId,
         primary_contact_id: contactInsertId
       }
-      const res2 =  await api.post(`/deals/convertedLead`, finalDealData);
-      console.log("Deal Creation successful:", res2.data);            
+      const res2 = await api.post(`/deals/convertedLead`, finalDealData);
 
       const res3 = await api.put(`/leads/convert/${lead.id}`);
-      console.log("Lead conversion status updated:", res3.data);
 
       if (setSelectedLead) {
-  setSelectedLead(prev => ({
-    ...prev,
-    status: res3.data.status
-  }));
-}
+        setSelectedLead(prev => ({
+          ...prev,
+          status: res3.data.status
+        }));
+      }
 
       fetchLeads(); // Refresh the leads list after conversion
       toast.success("Lead converted successfully!");

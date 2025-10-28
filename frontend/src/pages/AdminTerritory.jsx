@@ -109,6 +109,7 @@ export default function AdminTerritory() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
     const finalData = {
       ...territoryData,
       user_id: parseInt(territoryData.user_id),

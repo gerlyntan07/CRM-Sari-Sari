@@ -14,7 +14,6 @@ router = APIRouter(
     tags=["Deals"]
 )
 
-# ✅ CREATE new territory
 @router.post("/convertedLead", response_model=DealResponse, status_code=status.HTTP_201_CREATED)
 def create_deal(
     data: DealBase,
@@ -22,7 +21,6 @@ def create_deal(
     current_user: User = Depends(get_current_user),
     request: Request = None
 ):                    
-
     new_deal = Deal(
         name=data.name,
         account_id=data.account_id,
@@ -32,15 +30,21 @@ def create_deal(
         currency=data.currency,
         description=data.description,
         assigned_to=data.assigned_to,
-        created_by=data.created_by        
+        created_by=current_user.id,  # safer to use current_user
     )
     
+    # Step 1: Add and commit once to get the DB-assigned id
     db.add(new_deal)
     db.commit()
     db.refresh(new_deal)
 
-    new_data = serialize_instance(new_deal)    
+    # Step 2: Generate and save deal_id like D25-00001
+    new_deal.generate_deal_id()
+    db.commit()
+    db.refresh(new_deal)
 
+    # Step 3: Log and return
+    new_data = serialize_instance(new_deal)    
     create_audit_log(
         db=db,
         current_user=current_user,

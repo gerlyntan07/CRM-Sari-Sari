@@ -9,6 +9,7 @@ export default function AdminLeadsInformation({ lead, onBack, fetchLeads }) {
   const [accountData, setAccountData] = useState({
     name: lead.company_name || "",
     website: '',
+    countryCode: '+63',
     phone_number: '',
     billing_address: '',
     shipping_address: '',
@@ -31,7 +32,7 @@ export default function AdminLeadsInformation({ lead, onBack, fetchLeads }) {
     mobile_phone_2: lead.mobile_phone_2 || "",
     notes: '',
     assigned_to: lead.assigned_to?.id || null,
-    created_by: lead.creator?.id || null,    
+    created_by: lead.creator?.id || null,
   });
 
   const [dealData, setDealData] = useState({
@@ -44,7 +45,7 @@ export default function AdminLeadsInformation({ lead, onBack, fetchLeads }) {
     description: 'Initial deal from lead conversion.',
     assigned_to: lead.assigned_to?.id || null,
     created_by: lead.creator?.id || null,
-  });  
+  });
   const [selectedLead, setSelectedLead] = useState(null);
   const handleLeadClick = (lead) => setSelectedLead(lead);
 

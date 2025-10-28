@@ -379,7 +379,7 @@ const Signup = () => {
         const { confirmPassword, ...cleanedFormData } = formData;
         const companyPayload1 = {
             ...companyData,            
-            company_number: `${companyData.countryCode}${companyData.company_number}`,
+            company_number: `${companyData.countryCode} ${companyData.company_number}`,
           };          
         const resCompany = await api.post(`/company/create`, companyPayload1);
         const companyID = resCompany.data.id;
@@ -388,7 +388,7 @@ const Signup = () => {
         const finalFormData = {
           ...cleanedFormData,
           company_id: companyID,
-          phone_number: `${cleanedFormData.countryCode}${cleanedFormData.phone_number}`,
+          phone_number: `${cleanedFormData.countryCode} ${cleanedFormData.phone_number}`,
         };
 
         console.log("📤 Sending payload:", finalFormData);

@@ -73,6 +73,7 @@ class UserResponse(UserBase):
     created_at: Optional[datetime]  # Date joined
     last_login: Optional[datetime]  # Last login
     company: Optional[CompanyOut] = None
+    related_to_CEO: Optional[int] = None
 
     class Config:
         orm_mode = True

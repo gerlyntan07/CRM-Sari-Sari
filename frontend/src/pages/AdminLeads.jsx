@@ -10,6 +10,18 @@ import {
 import AdminLeadsInformation from "../components/AdminLeadsInformation";
 import api from "../api";
 
+import * as countryCodesList from "country-codes-list";
+
+const allCountries = countryCodesList.all();
+
+// Create an array like [{ code: "+63", name: "Philippines" }, ...]
+const COUNTRY_CODES = allCountries.map(country => ({
+  code: `+${country.countryCallingCode}`,
+  name: country.countryCode
+}));
+
+
+
 export default function AdminLeads() {
   const [selectedLead, setSelectedLead] = useState(null);
   const [showModal, setShowModal] = useState(false);
@@ -23,8 +35,11 @@ export default function AdminLeads() {
     title: "",
     department: "",
     email: "",
+    work_ccode: "+63",
     work_phone: "",
+    m1_ccode: "+63",
     mobile_phone_1: "",
+    m2_ccode: "+63",
     mobile_phone_2: "",
     address: "",
     notes: "",
@@ -91,11 +106,34 @@ export default function AdminLeads() {
       ...leadData,
       territory_id: selectedUser && selectedUser.territory && selectedUser.territory.length > 0 ? selectedUser.territory[0].id : null,
       lead_owner: parseInt(leadData.lead_owner),
+      work_phone: `${leadData.work_ccode} ${leadData.work_phone}`,
+      mobile_phone_1: `${leadData.m1_ccode} ${leadData.mobile_phone_1}`,
+      mobile_phone_2: `${leadData.m2_ccode} ${leadData.mobile_phone_2}`
     }
 
     try {
       const res = await api.post('/leads/create', finalForm);
       setShowModal(false);
+      setLeadData({
+        first_name: "",
+        last_name: "",
+        company_name: "",
+        title: "",
+        department: "",
+        email: "",
+        work_ccode: "+63",
+        work_phone: "",
+        m1_ccode: "+63",
+        mobile_phone_1: "",
+        m2_ccode: "+63",
+        mobile_phone_2: "",
+        address: "",
+        notes: "",
+        source: "",
+        territory_id: null,
+        lead_owner: null,
+        status: "New",
+      })
       fetchLeads();
     } catch (err) {
       console.error("Error creating lead:", err);
@@ -312,15 +350,21 @@ export default function AdminLeads() {
                 <label className="text-gray-700 font-medium mb-1">
                   Work Phone
                 </label>
-                <input
-                  type="text"
-                  placeholder="09----------"
-                  name="work_phone"
-                  maxLength={11}
-                  value={leadData.work_phone}
-                  onChange={handleLeadChange}
-                  className="border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-400 outline-none"
-                />
+
+                <div className="border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-400 outline-none flex flex-row w-full gap-1">
+                  <select name="work_ccode" value={leadData.work_ccode} onChange={handleLeadChange} className="outline-none cursor-pointer py-2 border-r border-gray-400 w-15">
+                    {COUNTRY_CODES.map((c) => <option key={c.code} value={c.code}>{c.code}</option>)}
+                  </select>
+                  <input
+                    type="text"
+                    placeholder="9----------"
+                    name="work_phone"
+                    value={leadData.work_phone}
+                    onChange={handleLeadChange}
+                    className="w-full outline-none"
+                  />
+                </div>
+
               </div>
 
               {/* Mobile Phone 1 */}
@@ -328,15 +372,20 @@ export default function AdminLeads() {
                 <label className="text-gray-700 font-medium mb-1">
                   Mobile Phone 1
                 </label>
-                <input
-                  type="text"
-                  placeholder="09----------"
-                  name="mobile_phone_1"
-                  maxLength={11}
-                  value={leadData.mobile_phone_1}
-                  onChange={handleLeadChange}
-                  className="border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-400 outline-none"
-                />
+
+                <div className="border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-400 outline-none flex flex-row w-full gap-1">
+                  <select name="m1_ccode" value={leadData.m1_ccode} onChange={handleLeadChange} className="outline-none cursor-pointer py-2 border-r border-gray-400 w-15">
+                    {COUNTRY_CODES.map((c) => <option key={c.code} value={c.code}>{c.code}</option>)}
+                  </select>
+                  <input
+                    type="text"
+                    placeholder="09----------"
+                    name="mobile_phone_1"
+                    value={leadData.mobile_phone_1}
+                    onChange={handleLeadChange}
+                    className="w-full outline-none"
+                  />
+                </div>
               </div>
 
               {/* Mobile Phone 2 */}
@@ -344,15 +393,20 @@ export default function AdminLeads() {
                 <label className="text-gray-700 font-medium mb-1">
                   Mobile Phone 2
                 </label>
-                <input
-                  type="text"
-                  placeholder="09----------"
-                  name="mobile_phone_2"
-                  maxLength={11}
-                  value={leadData.mobile_phone_2}
-                  onChange={handleLeadChange}
-                  className="border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-400 outline-none"
-                />
+
+                <div className="border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-400 outline-none flex flex-row w-full gap-1">
+                  <select name="m2_ccode" value={leadData.m2_ccode} onChange={handleLeadChange} className="outline-none cursor-pointer py-2 border-r border-gray-400 w-15">
+                    {COUNTRY_CODES.map((c) => <option key={c.code} value={c.code}>{c.code}</option>)}
+                  </select>
+                  <input
+                    type="text"
+                    placeholder="09----------"
+                    name="mobile_phone_2"
+                    value={leadData.mobile_phone_2}
+                    onChange={handleLeadChange}
+                    className="w-full outline-none"
+                  />
+                </div>
               </div>
 
               {/* Address */}
@@ -407,7 +461,7 @@ export default function AdminLeads() {
                       ? selectedUser.territory.name
                       : ""
                   }
-                  placeholder="Assign a user"                  
+                  placeholder="Assign a user"
                   onChange={handleLeadChange}
                   className="border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-400 outline-none"
                 />
@@ -454,14 +508,14 @@ export default function AdminLeads() {
                 <button
                   type="button"
                   onClick={() => setShowModal(false)}
-                  className="px-4 py-2 text-white bg-red-400 border border-red-300 rounded hover:bg-red-500 transition"
+                  className="cursor-pointer px-4 py-2 text-white bg-red-400 border border-red-300 rounded hover:bg-red-500 transition"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   onClick={handleSubmit}
-                  className="px-4 py-2 text-white border border-tertiary bg-tertiary rounded hover:bg-secondary transition"
+                  className="cursor-pointer px-4 py-2 text-white border border-tertiary bg-tertiary rounded hover:bg-secondary transition"
                 >
                   Save Lead
                 </button>

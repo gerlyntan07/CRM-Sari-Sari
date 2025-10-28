@@ -4,7 +4,8 @@ import { useLocation } from "react-router-dom";
 import useAuth from "../hooks/useAuth.js";
 import useFetchUser from "../hooks/useFetchUser.js";
 
-export default function MarketingHeader({ toggleSidebar }) { // 👈 Accept prop
+export default function MarketingHeader({ toggleSidebar }) {
+  // 👈 Accept prop
   const [open, setOpen] = useState(false);
   const dropdownRef = useRef(null);
   const location = useLocation();
@@ -13,14 +14,16 @@ export default function MarketingHeader({ toggleSidebar }) { // 👈 Accept prop
 
   const routeTitles = {
     "/marketing/dashboard": "Dashboard",
-
-  }
+    "/marketing/contacts": "Contacts",
+    "/marketing/accounts": "Accounts",
+    "/marketing/leads": "Leads",
+  };
 
   useEffect(() => {
     fetchUser();
   }, []);
 
-  const currentTitle = routeTitles[location.pathname] || "Manager Panel";
+  const currentTitle = routeTitles[location.pathname] || "Marketing Panel";
 
   useEffect(() => {
     function handleClickOutside(event) {

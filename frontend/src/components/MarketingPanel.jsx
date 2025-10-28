@@ -3,7 +3,7 @@ import { NavLink, Outlet, useLocation } from "react-router-dom";
 import {
   FiHome,
   FiUsers,
-  FiBriefcase,
+  FiUserPlus,
   FiFileText,
   FiClipboard,
   FiBarChart2,
@@ -35,7 +35,9 @@ export default function MarketingPanel() {
       {/* Sidebar */}
       <div
         className={`fixed top-0 left-0 h-screen w-64 bg-[#1e293b] text-white flex flex-col shadow-lg transform transition-transform duration-300 z-50
-          ${sidebarOpen ? "translate-x-0" : "-translate-x-full"} lg:translate-x-0`}
+          ${
+            sidebarOpen ? "translate-x-0" : "-translate-x-full"
+          } lg:translate-x-0`}
       >
         {/* Logo */}
         <div className="bg-[#fbbf24] text-gray-900 font-bold text-xl px-6 py-4 tracking-wide">
@@ -50,7 +52,7 @@ export default function MarketingPanel() {
             className={({ isActive }) => (isActive ? activeLink : normalLink)}
           >
             <FiHome className="text-lg" />
-            <span>Overview</span>
+            <span>Dashboard</span>
           </NavLink>
 
           {/* Contacts */}
@@ -69,6 +71,15 @@ export default function MarketingPanel() {
           >
             <FiMail className="text-lg" />
             <span>Campaigns</span>
+          </NavLink>
+
+          {/* Leads */}
+          <NavLink
+            to="/marketing/leads"
+            className={({ isActive }) => (isActive ? activeLink : normalLink)}
+          >
+            <FiUserPlus className="text-lg" />
+            <span>Leads</span>
           </NavLink>
 
           {/* Templates */}

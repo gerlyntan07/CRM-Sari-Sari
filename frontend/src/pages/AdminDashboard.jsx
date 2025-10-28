@@ -70,6 +70,7 @@ const SALES_PIPELINE = [
   { stage: "Proposal", value: 85000, deals: 12, color: "bg-orange-500" },
   { stage: "Negotiation", value: 90000, deals: 8, color: "bg-purple-500" },
   { stage: "Closed Won", value: 90000, deals: 6, color: "bg-green-500" },
+  { stage: "Closed Lost", value: 90000, deals: 6, color: "bg-red-500" },
 ];
 
 // UPDATED MOCK DATA: Simple Audit Logs (Action + Target + Time)

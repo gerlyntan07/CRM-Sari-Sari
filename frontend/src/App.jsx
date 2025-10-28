@@ -1,7 +1,12 @@
 import React from "react";
-import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
-import { ToastContainer } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  Navigate,
+} from "react-router-dom";
+import { ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 // 🔹 Public pages
 import Landing from "./pages/Landing";
@@ -49,7 +54,6 @@ import SalesDealsQuickAction from "./components/SalesDealsQuickAction";
 import SalesQuotes from "./pages/SalesQuotes";
 import SalesTargets from "./pages/SalesTargets";
 
-
 // 🔹 Manager layout + pages
 import ManagerPanel from "./components/ManagerPanel";
 import ManagerDashboard from "./pages/ManagerDashboard";
@@ -72,8 +76,11 @@ import ManagerUser from "./pages/ManagerUser";
 // 🔹 Marketing layout + pages
 import MarketingPanel from "./components/MarketingPanel";
 import MarketingDashboard from "./pages/MarketingDashboard";
-
-
+import MarketingAccounts from "./pages/MarketingAccounts";
+import MarketingContacts from "./pages/MarketingContacts";
+import MarketingLeads from "./pages/MarketingLeads";
+import MarketingLeadsInformation from "./components/MarketingLeadsInformation";
+import MarketingLeadsConvert from "./components/MarketingLeadsConvert";
 
 // 🔹 Team Manager layout + pages
 import TManagerPanel from "./components/TManagerPanel";
@@ -93,7 +100,6 @@ import TManagerMeetings from "./pages/TManagerMeetings";
 import TManagerCalls from "./pages/TManagerCalls";
 import TManagerAudit from "./pages/TManagerAudit";
 import TManagerUser from "./pages/TManagerUser";
-
 
 function App() {
   return (
@@ -139,7 +145,6 @@ function App() {
           <Route path="calls" element={<AdminCalls />} />
           <Route path="meetings" element={<AdminMeeting />} />
           <Route path="leads/convert" element={<AdminLeadsConvert />} />
-
         </Route>
 
         {/* ================= Sales Layout ================= */}
@@ -156,14 +161,12 @@ function App() {
           <Route path="deals/quickaction" element={<SalesDealsQuickAction />} />
           <Route path="quotes" element={<SalesQuotes />} />
           <Route path="targets" element={<SalesTargets />} />
-
           <Route path="hub/*" element={<SalesHub />}>
             <Route index element={<Navigate to="mytasks" replace />} />
             <Route path="activities" element={<SalesActivities />} />
             <Route path="mytasks" element={<SalesMyTask />} />
             <Route path="pipeline" element={<SalesPipeline />} />
             <Route path="performance" element={<SalesPerformance />} />
-
           </Route>
         </Route>
 
@@ -175,10 +178,13 @@ function App() {
           <Route path="contacts" element={<ManagerContacts />} />
           <Route path="leads" element={<ManagerLeads />} />
           <Route path="leads/info" element={<ManagerLeadsInformation />} />
-           <Route path="leads/convert" element={<ManagerLeadsConvert />} />
+          <Route path="leads/convert" element={<ManagerLeadsConvert />} />
           <Route path="deals" element={<ManagerDeals />} />
           <Route path="deals/info" element={<ManagerDealsInformation />} />
-          <Route path="deals/quickaction" element={<ManagerDealsQuickAction />} />
+          <Route
+            path="deals/quickaction"
+            element={<ManagerDealsQuickAction />}
+          />
           <Route path="quotes" element={<ManagerQuotes />} />
           <Route path="targets" element={<ManagerTargets />} />
           <Route path="meetings" element={<ManagerMeetings />} />
@@ -186,21 +192,22 @@ function App() {
           <Route path="calls" element={<ManagerCalls />} />
           <Route path="tasks" element={<ManagerTask />} />
           <Route path="users" element={<ManagerUser />} />
-         
-
         </Route>
 
+        {/* ================= Marketing Layout ================= */}
         <Route>
           <Route path="/marketing" element={<MarketingPanel />}>
             <Route index element={<Navigate to="dashboard" replace />} />
             <Route path="dashboard" element={<MarketingDashboard />} />
-            <Route path="leads" element={<TManagerLeads />} />
-          <Route path="leads/info" element={<TManagerLeadsInformation />} />
+            <Route path="accounts" element={<MarketingAccounts />} />
+            <Route path="contacts" element={<MarketingContacts />} />
+            <Route path="leads" element={<MarketingLeads />} />
+            <Route path="leads/info" element={<MarketingLeadsInformation />} />
+            <Route path="leads/convert" element={<MarketingLeadsConvert />} />
           </Route>
         </Route>
 
-
-         {/* ================= Team Manager Layout ================= */}
+        {/* ================= Team Manager Layout ================= */}
         <Route path="/group-manager" element={<TManagerPanel />}>
           <Route index element={<Navigate to="dashboard" replace />} />
           <Route path="dashboard" element={<TManagerDashboard />} />
@@ -211,16 +218,18 @@ function App() {
           <Route path="leads/convert" element={<TManagerLeadsConvert />} />
           <Route path="deals" element={<TManagerDeals />} />
           <Route path="deals/info" element={<TManagerDealsInformation />} />
-          <Route path="deals/quickaction" element={<TManagerDealsQuickAction />} />
+          <Route
+            path="deals/quickaction"
+            element={<TManagerDealsQuickAction />}
+          />
           <Route path="quotes" element={<TManagerQuotes />} />
           <Route path="targets" element={<TManagerTargets />} />
           <Route path="tasks" element={<TManagerTask />} />
           <Route path="meetings" element={<TManagerMeetings />} />
           <Route path="calls" element={<TManagerCalls />} />
-          <Route path="audit" element={<TManagerAudit />} /> 
+          <Route path="audit" element={<TManagerAudit />} />
           <Route path="users" element={<TManagerUser />} />
-        
-            </Route>
+        </Route>
       </Routes>
     </Router>
   );

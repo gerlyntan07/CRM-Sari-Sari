@@ -3,16 +3,26 @@ import { NavLink, Outlet, useLocation } from "react-router-dom";
 import {
   FiHome,
   FiUsers,
+  FiUser,
   FiUserPlus,
+  FiBriefcase,
   FiFileText,
+  FiTarget,
+  FiChevronDown,
+  FiCheckSquare,
+  FiCalendar,
+  FiPhoneCall,
   FiClipboard,
-  FiBarChart2,
-  FiMail,
+  FiSettings,
 } from "react-icons/fi";
-import MarketingHeader from "./MarketingHeader";
+import { LuMapPin } from "react-icons/lu";
+import MarketingHeader from "./MarketingHeader"; // renamed header
 import useFetchUser from "../hooks/useFetchUser";
 
 export default function MarketingPanel() {
+  const [salesOpen, setSalesOpen] = useState(true);
+  const [activityOpen, setActivityOpen] = useState(false);
+  const [userMgmtOpen, setUserMgmtOpen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const location = useLocation();
   const { fetchUser } = useFetchUser();
@@ -30,6 +40,13 @@ export default function MarketingPanel() {
   const normalLink =
     "flex items-center gap-3 px-3 py-2 rounded-lg text-gray-300 hover:bg-[#334155] hover:text-white transition";
 
+  const salesRoutes = [
+    "/marketing/accounts",
+    "/marketing/contacts",
+    "/marketing/leads",
+  ];
+  const isSalesActive = salesRoutes.includes(location.pathname);
+
   return (
     <div className="flex h-screen bg-gray-100 overflow-hidden">
       {/* Sidebar */}
@@ -44,9 +61,9 @@ export default function MarketingPanel() {
           Marketing CRM
         </div>
 
-        {/* Navigation Links */}
+        {/* Nav */}
         <nav className="flex-1 overflow-y-auto p-4 space-y-2">
-          {/* Overview */}
+          {/* Dashboard */}
           <NavLink
             to="/marketing/dashboard"
             className={({ isActive }) => (isActive ? activeLink : normalLink)}
@@ -55,64 +72,156 @@ export default function MarketingPanel() {
             <span>Dashboard</span>
           </NavLink>
 
-          {/* Contacts */}
-          <NavLink
-            to="/marketing/contacts"
-            className={({ isActive }) => (isActive ? activeLink : normalLink)}
-          >
-            <FiUsers className="text-lg" />
-            <span>Contacts</span>
-          </NavLink>
+          {/* Sales Dropdown */}
+          <div>
+            <button
+              className="w-full px-3 py-2 flex justify-between items-center text-sm font-medium text-gray-300 hover:bg-[#334155] rounded-lg transition"
+              onClick={() => setSalesOpen(!salesOpen)}
+            >
+              <span className="flex items-center gap-2">
+                <FiBriefcase className="text-lg" />
+                Sales
+              </span>
+              <FiChevronDown
+                className={`transition-transform ${
+                  salesOpen || isSalesActive ? "rotate-180" : ""
+                }`}
+              />
+            </button>
 
-          {/* Campaigns */}
-          <NavLink
-            to="/marketing/campaigns"
-            className={({ isActive }) => (isActive ? activeLink : normalLink)}
-          >
-            <FiMail className="text-lg" />
-            <span>Campaigns</span>
-          </NavLink>
+            {(salesOpen || isSalesActive) && (
+              <div className="ml-6 mt-2 space-y-1">
+                <NavLink
+                  to="/marketing/accounts"
+                  className={({ isActive }) =>
+                    isActive ? activeLink : normalLink
+                  }
+                >
+                  <FiUsers /> Accounts
+                </NavLink>
+                <NavLink
+                  to="/marketing/contacts"
+                  className={({ isActive }) =>
+                    isActive ? activeLink : normalLink
+                  }
+                >
+                  <FiUser /> Contacts
+                </NavLink>
+                <NavLink
+                  to="/marketing/leads"
+                  className={({ isActive }) =>
+                    isActive ? activeLink : normalLink
+                  }
+                >
+                  <FiUserPlus /> Leads
+                </NavLink>
+              </div>
+            )}
+          </div>
 
-          {/* Leads */}
-          <NavLink
-            to="/marketing/leads"
-            className={({ isActive }) => (isActive ? activeLink : normalLink)}
-          >
-            <FiUserPlus className="text-lg" />
-            <span>Leads</span>
-          </NavLink>
+          {/* Activity Dropdown */}
+          <div>
+            <button
+              className="w-full px-3 py-2 flex justify-between items-center text-sm font-medium text-gray-300 hover:bg-[#334155] rounded-lg transition"
+              onClick={() => setActivityOpen(!activityOpen)}
+            >
+              <span className="flex items-center gap-2">
+                <FiClipboard className="text-lg" />
+                Activity
+              </span>
+              <FiChevronDown
+                className={`transition-transform ${
+                  activityOpen ? "rotate-180" : ""
+                }`}
+              />
+            </button>
 
-          {/* Templates */}
-          <NavLink
-            to="/marketing/templates"
-            className={({ isActive }) => (isActive ? activeLink : normalLink)}
-          >
-            <FiFileText className="text-lg" />
-            <span>Templates</span>
-          </NavLink>
+            {activityOpen && (
+              <div className="ml-6 mt-2 space-y-1">
+                <NavLink
+                  to="/marketing/tasks"
+                  className={({ isActive }) =>
+                    isActive ? activeLink : normalLink
+                  }
+                >
+                  <FiCheckSquare /> Tasks
+                </NavLink>
+                <NavLink
+                  to="/marketing/meetings"
+                  className={({ isActive }) =>
+                    isActive ? activeLink : normalLink
+                  }
+                >
+                  <FiCalendar /> Meetings
+                </NavLink>
+                <NavLink
+                  to="/marketing/calls"
+                  className={({ isActive }) =>
+                    isActive ? activeLink : normalLink
+                  }
+                >
+                  <FiPhoneCall /> Calls
+                </NavLink>
+                <NavLink
+                  to="/marketing/audit"
+                  className={({ isActive }) =>
+                    isActive ? activeLink : normalLink
+                  }
+                >
+                  <FiClipboard /> Audit
+                </NavLink>
+              </div>
+            )}
+          </div>
 
-          {/* Tasks */}
-          <NavLink
-            to="/marketing/tasks"
-            className={({ isActive }) => (isActive ? activeLink : normalLink)}
-          >
-            <FiClipboard className="text-lg" />
-            <span>Tasks</span>
-          </NavLink>
+          {/* Territory */}
+          <div>
+            <NavLink
+              to="/marketing/territory"
+              className={({ isActive }) => (isActive ? activeLink : normalLink)}
+            >
+              <span className="flex items-center gap-2">
+                <LuMapPin className="text-lg" />
+                Territory
+              </span>
+            </NavLink>
+          </div>
 
-          {/* Analytics */}
-          <NavLink
-            to="/marketing/analytics"
-            className={({ isActive }) => (isActive ? activeLink : normalLink)}
-          >
-            <FiBarChart2 className="text-lg" />
-            <span>Analytics</span>
-          </NavLink>
+          {/* User Management Dropdown */}
+          <div>
+            <button
+              className="w-full px-3 py-2 flex justify-between items-center text-sm font-medium text-gray-300 hover:bg-[#334155] rounded-lg transition"
+              onClick={() => setUserMgmtOpen(!userMgmtOpen)}
+            >
+              <span className="flex items-center gap-2">
+                <FiSettings className="text-lg" />
+                User Management
+              </span>
+              <FiChevronDown
+                className={`transition-transform ${
+                  userMgmtOpen ? "rotate-180" : ""
+                }`}
+              />
+            </button>
+
+            {userMgmtOpen && (
+              <div className="ml-6 mt-2 space-y-1">
+                <NavLink
+                  to="/marketing/users"
+                  className={({ isActive }) =>
+                    isActive ? activeLink : normalLink
+                  }
+                >
+                  <FiUsers /> Users
+                </NavLink>
+              </div>
+            )}
+          </div>
         </nav>
 
         {/* Footer */}
         <div className="px-4 py-3 text-xs text-gray-400 border-t border-gray-700">
-          © {new Date().getFullYear()} CRM ni Josh
+          © {new Date().getFullYear()} Marketing CRM
         </div>
       </div>
 
@@ -124,7 +233,7 @@ export default function MarketingPanel() {
         />
       )}
 
-      {/* Main Content */}
+      {/* Main content */}
       <div className="flex-1 flex flex-col lg:ml-64 overflow-hidden">
         <MarketingHeader toggleSidebar={() => setSidebarOpen(!sidebarOpen)} />
         <main

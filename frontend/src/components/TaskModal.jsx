@@ -189,7 +189,7 @@ export default function TaskModal({
                       onChange={handleChange}
                       className="w-full mt-1 border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                     >
-                      <option value="">Select sales representative</option>
+                      <option value="">Select User</option>
                       {salesList.map((user) => (
                         <option key={user.id} value={user.id}>
                           {user.first_name} {user.last_name}

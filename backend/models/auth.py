@@ -48,3 +48,6 @@ class User(Base):
 
     deals = relationship("Deal", back_populates="assigned_deals", foreign_keys="[Deal.assigned_to]", cascade="all, delete-orphan")
     created_deals = relationship("Deal", back_populates="deal_creator", foreign_keys="[Deal.created_by]", cascade="all, delete-orphan")
+    
+    tasks_assigned = relationship("Task", back_populates="assigned_user")
+

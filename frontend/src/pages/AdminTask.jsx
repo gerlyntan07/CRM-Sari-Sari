@@ -51,6 +51,8 @@ export default function AdminTask() {
     try {
       setLoading(true);
       const res = await api.get("/tasks/all");
+      console.log("✅ Raw backend response:", res.data); // <-- Add this line
+
       const formatted = res.data.map((task) => ({
         ...task,
         dueDate: task.dueDate || task.due_date,
@@ -59,11 +61,12 @@ export default function AdminTask() {
         relatedTo: task.relatedTo || task.related_to,
       }));
 
-      formatted.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+      console.log("🧩 Formatted tasks:", formatted); // <-- Add this line
 
+      formatted.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
       setTasks(formatted);
     } catch (error) {
-      console.error("Failed to load tasks:", error);
+      console.error("❌ Failed to load tasks:", error);
     } finally {
       setLoading(false);
     }
@@ -316,21 +319,19 @@ export default function AdminTask() {
       <div className="flex items-center gap-3 mb-6">
         <button
           onClick={() => setView("board")}
-          className={`px-4 py-2 rounded-full text-sm ${
-            view === "board"
+          className={`px-4 py-2 rounded-full text-sm ${view === "board"
               ? "bg-gray-800 text-white"
               : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-          }`}
+            }`}
         >
           Board View
         </button>
         <button
           onClick={() => setView("list")}
-          className={`px-4 py-2 rounded-full text-sm ${
-            view === "list"
+          className={`px-4 py-2 rounded-full text-sm ${view === "list"
               ? "bg-gray-800 text-white"
               : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-          }`}
+            }`}
         >
           List View
         </button>
@@ -358,11 +359,10 @@ export default function AdminTask() {
                   .map((task) => (
                     <div
                       key={task.id}
-                      className={`border border-gray-100 rounded-lg p-3 transition flex justify-between items-center ${
-                        isTaskOverdue(task)
+                      className={`border border-gray-100 rounded-lg p-3 transition flex justify-between items-center ${isTaskOverdue(task)
                           ? "bg-red-50 hover:bg-red-100"
                           : "bg-gray-50 hover:bg-gray-100"
-                      }`}
+                        }`}
                     >
                       <div
                         onClick={() => handleOpenModal(task)}
@@ -435,9 +435,8 @@ export default function AdminTask() {
               {filteredTasks.map((task) => (
                 <tr
                   key={task.id}
-                  className={`border-b border-gray-100 hover:bg-gray-50 ${
-                    isTaskOverdue(task) ? "bg-red-50 hover:bg-red-100" : ""
-                  }`}
+                  className={`border-b border-gray-100 hover:bg-gray-50 ${isTaskOverdue(task) ? "bg-red-50 hover:bg-red-100" : ""
+                    }`}
                 >
                   <td
                     className="py-3 px-4 text-gray-800 text-sm font-medium cursor-pointer"
@@ -455,9 +454,8 @@ export default function AdminTask() {
                     {task.assignedTo}
                   </td>
                   <td
-                    className={`py-3 px-4 text-sm ${
-                      isTaskOverdue(task) ? "text-red-600" : "text-gray-600"
-                    }`}
+                    className={`py-3 px-4 text-sm ${isTaskOverdue(task) ? "text-red-600" : "text-gray-600"
+                      }`}
                   >
                     {task.dateAssigned?.split("T")[0]}
                   </td>

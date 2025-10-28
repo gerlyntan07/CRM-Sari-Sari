@@ -31,6 +31,8 @@ import routers.auditlog as auditlog_router
 import routers.account as account_router
 import routers.contact as contact_router
 import routers.deal as deal_router
+import routers.ws_notification as ws_notification
+
 
 app = FastAPI()
 
@@ -46,6 +48,8 @@ app.include_router(auditlog_router.router, prefix='/api')
 app.include_router(account_router.router, prefix='/api')
 app.include_router(contact_router.router, prefix='/api')
 app.include_router(deal_router.router, prefix='/api')
+app.include_router(ws_notification.router)
+
 
 # === Database initialization ===
 Base.metadata.create_all(bind=engine)

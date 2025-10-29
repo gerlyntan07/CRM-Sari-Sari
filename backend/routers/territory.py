@@ -69,6 +69,20 @@ def assign_territory(
 
     return new_territory
 
+@router.get("/myterritory", response_model=List[TerritoryResponse])
+def get_my_territories(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    if not current_user.related_to_company:
+        return []
+
+    # Fetch only territories assigned to this user
+    territories = db.query(Territory).filter(
+        Territory.user_id == current_user.id
+    ).all()
+    return territories
+
 
 # ✅ UPDATE user info
 # @router.put("/updateuser/{user_id}", response_model=UserResponse)

@@ -24,6 +24,9 @@ export default function SalesOverview() {
     target_progress: 0,
   });
 
+  // ✅ Local state for user's territories
+  const [territories, setTerritories] = useState([]);
+
   // ✅ Fetch sales summary metrics for logged-in user
   useEffect(() => {
     const fetchSalesData = async () => {
@@ -36,6 +39,20 @@ export default function SalesOverview() {
     };
     fetchSalesData();
   }, []);
+
+  // ✅ Fetch user's territories
+  useEffect(() => {
+    const fetchTerritories = async () => {
+      if (!user) return;
+      try {
+        const res = await api.get("/territories/myterritory");
+        setTerritories(res.data);
+      } catch (err) {
+        console.error("Error fetching territories:", err);
+      }
+    };
+    fetchTerritories();
+  }, [user]);
 
   if (loading) {
     return <p className="text-gray-500">Loading user data...</p>;
@@ -64,14 +81,14 @@ export default function SalesOverview() {
             <p className="font-medium text-gray-900">
               {user?.last_login
                 ? new Date(user.last_login).toLocaleString("en-PH", {
-                  timeZone: "Asia/Manila",
-                  year: "numeric",
-                  month: "2-digit",
-                  day: "2-digit",
-                  hour: "2-digit",
-                  minute: "2-digit",
-                  second: "2-digit",
-                })
+                    timeZone: "Asia/Manila",
+                    year: "numeric",
+                    month: "2-digit",
+                    day: "2-digit",
+                    hour: "2-digit",
+                    minute: "2-digit",
+                    second: "2-digit",
+                  })
                 : "N/A"}
             </p>
           </div>
@@ -82,7 +99,6 @@ export default function SalesOverview() {
             {user?.created_at
               ? new Date(user.created_at).toLocaleDateString()
               : "N/A"}
-
           </p>
         </div>
 
@@ -91,12 +107,18 @@ export default function SalesOverview() {
           <p className="font-medium text-gray-900">{user?.email}</p>
         </div>
         <div>
-          <p className="text-sm text-gray-500">Territory</p>
-          <div className="flex items-center gap-2">
-            <FiMapPin className="text-gray-600" />
-            <p className="font-medium text-gray-900">
-              {user?.territory || "South Region"}
-            </p>
+          <p className="text-sm text-gray-500">Territories</p>
+          <div className="flex flex-col gap-2">
+            {territories.length > 0 ? (
+              territories.map((t) => (
+                <div key={t.id} className="flex items-center gap-2">
+                  <FiMapPin className="text-gray-600" />
+                  <p className="font-medium text-gray-900">{t.name}</p>
+                </div>
+              ))
+            ) : (
+              <p className="font-medium text-gray-900">No territories assigned</p>
+            )}
           </div>
         </div>
         <div>
@@ -112,9 +134,7 @@ export default function SalesOverview() {
         <div className="bg-white p-6 rounded-lg shadow-sm flex flex-col items-center">
           <FiUsers className="text-blue-600 text-3xl mb-2" />
           <p className="text-sm text-gray-500">My Contacts</p>
-          <p className="text-2xl font-bold text-gray-800">
-            {stats.contacts ?? 0}
-          </p>
+          <p className="text-2xl font-bold text-gray-800">{stats.contacts ?? 0}</p>
         </div>
 
         <div className="bg-white p-6 rounded-lg shadow-sm flex flex-col items-center">
@@ -126,26 +146,19 @@ export default function SalesOverview() {
         <div className="bg-white p-6 rounded-lg shadow-sm flex flex-col items-center">
           <FiPhoneCall className="text-orange-500 text-3xl mb-2" />
           <p className="text-sm text-gray-500">My Calls Today</p>
-          <p className="text-2xl font-bold text-gray-800">
-            {stats.calls_today ?? 0}
-          </p>
+          <p className="text-2xl font-bold text-gray-800">{stats.calls_today ?? 0}</p>
         </div>
 
         <div className="bg-white p-6 rounded-lg shadow-sm flex flex-col items-center">
           <FiActivity className="text-purple-600 text-3xl mb-2" />
           <p className="text-sm text-gray-500">My Target Progress</p>
-          <p className="text-2xl font-bold text-gray-800">
-            {stats.target_progress ?? 0}%
-          </p>
+          <p className="text-2xl font-bold text-gray-800">{stats.target_progress ?? 0}%</p>
         </div>
       </div>
 
       {/* Recent Activities */}
       <div className="bg-white p-6 rounded-lg shadow-sm">
-        <h2 className="text-lg font-semibold text-gray-800 mb-4">
-          Recent Activities
-        </h2>
-
+        <h2 className="text-lg font-semibold text-gray-800 mb-4">Recent Activities</h2>
         <div className="space-y-4">
           <div className="flex items-start gap-3">
             <span className="w-2 h-2 bg-green-500 rounded-full mt-2"></span>

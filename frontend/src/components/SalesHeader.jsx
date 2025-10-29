@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { FiBell, FiMenu } from "react-icons/fi";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import useAuth from "../hooks/useAuth.js";
 import useFetchUser from "../hooks/useFetchUser.js";
 import api from "../api.js";
@@ -14,6 +14,7 @@ export default function SalesHeader({ toggleSidebar }) {
   const dropdownRef = useRef(null);
   const notifRef = useRef(null);
   const location = useLocation();
+  const navigate = useNavigate();
   const { logout } = useAuth();
   const { user, fetchUser } = useFetchUser();
 
@@ -33,21 +34,32 @@ export default function SalesHeader({ toggleSidebar }) {
 
   useEffect(() => {
     fetchUser();
+  }, []);
 
-    const ws = new WebSocket("ws://localhost:8000/ws/notifications");
+  // ✅ WebSocket effect waits for user
+  useEffect(() => {
+    if (!user) return; // Wait until user is loaded
+
+    const ws = new WebSocket(`ws://localhost:8000/ws/notifications?user_id=${user.id}`);
 
     ws.onopen = () => console.log("✅ WebSocket connected");
 
     ws.onmessage = (event) => {
       const newNotif = JSON.parse(event.data);
       console.log("🔔 New WebSocket Notification:", newNotif);
+
+      if (newNotif.type === "territory_assignment") {
+        newNotif.title = `You have been assigned to ${newNotif.territoryName}`;
+      }
+
       setNotifications((prev) => [newNotif, ...prev]);
       setUnreadCount((prev) => prev + 1);
     };
 
     ws.onclose = () => console.log("❌ WebSocket disconnected");
+
     return () => ws.close();
-  }, []);
+  }, [user]); // Re-run when user changes
 
   useEffect(() => {
     function handleClickOutside(event) {
@@ -62,14 +74,22 @@ export default function SalesHeader({ toggleSidebar }) {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const handleNotificationClick = (taskId) => {
-    setNotifications((prev) => prev.filter((n) => n.id !== taskId));
+  const handleNotificationClick = (notif) => {
+    // Mark as read instead of removing
+    setNotifications((prev) =>
+      prev.map((n) =>
+        n.id === notif.id ? { ...n, read: true } : n
+      )
+    );
     setUnreadCount((prev) => (prev > 0 ? prev - 1 : 0));
-  };
 
+    // Navigate to the relevant page
+    if (notif.type === "territory_assignment") navigate("/sales/overview");
+    else navigate("/sales/overview");
+  };
   return (
     <header className="flex justify-between items-center bg-white shadow px-4 sm:px-6 py-3 border-b relative">
-      {/* ✅ Left: Title + Burger */}
+      {/* Left: Title + Burger */}
       <div className="flex items-center gap-3">
         <button
           onClick={toggleSidebar}
@@ -82,9 +102,9 @@ export default function SalesHeader({ toggleSidebar }) {
         </h1>
       </div>
 
-      {/* ✅ Right: Notifications + Profile */}
+      {/* Right: Notifications + Profile */}
       <div className="flex items-center space-x-3 sm:space-x-4">
-        {/* 🔔 Notification Dropdown */}
+        {/* Notification Dropdown */}
         <div className="relative" ref={notifRef}>
           <button
             onClick={() => setNotifOpen(!notifOpen)}
@@ -122,17 +142,22 @@ export default function SalesHeader({ toggleSidebar }) {
                   notifications.map((n) => (
                     <div
                       key={n.id}
-                      onClick={() => handleNotificationClick(n.id)}
-                      className="p-4 border-b hover:bg-gray-50 cursor-pointer transition"
+                      onClick={() => handleNotificationClick(n)}
+                      className={`p-4 border-b hover:bg-gray-50 cursor-pointer transition ${n.read ? "bg-gray-50" : "bg-white"
+                        }`}
                     >
-                      <div className="flex flex-col">
-                        <span className="font-medium text-gray-800 text-sm">
-                          {n.title || "New Task Assigned"}
+                      <div className="flex justify-between items-center mb-1">
+                        {/* Type badge */}
+                        <span className="text-[10px] px-2 py-1 rounded-full bg-blue-100 text-blue-700 font-semibold uppercase">
+                          Territory
                         </span>
+                        {/* Unread dot */}
+                        {!n.read && <span className="w-2 h-2 rounded-full bg-red-500" />}
+                      </div>
+                      <div className="flex flex-col">
+                        <span className="font-medium text-gray-800 text-sm">{n.title}</span>
                         <span className="text-xs text-gray-600 mt-0.5">
-                          {n.assignedBy
-                            ? `Assigned by ${n.assignedBy}`
-                            : "You have a new task"}
+                          {n.assignedBy ? `Assigned by ${n.assignedBy}` : "System"}
                         </span>
                         <span className="text-[11px] text-gray-400 mt-1">
                           {new Date(n.createdAt).toLocaleString()}
@@ -150,7 +175,7 @@ export default function SalesHeader({ toggleSidebar }) {
           )}
         </div>
 
-        {/* 👤 Profile Dropdown */}
+        {/* Profile Dropdown */}
         <div className="relative" ref={dropdownRef}>
           <button
             onClick={() => setOpen(!open)}

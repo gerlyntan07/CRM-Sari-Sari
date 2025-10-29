@@ -7,6 +7,8 @@ from .auth_utils import get_current_user, hash_password,get_default_avatar
 from models.auth import User
 from models.territory import Territory
 from .logs_utils import serialize_instance, create_audit_log
+from routers.ws_notification import broadcast_notification
+import asyncio 
 
 router = APIRouter(
     prefix="/territories",
@@ -30,21 +32,22 @@ def get_territories(
 
 # ✅ CREATE new territory
 @router.post("/assign", response_model=TerritoryResponse, status_code=status.HTTP_201_CREATED)
-def assign_territory(
+async def assign_territory(
     data: TerritoryCreate,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
     request: Request = None
 ):
-    # Only CEO or Admin can create users
+    # Only CEO or Admin can assign territories
     if current_user.role.upper() not in ["CEO", "ADMIN"]:
         raise HTTPException(status_code=403, detail="Permission denied")    
-    
+
+    # Find the assigned user
     assigned_user = db.query(User).filter(User.id == data.user_id).first()
     if not assigned_user:
         raise HTTPException(status_code=404, detail="Assigned user not found")
 
-    # ✅ Ssign territory
+    # Assign territory
     new_territory = Territory(
         name=data.name,
         description=data.description,
@@ -55,8 +58,9 @@ def assign_territory(
     db.commit()
     db.refresh(new_territory)
 
-    new_data = serialize_instance(new_territory)    
+    new_data = serialize_instance(new_territory)
 
+    # Create audit log
     create_audit_log(
         db=db,
         current_user=current_user,
@@ -67,7 +71,23 @@ def assign_territory(
         custom_message=f"assign territory '{data.name}' to user: {assigned_user.first_name} {assigned_user.last_name}"
     )
 
+    # Prepare notification
+    notification_data = {
+        "id": new_territory.id,
+        "type": "territory_assignment",
+        "territoryName": new_territory.name,
+        "assignedBy": f"{current_user.first_name} {current_user.last_name}",
+        "createdAt": str(new_territory.created_at)
+    }
+
+    # Broadcast notification asynchronously
+    asyncio.create_task(
+        broadcast_notification(notification_data, target_user_id=assigned_user.id)
+    )
+
     return new_territory
+
+
 
 @router.get("/myterritory", response_model=List[TerritoryResponse])
 def get_my_territories(

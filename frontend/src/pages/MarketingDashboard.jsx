@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   FiSearch,
   FiUsers,
@@ -300,8 +300,12 @@ const GraphCard = ({ title, chartData, chartOptions }) => {
 };
 
 // --- Main Component ---
-const MarketingDashboard = () => {
+export default function MarketingDashboard() {
   const { user } = useFetchUser();
+
+  useEffect(() => {
+    document.title = "Dashboard | Sari-Sari CRM";
+  }, []);
 
   return (
     <div className="min-h-screen bg-gray-50 pt-5 pb-10 font-sans">
@@ -334,6 +338,4 @@ const MarketingDashboard = () => {
       </main>
     </div>
   );
-};
-
-export default MarketingDashboard;
+}

@@ -81,6 +81,9 @@ import MarketingContacts from "./pages/MarketingContacts";
 import MarketingLeads from "./pages/MarketingLeads";
 import MarketingLeadsInformation from "./components/MarketingLeadsInformation";
 import MarketingLeadsConvert from "./components/MarketingLeadsConvert";
+import MarketingTask from "./pages/MarketingTask";
+import MarketingCampaign from "./pages/MarketingCampaign";
+import MarketingTemplates from "./pages/MarketingTemplates";
 
 // 🔹 Team Manager layout + pages
 import TManagerPanel from "./components/TManagerPanel";
@@ -204,6 +207,9 @@ function App() {
             <Route path="leads" element={<MarketingLeads />} />
             <Route path="leads/info" element={<MarketingLeadsInformation />} />
             <Route path="leads/convert" element={<MarketingLeadsConvert />} />
+            <Route path="tasks" element={<MarketingTask />} />
+            <Route path="campaigns" element={<MarketingCampaign />} />
+            <Route path="templates" element={<MarketingTemplates />} />
           </Route>
         </Route>
 

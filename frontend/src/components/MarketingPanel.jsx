@@ -6,23 +6,20 @@ import {
   FiUser,
   FiUserPlus,
   FiBriefcase,
-  FiFileText,
   FiTarget,
   FiChevronDown,
   FiCheckSquare,
-  FiCalendar,
-  FiPhoneCall,
   FiClipboard,
-  FiSettings,
+  FiSend,
+  FiLayout,
 } from "react-icons/fi";
-import { LuMapPin } from "react-icons/lu";
-import MarketingHeader from "./MarketingHeader"; // renamed header
+import MarketingHeader from "./MarketingHeader";
 import useFetchUser from "../hooks/useFetchUser";
 
 export default function MarketingPanel() {
-  const [salesOpen, setSalesOpen] = useState(true);
+  const [marketingToolsOpen, setMarketingToolsOpen] = useState(false);
+  const [salesOpen, setSalesOpen] = useState(false);
   const [activityOpen, setActivityOpen] = useState(false);
-  const [userMgmtOpen, setUserMgmtOpen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const location = useLocation();
   const { fetchUser } = useFetchUser();
@@ -40,12 +37,24 @@ export default function MarketingPanel() {
   const normalLink =
     "flex items-center gap-3 px-3 py-2 rounded-lg text-gray-300 hover:bg-[#334155] hover:text-white transition";
 
+  const marketingRoutes = ["/marketing/campaigns", "/marketing/templates"];
   const salesRoutes = [
     "/marketing/accounts",
     "/marketing/contacts",
     "/marketing/leads",
   ];
+  const activityRoutes = ["/marketing/tasks"];
+
+  const isMarketingActive = marketingRoutes.includes(location.pathname);
   const isSalesActive = salesRoutes.includes(location.pathname);
+  const isActivityActive = activityRoutes.includes(location.pathname);
+
+  // Auto expand if route is active
+  useEffect(() => {
+    if (isMarketingActive) setMarketingToolsOpen(true);
+    if (isSalesActive) setSalesOpen(true);
+    if (isActivityActive) setActivityOpen(true);
+  }, [isMarketingActive, isSalesActive, isActivityActive]);
 
   return (
     <div className="flex h-screen bg-gray-100 overflow-hidden">
@@ -84,12 +93,12 @@ export default function MarketingPanel() {
               </span>
               <FiChevronDown
                 className={`transition-transform ${
-                  salesOpen || isSalesActive ? "rotate-180" : ""
+                  salesOpen ? "rotate-180" : ""
                 }`}
               />
             </button>
 
-            {(salesOpen || isSalesActive) && (
+            {salesOpen && (
               <div className="ml-6 mt-2 space-y-1">
                 <NavLink
                   to="/marketing/accounts"
@@ -114,6 +123,45 @@ export default function MarketingPanel() {
                   }
                 >
                   <FiUserPlus /> Leads
+                </NavLink>
+              </div>
+            )}
+          </div>
+
+          {/* Marketing Tools Dropdown */}
+          <div>
+            <button
+              className="w-full px-3 py-2 flex justify-between items-center text-sm font-medium text-gray-300 hover:bg-[#334155] rounded-lg transition"
+              onClick={() => setMarketingToolsOpen(!marketingToolsOpen)}
+            >
+              <span className="flex items-center gap-2">
+                <FiTarget className="text-lg" />
+                Tools
+              </span>
+              <FiChevronDown
+                className={`transition-transform ${
+                  marketingToolsOpen ? "rotate-180" : ""
+                }`}
+              />
+            </button>
+
+            {marketingToolsOpen && (
+              <div className="ml-6 mt-2 space-y-1">
+                <NavLink
+                  to="/marketing/campaigns"
+                  className={({ isActive }) =>
+                    isActive ? activeLink : normalLink
+                  }
+                >
+                  <FiSend /> Campaign
+                </NavLink>
+                <NavLink
+                  to="/marketing/templates"
+                  className={({ isActive }) =>
+                    isActive ? activeLink : normalLink
+                  }
+                >
+                  <FiLayout /> Templates
                 </NavLink>
               </div>
             )}
@@ -145,74 +193,6 @@ export default function MarketingPanel() {
                   }
                 >
                   <FiCheckSquare /> Tasks
-                </NavLink>
-                <NavLink
-                  to="/marketing/meetings"
-                  className={({ isActive }) =>
-                    isActive ? activeLink : normalLink
-                  }
-                >
-                  <FiCalendar /> Meetings
-                </NavLink>
-                <NavLink
-                  to="/marketing/calls"
-                  className={({ isActive }) =>
-                    isActive ? activeLink : normalLink
-                  }
-                >
-                  <FiPhoneCall /> Calls
-                </NavLink>
-                <NavLink
-                  to="/marketing/audit"
-                  className={({ isActive }) =>
-                    isActive ? activeLink : normalLink
-                  }
-                >
-                  <FiClipboard /> Audit
-                </NavLink>
-              </div>
-            )}
-          </div>
-
-          {/* Territory */}
-          <div>
-            <NavLink
-              to="/marketing/territory"
-              className={({ isActive }) => (isActive ? activeLink : normalLink)}
-            >
-              <span className="flex items-center gap-2">
-                <LuMapPin className="text-lg" />
-                Territory
-              </span>
-            </NavLink>
-          </div>
-
-          {/* User Management Dropdown */}
-          <div>
-            <button
-              className="w-full px-3 py-2 flex justify-between items-center text-sm font-medium text-gray-300 hover:bg-[#334155] rounded-lg transition"
-              onClick={() => setUserMgmtOpen(!userMgmtOpen)}
-            >
-              <span className="flex items-center gap-2">
-                <FiSettings className="text-lg" />
-                User Management
-              </span>
-              <FiChevronDown
-                className={`transition-transform ${
-                  userMgmtOpen ? "rotate-180" : ""
-                }`}
-              />
-            </button>
-
-            {userMgmtOpen && (
-              <div className="ml-6 mt-2 space-y-1">
-                <NavLink
-                  to="/marketing/users"
-                  className={({ isActive }) =>
-                    isActive ? activeLink : normalLink
-                  }
-                >
-                  <FiUsers /> Users
                 </NavLink>
               </div>
             )}

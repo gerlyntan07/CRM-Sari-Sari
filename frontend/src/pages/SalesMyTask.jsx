@@ -4,6 +4,10 @@ import { FiClock, FiPhone, FiEdit2, FiTrash2 } from "react-icons/fi";
 import api from "../api.js";
 
 export default function SalesMyTasks() {
+    useEffect(() => {
+    document.title = "Saleshub | Sari-Sari CRM";
+  }, []);
+
   const [tasks, setTasks] = useState([]);
   const [filteredTasks, setFilteredTasks] = useState([]);
   const [salesList, setSalesList] = useState([]);

@@ -2,6 +2,7 @@ import React from "react";
 import { FiEdit2, FiTrash2, FiPhone, FiMail, FiFilter } from "react-icons/fi";
 
 export default function SalesActivities() {
+  
   const activities = [
     {
       id: 1,

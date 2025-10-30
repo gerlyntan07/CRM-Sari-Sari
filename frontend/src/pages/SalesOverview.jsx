@@ -14,6 +14,9 @@ import useFetchUser from "../hooks/useFetchUser.js";
 import api from "../api.js"; // ✅ Axios instance
 
 export default function SalesOverview() {
+    useEffect(() => {
+    document.title = "SalesOverview | Sari-Sari CRM";
+  }, []);
   const { user, loading } = useFetchUser();
 
   // ✅ Local state for sales data (can be fetched from backend)

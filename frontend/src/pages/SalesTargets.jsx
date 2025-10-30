@@ -2,10 +2,12 @@ import React, { useState } from "react";
 import { FiSearch, FiEdit2, FiTrash2, FiTarget, FiX } from "react-icons/fi";
 
 export default function SalesTargets() {
+  
   const [searchTerm, setSearchTerm] = useState("");
   const [showModal, setShowModal] = useState(false);
   const [selectedTarget, setSelectedTarget] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
+  
 
   const targets = [
     {
@@ -28,6 +30,7 @@ export default function SalesTargets() {
     setSelectedTarget(null);
     setIsEditing(false);
   };
+  
 
   return (
     <div className="p-4 sm:p-8 font-inter">

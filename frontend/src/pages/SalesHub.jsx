@@ -10,6 +10,7 @@ import CreateTaskModal from "../components/CreateTaskModal";
 
 export default function SalesHub() {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  
 
   return (
     <div className="p-6 bg-gray-50 min-h-screen">

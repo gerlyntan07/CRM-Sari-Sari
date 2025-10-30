@@ -153,8 +153,8 @@ const DealStep = ({ data, handleDealChange }) => (
         <label className="text-xs text-gray-700 mb-1">Status</label>
         <select name="stage" onChange={handleDealChange} value={data.stage} className="w-full border border-gray-300 p-2 rounded-lg text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none bg-gray-50">
           <option value="PROSPECTING">PROSPECTING</option>
-          <option value="PROPOSAL">PROPOSAL</option>
           <option value="QUALIFICATION">QUALIFICATION</option>
+          <option value="PROPOSAL">PROPOSAL</option>
           <option value="NEGOTIATION">NEGOTIATION</option>
           <option value="CLOSED_WON">CLOSED_WON</option>
           <option value="CLOSED_LOST">CLOSED_LOST</option>
@@ -229,10 +229,30 @@ export default function AdminLeadsConvert({ setSelectedLead, fetchLeads, isOpen,
       const res1 = await api.post(`/contacts/convertedLead`, finalContactData);
       const contactInsertId = res1.data.id;
 
+      const handleProbability = () => {
+        switch (dealData.stage) {
+          case 'PROSPECTING':
+            return 10;
+          case 'QUALIFICATION':
+            return 25;
+          case 'PROPOSAL':
+            return 60;
+          case 'NEGOTIATION':
+            return 80;
+          case 'CLOSED_WON':
+            return 100;
+          case 'CLOSED_LOST':
+            return 0;
+          default:
+            return 0;
+        }
+      };
+
       const finalDealData = {
         ...dealData,
         account_id: accInsertId,
-        primary_contact_id: contactInsertId
+        primary_contact_id: contactInsertId,
+        probability: handleProbability(),
       }
       const res2 = await api.post(`/deals/convertedLead`, finalDealData);
 

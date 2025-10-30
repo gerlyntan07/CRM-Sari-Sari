@@ -40,6 +40,7 @@ export default function AdminLeadsInformation({ lead, onBack, fetchLeads }) {
     account_id: null,
     primary_contact_id: null,
     stage: 'Prospecting',
+    probability: 10,
     amount: 0.0,
     currency: 'PHP',
     description: 'Initial deal from lead conversion.',

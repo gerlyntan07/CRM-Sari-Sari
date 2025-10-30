@@ -13,6 +13,8 @@ import {
   FiX,
 } from "react-icons/fi";
 import { HiArrowLeft } from "react-icons/hi";
+import api from '../api.js'
+import {toast} from 'react-toastify';
 
 export default function AdminAccounts() {
   useEffect(() => {
@@ -21,28 +23,46 @@ export default function AdminAccounts() {
 
   const [showModal, setShowModal] = useState(false);
   const [selectedAccount, setSelectedAccount] = useState(null);
+  const [accounts, setAccounts] = useState(null);
+  
 
-  const accounts = [
-    {
-      company: "Acme Corporation",
-      url: "https://acme.com",
-      status: "CUSTOMER",
-      industry: "Technology",
-      territory: "North Region",
-      phone_number: "+1-555-0100",
-      billing_address: "123 Main St, North City",
-      shipping_address: "456 Elm St, North City",
-      created_by: "John Appleseed",
-      created_date: "2024-01-10",
-      last_updated: "2025-09-25 14:30",
-    },
-  ];
+  const fetchAccounts = async() => {
+    try{
+      const res = await api.get(`/accounts/admin/fetch-all`);
+      setAccounts(res.data)
+      console.log(res.data)
+    } catch(err){
+      if (err.response && err.response.status === 403) {
+      toast.error("Permission denied. Only CEO, Admin, or Group Manager can access this page.");
+    } else {
+      toast.error("Failed to fetch accounts. Please try again later.");
+    }
+    console.error(err);
+    }
+  }
+
+  useEffect(() => {
+    fetchAccounts();
+  },[])
 
   const handleAccountClick = (acc) => setSelectedAccount(acc);
   const handleBackToList = () => setSelectedAccount(null);
   const handleBackdropClick = (e) => {
     if (e.target.id === "modalBackdrop") setShowModal(false);
   };
+
+  function formattedDateTime(datetime){
+    if (!datetime) return "";
+    return new Date(datetime).toLocaleString("en-US", {
+      month: "2-digit",
+    day: "2-digit",
+    year: "numeric",
+    hour: "numeric",
+    minute: "numeric",
+    hour12: true,
+    })
+    .replace(",", "")
+  }
 
   // ===================== ACCOUNT DETAILS VIEW ===================== //
   if (selectedAccount) {
@@ -60,7 +80,7 @@ export default function AdminAccounts() {
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">
             <div>
               <h1 className="text-xl sm:text-2xl font-semibold text-gray-800 flex items-center gap-2">
-                {selectedAccount.company}
+                {selectedAccount.name}
                 <span
                   className={`inline-block text-xs px-2 py-0.5 rounded ${selectedAccount.status === "CUSTOMER"
                       ? "bg-green-600 text-white"
@@ -98,10 +118,10 @@ export default function AdminAccounts() {
             <p>
               <span className="font-semibold">Website:</span> <br />
               <a
-                href={selectedAccount.url}
+                href={selectedAccount.website}
                 className="text-blue-600 hover:underline break-all"
               >
-                {selectedAccount.url}
+                {selectedAccount.website || '--'}
               </a>
             </p>
 
@@ -112,7 +132,7 @@ export default function AdminAccounts() {
 
             <p>
               <span className="font-semibold">Territory:</span> <br />
-              {selectedAccount.territory}
+              {selectedAccount.territory?.name}
             </p>
 
             <p>
@@ -132,12 +152,12 @@ export default function AdminAccounts() {
 
             <p>
               <span className="font-semibold">Created By:</span> <br />
-              {selectedAccount.created_by} on {selectedAccount.created_date}
+              {`${selectedAccount.acc_creator?.first_name} ${selectedAccount.acc_creator?.last_name}`} on {formattedDateTime(selectedAccount.created_at)}
             </p>
 
             <p>
               <span className="font-semibold">Last Updated:</span> <br />
-              {selectedAccount.last_updated}
+              {formattedDateTime(selectedAccount.updated_at)}
             </p>
           </div>
         </div>
@@ -205,7 +225,8 @@ export default function AdminAccounts() {
             </tr>
           </thead>
           <tbody>
-            {accounts.map((acc, i) => (
+            {Array.isArray(accounts) && accounts.length > 0 ? (
+              accounts.map((acc, i) => (
               <tr
                 key={i}
                 className="hover:bg-gray-50 text-xs cursor-pointer"
@@ -214,9 +235,9 @@ export default function AdminAccounts() {
                 <td className="py-3 px-4">
                   <div>
                     <div className="font-medium text-blue-600 hover:underline break-all">
-                      {acc.company}
+                      {acc.name}
                     </div>
-                    <div className="text-gray-500 text-xs break-all">{acc.url}</div>
+                    <div className="text-gray-500 text-xs break-all">{acc.website}</div>
                   </div>
                 </td>
                 <td className="py-3 px-4">
@@ -232,7 +253,7 @@ export default function AdminAccounts() {
                   </span>
                 </td>
                 <td className="py-3 px-4">{acc.industry}</td>
-                <td className="py-3 px-4">{acc.territory}</td>
+                <td className="py-3 px-4">{acc.territory?.name || '--'}</td>
                 <td className="py-3 px-4 flex items-center space-x-2">
                   <FiPhone className="text-gray-500" />
                   <span>{acc.phone_number}</span>
@@ -254,7 +275,13 @@ export default function AdminAccounts() {
                   </div>
                 </td>
               </tr>
-            ))}
+            ))
+            ) : (
+              <tr>
+                <td>No accounts available</td>
+              </tr>
+            )}
+            
           </tbody>
         </table>
       </div>

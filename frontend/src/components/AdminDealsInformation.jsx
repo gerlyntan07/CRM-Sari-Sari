@@ -8,8 +8,7 @@ export default function AdminDealsInformation({
   onClose,
   activeTab,
   setActiveTab,
-}) {
-  if (!show || !selectedDeal) return null;
+}) {  
 
   const [showNoteModal, setShowNoteModal] = useState(false);
   const [noteName, setNoteName] = useState("");
@@ -31,6 +30,7 @@ export default function AdminDealsInformation({
         "Client requested a revised quote with extended payment terms (60 days). Prepare a draft.",
     },
   ]);
+  if (!show || !selectedDeal) return null;
 
   function formatTimestamp(date = new Date()) {
     const pad = (n) => String(n).padStart(2, "0");

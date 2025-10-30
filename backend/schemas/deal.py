@@ -9,6 +9,7 @@ class DealBase(BaseModel):
     account_id: Optional[int] = None
     primary_contact_id: Optional[int] = None
     stage: str
+    probability: int
     amount: float
     currency: Optional[str] = 'PHP'
     close_date: Optional[datetime] = None

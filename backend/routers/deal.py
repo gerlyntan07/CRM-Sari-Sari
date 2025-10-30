@@ -26,6 +26,7 @@ def create_deal(
         account_id=data.account_id,
         primary_contact_id=data.primary_contact_id,
         stage=data.stage,
+        probability=data.probability,
         amount=data.amount,
         currency=data.currency,
         description=data.description,

@@ -65,7 +65,7 @@ const UPCOMING_ACTIVITIES = [
 ];
 
 const SALES_PIPELINE = [
-  { stage: "Preprositing", value: 100000, deals: 24, color: "bg-blue-500" },
+  { stage: "Prospecting", value: 100000, deals: 24, color: "bg-blue-500" },
   { stage: "Qualification", value: 90000, deals: 18, color: "bg-yellow-500" },
   { stage: "Proposal", value: 85000, deals: 12, color: "bg-orange-500" },
   { stage: "Negotiation", value: 90000, deals: 8, color: "bg-purple-500" },
@@ -492,7 +492,7 @@ const ActivityItem = ({ type, title, assigned, time, priority }) => {
 
 const App = () => {
   return (
-    <div className="min-h-screen bg-gray-50 pt-5 pb-10 font-sans">
+    <div className="min-h-screen pt-5 pb-10 font-sans">
       
       {/* CHANGED: max-w-7xl to max-w-screen-2xl 
         This increases the maximum width of the content on large screens.

@@ -54,3 +54,20 @@ def create_contact(
     )
 
     return new_contact
+
+@router.get("/admin/fetch-all", response_model=list[ContactResponse])
+def admin_get_contacts(    
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):        
+    if current_user.role.upper() not in ['CEO', 'ADMIN', 'GROUP MANAGER']:
+        raise HTTPException(status_code=403, detail="Permission denied")
+
+    # Get all users in the same company
+    company_users = db.query(User.id).filter(User.related_to_company == current_user.related_to_company).subquery()
+
+    contacts = db.query(Contact).filter(
+        (Contact.created_by.in_(company_users)) | (Contact.assigned_to.in_(company_users))
+    ).all()
+
+    return contacts

@@ -10,6 +10,8 @@ import {
     FiX
 } from "react-icons/fi";
 import { LuUserSearch } from "react-icons/lu";
+import api from '../api'
+import { toast } from "react-toastify";
 
 
 
@@ -26,6 +28,7 @@ export default function AdminDeals() {
     const [selectedDeal, setSelectedDeal] = useState(null);
     const [activeTab, setActiveTab] = useState("Overview");
     const [showDealModal, setShowDealModal] = useState(false);
+    const [deals, setDeals] = useState(null);
 
     const [dealForm, setDealForm] = useState({
         id: null,
@@ -43,50 +46,35 @@ export default function AdminDeals() {
         email: "",
     });
 
-    const [deals, setDeals] = useState([
-        {
-            id: 1,
-            name: "Enterprise ni Dinosaur Tuberow",
-            account: "Gertan Corp.",
-            contact: "Joshua M.",
-            stage: "Proposal Stage",
-            value: 200000,
-            closeDate: "January 12, 2026",
-            owner: "Dinosaur Roar",
-            status: "Proposal",
-            progress: 75,
-            description:
-                "Annual enterprise software license renewal with additional modules.",
-            phone: "+6373737373",
-            email: "jesselle@example.com",
-        },
-        {
-            id: 2,
-            name: "Enterprise ni Dinosaur Tuberow",
-            account: "Gertan Corp.",
-            contact: "Joshua M.",
-            stage: "Proposal Stage",
-            value: 200000,
-            closeDate: "January 12, 2026",
-            owner: "Dinosaur Roar",
-            status: "Proposal",
-            progress: 75,
-            description:
-                "Annual enterprise software license renewal with additional modules.",
-            phone: "+6373737373",
-            email: "jesselle@example.com",
-        },
-    ]);
 
     // Filtered deals
-    const filteredDeals = deals.filter((deal) => {
+    const stageMap = {
+        "Prospecting Stage": "PROSPECTING",
+        "Qualification Stage": "QUALIFICATION",
+        "Proposal Stage": "PROPOSAL",
+        "Negotiation Stage": "NEGOTIATION",
+        "Closed Won Stage": "CLOSED_WON",
+        "Closed Lost Stage": "CLOSED_LOST",
+    };
+
+    const filteredDeals = (deals ?? []).filter((deal) => {
         const matchesSearch =
             searchQuery === "" ||
-            deal.name.toLowerCase().includes(searchQuery.toLowerCase());
-        const matchesStage = stageFilter === "" || deal.stage === stageFilter;
-        const matchesOwner = ownerFilter === "" || deal.owner === ownerFilter;
+            deal.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            deal.description?.toLowerCase().includes(searchQuery.toLowerCase());
+
+        const matchesStage =
+            stageFilter === "" || deal.stage === stageMap[stageFilter];
+
+        const matchesOwner =
+            ownerFilter === "" ||
+            `${deal.assigned_deals?.first_name} ${deal.assigned_deals?.last_name}`.toLowerCase() ===
+            ownerFilter.toLowerCase();
+
         return matchesSearch && matchesStage && matchesOwner;
     });
+
+
 
     // Handlers
     const openNewDealModal = () => {
@@ -107,6 +95,24 @@ export default function AdminDeals() {
         });
         setShowDealModal(true);
     };
+
+    const fetchDeals = async () => {
+        try {
+            const res = await api.get(`/deals/admin/fetch-all`);
+            setDeals(res.data)
+        } catch (err) {
+            if (err.response && err.response.status === 403) {
+                toast.error("Permission denied. Only CEO, Admin, or Group Manager can access this page.");
+            } else {
+                toast.error("Failed to fetch accounts. Please try again later.");
+            }
+            console.error(err);
+        }
+    }
+
+    useEffect(() => {
+        fetchDeals();
+    }, [])
 
     const openEditDealModal = (deal) => {
         setDealForm(deal);
@@ -160,7 +166,7 @@ export default function AdminDeals() {
                 </button>
             </div>
             {/* ✅ Top Summary Boxes */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4 mb-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-4 mb-6">
                 {[
                     { label: "Prospecting", icon: <LuUserSearch />, color: "border-blue-500 text-blue-500" },
                     { label: "Qualification", icon: <FiEdit />, color: "border-yellow-500 text-yellow-500" },
@@ -171,15 +177,19 @@ export default function AdminDeals() {
                 ].map((card, i) => {
                     // Map summary labels to actual deal stages
                     const stageMap = {
-                        "Prospecting": "Prospecting Stage",
-                        "Qualification": "Qualification Stage",
-                        "Proposal": "Proposal Stage",
-                        "Negotiation": "Negotiation Stage",
-                        "Closed Won": "Closed Won",
-                        "Closed Lost": "Closed Lost",
+                        Prospecting: "PROSPECTING",
+                        Qualification: "QUALIFICATION",
+                        Proposal: "PROPOSAL",
+                        Negotiation: "NEGOTIATION",
+                        "Closed Won": "CLOSED_WON",
+                        "Closed Lost": "CLOSED_LOST",
                     };
 
-                    const count = deals.filter(deal => deal.stage === stageMap[card.label]).length;
+                    const count = (deals ?? []).filter(
+                        (deal) => deal.stage === stageMap[card.label]
+                    ).length;
+
+
 
                     return (
                         <div
@@ -229,14 +239,18 @@ export default function AdminDeals() {
                         <option value="Closed Lost Stage">Closed Lost Stage</option>
                     </select>
                     <select
-                        className="border border-gray-200 bg-gray-50 rounded-md px-4 py-2 text-sm focus:ring-2 focus:ring-blue-200 focus:bg-white transition-all"
                         value={ownerFilter}
                         onChange={(e) => setOwnerFilter(e.target.value)}
+                        className="border border-gray-200 bg-gray-50 rounded-md px-4 py-2 text-sm"
                     >
                         <option value="">Filter by Owner</option>
-                        <option value="Dinosaur Roar">Dinosaur Roar</option>
-                        <option value="Marcus Lee">Marcus Lee</option>
+                        {[...new Set((deals ?? []).map(
+                            deal => `${deal.assigned_deals?.first_name} ${deal.assigned_deals?.last_name}`
+                        ))].map((owner, i) => (
+                            <option key={i} value={owner}>{owner}</option>
+                        ))}
                     </select>
+
                 </div>
             </div>
 
@@ -268,12 +282,12 @@ export default function AdminDeals() {
                                             }`}
                                     >
                                         <td className="py-3 px-2 sm:px-4">{deal.name}</td>
-                                        <td className="py-3 px-2 sm:px-4">{deal.account}</td>
-                                        <td className="py-3 px-2 sm:px-4">{deal.contact}</td>
+                                        <td className="py-3 px-2 sm:px-4">{deal.account?.name}</td>
+                                        <td className="py-3 px-2 sm:px-4">{deal.contact?.first_name} {deal.contact?.last_name}</td>
                                         <td className="py-3 px-2 sm:px-4 text-orange-500">{deal.stage}</td>
-                                        <td className="py-3 px-2 sm:px-4">₱ {deal.value.toLocaleString()}</td>
-                                        <td className="py-3 px-2 sm:px-4">{deal.closeDate}</td>
-                                        <td className="py-3 px-2 sm:px-4">{deal.owner}</td>
+                                        <td className="py-3 px-2 sm:px-4">₱ {deal.amount.toLocaleString()}</td>
+                                        <td className="py-3 px-2 sm:px-4">{deal.close_date}</td>
+                                        <td className="py-3 px-2 sm:px-4">{deal.assigned_deals?.first_name} {deal.assigned_deals?.last_name}</td>
                                         <td className="py-3 px-2 sm:px-4 text-center">
                                             <div className="flex justify-center space-x-2">
                                                 <button

@@ -56,7 +56,7 @@ class DealResponse(DealBase):
     updated_at: Optional[datetime] = None    
     account: Optional[AccountBase] = None
     contact: Optional[ContactBase] = None
-    assigned_deal: Optional[UserBase] = None
+    assigned_deals: Optional[UserBase] = None
     deal_creator: Optional[UserBase] = None    
 
     class Config:

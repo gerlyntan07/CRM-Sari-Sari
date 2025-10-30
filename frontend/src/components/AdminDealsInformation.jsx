@@ -61,6 +61,19 @@ export default function AdminDealsInformation({
     setShowNoteModal(false);
   }
 
+  function formattedDateTime(datetime){
+    if (!datetime) return "";
+    return new Date(datetime).toLocaleString("en-US", {
+      month: "2-digit",
+    day: "2-digit",
+    year: "numeric",
+    hour: "numeric",
+    minute: "numeric",
+    hour12: true,
+    })
+    .replace(",", "")
+  }
+
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[9999] font-inter p-2 sm:p-4 overflow-x-hidden">
       <div className="bg-white rounded-xl shadow-lg w-full max-w-full sm:max-w-6xl max-h-[90vh] overflow-y-auto relative box-border">
@@ -69,22 +82,22 @@ export default function AdminDealsInformation({
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-4 sm:p-6 border-b border-gray-200">
           <div className="mb-4 sm:mb-0">
             <h1 className="text-xl sm:text-2xl font-semibold break-words">{selectedDeal.name}</h1>
-            <p className="text-gray-500 text-sm mt-1 break-words">Created on {selectedDeal.closeDate}</p>
+            <p className="text-gray-500 text-sm mt-1 break-words">Created on {formattedDateTime(selectedDeal.created_at)}</p>
             <span className="mt-2 inline-block bg-yellow-100 text-yellow-700 text-sm font-medium px-3 py-1 rounded-full break-words">
-              {selectedDeal.status}
+              {selectedDeal.stage}
             </span>
           </div>
           <div className="text-left sm:text-right mb-4 sm:mb-0">
             <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 break-words">
-              ₱ {selectedDeal.value.toLocaleString()}
+              ₱ {selectedDeal.amount.toLocaleString()}
             </h2>
             <div className="w-full sm:w-40 bg-gray-200 rounded-full h-2 mt-1">
               <div
                 className="bg-green-500 h-2 rounded-full"
-                style={{ width: `${selectedDeal.progress}%` }}
+                style={{ width: `${selectedDeal.probability}%` }}
               />
             </div>
-            <p className="text-xs text-gray-500 mt-1 break-words">{selectedDeal.progress}% Complete</p>
+            <p className="text-xs text-gray-500 mt-1 break-words">{selectedDeal.probability}% Complete</p>
           </div>
           <button
             onClick={onClose}
@@ -128,7 +141,7 @@ export default function AdminDealsInformation({
                   </p>
                   <div className="h-px bg-gray-200 w-full" />
                   <p className="text-sm sm:text-sm text-gray-700 mb-2 py-5 break-words">
-                    <strong>Expected Close Date:</strong> {selectedDeal.closeDate}
+                    <strong>Expected Close Date:</strong> {selectedDeal.close_date}
                   </p>
                   <div className="h-px bg-gray-200 w-full" />
 
@@ -173,15 +186,15 @@ export default function AdminDealsInformation({
                 <div className="bg-white border border-gray-100 rounded-lg p-4 sm:p-5 shadow-sm break-words">
                   <h4 className="font-semibold text-gray-800 mb-3">Contact Information</h4>
                   <div className="text-sm sm:text-sm text-gray-700 space-y-3">
-                    <p><strong>Account:</strong> {selectedDeal.account}</p>
+                    <p><strong>Account:</strong> {selectedDeal.account?.name}</p>
                     <div className="h-px bg-gray-200 w-full" />
-                    <p><strong>Primary Contact:</strong> {selectedDeal.contact}</p>
+                    <p><strong>Primary Contact:</strong> {selectedDeal.contact?.first_name} {selectedDeal.contact?.last_name}</p>
                     <div className="h-px bg-gray-200 w-full" />
-                    <p><strong>Phone:</strong> {selectedDeal.phone}</p>
+                    <p><strong>Phone:</strong> {selectedDeal.contact?.work_phone}</p>
                     <div className="h-px bg-gray-200 w-full" />
-                    <p><strong>Email:</strong> {selectedDeal.email}</p>
+                    <p><strong>Email:</strong> {selectedDeal.contact?.email}</p>
                     <div className="h-px bg-gray-200 w-full" />
-                    <p><strong>Assigned To:</strong> {selectedDeal.owner}</p>
+                    <p><strong>Assigned To:</strong> {selectedDeal.assigned_deals?.first_name} {selectedDeal.assigned_deals?.last_name}</p>
                   </div>
                 </div>
               </div>

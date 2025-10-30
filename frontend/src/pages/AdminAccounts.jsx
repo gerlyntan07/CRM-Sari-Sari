@@ -30,7 +30,6 @@ export default function AdminAccounts() {
     try{
       const res = await api.get(`/accounts/admin/fetch-all`);
       setAccounts(res.data)
-      console.log(res.data)
     } catch(err){
       if (err.response && err.response.status === 403) {
       toast.error("Permission denied. Only CEO, Admin, or Group Manager can access this page.");

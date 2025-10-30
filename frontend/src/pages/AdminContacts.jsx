@@ -12,6 +12,8 @@ import {
 } from "react-icons/fi";
 import { HiArrowLeft } from "react-icons/hi";
 import { BsBuilding } from "react-icons/bs";
+import api from '../api.js'
+import {toast} from 'react-toastify';
 
 export default function AdminContacts() {
   useEffect(() => {
@@ -20,24 +22,25 @@ export default function AdminContacts() {
 
   const [showModal, setShowModal] = useState(false);
   const [selectedContact, setSelectedContact] = useState(null);
+  const [contacts, setContacts]   = useState(null);
 
-  const contacts = [
-    {
-      name: "John Smith",
-      title: "CEO",
-      account: "Acme Corporation",
-      email: "john.smith@acme.com",
-      phone1: "+1-555-0101",
-      phone2: "+1-555-0102",
-      department: "Executive",
-      assigned: "Jane Sales",
-      created: "1/10/2024",
-      mobile: "09217229846",
-      workPhone: "(555) 123-4567",
-      createdBy: "John Appleseed",
-      lastUpdated: "2025-09-21 15:30",
-    },
-  ];
+  const fetchContacts = async() => {
+    try{
+      const res = await api.get(`/contacts/admin/fetch-all`);
+      setContacts(res.data)
+    } catch(err){
+      if (err.response && err.response.status === 403) {
+      toast.error("Permission denied. Only CEO, Admin, or Group Manager can access this page.");
+    } else {
+      toast.error("Failed to fetch accounts. Please try again later.");
+    }
+    console.error(err);
+    }
+  }
+
+  useEffect(() => {
+    fetchContacts();
+  },[])
 
   const handleBackdropClick = (e) => {
     if (e.target.id === "modalBackdrop") setShowModal(false);
@@ -50,6 +53,19 @@ export default function AdminContacts() {
   const handleBackToList = () => {
     setSelectedContact(null);
   };
+
+  function formattedDateTime(datetime){
+    if (!datetime) return "";
+    return new Date(datetime).toLocaleString("en-US", {
+      month: "2-digit",
+    day: "2-digit",
+    year: "numeric",
+    hour: "numeric",
+    minute: "numeric",
+    hour12: true,
+    })
+    .replace(",", "")
+  }
 
   // ===================== CONTACT DETAILS VIEW ===================== //
   if (selectedContact) {
@@ -66,7 +82,7 @@ export default function AdminContacts() {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">
           <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-3">
             <h1 className="text-xl sm:text-2xl font-semibold text-gray-800">
-              {selectedContact.account}
+              {selectedContact.account?.name}
             </h1>
             <span className="mt-1 sm:mt-0 bg-blue-600 text-white text-xs sm:text-sm px-2 py-0.5 rounded w-fit">
               Active
@@ -92,7 +108,7 @@ export default function AdminContacts() {
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 text-sm text-gray-700">
             <p>
               <span className="font-semibold">Primary Contact:</span> <br />
-              {selectedContact.name}
+              {selectedContact.first_name} {selectedContact.last_name}
             </p>
             <p>
               <span className="font-semibold">Email:</span> <br />
@@ -100,7 +116,7 @@ export default function AdminContacts() {
             </p>
             <p>
               <span className="font-semibold">Created By:</span> <br />
-              {selectedContact.createdBy} on {selectedContact.created}
+              {selectedContact.contact_creator?.first_name} {selectedContact.contact_creator?.last_name} on {formattedDateTime(selectedContact.created_at)}
             </p>
 
             <p>
@@ -109,24 +125,29 @@ export default function AdminContacts() {
             </p>
             <p>
               <span className="font-semibold">Assigned To:</span> <br />
-              {selectedContact.assigned}
+              {selectedContact.assigned_contact?.first_name} {selectedContact.assigned_contact?.last_name}
             </p>
             <p>
               <span className="font-semibold">Work Phone:</span> <br />
-              {selectedContact.workPhone}
+              {selectedContact.work_phone}
             </p>
 
             <p>
               <span className="font-semibold">Account:</span> <br />
-              {selectedContact.account}
+              {selectedContact.account?.name}
             </p>
             <p>
-              <span className="font-semibold">Mobile Phone:</span> <br />
-              {selectedContact.mobile}
+              <span className="font-semibold">Mobile Phone 1:</span> <br />
+              {selectedContact.mobile_phone_1}
             </p>
+            <p>
+              <span className="font-semibold">Mobile Phone 2:</span> <br />
+              {selectedContact.mobile_phone_2}
+            </p>
+            
             <p>
               <span className="font-semibold">Last Updated:</span> <br />
-              {selectedContact.lastUpdated}
+              {formattedDateTime(selectedContact.updated_at)}
             </p>
           </div>
 
@@ -199,7 +220,8 @@ export default function AdminContacts() {
           </thead>
 
           <tbody className="text-xs text-gray-700">
-            {contacts.map((c, i) => (
+            {Array.isArray(contacts) && contacts.length > 0 ? (
+              contacts.map((c, i) => (
               <tr
                 key={i}
                 className="hover:bg-gray-50 cursor-pointer"
@@ -208,7 +230,7 @@ export default function AdminContacts() {
                 <td className="py-3 px-4">
                   <div>
                     <div className="font-medium text-blue-600 hover:underline break-all">
-                      {c.name}
+                      {c.first_name} {c.last_name}
                     </div>
                     <div className="text-xs text-gray-500">{c.title}</div>
                   </div>
@@ -217,7 +239,7 @@ export default function AdminContacts() {
                 <td className="py-3 px-4">
                   <div className="flex items-center space-x-2">
                     <BsBuilding className="text-gray-500" />
-                    <span>{c.account}</span>
+                    <span>{c.account?.name}</span>
                   </div>
                 </td>
 
@@ -229,12 +251,8 @@ export default function AdminContacts() {
                     </div>
                     <div className="flex items-center space-x-2">
                       <FiPhone className="text-gray-500" />
-                      <span>{c.phone1}</span>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <FiPhone className="text-gray-500" />
-                      <span>{c.phone2}</span>
-                    </div>
+                      <span>{c.work_phone}</span>
+                    </div>                    
                   </div>
                 </td>
 
@@ -243,14 +261,14 @@ export default function AdminContacts() {
                 <td className="py-3 px-4">
                   <div className="flex items-center space-x-2">
                     <FiUser className="text-gray-500" />
-                    <span>{c.assigned}</span>
+                    <span>{c.assigned_contact?.first_name} {c.assigned_contact?.last_name}</span>
                   </div>
                 </td>
 
                 <td className="py-3 px-4">
                   <div className="flex items-center space-x-2">
                     <FiCalendar className="text-gray-500" />
-                    <span>{c.created}</span>
+                    <span>{c.contact_creator?.first_name} {c.contact_creator?.last_name}</span>
                   </div>
                 </td>
 
@@ -265,7 +283,10 @@ export default function AdminContacts() {
                   </div>
                 </td>
               </tr>
-            ))}
+            ))
+            ): (
+              <tr><td>No contacts available</td></tr>
+            )}            
           </tbody>
         </table>
       </div>

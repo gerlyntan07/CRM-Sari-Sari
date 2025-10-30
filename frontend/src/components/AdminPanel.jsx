@@ -60,7 +60,7 @@ export default function AdminPanel() {
       >
         {/* Logo */}
         <div className="bg-[#fbbf24] text-gray-900 font-bold text-xl px-6 py-4 tracking-wide">
-          CRM ni Josh
+          Admin CRM
         </div>
 
         {/* Nav */}
@@ -218,7 +218,7 @@ export default function AdminPanel() {
 
         {/* Footer */}
         <div className="px-4 py-3 text-xs text-gray-400 border-t border-gray-700">
-          © {new Date().getFullYear()} CRM ni Josh
+          © {new Date().getFullYear()} Sari-Sari CRM 
         </div>
       </div>
 

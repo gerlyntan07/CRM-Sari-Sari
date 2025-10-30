@@ -158,7 +158,7 @@ export default function TManagerUser() {
                     </p>
                 ) : (
                     <table className="min-w-full text-gray-700 text-xs sm:text-sm">
-                        <thead className="bg-gray-100 text-left text-gray-500 uppercase">
+                        <thead className="bg-gray-100 text-left text-gray-600 uppercase">
                             <tr>
                                 <th className="py-3 px-4 whitespace-nowrap">Name</th>
                                 <th className="py-3 px-4 whitespace-nowrap">Email</th>
@@ -179,7 +179,7 @@ export default function TManagerUser() {
                                     <td className="py-3 px-4 whitespace-nowrap">{u.email}</td>
                                     <td className="py-3 px-4 whitespace-nowrap">
                                         <span
-                                            className={`px-2 py-1 text-xs sm:text-sm font-semibold rounded-md ${roleColors[u.role] || "bg-gray-100 text-gray-700"
+                                            className={`px-2 py-1 text-xs sm:text-xs font-semibold rounded-md ${roleColors[u.role] || "bg-gray-100 text-gray-700"
                                                 }`}
                                         >
                                             {u.role}

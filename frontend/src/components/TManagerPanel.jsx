@@ -205,7 +205,7 @@ export default function TManagerPanel() {
 
         {/* Footer */}
         <div className="px-4 py-3 text-xs text-gray-400 border-t border-gray-700">
-          © {new Date().getFullYear()} CRM ni Josh
+          © {new Date().getFullYear()} Sari-Sari CRM 
         </div>
       </div>
 

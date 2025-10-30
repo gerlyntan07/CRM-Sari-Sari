@@ -24,12 +24,15 @@ export default function AdminAccounts() {
   const [showModal, setShowModal] = useState(false);
   const [selectedAccount, setSelectedAccount] = useState(null);
   const [accounts, setAccounts] = useState(null);
+  const [stageFilter, setStageFilter] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
   
 
   const fetchAccounts = async() => {
     try{
       const res = await api.get(`/accounts/admin/fetch-all`);
       setAccounts(res.data)
+      console.log(res.data)
     } catch(err){
       if (err.response && err.response.status === 403) {
       toast.error("Permission denied. Only CEO, Admin, or Group Manager can access this page.");
@@ -62,6 +65,31 @@ export default function AdminAccounts() {
     })
     .replace(",", "")
   }
+
+  //count per status
+  // count per status
+// count per status
+const total = accounts ? accounts.length : 0;
+const customers = (accounts ?? []).filter(acc => acc.status?.toLowerCase() === 'customer').length;
+const prospects = (accounts ?? []).filter(acc => acc.status?.toLowerCase() === 'prospect').length;
+const partners = (accounts ?? []).filter(acc => acc.status?.toLowerCase() === 'partner').length;
+const active = (accounts ?? []).filter(acc => acc.status?.toLowerCase() === 'active').length;
+const inactive = (accounts ?? []).filter(acc => acc.status?.toLowerCase() === 'inactive').length;
+const former = (accounts ?? []).filter(acc => acc.status?.toLowerCase() === 'former').length;
+
+const filteredAccounts = (accounts ?? []).filter((acc) => {
+        const matchesSearch =
+            searchQuery === "" ||
+            acc.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            acc.industry?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            acc.territory?.name?.toLowerCase().includes(searchQuery.toLowerCase());
+        
+        const matchesStage =
+        stageFilter === "" ||
+        acc.status.toLowerCase().includes(stageFilter.toLowerCase())
+
+        return matchesSearch && matchesStage;
+    });
 
   // ===================== ACCOUNT DETAILS VIEW ===================== //
   if (selectedAccount) {
@@ -183,12 +211,14 @@ export default function AdminAccounts() {
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4 mb-6">
-        <Card title="Total" value="3" color="blue" icon={<FiUsers size={24} />} />
-        <Card title="Customers" value="2" color="green" icon={<FiUserCheck size={24} />} />
-        <Card title="Prospects" value="1" color="purple" icon={<FiUserPlus size={24} />} />
-        <Card title="Partners" value="0" color="pink" icon={<FiUser size={24} />} />
-        <Card title="Inactive" value="0" color="gray" icon={<FiUserX size={24} />} />
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 mb-6">
+        <Card title="Total" value={total} color="black" icon={<FiUsers size={24} />} />         
+        <Card title="Customers" value={customers} color="green" icon={<FiUserCheck size={24} />} />
+        <Card title="Prospects" value={prospects} color="purple" icon={<FiUserPlus size={24} />} />
+        <Card title="Partners" value={partners} color="pink" icon={<FiUser size={24} />} />
+        <Card title="Active" value={active} color="blue" icon={<FiUserX size={24} />} />
+        <Card title="Inactive" value={inactive} color="gray" icon={<FiUserX size={24} />} />     
+        <Card title="Former" value={former} color="orange" icon={<FiUserX size={24} />} />          
       </div>
 
       {/* Search & Filter */}
@@ -199,14 +229,20 @@ export default function AdminAccounts() {
             type="text"
             placeholder="Search accounts..."
             className="ml-2 bg-transparent w-full outline-none text-sm"
+            onChange={(e) => setSearchQuery(e.target.value)}
+            value={searchQuery}
           />
         </div>
-        <select className="border border-gray-300 rounded-md px-3 py-2 text-sm text-gray-600 bg-white shadow-sm w-full sm:w-auto">
-          <option>All Status</option>
-          <option>Customer</option>
-          <option>Prospect</option>
-          <option>Partner</option>
-          <option>Inactive</option>
+        <select className="border border-gray-300 rounded-md px-3 py-2 text-sm text-gray-600 bg-white shadow-sm w-full sm:w-auto"
+        value={stageFilter}
+                      onChange={(e) => setStageFilter(e.target.value)}>
+          <option value=''>All Status</option>
+          <option value='Customer'>Customer</option>
+          <option value='Prospect'>Prospect</option>
+          <option value='Partner'>Partner</option>
+          <option value='Active'>Active</option>
+          <option value='Inactive'>Inactive</option>
+          <option value='Former'>Former</option>
         </select>
       </div>
 
@@ -224,8 +260,8 @@ export default function AdminAccounts() {
             </tr>
           </thead>
           <tbody>
-            {Array.isArray(accounts) && accounts.length > 0 ? (
-              accounts.map((acc, i) => (
+            {Array.isArray(filteredAccounts) && filteredAccounts.length > 0 ? (
+              filteredAccounts.map((acc, i) => (
               <tr
                 key={i}
                 className="hover:bg-gray-50 text-xs cursor-pointer"
@@ -357,11 +393,13 @@ export default function AdminAccounts() {
 
 function Card({ title, value, color, icon }) {
   const colorClasses = {
+    black: "text-black/60 bg-black/5",
     blue: "text-blue-600 bg-blue-50 border-blue-100",
     green: "text-green-600 bg-green-50 border-green-100",
     purple: "text-purple-600 bg-purple-50 border-purple-100",
     pink: "text-pink-600 bg-pink-50 border-pink-100",
     gray: "text-gray-600 bg-gray-50 border-gray-100",
+    orange: "text-orange-600 bg-orange-50 border-orange-100",
   };
 
   return (

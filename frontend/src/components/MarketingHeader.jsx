@@ -17,6 +17,9 @@ export default function MarketingHeader({ toggleSidebar }) {
     "/marketing/contacts": "Contacts",
     "/marketing/accounts": "Accounts",
     "/marketing/leads": "Leads",
+    "/marketing/tasks": "Tasks",
+    "/marketing/campaigns": "Campaign",
+    "/marketing/templates": "Templates",
   };
 
   useEffect(() => {

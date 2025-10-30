@@ -6,6 +6,7 @@ from schemas.auth import UserCreate, UserResponse
 from .auth_utils import get_current_user, hash_password,get_default_avatar
 from models.auth import User
 from .logs_utils import serialize_instance, create_audit_log
+from .aws_ses_utils import send_welcome_email
 
 router = APIRouter(
     prefix="/users",
@@ -102,6 +103,8 @@ def create_user(
         new_data=new_data,
         custom_message=f"new user '{new_user.first_name} {new_user.last_name}' with role '{new_user.role}'"
     )
+
+    send_welcome_email(new_user.email, new_user.first_name, user_data.password, new_user.role)
 
     return new_user
 

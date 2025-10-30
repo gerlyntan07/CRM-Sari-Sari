@@ -80,15 +80,15 @@ export default function AdminHeader({ toggleSidebar }) {
           </span>
         </button>
 
-        {/* Profile Dropdown */}
+        {/* User Dropdown */}
         <div className="relative" ref={dropdownRef}>
           <button
             onClick={() => setOpen(!open)}
             className="flex items-center gap-2 cursor-pointer hover:bg-gray-100 px-2 py-1 rounded"
           >
             <img
-              src={user?.profile_picture}
-              alt=""
+              src={user?.profile_picture || "https://via.placeholder.com/40"}
+              alt="Profile"
               className="w-8 aspect-square object-cover rounded-full"
             />
             <span className="text-sm font-medium text-gray-700">
@@ -97,18 +97,36 @@ export default function AdminHeader({ toggleSidebar }) {
           </button>
 
           {open && (
-            <div className="absolute right-0 mt-2 w-48 bg-gray-100 shadow-lg rounded border z-50">
-              <div className="flex flex-col">
-                <button className="px-4 py-2 text-sm hover:bg-gray-200 text-left">
+            <div className="absolute right-0 mt-2 w-64 bg-white shadow-xl rounded-xl border border-gray-200 z-50 p-4">
+              <div className="flex flex-col items-center text-center space-y-3">
+                {/* Profile Picture */}
+                <img
+                  src={user?.profile_picture || "https://via.placeholder.com/80"}
+                  alt="Profile"
+                  className="w-16 h-16 rounded-full object-cover"
+                />
+
+                {/* Name */}
+                <h2 className="text-gray-800 font-semibold text-sm">
+                  {user?.first_name} {user?.middle_name} {user?.last_name}
+                </h2>
+              </div>
+
+              {/* Menu Options */}
+              <div className="mt-4 space-y-1 px-4 text-left">
+                <button className="block w-full text-sm text-gray-700 hover:bg-gray-50 py-1 rounded text-left">
                   Invite Your Team
                 </button>
-                <button className="px-4 py-2 text-sm hover:bg-gray-200 text-left">
-                  Manage Account
+
+                <button className="block w-full text-sm text-gray-700 hover:bg-gray-50 py-1 rounded text-left">
+                  Manage Your Account
                 </button>
-                <div className="border-t my-1"></div>
+
+                <div className="border-t border-gray-200 my-2"></div>
+
                 <button
                   onClick={logout}
-                  className="px-4 py-2 text-sm bg-red-500 text-white rounded mx-2 my-2 hover:bg-red-600"
+                  className="block w-full text-sm text-red-600 hover:text-red-700 hover:bg-gray-50 py-2 rounded text-left"
                 >
                   Logout
                 </button>

@@ -173,7 +173,7 @@ export default function AdminUser() {
           </p>
         ) : (
           <table className="min-w-full text-sm text-gray-700">
-            <thead className="border-b bg-gray-50 text-left text-gray-500 text-xs uppercase">
+            <thead className="bg-gray-100 text-left text-gray-600 text-sm uppercase">
               <tr>
                 <th className="py-3 px-4">Name</th>
                 <th className="py-3 px-4">Email</th>
@@ -185,7 +185,7 @@ export default function AdminUser() {
               {filteredUsers.map((u) => (
                 <tr
                   key={u.id}
-                  className={`border-b transition-all duration-300 ${u.highlight ? "bg-green-50" : "hover:bg-gray-50"
+                  className={`transition-all duration-300 ${u.highlight ? "bg-green-50" : "hover:bg-gray-50"
                     }`}
                 >
                   <td className="py-3 px-4">

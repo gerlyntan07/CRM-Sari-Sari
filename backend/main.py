@@ -19,6 +19,7 @@ import models.contact
 import models.deal
 import models.task
 import models.meeting
+import models.call
 
 # Import routers
 import routers.auth as auth_router

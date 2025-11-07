@@ -1,10 +1,10 @@
 # backend/models/company.py
-from sqlalchemy import Column, Integer, String, Boolean, DateTime, func, ForeignKey
+from sqlalchemy import Column, Integer, String, Enum, Boolean, DateTime, func, ForeignKey
 from sqlalchemy.orm import relationship
 from database import Base
-from enum import Enum
+import enum
 
-class MeetingStatus(str, Enum):
+class MeetingStatus(str, enum.Enum):
     PLANNED = 'Planned'
     HELD = 'Held'
     NOT_HELD = 'Not held'
@@ -17,7 +17,7 @@ class Meeting(Base):
     start_time = Column(DateTime(timezone=True), nullable=True)
     end_time = Column(DateTime(timezone=True), nullable=True)
     location = Column(String(255), nullable=True)
-    status = Column(String, default=MeetingStatus.PLANNED.value, nullable=True)
+    status = Column(Enum(MeetingStatus), default=MeetingStatus.PLANNED, nullable=True)
     notes = Column(String, nullable=True)
     related_to_account = Column(Integer, ForeignKey("accounts.id", ondelete="CASCADE"), nullable=True)
     related_to_contact = Column(Integer, ForeignKey("contacts.id", ondelete="CASCADE"), nullable=True)

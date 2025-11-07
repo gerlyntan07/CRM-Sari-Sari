@@ -30,6 +30,8 @@ class Task(Base):
     related_to_deal = Column(Integer, ForeignKey("deals.id", ondelete="CASCADE"), nullable=True)    
     created_by = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     assigned_to = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
     account = relationship("Account", back_populates="tasks")
     contact = relationship("Contact", back_populates="tasks")

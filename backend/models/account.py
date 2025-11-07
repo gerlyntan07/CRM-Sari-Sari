@@ -39,3 +39,4 @@ class Account(Base):
 
     meetings = relationship("Meeting", back_populates="account", cascade="all, delete-orphan")
     tasks = relationship("Task", back_populates="account", cascade="all, delete-orphan")
+    calls = relationship("Call", back_populates="account", cascade="all, delete-orphan")

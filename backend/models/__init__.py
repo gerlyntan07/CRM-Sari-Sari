@@ -11,3 +11,4 @@ from .contact import Contact
 from .deal import Deal
 from .task import Task
 from .meeting import Meeting
+from .call import Call

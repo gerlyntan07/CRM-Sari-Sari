@@ -57,3 +57,6 @@ class User(Base):
     tasks_created = relationship("Task", back_populates="task_creator", foreign_keys="[Task.created_by]", cascade="all, delete-orphan")
     tasks_assigned = relationship("Task", back_populates="task_assign_to", foreign_keys="[Task.assigned_to]", cascade="all, delete-orphan")
 
+    calls_created = relationship("Call", back_populates="call_creator", foreign_keys="[Call.created_by]", cascade="all, delete-orphan")
+    calls_assigned = relationship("Call", back_populates="call_assign_to", foreign_keys="[Call.assigned_to]", cascade="all, delete-orphan")
+

@@ -18,14 +18,14 @@ export default function MarketingCampaign() {
   const [editMode, setEditMode] = useState(false);
   const [selectedCampaign, setSelectedCampaign] = useState(null);
 
+  const [search, setSearch] = useState("");
+  const [filterCampaign, setFilterCampaign] = useState("All Statuses");
+
   const [confirmModal, setConfirmModal] = useState({
     show: false,
     action: null,
     campaign: null,
   });
-
-  const [filterStatus, setFilterStatus] = useState("All Status");
-  const [searchTerm, setSearchTerm] = useState("");
 
   const [campaigns, setCampaigns] = useState([
     {
@@ -66,10 +66,10 @@ export default function MarketingCampaign() {
   // ===================== DYNAMIC FILTERED CAMPAIGNS =====================
   const filteredCampaigns = campaigns.filter((c) => {
     const matchesStatus =
-      filterStatus === "All Status" || c.status === filterStatus;
+      filterCampaign === "All Statuses" || c.status === filterCampaign;
     const matchesSearch =
-      c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      c.subject.toLowerCase().includes(searchTerm.toLowerCase());
+      c.name.toLowerCase().includes(search.toLowerCase()) ||
+      c.subject.toLowerCase().includes(search.toLowerCase());
     return matchesStatus && matchesSearch;
   });
 
@@ -238,29 +238,33 @@ export default function MarketingCampaign() {
         </button>
       </div>
 
-      {/* ===================== SEARCH + FILTER ===================== */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-2 sm:space-y-0 sm:space-x-3 mb-6">
-        <div className="flex items-center bg-white border border-gray-200 rounded-md px-3 py-2 w-full sm:w-1/3 shadow-sm">
-          <FiSearch className="text-gray-500" />
+      {/* ======= Search + Filters ======= */}
+      <div className="bg-white rounded-xl p-4 shadow-sm mb-6 flex flex-col lg:flex-row items-center justify-between gap-3 w-full">
+        {/* Search Bar */}
+        <div className="flex items-center border border-gray-300 rounded-lg px-4 h-11 w-full lg:w-3/4 focus-within:ring-2 focus-within:ring-indigo-500 transition">
+          <FiSearch size={20} className="text-gray-400 mr-3" />
           <input
             type="text"
-            placeholder="Search campaigns..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="ml-2 bg-transparent w-full outline-none text-sm"
+            placeholder="Search by campaign name or email subject..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="focus:outline-none text-base w-full"
           />
         </div>
 
-        <select
-          className="border border-gray-300 rounded-md px-3 py-2 text-sm text-gray-600 bg-white shadow-sm w-full sm:w-auto"
-          value={filterStatus}
-          onChange={(e) => setFilterStatus(e.target.value)}
-        >
-          <option>All Status</option>
-          <option>Draft</option>
-          <option>Scheduled</option>
-          <option>Sent</option>
-        </select>
+        {/* Filter Dropdown */}
+        <div className="w-full lg:w-1/4">
+          <select
+            value={filterCampaign}
+            onChange={(e) => setFilterCampaign(e.target.value)}
+            className="border border-gray-300 rounded-lg px-3 h-11 text-sm text-gray-600 bg-white w-full focus:ring-2 focus:ring-indigo-500 transition"
+          >
+            <option>All Statuses</option>
+            <option>Draft</option>
+            <option>Scheduled</option>
+            <option>Sent</option>
+          </select>
+        </div>
       </div>
 
       {/* ===================== TABLE ===================== */}

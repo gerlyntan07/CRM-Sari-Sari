@@ -50,15 +50,15 @@ export default function MarketingTemplates() {
   const [editTemplate, setEditTemplate] = useState(null);
   const [selectedTemplate, setSelectedTemplate] = useState(null);
 
+  const [search, setSearch] = useState("");
+  const [filterTemplate, setFilterTemplate] = useState("All Categories");
+
   const [formData, setFormData] = useState({
     name: "",
     category: "",
     subject: "",
     body: "",
   });
-
-  const [search, setSearch] = useState("");
-  const [filterCategory, setFilterCategory] = useState("All");
 
   const [confirmModal, setConfirmModal] = useState({
     show: false,
@@ -157,7 +157,7 @@ export default function MarketingTemplates() {
   const filteredTemplates = templates.filter(
     (t) =>
       t.name.toLowerCase().includes(search.toLowerCase()) &&
-      (filterCategory === "All" || t.category === filterCategory)
+      (filterTemplate === "All Categories" || t.category === filterTemplate)
   );
 
   const renderCardContent = (t, isModal = false) => (
@@ -237,7 +237,7 @@ export default function MarketingTemplates() {
   );
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 font-inter min-h-screen bg-gray-50">
+    <div className="p-4 sm:p-6 lg:p-8 font-inter min-h-screen">
       <Toaster position="top-center" reverseOrder={false} />
       {/* Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 space-y-2 sm:space-y-0">
@@ -255,25 +255,29 @@ export default function MarketingTemplates() {
           ＋ New Template
         </button>
       </div>
-      {/* Search + Filters */}
-      <div className="bg-white rounded-xl p-4 shadow-sm mb-6 flex flex-col lg:flex-row gap-4 items-center justify-between">
-        <div className="flex items-center w-full lg:w-1/3 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">
+
+      {/* ======= Search + Filters ======= */}
+      <div className="bg-white rounded-xl p-4 shadow-sm mb-6 flex flex-col lg:flex-row items-center justify-between gap-3 w-full">
+        {/* Search Bar */}
+        <div className="flex items-center border border-gray-300 rounded-lg px-4 h-11 w-full lg:w-3/4 focus-within:ring-2 focus-within:ring-indigo-500 transition">
+          <FiSearch size={20} className="text-gray-400 mr-3" />
           <input
             type="text"
             placeholder="Search by template name..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full bg-transparent outline-none text-sm text-gray-700"
+            className="focus:outline-none text-base w-full"
           />
         </div>
 
-        <div className="flex flex-wrap gap-3 w-full lg:w-auto">
+        {/* Filter Dropdown */}
+        <div className="w-full lg:w-1/4">
           <select
-            value={filterCategory}
-            onChange={(e) => setFilterCategory(e.target.value)}
-            className="border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-600"
+            value={filterTemplate}
+            onChange={(e) => setFilterTemplate(e.target.value)}
+            className="border border-gray-300 rounded-lg px-3 h-11 text-sm text-gray-600 bg-white w-full focus:ring-2 focus:ring-indigo-500 transition"
           >
-            <option>All</option>
+            <option>All Categories</option>
             <option>Welcome</option>
             <option>Follow-up</option>
             <option>Newsletter</option>
@@ -281,6 +285,7 @@ export default function MarketingTemplates() {
           </select>
         </div>
       </div>
+
       {/* Template Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         {filteredTemplates.map((t) => (

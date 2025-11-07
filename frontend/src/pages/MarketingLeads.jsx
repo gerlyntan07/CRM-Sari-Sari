@@ -69,6 +69,8 @@ export default function MarketingLeads() {
 
   const handleLeadClick = (lead) => setSelectedLead(lead);
   const handleBackToList = () => setSelectedLead(null);
+  const [search, setSearch] = useState("");
+  const [filterLeads, setFilterLeads] = useState("All Accounts");
 
   const handleBackdropClick = () => {
     setShowModal(false);
@@ -174,21 +176,35 @@ export default function MarketingLeads() {
         </div>
       </div>
 
-      {/* Search and Filter */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center sm:space-x-3 mb-8 gap-3">
-        <div className="flex items-center bg-white border border-gray-200 rounded-md px-3 py-2 w-full sm:w-1/3 shadow-sm">
-          <FiSearch className="text-gray-500" />
+      {/* ======= Search + Filters ======= */}
+      <div className="bg-white rounded-xl p-4 shadow-sm mb-6 flex flex-col lg:flex-row items-center justify-between gap-3 w-full">
+        {/* Search Bar */}
+        <div className="flex items-center border border-gray-300 rounded-lg px-4 h-11 w-full lg:w-3/4 focus-within:ring-2 focus-within:ring-indigo-500 transition">
+          <FiSearch size={20} className="text-gray-400 mr-3" />
           <input
             type="text"
             placeholder="Search Leads..."
-            className="ml-2 bg-transparent w-full outline-none text-sm"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="focus:outline-none text-base w-full"
           />
         </div>
-        <select className="border border-gray-300 rounded-md px-3 py-2 text-sm text-gray-600 bg-white shadow-sm w-full sm:w-auto">
-          <option>All Leads</option>
-          <option>Subject</option>
-          <option>Assign To</option>
-        </select>
+
+        {/* Filter Dropdown */}
+        <div className="w-full lg:w-1/4">
+          <select
+            value={filterLeads}
+            onChange={(e) => setFilterLeads(e.target.value)}
+            className="border border-gray-300 rounded-lg px-3 h-11 text-sm text-gray-600 bg-white w-full focus:ring-2 focus:ring-indigo-500 transition"
+          >
+            <option>All Leads</option>
+            <option>New</option>
+            <option>Contacted</option>
+            <option>Qualified</option>
+            <option>Converted</option>
+            <option>Lost</option>
+          </select>
+        </div>
       </div>
 
       {/* Table */}

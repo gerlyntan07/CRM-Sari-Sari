@@ -21,6 +21,9 @@ export default function MarketingContacts() {
   const [showModal, setShowModal] = useState(false);
   const [selectedContact, setSelectedContact] = useState(null);
   const [editMode, setEditMode] = useState(false);
+  const [search, setSearch] = useState("");
+  const [filterContacts, setFilterContacts] = useState("All Contacts");
+
   const [contacts, setContacts] = useState([
     {
       id: 1,
@@ -226,21 +229,33 @@ export default function MarketingContacts() {
         </button>
       </div>
 
-      <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-2 sm:space-y-0 sm:space-x-3 mb-4 sm:mb-6">
-        <div className="flex items-center bg-white border border-gray-200 rounded-md px-3 py-2 w-full sm:w-1/3 shadow-sm">
-          <FiSearch className="text-gray-500" />
+      {/* ======= Search + Filters ======= */}
+      <div className="bg-white rounded-xl p-4 shadow-sm mb-6 flex flex-col lg:flex-row items-center justify-between gap-3 w-full">
+        {/* Search Bar */}
+        <div className="flex items-center border border-gray-300 rounded-lg px-4 h-11 w-full lg:w-3/4 focus-within:ring-2 focus-within:ring-indigo-500 transition">
+          <FiSearch size={20} className="text-gray-400 mr-3" />
           <input
             type="text"
-            placeholder="Search contacts..."
-            className="ml-2 bg-transparent w-full outline-none text-sm"
+            placeholder="Search Contacts..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="focus:outline-none text-base w-full"
           />
         </div>
-        <select className="border border-gray-300 rounded-md px-3 py-2 text-sm text-gray-600 bg-white shadow-sm w-full sm:w-auto">
-          <option>All Accounts</option>
-          <option>Acme Corporation</option>
-          <option>TechStart Inc</option>
-          <option>Global Solutions Ltd</option>
-        </select>
+
+        {/* Filter Dropdown */}
+        <div className="w-full lg:w-1/4">
+          <select
+            value={filterContacts}
+            onChange={(e) => setFilterContacts(e.target.value)}
+            className="border border-gray-300 rounded-lg px-3 h-11 text-sm text-gray-600 bg-white w-full focus:ring-2 focus:ring-indigo-500 transition"
+          >
+            <option>All Contacts</option>
+            <option>Option 1</option>
+            <option>Option 2</option>
+            <option>Option 3</option>
+          </select>
+        </div>
       </div>
 
       <div className="overflow-x-auto">

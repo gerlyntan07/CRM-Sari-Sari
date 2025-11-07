@@ -24,9 +24,52 @@ export default function MarketingTask() {
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
-  const [filterStatus, setFilterStatus] = useState("All");
-  const [filterPriority, setFilterPriority] = useState("All");
-  const [filterUser, setFilterUser] = useState("All");
+  const [filterStatus, setFilterStatus] = useState("All Statuses");
+  const [filterPriority, setFilterPriority] = useState("All Priorities");
+
+  const METRICS = React.useMemo(() => {
+    const today = new Date();
+    return [
+      {
+        icon: FiClock,
+        title: "To Do",
+        value: tasks.filter((t) => t.status === "To Do").length,
+        color: "text-blue-600",
+        bgColor: "bg-blue-50",
+      },
+      {
+        icon: FiActivity,
+        title: "In Progress",
+        value: tasks.filter((t) => t.status === "In Progress").length,
+        color: "text-purple-600",
+        bgColor: "bg-purple-50",
+      },
+      {
+        icon: FiCheckCircle,
+        title: "Completed",
+        value: tasks.filter((t) => t.status === "Completed").length,
+        color: "text-green-600",
+        bgColor: "bg-green-50",
+      },
+      {
+        icon: FiAlertCircle,
+        title: "Overdue",
+        value: tasks.filter(
+          (t) =>
+            t.dueDate && new Date(t.dueDate) < today && t.status !== "Completed"
+        ).length,
+        color: "text-red-600",
+        bgColor: "bg-red-50",
+      },
+      {
+        icon: FiStar,
+        title: "High Priority",
+        value: tasks.filter((t) => t.priority === "High").length,
+        color: "text-orange-600",
+        bgColor: "bg-orange-50",
+      },
+    ];
+  }, [tasks]);
 
   const [formData, setFormData] = useState({
     title: "",
@@ -45,7 +88,7 @@ export default function MarketingTask() {
   const [taskToDelete, setTaskToDelete] = useState(null);
   const [isUpdateConfirmOpen, setUpdateConfirmOpen] = useState(false);
 
-  // ⏳ Simulate backend data loading
+  // Load mock data
   useEffect(() => {
     setLoading(true);
     setTimeout(() => {
@@ -97,6 +140,7 @@ export default function MarketingTask() {
     }, 1000);
   }, []);
 
+  // Modal open handler
   const handleOpenModal = (task = null) => {
     setSelectedTask(task);
     if (task) {
@@ -124,14 +168,12 @@ export default function MarketingTask() {
 
   const handleConfirmUpdate = () => {
     if (selectedTask) {
-      // Update existing
       setTasks((prev) =>
         prev.map((t) =>
           t.id === selectedTask.id ? { ...selectedTask, ...formData } : t
         )
       );
     } else {
-      // Add new
       const newTask = {
         ...formData,
         id: Date.now(),
@@ -139,7 +181,6 @@ export default function MarketingTask() {
       };
       setTasks((prev) => [newTask, ...prev]);
     }
-
     setShowModal(false);
     setUpdateConfirmOpen(false);
     resetForm();
@@ -169,57 +210,37 @@ export default function MarketingTask() {
     setDeleteConfirmOpen(false);
   };
 
-  // 🔍 Filtering
+  // Filtering
   const filteredTasks = tasks.filter((task) => {
     const matchesSearch =
       task.title.toLowerCase().includes(search.toLowerCase()) ||
       (task.description &&
-        task.description.toLowerCase().includes(search.toLowerCase()));
+        task.description.toLowerCase().includes(search.toLowerCase())) ||
+      (task.assignedTo &&
+        task.assignedTo.toLowerCase().includes(search.toLowerCase()));
     const matchesStatus =
-      filterStatus === "All" || task.status === filterStatus;
+      filterStatus === "All Statuses" || task.status === filterStatus;
     const matchesPriority =
-      filterPriority === "All" || task.priority === filterPriority;
-    const matchesUser = filterUser === "All" || task.assignedTo === filterUser;
-    return matchesSearch && matchesStatus && matchesPriority && matchesUser;
+      filterPriority === "All Priorities" || task.priority === filterPriority;
+    return matchesSearch && matchesStatus && matchesPriority;
   });
 
   const today = new Date();
 
-  const summaryCards = [
-    {
-      label: "To Do",
-      count: tasks.filter((t) => t.status === "To Do").length,
-      icon: <FiClock />,
-      color: "border-blue-500 text-blue-600",
-    },
-    {
-      label: "In Progress",
-      count: tasks.filter((t) => t.status === "In Progress").length,
-      icon: <FiActivity />,
-      color: "border-purple-500 text-purple-600",
-    },
-    {
-      label: "Completed",
-      count: tasks.filter((t) => t.status === "Completed").length,
-      icon: <FiCheckCircle />,
-      color: "border-green-500 text-green-600",
-    },
-    {
-      label: "Overdue",
-      count: tasks.filter(
-        (t) =>
-          t.dueDate && new Date(t.dueDate) < today && t.status !== "Completed"
-      ).length,
-      icon: <FiAlertCircle />,
-      color: "border-red-500 text-red-600",
-    },
-    {
-      label: "High Priority",
-      count: tasks.filter((t) => t.priority === "High").length,
-      icon: <FiStar />,
-      color: "border-orange-500 text-orange-600",
-    },
-  ];
+  const MetricCard = ({ icon: Icon, title, value, color, bgColor }) => (
+    <div
+      className="flex items-center p-4 bg-white rounded-xl shadow-lg transition duration-300 hover:shadow-xl hover:ring-2 hover:ring-blue-500 cursor-pointer"
+      onClick={() => console.log(`Clicked metric card: ${title}`)}
+    >
+      <div className={`p-3 rounded-full ${bgColor} ${color} mr-4`}>
+        <Icon size={22} />
+      </div>
+      <div>
+        <p className="text-xs text-gray-500 uppercase">{title}</p>
+        <p className="text-2xl font-bold text-gray-800">{value}</p>
+      </div>
+    </div>
+  );
 
   const isTaskOverdue = (task) =>
     task.dueDate &&
@@ -234,9 +255,6 @@ export default function MarketingTask() {
           <h1 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
             <FiActivity className="text-blue-600" /> Tasks and Reminders
           </h1>
-          <p className="text-gray-500 text-sm">
-            Manage and assign tasks to your sales team
-          </p>
         </div>
         <button
           onClick={() => handleOpenModal()}
@@ -246,67 +264,48 @@ export default function MarketingTask() {
         </button>
       </div>
 
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
-        {summaryCards.map((card, index) => (
-          <div
-            key={index}
-            className={`flex items-center justify-between bg-white border ${card.color} rounded-xl p-4 shadow-sm`}
-          >
-            <div>
-              <p className="text-sm text-gray-500">{card.label}</p>
-              <p className="text-2xl font-bold text-gray-800">{card.count}</p>
-            </div>
-            <div className={`text-3xl opacity-80 ${card.color}`}>
-              {card.icon}
-            </div>
-          </div>
+      {/* Metric Cards */}
+      <div className="grid grid-cols-2 xl:grid-cols-5 md:grid-cols-3 gap-4 mt-6">
+        {METRICS.map((metric) => (
+          <MetricCard key={metric.title} {...metric} />
         ))}
       </div>
 
       {/* Search + Filters */}
-      <div className="bg-white rounded-xl p-4 shadow-sm mb-6 flex flex-col lg:flex-row gap-4 items-center justify-between">
-        <div className="flex items-center w-full lg:w-1/3 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">
-          <FiSearch className="text-gray-400 mr-2" />
+      <div className="bg-white rounded-xl p-4 shadow-sm mt-6 mb-4 flex flex-col lg:flex-row items-center justify-between gap-3 w-full">
+        <div className="flex items-center border border-gray-300 rounded-lg px-4 h-11 w-full lg:w-3/4 focus-within:ring-2 focus-within:ring-indigo-500 transition">
+          <FiSearch size={20} className="text-gray-400 mr-3" />
           <input
             type="text"
-            placeholder="Search by title or description..."
+            placeholder="Search by title, description, or assigned user..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full bg-transparent outline-none text-sm text-gray-700"
+            className="focus:outline-none text-base w-full"
           />
         </div>
-        <div className="flex flex-wrap gap-3 w-full lg:w-auto">
+
+        <div className="flex gap-3 w-full lg:w-1/2">
           <select
             value={filterStatus}
             onChange={(e) => setFilterStatus(e.target.value)}
-            className="border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-600"
+            className="border border-gray-300 rounded-lg px-3 h-11 text-sm text-gray-600 bg-white w-full focus:ring-2 focus:ring-indigo-500 transition"
           >
-            <option>All</option>
+            <option>All Statuses</option>
             <option>To Do</option>
             <option>In Progress</option>
             <option>Review</option>
             <option>Completed</option>
           </select>
+
           <select
             value={filterPriority}
             onChange={(e) => setFilterPriority(e.target.value)}
-            className="border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-600"
+            className="border border-gray-300 rounded-lg px-3 h-11 text-sm text-gray-600 bg-white w-full focus:ring-2 focus:ring-indigo-500 transition"
           >
-            <option>All</option>
+            <option>All Priorities</option>
             <option>High</option>
             <option>Medium</option>
             <option>Low</option>
-          </select>
-          <select
-            value={filterUser}
-            onChange={(e) => setFilterUser(e.target.value)}
-            className="border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-600"
-          >
-            <option>All</option>
-            {users.map((u, i) => (
-              <option key={i}>{u}</option>
-            ))}
           </select>
         </div>
       </div>
@@ -481,7 +480,7 @@ export default function MarketingTask() {
         </div>
       )}
 
-      {/* Modals (confirm + task) */}
+      {/* Task Modal */}
       <TaskModal
         isOpen={showModal}
         onClose={() => {
@@ -503,7 +502,7 @@ export default function MarketingTask() {
           className="relative z-50"
           onClose={() => setUpdateConfirmOpen(false)}
         >
-          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" />
+          <div className="fixed inset-0 bg-black/50" />
           <div className="fixed inset-0 flex items-center justify-center p-4">
             <Dialog.Panel className="w-full max-w-sm rounded-2xl bg-white shadow-2xl ring-1 ring-gray-100 p-6 text-center">
               <h3 className="text-lg font-semibold text-gray-900 mb-3">
@@ -539,7 +538,7 @@ export default function MarketingTask() {
           className="relative z-50"
           onClose={() => setDeleteConfirmOpen(false)}
         >
-          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" />
+          <div className="fixed inset-0 bg-black/50" />
           <div className="fixed inset-0 flex items-center justify-center p-4">
             <Dialog.Panel className="w-full max-w-sm rounded-2xl bg-white shadow-2xl ring-1 ring-gray-100 p-6 text-center">
               <h3 className="text-lg font-semibold text-gray-900 mb-3">

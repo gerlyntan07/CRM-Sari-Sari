@@ -236,7 +236,7 @@ const filteredAccounts = (accounts ?? []).filter((acc) => {
         <select className="border border-gray-300 rounded-md px-3 py-2 text-sm text-gray-600 bg-white shadow-sm w-full sm:w-auto"
         value={stageFilter}
                       onChange={(e) => setStageFilter(e.target.value)}>
-          <option value=''>All Status</option>
+          <option value='All'>All Status</option>
           <option value='Customer'>Customer</option>
           <option value='Prospect'>Prospect</option>
           <option value='Partner'>Partner</option>

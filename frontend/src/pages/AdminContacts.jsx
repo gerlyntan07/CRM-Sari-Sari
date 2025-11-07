@@ -13,7 +13,7 @@ import {
 import { HiArrowLeft } from "react-icons/hi";
 import { BsBuilding } from "react-icons/bs";
 import api from '../api.js'
-import {toast} from 'react-toastify';
+import { toast } from 'react-toastify';
 
 export default function AdminContacts() {
   useEffect(() => {
@@ -22,25 +22,41 @@ export default function AdminContacts() {
 
   const [showModal, setShowModal] = useState(false);
   const [selectedContact, setSelectedContact] = useState(null);
-  const [contacts, setContacts]   = useState(null);
+  const [contacts, setContacts] = useState(null);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [accountFilter, setAccountFilter] = useState("All");
 
-  const fetchContacts = async() => {
-    try{
+  const fetchContacts = async () => {
+    try {
       const res = await api.get(`/contacts/admin/fetch-all`);
       setContacts(res.data)
-    } catch(err){
+    } catch (err) {
       if (err.response && err.response.status === 403) {
-      toast.error("Permission denied. Only CEO, Admin, or Group Manager can access this page.");
-    } else {
-      toast.error("Failed to fetch accounts. Please try again later.");
-    }
-    console.error(err);
+        toast.error("Permission denied. Only CEO, Admin, or Group Manager can access this page.");
+      } else {
+        toast.error("Failed to fetch accounts. Please try again later.");
+      }
+      console.error(err);
     }
   }
 
   useEffect(() => {
     fetchContacts();
-  },[])
+  }, [])
+
+  const filteredContacts = Array.isArray(contacts)
+    ? contacts.filter((c) => {
+      const matchesSearch =
+        `${c.first_name} ${c.last_name}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        c.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        c.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        c.account?.name?.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesAccount =
+        accountFilter === "All" || c.account?.name === accountFilter;
+      return matchesSearch && matchesAccount;
+    })
+    : [];
+
 
   const handleBackdropClick = (e) => {
     if (e.target.id === "modalBackdrop") setShowModal(false);
@@ -54,17 +70,17 @@ export default function AdminContacts() {
     setSelectedContact(null);
   };
 
-  function formattedDateTime(datetime){
+  function formattedDateTime(datetime) {
     if (!datetime) return "";
     return new Date(datetime).toLocaleString("en-US", {
       month: "2-digit",
-    day: "2-digit",
-    year: "numeric",
-    hour: "numeric",
-    minute: "numeric",
-    hour12: true,
+      day: "2-digit",
+      year: "numeric",
+      hour: "numeric",
+      minute: "numeric",
+      hour12: true,
     })
-    .replace(",", "")
+      .replace(",", "")
   }
 
   // ===================== CONTACT DETAILS VIEW ===================== //
@@ -144,7 +160,7 @@ export default function AdminContacts() {
               <span className="font-semibold">Mobile Phone 2:</span> <br />
               {selectedContact.mobile_phone_2}
             </p>
-            
+
             <p>
               <span className="font-semibold">Last Updated:</span> <br />
               {formattedDateTime(selectedContact.updated_at)}
@@ -194,13 +210,24 @@ export default function AdminContacts() {
             type="text"
             placeholder="Search contacts..."
             className="ml-2 bg-transparent w-full outline-none text-sm"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
-        <select className="border border-gray-300 rounded-md px-3 py-2 text-sm text-gray-600 bg-white shadow-sm w-full sm:w-auto">
-          <option>All Accounts</option>
-          <option>Acme Corporation</option>
-          <option>TechStart Inc</option>
-          <option>Global Solutions Ltd</option>
+        <select
+          className="border border-gray-300 rounded-md px-3 py-2 text-sm text-gray-600 bg-white shadow-sm w-full sm:w-auto"
+          value={accountFilter}
+          onChange={(e) => setAccountFilter(e.target.value)}
+        >
+          <option value="All">All Accounts</option>
+          {Array.isArray(contacts) &&
+            [...new Set(contacts.map((c) => c.account?.name).filter(Boolean))].map(
+              (acc, i) => (
+                <option key={i} value={acc}>
+                  {acc}
+                </option>
+              )
+            )}
         </select>
       </div>
 
@@ -220,73 +247,73 @@ export default function AdminContacts() {
           </thead>
 
           <tbody className="text-xs text-gray-700">
-            {Array.isArray(contacts) && contacts.length > 0 ? (
-              contacts.map((c, i) => (
-              <tr
-                key={i}
-                className="hover:bg-gray-50 cursor-pointer"
-                onClick={() => handleContactClick(c)}
-              >
-                <td className="py-3 px-4">
-                  <div>
-                    <div className="font-medium text-blue-600 hover:underline break-all">
-                      {c.first_name} {c.last_name}
+            {Array.isArray(filteredContacts) && filteredContacts.length > 0 ? (
+              filteredContacts.map((c, i) => (
+                <tr
+                  key={i}
+                  className="hover:bg-gray-50 cursor-pointer"
+                  onClick={() => handleContactClick(c)}
+                >
+                  <td className="py-3 px-4">
+                    <div>
+                      <div className="font-medium text-blue-600 hover:underline break-all">
+                        {c.first_name} {c.last_name}
+                      </div>
+                      <div className="text-xs text-gray-500">{c.title}</div>
                     </div>
-                    <div className="text-xs text-gray-500">{c.title}</div>
-                  </div>
-                </td>
+                  </td>
 
-                <td className="py-3 px-4">
-                  <div className="flex items-center space-x-2">
-                    <BsBuilding className="text-gray-500" />
-                    <span>{c.account?.name}</span>
-                  </div>
-                </td>
-
-                <td className="py-3 px-4">
-                  <div className="space-y-1">
+                  <td className="py-3 px-4">
                     <div className="flex items-center space-x-2">
-                      <FiMail className="text-gray-500" />
-                      <span>{c.email}</span>
+                      <BsBuilding className="text-gray-500" />
+                      <span>{c.account?.name}</span>
                     </div>
+                  </td>
+
+                  <td className="py-3 px-4">
+                    <div className="space-y-1">
+                      <div className="flex items-center space-x-2">
+                        <FiMail className="text-gray-500" />
+                        <span>{c.email}</span>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <FiPhone className="text-gray-500" />
+                        <span>{c.work_phone}</span>
+                      </div>
+                    </div>
+                  </td>
+
+                  <td className="py-3 px-4">{c.department}</td>
+
+                  <td className="py-3 px-4">
                     <div className="flex items-center space-x-2">
-                      <FiPhone className="text-gray-500" />
-                      <span>{c.work_phone}</span>
-                    </div>                    
-                  </div>
-                </td>
+                      <FiUser className="text-gray-500" />
+                      <span>{c.assigned_contact?.first_name} {c.assigned_contact?.last_name}</span>
+                    </div>
+                  </td>
 
-                <td className="py-3 px-4">{c.department}</td>
+                  <td className="py-3 px-4">
+                    <div className="flex items-center space-x-2">
+                      <FiCalendar className="text-gray-500" />
+                      <span>{c.contact_creator?.first_name} {c.contact_creator?.last_name}</span>
+                    </div>
+                  </td>
 
-                <td className="py-3 px-4">
-                  <div className="flex items-center space-x-2">
-                    <FiUser className="text-gray-500" />
-                    <span>{c.assigned_contact?.first_name} {c.assigned_contact?.last_name}</span>
-                  </div>
-                </td>
-
-                <td className="py-3 px-4">
-                  <div className="flex items-center space-x-2">
-                    <FiCalendar className="text-gray-500" />
-                    <span>{c.contact_creator?.first_name} {c.contact_creator?.last_name}</span>
-                  </div>
-                </td>
-
-                <td className="py-3 px-4 text-center">
-                  <div className="flex justify-center space-x-2">
-                    <button className="text-blue-500 hover:text-blue-700">
-                      <FiEdit />
-                    </button>
-                    <button className="text-red-500 hover:text-red-700">
-                      <FiTrash2 />
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            ))
-            ): (
-              <tr><td>No contacts available</td></tr>
-            )}            
+                  <td className="py-3 px-4 text-center">
+                    <div className="flex justify-center space-x-2">
+                      <button className="text-blue-500 hover:text-blue-700">
+                        <FiEdit />
+                      </button>
+                      <button className="text-red-500 hover:text-red-700">
+                        <FiTrash2 />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))
+            ) : (
+              <tr><td className="py-3 px-4">No contacts available</td></tr>
+            )}
           </tbody>
         </table>
       </div>

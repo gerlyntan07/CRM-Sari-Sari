@@ -28,6 +28,8 @@ export default function AdminLeads() {
   const [users, setUsers] = useState(null);
   const [selectedUser, setSelectedUser] = useState(null);
   const [leads, setLeads] = useState([]);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [leadsFilter, setLeadsFilter] = useState("All");
   const [leadData, setLeadData] = useState({
     first_name: "",
     last_name: "",
@@ -76,6 +78,18 @@ export default function AdminLeads() {
     fetchAccounts();
     fetchLeads();
   }, []);
+
+  const filteredLeads = Array.isArray(leads)
+    ? leads.filter((c) => {
+      const matchesSearch =
+        `${c.first_name} ${c.last_name}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        c.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        c.title?.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesAccount =
+        leadsFilter === "All" || c.status === leadsFilter;
+      return matchesSearch && matchesAccount;
+    })
+    : [];
 
   const handleLeadClick = (lead) => setSelectedLead(lead);
   const handleBackToList = () => setSelectedLead(null);
@@ -172,12 +186,17 @@ export default function AdminLeads() {
             type="text"
             placeholder="Search Leads..."
             className="ml-2 bg-transparent w-full outline-none text-sm"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
-        <select className="border border-gray-300 rounded-md px-3 py-2 text-sm text-gray-600 bg-white shadow-sm w-full sm:w-auto">
-          <option>All Leads</option>
-          <option>Subject</option>
-          <option>Assign To</option>
+        <select className="border border-gray-300 rounded-md px-3 py-2 text-sm text-gray-600 bg-white shadow-sm w-full sm:w-auto" value={leadsFilter} onChange={(e) => setLeadsFilter(e.target.value)}>
+          <option value='All'>All</option>
+          <option value='New'>New</option>
+          <option value='Contacted'>Contacted</option>
+          <option value='Qualified'>Qualified</option>
+          <option value='Converted'>Converted</option>
+          <option value='Lost'>Lost</option>
         </select>
       </div>
 
@@ -197,8 +216,8 @@ export default function AdminLeads() {
         </div>
 
         {/* Table Rows */}
-        {(Array.isArray(leads) && leads.length > 0) ? (
-          leads.map((lead, i) => (
+        {(Array.isArray(filteredLeads) && filteredLeads.length > 0) ? (
+          filteredLeads.map((lead, i) => (
             <div
               key={i}
               className="grid grid-cols-9 min-w-[800px] px-4 py-3 text-xs hover:bg-gray-100 transition cursor-pointer gap-x-4"

@@ -1,39 +1,12 @@
 import React, { useEffect, useState } from "react";
 import { FiUser, FiPlus, FiX, FiCalendar, FiSearch } from "react-icons/fi";
+import { useNavigate, useParams } from "react-router-dom";
 import api from "../api";
-import toast, {Toaster} from 'react-hot-toast'
-
-const territorysData = [
-  {
-    id: 1,
-    title: "North Luzon - Enterprise",
-    user: "Jesselle Ramos",
-    date: "December 17, 2020",
-    status: "Active",
-    description:
-      "This high-growth territory, spanning the Mid-Atlantic states, is primarily focused on capturing new enterprise clients in the logistics and manufacturing sectors.",
-  },
-  {
-    id: 2,
-    title: "Cavite State Empire",
-    user: "Gerlyn Tan",
-    date: "February 17, 2024",
-    status: "Inactive",
-    description:
-      "This region manages existing partnerships and focuses on maintaining client relationships in the Cavite and South Luzon area.",
-  },
-  {
-    id: 3,
-    title: "North Luzon - Enterprise",
-    user: "Jesselle Ramos",
-    date: "December 12, 2020",
-    status: "Active",
-    description:
-      "Focused on enterprise expansion in the northern Luzon region with strong client acquisition and retention goals.",
-  },
-];
+import toast, { Toaster } from 'react-hot-toast'
 
 export default function AdminTerritory() {
+  const navigate = useNavigate();
+  const { id } = useParams();
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("All Status");
   const [userFilter, setUserFilter] = useState("All User");
@@ -48,6 +21,15 @@ export default function AdminTerritory() {
     company_id: '',
   })
   const [selectedUser, setSelectedUser] = useState(null);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+
+  useEffect(() => {
+    if (id && territoryList.length > 0) {
+      const found = territoryList.find((t) => t.id === parseInt(id));
+      if (found) setSelectedTerritory(found);
+    }
+  }, [id, territoryList]);
+
 
   const filteredTerritories = territoryList.filter((t) => {
     const nameMatch = t.name
@@ -74,7 +56,7 @@ export default function AdminTerritory() {
 
   const fetchUsers = async () => {
     try {
-      const response = await api.get('/users/sales/read');      
+      const response = await api.get('/users/sales/read');
       setUsers(response.data);
     } catch (error) {
       console.error('Error fetching users:', error);
@@ -83,7 +65,7 @@ export default function AdminTerritory() {
 
   const fetchTerritories = async () => {
     try {
-      const response = await api.get('/territories/fetch');      
+      const response = await api.get('/territories/fetch');
       setTerritoryList(response.data);
       console.log(response.data)
     } catch (error) {
@@ -122,7 +104,7 @@ export default function AdminTerritory() {
       const res = await api.post(`/territories/assign`, finalData);
       fetchTerritories();
       fetchUsers();
-      setShowCreateModal(false);      
+      setShowCreateModal(false);
     } catch (error) {
       console.error('Error creating territory:', error.response?.data?.detail || error.message);
 
@@ -130,23 +112,56 @@ export default function AdminTerritory() {
   }
 
   const handleDelete = async (data) => {
-  try {
-    const res = await api.delete(`/territories/${data.id}`);
-    console.log("Deleted successfully:", res.data);
+    try {
+      const res = await api.delete(`/territories/${data.id}`);
 
-    // Optional: show toast or refresh table
-    toast.success(res.data.message || "Territory deleted successfully");
-    fetchTerritories(); // if you have a fetch function
-  } catch (err) {
-    console.error("Error deleting territory:", err);
-    toast.error(err.response?.data?.detail || "Failed to delete territory");
-  }
-};
+      // Optional: show toast or refresh table
+      toast.success(res.data.message || "Territory deleted successfully");
+      fetchUsers();
+      fetchTerritories();
+      setSelectedTerritory(null);
+    } catch (err) {
+      console.error("Error deleting territory:", err);
+      toast.error(err.response?.data?.detail || "Failed to delete territory");
+    } finally {
+      setShowDeleteModal(false);
+    }
+  };
 
 
   return (
     <div className="p-6 min-h-screen">
       <Toaster />
+      {showDeleteModal && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black/30 backdrop-blur-sm z-60">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6 relative animate-fadeIn">
+            <button
+              onClick={() => setShowDeleteModal(false)}
+              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600"
+            >
+              <FiX className="text-xl" />
+            </button>
+            <h2 className="text-lg font-semibold text-gray-800 mb-4 text-center">
+              Are you sure you want to delete{" "}
+              <span className="font-extrabold">{selectedTerritory?.name}</span> territory?
+            </h2>
+            <div className="flex justify-center gap-3">
+              <button
+                onClick={() => handleDelete(selectedTerritory)}
+                className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition"
+              >
+                Delete
+              </button>
+              <button
+                onClick={() => setShowDeleteModal(false)}
+                className="bg-gray-200 text-gray-800 px-4 py-2 rounded-lg hover:bg-gray-300 transition"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       {/* Top Bar */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-7 gap-3 sm:gap-0">
         {/* Title */}
@@ -215,7 +230,11 @@ export default function AdminTerritory() {
         {filteredTerritories.map((territory) => (
           <div
             key={territory.id}
-            onClick={() => setSelectedTerritory(territory)}
+            onClick={() => {
+              setSelectedTerritory(territory);
+              navigate(`/admin/territory/${territory.id}`);
+            }}
+
             className="bg-white p-4 shadow border border-gray-200 flex flex-col justify-between relative cursor-pointer hover:shadow-md transition"
           >
             {/* Top horizontal line */}
@@ -266,7 +285,11 @@ export default function AdminTerritory() {
             <div className="absolute top-0 left-0 w-full h-10 bg-secondary rounded-t-md flex justify-end items-center px-4">
               <button
                 className="text-white hover:text-gray-200 transition"
-                onClick={() => setSelectedTerritory(null)}
+                onClick={() => {
+                  setSelectedTerritory(null);
+                  navigate(`/admin/territory`);
+                }}
+
               >
                 <FiX size={20} />
               </button>
@@ -281,8 +304,8 @@ export default function AdminTerritory() {
                 {selectedTerritory.status}
                 <span
                   className={`h-2.5 w-2.5 rounded-full ${selectedTerritory.status === "Active"
-                      ? "bg-green-500"
-                      : "bg-yellow-500"
+                    ? "bg-green-500"
+                    : "bg-yellow-500"
                     }`}
                 ></span>
               </div>
@@ -301,17 +324,17 @@ export default function AdminTerritory() {
                 <p className="text-gray-500">Created Date</p>
                 <div className="flex items-center gap-2 text-gray-800 font-medium mt-1">
                   <FiCalendar /> {selectedTerritory.created_at
-                  ? new Date(selectedTerritory.created_at)
-                    .toLocaleString("en-US", {
-                      month: "numeric",
-                      day: "numeric",
-                      year: "numeric",
-                      hour: "numeric",
-                      minute: "2-digit",
-                      hour12: true,
-                    })
-                    .replace(",", "")
-                  : "—"}
+                    ? new Date(selectedTerritory.created_at)
+                      .toLocaleString("en-US", {
+                        month: "numeric",
+                        day: "numeric",
+                        year: "numeric",
+                        hour: "numeric",
+                        minute: "2-digit",
+                        hour12: true,
+                      })
+                      .replace(",", "")
+                    : "—"}
                 </div>
               </div>
             </div>
@@ -330,7 +353,7 @@ export default function AdminTerritory() {
                 Edit
               </button>
               <button className="px-4 py-1.5 text-sm bg-red-500 text-white rounded-md hover:bg-red-600 transition"
-                onClick={() => handleDelete(selectedTerritory)}
+                onClick={() => setShowDeleteModal(true)}
               >
                 Delete
               </button>

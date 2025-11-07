@@ -117,19 +117,20 @@ def delete_territory(
     if territory.company_id != current_user.related_to_company and current_user.role not in ['CEO', 'Admin', 'Manager', 'Group Manager']:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You don't have permission to delete this territory")
     
-    db.delete(territory)
-    db.commit()
-
     deleted_data = serialize_instance(territory)
+    entity_id = deleted_data.get("id")
+    
+    db.delete(territory)
+    db.commit()    
 
     create_audit_log(
         db=db,
         current_user=current_user,
-        instance=deleted_data,
+        instance=territory,
         action="DELETE",
         request=request,
-        new_data=deleted_data,
-        custom_message=f"delete territory '{id}' permanently"
+        old_data=deleted_data,        
+        custom_message=f"delete territory '{entity_id}' permanently"
     )
 
     return deleted_data

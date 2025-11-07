@@ -362,7 +362,7 @@ export default function AdminUser() {
             </button>
             <h2 className="text-lg font-semibold text-gray-800 mb-4 text-center">
               Are you sure you want to delete{" "}
-              <span className="font-bold">{selectedUser?.first_name}</span>?
+              <span className="font-extrabold">{selectedUser?.first_name}</span>?
             </h2>
             <div className="flex justify-center gap-3">
               <button

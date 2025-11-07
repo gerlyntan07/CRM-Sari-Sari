@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { FiEye, FiDownload, FiSearch } from "react-icons/fi";
 import api from "../api";
+import toast, { Toaster } from "react-hot-toast";
 
 export default function AdminAudit() {
   useEffect(() => {
@@ -8,38 +9,13 @@ export default function AdminAudit() {
   }, []);
 
   const [logs, setLogs] = useState(null);
-
-  // const logs = [
-  //   {
-  //     timestamp: "1/30/2024, 6:30:00 PM",
-  //     user: "admin@company.com",
-  //     action: "USER_CREATED",
-  //     resource: "User: jane.smith@company.com",
-  //     details: "Created new sales user with territory assignment",
-  //     type: "success",
-  //   },
-  //   {
-  //     timestamp: "1/30/2024, 5:15:00 PM",
-  //     user: "manager@company.com",
-  //     action: "DEAL_APPROVED",
-  //     resource: "Deal: D25-00003",
-  //     details: "Approved deal worth $50,000",
-  //     type: "success",
-  //   },
-  //   {
-  //     timestamp: "1/30/2024, 4:45:00 PM",
-  //     user: "admin@company.com",
-  //     action: "SYSTEM_CONFIG",
-  //     resource: "Pipeline Settings",
-  //     details: "Updated deal pipeline stages",
-  //     type: "info",
-  //   },
-  // ];
+  const [search, setSearch]   = useState('');
+  const [filter, setFilter] = useState("All");
 
   const fetchLogs = async() => {
     try{
       const res = await api.get('/logs/read-all');
-      setLogs(res.data);
+      setLogs(res.data);       
     } catch(error){
       console.error("Error fetching audit logs:", error);
     }
@@ -48,6 +24,86 @@ export default function AdminAudit() {
   useEffect(() => {
     fetchLogs();
   },[])
+
+  const filteredLogs = Array.isArray(logs)
+  ? logs.filter((c) => {
+      const monthNames = [
+        "jan", "feb", "mar", "apr", "may", "jun",
+        "jul", "aug", "sep", "oct", "nov", "dec"
+      ];
+
+      // Convert timestamp to month string
+      const dateObj = new Date(c.timestamp);
+      const month = monthNames[dateObj.getMonth()]; // e.g., "oct"
+
+      const searchLower = search.toLowerCase();
+
+      const matchesSearch =
+        c.description?.toLowerCase().includes(searchLower) ||
+        c.action?.toLowerCase().includes(searchLower) ||
+        c.entity_type?.toLowerCase().includes(searchLower) ||
+        `${c.logger?.first_name} ${c.logger?.last_name}`.toLowerCase().includes(searchLower) ||
+        month.includes(searchLower); // <-- checks month
+
+      const matchesAccount =
+        filter === "All" || c.action === filter;
+
+      return matchesSearch && matchesAccount;
+    })
+  : [];
+
+  const exportToExcel = () => {
+  if (!filteredLogs.length) {
+    toast.error("No logs to export!");
+    return;
+  }
+
+  // Define the table headers
+  const headers = ["Timestamp", "User", "Action", "Resource", "Details"];
+
+  // Map filteredLogs into rows
+  const rows = filteredLogs.map((log) => [
+    new Date(log.timestamp).toLocaleString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+      hour12: true,
+    }),
+    `${log.logger?.first_name || ""} ${log.logger?.last_name || ""}`.trim(),
+    log.action,
+    `${log.entity_type}: ${log.entity_id}`,
+    log.description || "",
+  ]);
+
+  // Convert to CSV-like content (Excel can open CSV)
+  const csvContent = [
+    headers.join(","), // header row
+    ...rows.map((row) =>
+      row
+        .map((cell) =>
+          `"${String(cell).replace(/"/g, '""')}"` // Escape double quotes
+        )
+        .join(",")
+    ),
+  ].join("\n");
+
+  // Create a downloadable Blob (in memory)
+  const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+
+  // Create a temporary link and trigger download
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `AuditLogs_${new Date().toISOString().split("T")[0]}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+};
+
+
 
   const getTagColor = (type) => {
     switch (type) {
@@ -66,6 +122,9 @@ export default function AdminAudit() {
 
   return (
     <div className="p-4 sm:p-6">
+      <Toaster toastOptions={{
+    duration: 1000
+  }} />
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-5 space-y-3 sm:space-y-0">
         <div className="flex items-center space-x-2">
@@ -74,7 +133,7 @@ export default function AdminAudit() {
             Audit Logs
           </h2>
         </div>
-        <button className="flex items-center justify-center border border-tertiary hover:text-white hover:bg-secondary text-gray-700 px-3 py-2 rounded-md text-sm font-medium transition w-full sm:w-auto">
+        <button className="flex items-center justify-center border border-tertiary hover:text-white hover:bg-secondary text-gray-700 px-3 py-2 rounded-md text-sm font-medium transition w-full sm:w-auto" onClick={exportToExcel}>
           <FiDownload className="mr-2" />
           Export Logs
         </button>
@@ -88,13 +147,16 @@ export default function AdminAudit() {
                   type="text"
                   placeholder="Search Audit..."
                   className="ml-2 bg-transparent w-full outline-none text-sm"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
                 />
               </div>
-              <select className="border border-gray-300 rounded-md px-3 py-2 text-sm text-gray-600 bg-white shadow-sm cursor-pointer w-full sm:w-auto">
-                <option>Date</option>
-                <option>Day</option>
-                <option>Week</option>
-                <option>Month</option>
+              <select className="border border-gray-300 rounded-md px-3 py-2 text-sm text-gray-600 bg-white shadow-sm cursor-pointer w-full sm:w-auto" value={filter} onChange={(e) => setFilter(e.target.value)}>
+                <option className="All">All</option>
+                <option value='CREATE'>CREATE</option>
+                <option value='DELETE'>DELETE</option>
+                <option value='UPDATE'>UPDATE</option>
+                <option value='READ'>READ</option>
               </select>
             </div>
 
@@ -111,8 +173,8 @@ export default function AdminAudit() {
               </tr>
             </thead>
             <tbody>
-              {Array.isArray(logs) && logs.length > 0 ? (
-                logs.map((log, i) => (
+              {Array.isArray(filteredLogs) && filteredLogs.length > 0 ? (
+                filteredLogs.map((log, i) => (
                 <tr
                   key={i}
                   className="hover:bg-gray-50 transition-colors text-xs" 

@@ -104,37 +104,32 @@ def get_my_territories(
     return territories
 
 
-# ✅ UPDATE user info
-# @router.put("/updateuser/{user_id}", response_model=UserResponse)
-# def update_user(
-#     user_id: int,
-#     user_data: UserCreate,
-#     db: Session = Depends(get_db),
-#     current_user: User = Depends(get_current_user)
-# ):
-#     user = db.query(User).filter(User.id == user_id).first()
+@router.delete("/{id}")
+def delete_territory(
+    id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    request: Request = None
+):
+    territory = db.query(Territory).filter(Territory.id == id).first()
+    if not territory:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Territory not found")
+    if territory.company_id != current_user.related_to_company and current_user.role not in ['CEO', 'Admin', 'Manager', 'Group Manager']:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You don't have permission to delete this territory")
+    
+    db.delete(territory)
+    db.commit()
 
-#     if not user:
-#         raise HTTPException(status_code=404, detail="User not found")
+    deleted_data = serialize_instance(territory)
 
-#     # Only users from the same company can be updated
-#     if user.related_to_company != current_user.related_to_company:
-#         raise HTTPException(
-#             status_code=status.HTTP_403_FORBIDDEN,
-#             detail="You are not authorized to update this user."
-#         )
+    create_audit_log(
+        db=db,
+        current_user=current_user,
+        instance=deleted_data,
+        action="DELETE",
+        request=request,
+        new_data=deleted_data,
+        custom_message=f"delete territory '{id}' permanently"
+    )
 
-#     # ✅ Update user fields
-#     user.first_name = user_data.first_name
-#     user.last_name = user_data.last_name
-#     user.email = user_data.email
-#     user.role = user_data.role.upper()
-#     user.hashed_password = hash_password(user_data.password)
-
-#     # ✅ Ensure default picture
-#     if not user.profile_picture:
-#         user.profile_picture = DEFAULT_PROFILE_PIC
-
-#     db.commit()
-#     db.refresh(user)
-#     return user
+    return deleted_data

@@ -1,8 +1,8 @@
-"""fix deal-user relationship names
+"""add related_to_account column
 
-Revision ID: dd48d63dd444
-Revises: 
-Create Date: 2025-10-24 11:57:27.327981
+Revision ID: 233754013d0d
+Revises: 8a643d3eccad
+Create Date: 2025-11-07 11:49:12.715926
 
 """
 from typing import Sequence, Union
@@ -12,8 +12,8 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = 'dd48d63dd444'
-down_revision: Union[str, Sequence[str], None] = None
+revision: str = '233754013d0d'
+down_revision: Union[str, Sequence[str], None] = '8a643d3eccad'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 

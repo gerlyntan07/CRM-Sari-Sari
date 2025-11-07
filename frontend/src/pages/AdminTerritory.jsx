@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { FiUser, FiPlus, FiX, FiCalendar, FiSearch } from "react-icons/fi";
 import api from "../api";
+import toast, {Toaster} from 'react-hot-toast'
 
 const territorysData = [
   {
@@ -84,6 +85,7 @@ export default function AdminTerritory() {
     try {
       const response = await api.get('/territories/fetch');      
       setTerritoryList(response.data);
+      console.log(response.data)
     } catch (error) {
       console.error('Error fetching territories:', error);
     }
@@ -120,15 +122,31 @@ export default function AdminTerritory() {
       const res = await api.post(`/territories/assign`, finalData);
       fetchTerritories();
       fetchUsers();
-      setShowCreateModal(false);
+      setShowCreateModal(false);      
     } catch (error) {
       console.error('Error creating territory:', error.response?.data?.detail || error.message);
 
     }
   }
 
+  const handleDelete = async (data) => {
+  try {
+    const res = await api.delete(`/territories/${data.id}`);
+    console.log("Deleted successfully:", res.data);
+
+    // Optional: show toast or refresh table
+    toast.success(res.data.message || "Territory deleted successfully");
+    fetchTerritories(); // if you have a fetch function
+  } catch (err) {
+    console.error("Error deleting territory:", err);
+    toast.error(err.response?.data?.detail || "Failed to delete territory");
+  }
+};
+
+
   return (
     <div className="p-6 min-h-screen">
+      <Toaster />
       {/* Top Bar */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-7 gap-3 sm:gap-0">
         {/* Title */}
@@ -311,7 +329,9 @@ export default function AdminTerritory() {
               <button className="px-4 py-1.5 text-sm border rounded-md hover:bg-gray-100 transition">
                 Edit
               </button>
-              <button className="px-4 py-1.5 text-sm bg-red-500 text-white rounded-md hover:bg-red-600 transition">
+              <button className="px-4 py-1.5 text-sm bg-red-500 text-white rounded-md hover:bg-red-600 transition"
+                onClick={() => handleDelete(selectedTerritory)}
+              >
                 Delete
               </button>
             </div>

@@ -10,7 +10,7 @@ sys.path.append(os.path.join(os.path.dirname(os.path.dirname(__file__)), "backen
 
 
 # import your models here (add more as you create them)
-from backend.models import *
+from backend import models
 from backend.database import Base, DATABASE_URL
 
 # Alembic Config object

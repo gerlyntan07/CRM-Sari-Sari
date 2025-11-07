@@ -1,8 +1,8 @@
-"""fix enum in other tables
+"""sync task columns
 
-Revision ID: 456779d22d8c
-Revises: 153dbbca4e58
-Create Date: 2025-11-07 09:46:42.297696
+Revision ID: 81345c1d081c
+Revises: 233754013d0d
+Create Date: 2025-11-07 11:52:09.555131
 
 """
 from typing import Sequence, Union
@@ -12,8 +12,8 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = '456779d22d8c'
-down_revision: Union[str, Sequence[str], None] = '153dbbca4e58'
+revision: str = '81345c1d081c'
+down_revision: Union[str, Sequence[str], None] = '233754013d0d'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 

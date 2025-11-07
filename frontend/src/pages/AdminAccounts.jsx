@@ -32,7 +32,6 @@ export default function AdminAccounts() {
     try{
       const res = await api.get(`/accounts/admin/fetch-all`);
       setAccounts(res.data)
-      console.log(res.data)
     } catch(err){
       if (err.response && err.response.status === 403) {
       toast.error("Permission denied. Only CEO, Admin, or Group Manager can access this page.");
@@ -236,7 +235,7 @@ const filteredAccounts = (accounts ?? []).filter((acc) => {
         <select className="border border-gray-300 rounded-md px-3 py-2 text-sm text-gray-600 bg-white shadow-sm w-full sm:w-auto"
         value={stageFilter}
                       onChange={(e) => setStageFilter(e.target.value)}>
-          <option value='All'>All Status</option>
+          <option value=''>All Status</option>
           <option value='Customer'>Customer</option>
           <option value='Prospect'>Prospect</option>
           <option value='Partner'>Partner</option>

@@ -1,5 +1,3 @@
-from database import Base
-
 from .auth import User
 from .company import Company
 from .territory import Territory
@@ -12,3 +10,9 @@ from .deal import Deal
 from .task import Task
 from .meeting import Meeting
 from .call import Call
+
+__all__ = [
+    "User", "Company", "Lead", "Account", "Task",
+    "Territory", "Deal", "Call", "Meeting",
+    "Subscription", "Auditlog", "Contact"
+]

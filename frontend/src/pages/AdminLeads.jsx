@@ -67,7 +67,6 @@ export default function AdminLeads() {
   const fetchLeads = async () => {
     try {
       const res = await api.get(`/leads/admin/getLeads`);
-      console.log(res.data);
       setLeads(res.data);
     } catch (err) {
       console.error(`Error fetching leads: ${err}`);

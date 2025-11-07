@@ -9,6 +9,10 @@ from models.auth import User
 from models.lead import Lead
 from .logs_utils import serialize_instance, create_audit_log
 from sqlalchemy.orm import joinedload
+from .ws_notification import broadcast_notification
+import asyncio
+from datetime import datetime
+
 
 
 router = APIRouter(
@@ -73,7 +77,23 @@ def create_lead(
     db.add(new_lead)
     db.commit()
     db.refresh(new_lead)
+    
+    notif_data = {
+        "type": "lead_assignment",
+        "title": f"New Lead Assigned: {new_lead.first_name} {new_lead.last_name}",
+        "company": new_lead.company_name,
+        "assignedBy": f"{current_user.first_name} {current_user.last_name}",
+        "createdAt": str(new_lead.created_at),
+        "read": False,
+    }
 
+    try:
+        asyncio.run(broadcast_notification(notif_data, target_user_id=data.lead_owner))
+    except RuntimeError:
+        loop = asyncio.get_event_loop()
+        loop.create_task(broadcast_notification(notif_data, target_user_id=data.lead_owner))
+
+    # ✅ Create audit log
     new_data = serialize_instance(new_lead)    
 
     create_audit_log(
@@ -87,6 +107,7 @@ def create_lead(
     )
 
     return new_lead
+
 
 @router.put("/convert/{lead_id}", response_model=LeadResponse)
 def convert_lead(

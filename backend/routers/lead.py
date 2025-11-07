@@ -8,6 +8,8 @@ from .auth_utils import get_current_user, hash_password,get_default_avatar
 from models.auth import User
 from models.lead import Lead
 from .logs_utils import serialize_instance, create_audit_log
+from sqlalchemy.orm import joinedload
+
 
 router = APIRouter(
     prefix="/leads",
@@ -114,3 +116,57 @@ def convert_lead(
     )
 
     return lead
+
+
+@router.get("/sales/getLeads")
+def get_sales_leads(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    leads = (
+        db.query(Lead)
+        .options(
+            joinedload(Lead.assigned_to),
+            joinedload(Lead.creator),
+            joinedload(Lead.territory)
+        )
+        .filter(Lead.lead_owner == current_user.id)
+        .all()
+    )
+
+    lead_list = []
+    for lead in leads:
+        lead_list.append({
+            "id": lead.id,
+            "first_name": lead.first_name,
+            "last_name": lead.last_name,
+            "company_name": lead.company_name,
+            "title": lead.title,
+            "department": lead.department,
+            "email": lead.email,
+            "work_phone": lead.work_phone,
+            "mobile_phone_1": lead.mobile_phone_1,
+            "mobile_phone_2": lead.mobile_phone_2,
+            "address": lead.address,
+            "notes": lead.notes,
+            "status": lead.status,
+            "source": lead.source,
+            "territory": lead.territory.name if lead.territory else None,
+            "assigned_to": {
+                "id": lead.assigned_to.id if lead.assigned_to else None,
+                "first_name": lead.assigned_to.first_name if lead.assigned_to else None,
+                "last_name": lead.assigned_to.last_name if lead.assigned_to else None,
+            },
+            "created_by": {
+                "id": lead.creator.id if lead.creator else None,
+                "first_name": lead.creator.first_name if lead.creator else None,
+                "last_name": lead.creator.last_name if lead.creator else None,
+                "territory": {
+                "id": lead.territory.id if lead.territory else None,
+                "name": lead.territory.name if lead.territory else None
+            },
+            },        
+            "created_at": lead.created_at,
+            "updated_at": lead.updated_at,
+        })
+    return lead_list

@@ -1,4 +1,3 @@
-// AdminLeads.jsx
 import React, { useState, useEffect } from "react";
 import {
   FiSearch,
@@ -9,47 +8,35 @@ import {
   FiX,
 } from "react-icons/fi";
 import SalesLeadsInformation from "../components/SalesLeadsInformation";
+import api from "../api"; // ✅ your Axios instance with auth token
 
 export default function SalesLeads() {
   const [selectedLead, setSelectedLead] = useState(null);
-  const [showModal, setShowModal] = useState(false);
-  const [users, setUsers] = useState([
-    { id: 1, first_name: "Jane", last_name: "Doe" },
-    { id: 2, first_name: "John", last_name: "Smith" },
-    { id: 3, first_name: "Mary", last_name: "Johnson" },
-  ]);
+  const [leads, setLeads] = useState([]);
 
   useEffect(() => {
     document.title = "Leads | Sari-Sari CRM";
+    fetchLeads();
   }, []);
 
-  const leads = [
-    {
-      name: "Joshua Vergara",
-      status: "Qualified",
-      title: "Marketing Director",
-      email: "sarah.williams@innovateco.com",
-      phone1: "09271229484",
-      phone2: "---------",
-      workPhone: "(555) 123-4567",
-      territory: "East Coast",
-      department: "Marketing",
-      company: "Innovate Co.",
-      createdBy: "John Appleseed",
-      createdAt: "2025-09-10 09:30",
-      lastUpdated: "2025-09-12 14:45",
-      source: "Website",
-      assignedTo: "Jane Doe",
-    },
-  ];
+  const fetchLeads = async () => {
+    try {
+      const res = await api.get("/leads/sales/getLeads"); // 👈 call the filtered endpoint
+      setLeads(res.data);
+    } catch (err) {
+      console.error("Error fetching assigned leads:", err);
+    }
+  };
 
   const handleLeadClick = (lead) => setSelectedLead(lead);
   const handleBackToList = () => setSelectedLead(null);
-  const handleBackdropClick = () => setShowModal(false);
 
   if (selectedLead) {
     return (
-      <SalesLeadsInformation lead={selectedLead} onBack={handleBackToList} />
+      <SalesLeadsInformation
+        lead={selectedLead}
+        onBack={handleBackToList}
+      />
     );
   }
 
@@ -58,45 +45,19 @@ export default function SalesLeads() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-3">
         <h2 className="flex items-center text-xl sm:text-2xl font-semibold text-gray-800">
-          <FiUserPlus className="mr-2 text-blue-600" /> Leads
+          <FiUserPlus className="mr-2 text-blue-600" /> My Leads
         </h2>
 
-        <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
-          <button
-            onClick={() => setShowModal(true)}
-            className="flex items-center justify-center border border-tertiary text-tertiary px-4 py-2 gap-2 rounded-md hover:bg-gray-800 hover:text-white transition w-full sm:w-auto"
-          >
-            <FiDownload /> Download
-          </button>
-          <button
-            onClick={() => setShowModal(true)}
-            className="flex items-center justify-center bg-black text-white px-4 py-2 rounded-md hover:bg-gray-800 transition w-full sm:w-auto"
-          >
-            ＋ Add Leads
-          </button>
-        </div>
-      </div>
-
-      {/* Search and Filter */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center sm:space-x-3 mb-8 gap-3">
-        <div className="flex items-center bg-white border border-gray-200 rounded-md px-3 py-2 w-full sm:w-1/3 shadow-sm">
-          <FiSearch className="text-gray-500" />
-          <input
-            type="text"
-            placeholder="Search Leads..."
-            className="ml-2 bg-transparent w-full outline-none text-sm"
-          />
-        </div>
-        <select className="border border-gray-300 rounded-md px-3 py-2 text-sm text-gray-600 bg-white shadow-sm w-full sm:w-auto">
-          <option>All Leads</option>
-          <option>Subject</option>
-          <option>Assign To</option>
-        </select>
+        <button
+          onClick={fetchLeads}
+          className="flex items-center justify-center border border-tertiary text-tertiary px-4 py-2 gap-2 rounded-md hover:bg-gray-800 hover:text-white transition"
+        >
+          <FiDownload /> Refresh
+        </button>
       </div>
 
       {/* Table */}
       <div className="bg-white shadow-sm overflow-x-auto rounded-md border border-gray-200">
-        {/* Table Header */}
         <div className="grid grid-cols-9 min-w-[800px] bg-gray-100 font-bold text-gray-600 text-sm px-4 py-3">
           <div>Name</div>
           <div>Account</div>
@@ -109,252 +70,41 @@ export default function SalesLeads() {
           <div className="text-center">Actions</div>
         </div>
 
-        {/* Table Rows */}
-        {leads.map((lead, i) => (
-          <div
-            key={i}
-            className="grid grid-cols-9 min-w-[800px] px-4 py-3 text-xs hover:bg-gray-100 transition cursor-pointer gap-x-4"
-            onClick={() => handleLeadClick(lead)}
-          >
-            <div className="truncate">{lead.name}</div>
-            <div className="truncate">{lead.company}</div>
-            <div className="truncate">{lead.title}</div>
-            <div className="truncate">{lead.department}</div>
-            <div className="truncate">{lead.email}</div>
-            <div className="truncate">{lead.workPhone}</div>
-            <div className="truncate">{lead.assignedTo}</div>
-            <div className="truncate">{lead.lastUpdated}</div>
-            <div className="flex justify-center space-x-2">
-              <button className="text-blue-500 hover:text-blue-700">
-                <FiEdit />
-              </button>
-              <button className="text-red-500 hover:text-red-700">
-                <FiTrash2 />
-              </button>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* Add Leads Modal */}
-      {showModal && (
-        <div
-          id="modalBackdrop"
-          onClick={handleBackdropClick}
-          className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4"
-        >
-          <div
-            className="bg-white w-full max-w-3xl rounded-xl shadow-lg p-5 sm:p-6 relative border border-gray-200 my-6 max-h-[90vh] overflow-y-auto"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <button
-              onClick={() => setShowModal(false)}
-              className="absolute top-3 right-3 text-gray-400 hover:text-black transition"
+        {Array.isArray(leads) && leads.length > 0 ? (
+          leads.map((lead, i) => (
+            <div
+              key={i}
+              className="grid grid-cols-9 min-w-[800px] px-4 py-3 text-xs hover:bg-gray-100 transition cursor-pointer gap-x-4"
+              onClick={() => handleLeadClick(lead)}
             >
-              <FiX size={20} />
-            </button>
-
-            <h2 className="text-lg sm:text-xl font-semibold text-gray-800 mb-4 text-center">
-              Add New Leads
-            </h2>
-
-            {/* Form grid */}
-            <form className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 text-xs sm:text-sm">
-              {/* First Name */}
-              <div className="flex flex-col">
-                <label className="text-gray-700 font-medium mb-1">
-                  First Name
-                </label>
-                <input
-                  type="text"
-                  placeholder="Joe"
-                  className="border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-400 outline-none"
-                />
+              <div className="truncate">{lead.first_name} {lead.last_name}</div>
+              <div className="truncate">{lead.company_name}</div>
+              <div className="truncate">{lead.title}</div>
+              <div className="truncate">{lead.department}</div>
+              <div className="truncate">{lead.email}</div>
+              <div className="truncate">{lead.work_phone}</div>
+              <div className="truncate">
+                {lead.assigned_to?.first_name} {lead.assigned_to?.last_name}
               </div>
-
-              {/* Last Name */}
-              <div className="flex flex-col">
-                <label className="text-gray-700 font-medium mb-1">
-                  Last Name
-                </label>
-                <input
-                  type="text"
-                  placeholder="Smith"
-                  className="border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-400 outline-none"
-                />
+              <div className="truncate">
+                {new Date(lead.updated_at || lead.created_at).toLocaleString()}
               </div>
-
-              {/* Company */}
-              <div className="flex flex-col">
-                <label className="text-gray-700 font-medium mb-1">Company</label>
-                <input
-                  type="text"
-                  placeholder="ABC Company"
-                  className="border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-400 outline-none"
-                />
-              </div>
-
-              {/* Title */}
-              <div className="flex flex-col">
-                <label className="text-gray-700 font-medium mb-1">Title</label>
-                <input
-                  type="text"
-                  placeholder="ABC Agenda"
-                  className="border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-400 outline-none"
-                />
-              </div>
-
-              {/* Department */}
-              <div className="flex flex-col">
-                <label className="text-gray-700 font-medium mb-1">
-                  Department
-                </label>
-                <input
-                  type="text"
-                  placeholder="Sales"
-                  className="border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-400 outline-none"
-                />
-              </div>
-
-              {/* Email */}
-              <div className="flex flex-col">
-                <label className="text-gray-700 font-medium mb-1">Email</label>
-                <input
-                  type="text"
-                  placeholder="abc@gmail.com"
-                  className="border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-400 outline-none"
-                />
-              </div>
-
-              {/* Work Phone */}
-              <div className="flex flex-col">
-                <label className="text-gray-700 font-medium mb-1">
-                  Work Phone
-                </label>
-                <input
-                  type="text"
-                  placeholder="09----------"
-                  className="border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-400 outline-none"
-                />
-              </div>
-
-              {/* Mobile Phone 1 */}
-              <div className="flex flex-col">
-                <label className="text-gray-700 font-medium mb-1">
-                  Mobile Phone 1
-                </label>
-                <input
-                  type="text"
-                  placeholder="09----------"
-                  className="border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-400 outline-none"
-                />
-              </div>
-
-              {/* Mobile Phone 2 */}
-              <div className="flex flex-col">
-                <label className="text-gray-700 font-medium mb-1">
-                  Mobile Phone 2
-                </label>
-                <input
-                  type="text"
-                  placeholder="09----------"
-                  className="border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-400 outline-none"
-                />
-              </div>
-
-              {/* Address */}
-              <div className="flex flex-col col-span-1 sm:col-span-2 lg:col-span-3">
-                <label className="text-gray-700 font-medium mb-1">Address</label>
-                <input
-                  type="text"
-                  placeholder="Street No., Street Name, City, State/Province, Postal Code"
-                  className="border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-400 outline-none"
-                />
-              </div>
-
-              {/* Assign To */}
-              <div className="flex flex-col">
-                <label className="text-gray-700 font-medium mb-1">
-                  Assign To
-                </label>
-                <select
-                  className="border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-400 outline-none"
-                  defaultValue=""
-                >
-                  <option value="" disabled>
-                    Select user
-                  </option>
-                  {Array.isArray(users) &&
-                    users.length > 0 &&
-                    users.map((user) => (
-                      <option key={user.id} value={user.id}>
-                        {user.first_name} {user.last_name}
-                      </option>
-                    ))}
-                </select>
-              </div>
-
-              {/* Territory */}
-              <div className="flex flex-col">
-                <label className="text-gray-700 font-medium mb-1">
-                  Territory
-                </label>
-                <select
-                  className="border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-400 outline-none"
-                  defaultValue=""
-                >
-                  <option value="" disabled>
-                    Select Territory
-                  </option>
-                  <option value="southern-luzon">Southern Luzon</option>
-                  <option value="northern-luzon">Northern Luzon</option>
-                  <option value="visayas">Visayas</option>
-                  <option value="mindanao">Mindanao</option>
-                </select>
-              </div>
-
-              {/* Created By */}
-              <div className="flex flex-col">
-                <label className="text-gray-700 font-medium mb-1">
-                  Created By
-                </label>
-                <input
-                  type="text"
-                  placeholder="William Doe"
-                  className="border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-400 outline-none"
-                />
-              </div>
-
-              {/* Notes */}
-              <div className="flex flex-col col-span-1 sm:col-span-2 lg:col-span-3">
-                <label className="text-gray-700 font-medium mb-1">Notes</label>
-                <textarea
-                  placeholder="Additional details..."
-                  rows={3}
-                  className="border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-400 outline-none resize-none"
-                />
-              </div>
-
-              {/* Footer */}
-              <div className="flex flex-col sm:flex-row justify-end space-y-2 sm:space-y-0 sm:space-x-2 mt-2 col-span-1 sm:col-span-2 lg:col-span-3">
-                <button
-                  type="button"
-                  onClick={() => setShowModal(false)}
-                  className="px-4 py-2 text-white bg-red-400 border border-red-300 rounded hover:bg-red-500 transition"
-                >
-                  Cancel
+              <div className="flex justify-center space-x-2">
+                <button className="text-blue-500 hover:text-blue-700">
+                  <FiEdit />
                 </button>
-                <button
-                  type="submit"
-                  className="px-4 py-2 text-white border border-tertiary bg-tertiary rounded hover:bg-secondary transition"
-                >
-                  Save Lead
+                <button className="text-red-500 hover:text-red-700">
+                  <FiTrash2 />
                 </button>
               </div>
-            </form>
-          </div>
-        </div>
-      )}
+            </div>
+          ))
+        ) : (
+          <p className="w-full text-center py-3 text-gray-500">
+            No leads assigned to you
+          </p>
+        )}
+      </div>
     </div>
   );
 }

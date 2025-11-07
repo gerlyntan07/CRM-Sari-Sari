@@ -187,15 +187,15 @@ const TopBar = () => {
 
   return (
     <div className="bg-white rounded-xl shadow-md p-4 flex flex-col md:flex-row items-center space-y-3 md:space-y-0 md:space-x-4">
-      <div className="flex items-center border border-gray-300 rounded-lg px-4 py-2 flex-grow focus-within:ring-2 focus-within:ring-indigo-500 transition w-full sm:max-w-md">
-        <IconSearch size={20} className="text-gray-400 mr-3" />
+      <div className="flex items-center border border-gray-300 rounded-lg px-4 py-2 flex-grow focus-within:ring-2 focus-within:ring-indigo-500 transition w-full md:max-w-3xl">
+        <FiSearch size={20} className="text-gray-400 mr-3" />
         <input
           type="text"
           placeholder="Search Contacts, Leads, or Campaigns..."
           className="focus:outline-none text-base w-full"
         />
       </div>
-      <div className="flex space-x-3 justify-around w-full md:w-auto">
+      <div className="flex space-x-3 md:ml-auto">
         {actionIcons.map((item, idx) => (
           <div key={idx} className="relative group">
             <button className="p-2 text-gray-500 hover:text-gray-900 transition rounded-full hover:bg-gray-100 focus:outline-none">
@@ -308,7 +308,7 @@ export default function MarketingDashboard() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-gray-50 pt-5 pb-10 font-sans">
+    <div className="min-h-screen pt-5 pb-10 font-sans">
       <main className="max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-xl font-bold mb-4">
           Welcome back, {user?.name || "Marketing"}! Here’s your marketing

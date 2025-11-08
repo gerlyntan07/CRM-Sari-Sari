@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status, Request
 from sqlalchemy.orm import Session
 from typing import List
 from database import get_db
-from schemas.auth import UserCreate, UserResponse
+from schemas.auth import UserCreate, UserUpdate, UserResponse
 from .auth_utils import get_current_user, hash_password,get_default_avatar
 from models.auth import User
 from .logs_utils import serialize_instance, create_audit_log
@@ -135,35 +135,60 @@ def get_user_by_id(
 @router.put("/updateuser/{user_id}", response_model=UserResponse)
 def update_user(
     user_id: int,
-    user_data: UserCreate,
+    user_data: UserUpdate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
+    request: Request = None,
 ):
     user = db.query(User).filter(User.id == user_id).first()
 
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
-    # Only users from the same company can be updated
+    if current_user.role.upper() not in ["CEO", "ADMIN"]:
+        raise HTTPException(status_code=403, detail="Permission denied")
+
     if user.related_to_company != current_user.related_to_company:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="You are not authorized to update this user."
+            detail="You are not authorized to update this user.",
         )
 
-    # ✅ Update user fields
-    user.first_name = user_data.first_name
-    user.last_name = user_data.last_name
-    user.email = user_data.email
-    user.role = user_data.role.upper()
-    user.hashed_password = hash_password(user_data.password)
+    if user_data.email and user_data.email != user.email:
+        existing_user = db.query(User).filter(User.email == user_data.email).first()
+        if existing_user and existing_user.id != user.id:
+            raise HTTPException(status_code=400, detail="Email already exists")
 
-    # ✅ Ensure default picture
+    old_data = serialize_instance(user)
+
+    if user_data.first_name is not None:
+        user.first_name = user_data.first_name
+    if user_data.last_name is not None:
+        user.last_name = user_data.last_name
+    if user_data.email is not None:
+        user.email = user_data.email
+    if user_data.role is not None:
+        user.role = user_data.role
+    if user_data.password:
+        user.hashed_password = hash_password(user_data.password)
+
     if not user.profile_picture:
-        user.profile_picture = DEFAULT_PROFILE_PIC
+        user.profile_picture = get_default_avatar(user.first_name)
 
     db.commit()
     db.refresh(user)
+
+    create_audit_log(
+        db=db,
+        current_user=current_user,
+        instance=user,
+        action="UPDATE",
+        request=request,
+        old_data=old_data,
+        new_data=serialize_instance(user),
+        custom_message=f"updated user '{user.first_name} {user.last_name}' with role '{user.role}'",
+    )
+
     return user
 
 
@@ -189,21 +214,25 @@ def delete_user(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You are not authorized to delete this user."
         )
-    
-    deleted_user_data = serialize_instance(user)
 
-    # ✅ Create log BEFORE deletion
+    if user.is_active is False:
+        raise HTTPException(status_code=400, detail="User is already inactive.")
+
+    old_data = serialize_instance(user)
+
+    user.is_active = False
+    db.commit()
+    db.refresh(user)
+
     create_audit_log(
         db=db,
         current_user=current_user,
         instance=user,
         action="DELETE",
         request=request,
-        new_data=deleted_user_data,
-        custom_message=f"deleted user '{user.first_name} {user.last_name}' with role '{user.role}'"
+        old_data=old_data,
+        new_data=serialize_instance(user),
+        custom_message=f"soft deleted user '{user.first_name} {user.last_name}' with role '{user.role}'"
     )
 
-    db.delete(user)
-    db.commit()    
-
-    return {"detail": f"✅ User '{user.first_name} {user.last_name}' deleted successfully."}
+    return {"detail": f"✅ User '{user.first_name} {user.last_name}' deactivated successfully."}

@@ -1,78 +1,44 @@
-import React, { useState, useEffect } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   FiSearch,
   FiEdit,
   FiTrash2,
-  FiX,
-  FiUser,
-  FiMail,
+  FiPlus,
   FiPhone,
-  FiCalendar,
   FiUsers,
+  FiUser,
+  FiX,
+  FiMail,
+  FiBriefcase,
+  FiCalendar,
+  FiSmartphone,
 } from "react-icons/fi";
 import { HiArrowLeft } from "react-icons/hi";
 import { BsBuilding } from "react-icons/bs";
-import api from '../api.js'
-import { toast } from 'react-toastify';
+import api from "../api.js";
+import { toast } from "react-toastify";
 
-export default function AdminContacts() {
-  useEffect(() => {
-    document.title = "Contacts | Sari-Sari CRM";
-  }, []);
+const INITIAL_FORM_STATE = {
+  first_name: "",
+  last_name: "",
+  account_id: "",
+  title: "",
+  department: "",
+  email: "",
+  work_phone: "",
+  mobile_phone_1: "",
+  mobile_phone_2: "",
+  notes: "",
+  assigned_to: "",
+};
 
-  const [showModal, setShowModal] = useState(false);
-  const [selectedContact, setSelectedContact] = useState(null);
-  const [contacts, setContacts] = useState(null);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [accountFilter, setAccountFilter] = useState("All");
+const getContactFullName = (contact) =>
+  [contact?.first_name, contact?.last_name].filter(Boolean).join(" ").trim();
 
-  const fetchContacts = async () => {
-    try {
-      const res = await api.get(`/contacts/admin/fetch-all`);
-      setContacts(res.data)
-    } catch (err) {
-      if (err.response && err.response.status === 403) {
-        toast.error("Permission denied. Only CEO, Admin, or Group Manager can access this page.");
-      } else {
-        toast.error("Failed to fetch accounts. Please try again later.");
-      }
-      console.error(err);
-    }
-  }
-
-  useEffect(() => {
-    fetchContacts();
-  }, [])
-
-  const filteredContacts = Array.isArray(contacts)
-    ? contacts.filter((c) => {
-      const matchesSearch =
-        `${c.first_name} ${c.last_name}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        c.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        c.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        c.account?.name?.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesAccount =
-        accountFilter === "All" || c.account?.name === accountFilter;
-      return matchesSearch && matchesAccount;
-    })
-    : [];
-
-
-  const handleBackdropClick = (e) => {
-    if (e.target.id === "modalBackdrop") setShowModal(false);
-  };
-
-  const handleContactClick = (contact) => {
-    setSelectedContact(contact);
-  };
-
-  const handleBackToList = () => {
-    setSelectedContact(null);
-  };
-
-  function formattedDateTime(datetime) {
-    if (!datetime) return "";
-    return new Date(datetime).toLocaleString("en-US", {
+const formattedDateTime = (datetime) => {
+  if (!datetime) return "";
+  return new Date(datetime)
+    .toLocaleString("en-US", {
       month: "2-digit",
       day: "2-digit",
       year: "numeric",
@@ -80,14 +46,426 @@ export default function AdminContacts() {
       minute: "numeric",
       hour12: true,
     })
-      .replace(",", "")
-  }
+    .replace(",", "");
+};
 
-  // ===================== CONTACT DETAILS VIEW ===================== //
-  if (selectedContact) {
+export default function AdminContacts() {
+  useEffect(() => {
+    document.title = "Contacts | Sari-Sari CRM";
+  }, []);
+  const renderAccountStatusBadge = (status) => {
+    if (!status) return null;
+
+    const normalized = status.toString().toLowerCase();
+    const label = normalized.replace(/\b\w/g, (char) => char.toUpperCase());
+
+    const badgeClass = (() => {
+      switch (normalized) {
+        case "customer":
+          return "bg-green-100 text-green-700";
+        case "prospect":
+          return "bg-purple-100 text-purple-700";
+        case "partner":
+          return "bg-pink-100 text-pink-700";
+        case "active":
+          return "bg-blue-100 text-blue-700";
+        case "inactive":
+          return "bg-gray-200 text-gray-700";
+        case "former":
+          return "bg-orange-100 text-orange-700";
+        default:
+          return "bg-gray-100 text-gray-700";
+      }
+    })();
+
     return (
+      <span
+        className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${badgeClass}`}
+      >
+        {label}
+      </span>
+    );
+  };
+
+
+  const [contacts, setContacts] = useState([]);
+  const [contactsLoading, setContactsLoading] = useState(false);
+  const [accounts, setAccounts] = useState([]);
+  const [users, setUsers] = useState([]);
+  const [selectedContact, setSelectedContact] = useState(null);
+  const [showModal, setShowModal] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [confirmModalData, setConfirmModalData] = useState(null);
+  const [confirmProcessing, setConfirmProcessing] = useState(false);
+  const [currentContactId, setCurrentContactId] = useState(null);
+  const [formData, setFormData] = useState(INITIAL_FORM_STATE);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [accountFilter, setAccountFilter] = useState("");
+  const [deletingId, setDeletingId] = useState(null);
+
+  const fetchContacts = useCallback(
+    async (preserveSelectedId = null) => {
+      setContactsLoading(true);
+      try {
+        const res = await api.get(`/contacts/admin/fetch-all`);
+        const data = Array.isArray(res.data) ? res.data : [];
+        const sorted = [...data].sort((a, b) => {
+          const aDate = a?.created_at || a?.updated_at || 0;
+          const bDate = b?.created_at || b?.updated_at || 0;
+          return new Date(bDate) - new Date(aDate);
+        });
+        setContacts(sorted);
+        if (preserveSelectedId) {
+          const updatedSelection = sorted.find(
+            (contact) => contact.id === preserveSelectedId
+          );
+          setSelectedContact(updatedSelection || null);
+        }
+      } catch (err) {
+        console.error(err);
+        setContacts([]);
+        if (err.response?.status === 403) {
+          toast.error(
+            "Permission denied. Only CEO, Admin, or Group Manager can access this page."
+          );
+        } else {
+          toast.error("Failed to fetch contacts. Please try again later.");
+        }
+      } finally {
+        setContactsLoading(false);
+      }
+    },
+    [setSelectedContact]
+  );
+
+  const fetchAccounts = useCallback(async () => {
+    try {
+      const res = await api.get(`/accounts/admin/fetch-all`);
+      const data = Array.isArray(res.data) ? res.data : [];
+      const sorted = [...data].sort((a, b) =>
+        (a?.name || "").localeCompare(b?.name || "")
+      );
+      setAccounts(sorted);
+    } catch (err) {
+      console.error(err);
+      setAccounts([]);
+      if (err.response?.status === 403) {
+        toast.warn("Unable to load accounts (permission denied).");
+      }
+    }
+  }, []);
+
+  const fetchUsers = useCallback(async () => {
+    try {
+      const res = await api.get(`/users/all`);
+      const data = Array.isArray(res.data) ? res.data : [];
+      const sorted = [...data].sort((a, b) =>
+        getContactFullName(a).localeCompare(getContactFullName(b))
+      );
+      setUsers(sorted);
+    } catch (err) {
+      console.error(err);
+      setUsers([]);
+      if (err.response?.status === 403) {
+        toast.warn("Unable to load users for assignment (permission denied).");
+    }
+  }
+  }, []);
+
+  useEffect(() => {
+    fetchContacts();
+    fetchAccounts();
+    fetchUsers();
+  }, [fetchContacts, fetchAccounts, fetchUsers]);
+
+  const accountOptions = useMemo(() => {
+    const map = new Map();
+    accounts.forEach((acc) => {
+      if (acc?.id && acc?.name) {
+        map.set(String(acc.id), acc.name);
+      }
+    });
+    contacts.forEach((contact) => {
+      if (contact?.account_id && contact?.account?.name) {
+        map.set(String(contact.account_id), contact.account.name);
+      }
+    });
+    const options = Array.from(map.entries())
+      .sort((a, b) => a[1].localeCompare(b[1]))
+      .map(([value, label]) => ({ value, label }));
+    return [{ value: "", label: "All Accounts" }, ...options];
+  }, [accounts, contacts]);
+
+  const filteredContacts = useMemo(() => {
+    const normalizedQuery = searchQuery.trim().toLowerCase();
+    const normalizedFilter = accountFilter.trim();
+
+    return contacts.filter((contact) => {
+      const searchFields = [
+        contact?.first_name,
+        contact?.last_name,
+        contact?.email,
+        contact?.title,
+        contact?.department,
+        contact?.account?.name,
+        contact?.account?.status,
+        contact?.work_phone,
+        contact?.mobile_phone_1,
+        contact?.mobile_phone_2,
+        contact?.assigned_contact?.first_name,
+        contact?.assigned_contact?.last_name,
+        contact?.contact_creator?.first_name,
+        contact?.contact_creator?.last_name,
+        contact?.notes,
+        formattedDateTime(contact?.created_at),
+        formattedDateTime(contact?.updated_at),
+      ];
+
+      const matchesSearch =
+        normalizedQuery === "" ||
+        searchFields.some((field) => {
+          if (field === null || field === undefined) return false;
+          return field.toString().toLowerCase().includes(normalizedQuery);
+        });
+
+      const matchesAccount =
+        normalizedFilter === "" ||
+        String(contact.account_id) === normalizedFilter;
+
+      return matchesSearch && matchesAccount;
+    });
+  }, [contacts, searchQuery, accountFilter]);
+
+  const closeModal = useCallback(() => {
+    setShowModal(false);
+    setIsEditing(false);
+    setCurrentContactId(null);
+    setFormData(INITIAL_FORM_STATE);
+    setIsSubmitting(false);
+  }, []);
+
+  const handleBackdropClick = (e) => {
+    if (e.target.id === "modalBackdrop" && !isSubmitting && !confirmProcessing) {
+      closeModal();
+    }
+  };
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
+
+  const handleOpenAddModal = () => {
+    setFormData(INITIAL_FORM_STATE);
+    setIsEditing(false);
+    setCurrentContactId(null);
+    setShowModal(true);
+  };
+
+  const handleEditClick = (contact) => {
+    if (!contact) return;
+    setFormData({
+      first_name: contact.first_name || "",
+      last_name: contact.last_name || "",
+      account_id: contact.account_id ? String(contact.account_id) : "",
+      title: contact.title || "",
+      department: contact.department || "",
+      email: contact.email || "",
+      work_phone: contact.work_phone || "",
+      mobile_phone_1: contact.mobile_phone_1 || "",
+      mobile_phone_2: contact.mobile_phone_2 || "",
+      notes: contact.notes || "",
+      assigned_to: contact.assigned_to ? String(contact.assigned_to) : "",
+    });
+    setIsEditing(true);
+    setCurrentContactId(contact.id);
+    setShowModal(true);
+  };
+
+  const handleDelete = (contact) => {
+    if (!contact) return;
+    const name = getContactFullName(contact) || "this contact";
+    setConfirmModalData({
+      title: "Delete Contact",
+      message: (
+        <span>
+          Are you sure you want to permanently delete{" "}
+          <span className="font-semibold">{name}</span>? This action cannot be
+          undone.
+        </span>
+      ),
+      confirmLabel: "Delete Contact",
+      cancelLabel: "Cancel",
+      variant: "danger",
+      action: {
+        type: "delete",
+        targetId: contact.id,
+        name,
+      },
+    });
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+
+    const trimmedFirstName = formData.first_name.trim();
+    const trimmedLastName = formData.last_name.trim();
+    if (!trimmedFirstName || !trimmedLastName) {
+      toast.error("First name and last name are required.");
+      return;
+    }
+
+    if (!formData.account_id) {
+      toast.error("Account is required.");
+      return;
+    }
+
+    const payload = {
+      first_name: trimmedFirstName,
+      last_name: trimmedLastName,
+      account_id: Number(formData.account_id),
+      title: formData.title?.trim() || null,
+      department: formData.department?.trim() || null,
+      email: formData.email?.trim().toLowerCase() || null,
+      work_phone: formData.work_phone?.trim() || null,
+      mobile_phone_1: formData.mobile_phone_1?.trim() || null,
+      mobile_phone_2: formData.mobile_phone_2?.trim() || null,
+      notes: formData.notes?.trim() || null,
+      assigned_to: formData.assigned_to
+        ? Number(formData.assigned_to)
+        : null,
+    };
+
+    const actionType = isEditing && currentContactId ? "update" : "create";
+    const contactName = `${trimmedFirstName} ${trimmedLastName}`.trim();
+
+    setConfirmModalData({
+      title: actionType === "create" ? "Confirm New Contact" : "Confirm Update",
+      message:
+        actionType === "create" ? (
+          <span>
+            Are you sure you want to add{" "}
+            <span className="font-semibold">{contactName}</span> to your
+            contacts?
+          </span>
+        ) : (
+          <span>
+            Save changes to{" "}
+            <span className="font-semibold">{contactName}</span>?
+          </span>
+        ),
+      confirmLabel:
+        actionType === "create" ? "Create Contact" : "Update Contact",
+      cancelLabel: "Cancel",
+      variant: "primary",
+      action: {
+        type: actionType,
+        payload,
+        targetId: currentContactId || null,
+        name: contactName,
+      },
+    });
+  };
+
+  const handleConfirmAction = async () => {
+    if (!confirmModalData?.action) {
+      setConfirmModalData(null);
+      return;
+    }
+
+    const { action } = confirmModalData;
+    const { type, payload, targetId, name } = action;
+
+    setConfirmProcessing(true);
+
+    try {
+      if (type === "create") {
+        setIsSubmitting(true);
+        await api.post(`/contacts/admin`, payload);
+        toast.success(`Contact "${name}" created successfully.`);
+        const preserveId = selectedContact?.id || null;
+        closeModal();
+        await fetchContacts(preserveId);
+      } else if (type === "update") {
+        if (!targetId) {
+          throw new Error("Missing contact identifier for update.");
+        }
+        setIsSubmitting(true);
+        await api.put(`/contacts/admin/${targetId}`, payload);
+        toast.success(`Contact "${name}" updated successfully.`);
+        const preserveId =
+          selectedContact?.id && selectedContact.id === targetId
+            ? targetId
+            : selectedContact?.id || null;
+        closeModal();
+        await fetchContacts(preserveId);
+      } else if (type === "delete") {
+        if (!targetId) {
+          throw new Error("Missing contact identifier for deletion.");
+        }
+        const currentSelectedId = selectedContact?.id;
+        setDeletingId(targetId);
+        await api.delete(`/contacts/admin/${targetId}`);
+        toast.success(`Contact "${name}" deleted successfully.`);
+        const preserveId =
+          currentSelectedId && currentSelectedId !== targetId
+            ? currentSelectedId
+            : null;
+        await fetchContacts(preserveId);
+        if (currentSelectedId === targetId) {
+          setSelectedContact(null);
+        }
+      }
+    } catch (err) {
+      console.error(err);
+      const defaultMessage =
+        type === "create"
+          ? "Failed to create contact. Please review the details and try again."
+          : type === "update"
+          ? "Failed to update contact. Please review the details and try again."
+          : "Failed to delete contact. Please try again.";
+      const message = err.response?.data?.detail || defaultMessage;
+      toast.error(message);
+    } finally {
+      if (type === "create" || type === "update") {
+        setIsSubmitting(false);
+      }
+      if (type === "delete") {
+        setDeletingId(null);
+      }
+      setConfirmProcessing(false);
+      setConfirmModalData(null);
+    }
+  };
+
+  const handleCancelConfirm = () => {
+    if (confirmProcessing) return;
+    setConfirmModalData(null);
+  };
+
+  const handleContactClick = (contact) => setSelectedContact(contact);
+
+  const handleBackToList = () => setSelectedContact(null);
+
+  const deleteActionTargetId =
+    confirmModalData?.action?.type === "delete"
+      ? confirmModalData.action.targetId
+      : null;
+
+  const selectedContactDeleteDisabled =
+    selectedContact &&
+    (deletingId === selectedContact.id ||
+      deleteActionTargetId === selectedContact.id);
+
+  const selectedContactDeleting =
+    selectedContact && deletingId === selectedContact.id;
+
+  const detailView = selectedContact ? (
       <div className="p-4 sm:p-6 lg:p-8 font-inter">
-        {/* Back Button */}
         <button
           onClick={handleBackToList}
           className="inline-flex items-center text-sm sm:text-base text-gray-500 hover:text-gray-700 transition mb-4 sm:mb-6 cursor-pointer"
@@ -95,146 +473,174 @@ export default function AdminContacts() {
           <HiArrowLeft className="mr-1 w-4 h-4 sm:w-5 sm:h-5" /> Back
         </button>
 
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-3">
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between mb-6 gap-4">
+        <div>
+          <div className="flex items-center gap-3 flex-wrap">
             <h1 className="text-xl sm:text-2xl font-semibold text-gray-800">
-              {selectedContact.account?.name}
+              {selectedContact.account?.name || "No associated account"}
             </h1>
-            <span className="mt-1 sm:mt-0 bg-blue-600 text-white text-xs sm:text-sm px-2 py-0.5 rounded w-fit">
-              Active
-            </span>
+            {renderAccountStatusBadge(selectedContact.account?.status)}
+          </div>
           </div>
 
-          <div className="flex flex-col sm:flex-row sm:space-x-3 space-y-2 sm:space-y-0 mt-3 sm:mt-0">
-            <button className="w-full sm:w-auto bg-red-500 text-white px-5 py-2 rounded-md hover:bg-red-600">
+        <div className="flex flex-col sm:flex-row sm:space-x-3 space-y-2 sm:space-y-0">
+          <button
+            className="inline-flex items-center justify-center w-full sm:w-auto bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 disabled:opacity-70"
+            onClick={() => handleEditClick(selectedContact)}
+            disabled={
+              confirmProcessing ||
+              (confirmModalData?.action?.type === "update" &&
+                confirmModalData.action.targetId === selectedContact.id)
+            }
+          >
+            <FiEdit className="mr-2" />
+            Edit
+          </button>
+          <button
+            className="inline-flex items-center justify-center w-full sm:w-auto bg-red-500 text-white px-4 py-2 rounded-md hover:bg-red-600 disabled:opacity-70"
+            onClick={() => handleDelete(selectedContact)}
+            disabled={Boolean(selectedContactDeleteDisabled)}
+          >
+            {selectedContactDeleting ? (
+              "Deleting..."
+            ) : (
+              <>
+                <FiTrash2 className="mr-2" />
               Delete
-            </button>
-            <button className="w-full sm:w-auto bg-gray-800 text-white px-5 py-2 rounded-md hover:bg-gray-900">
-              Export
+              </>
+            )}
             </button>
           </div>
         </div>
 
-        <div className="bg-white border border-gray-200 rounded-lg p-4 sm:p-6 w-full max-w-full lg:max-w-6xl shadow-sm overflow-x-auto mx-auto">
-          <h2 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4 text-gray-800">
+      <div className="bg-white border border-gray-200 rounded-lg p-4 sm:p-6 shadow-sm overflow-x-auto">
+        <h2 className="text-lg sm:text-xl font-semibold mb-4 text-gray-800">
             Contact Details
           </h2>
-
-          {/* Details Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 text-sm text-gray-700">
-            <p>
-              <span className="font-semibold">Primary Contact:</span> <br />
-              {selectedContact.first_name} {selectedContact.last_name}
-            </p>
-            <p>
-              <span className="font-semibold">Email:</span> <br />
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-gray-700">
+          <DetailRow
+            label="Contact Name"
+            value={getContactFullName(selectedContact) || "--"}
+          />
+          <DetailRow
+            label="Title"
+            value={selectedContact.title || "--"}
+          />
+          <DetailRow
+            label="Email"
+            value={
+              selectedContact.email ? (
+                <a
+                  href={`mailto:${selectedContact.email}`}
+                  className="text-blue-600 hover:underline break-all"
+                >
               {selectedContact.email}
-            </p>
-            <p>
-              <span className="font-semibold">Created By:</span> <br />
-              {selectedContact.contact_creator?.first_name} {selectedContact.contact_creator?.last_name} on {formattedDateTime(selectedContact.created_at)}
-            </p>
-
-            <p>
-              <span className="font-semibold">Title:</span> <br />
-              {selectedContact.title}
-            </p>
-            <p>
-              <span className="font-semibold">Assigned To:</span> <br />
-              {selectedContact.assigned_contact?.first_name} {selectedContact.assigned_contact?.last_name}
-            </p>
-            <p>
-              <span className="font-semibold">Work Phone:</span> <br />
-              {selectedContact.work_phone}
-            </p>
-
-            <p>
-              <span className="font-semibold">Account:</span> <br />
-              {selectedContact.account?.name}
-            </p>
-            <p>
-              <span className="font-semibold">Mobile Phone 1:</span> <br />
-              {selectedContact.mobile_phone_1}
-            </p>
-            <p>
-              <span className="font-semibold">Mobile Phone 2:</span> <br />
-              {selectedContact.mobile_phone_2}
-            </p>
-
-            <p>
-              <span className="font-semibold">Last Updated:</span> <br />
-              {formattedDateTime(selectedContact.updated_at)}
-            </p>
+                </a>
+              ) : (
+                "--"
+              )
+            }
+          />
+          <DetailRow
+            label="Department"
+            value={selectedContact.department || "--"}
+          />
+          <DetailRow
+            label="Work Phone"
+            value={selectedContact.work_phone || "--"}
+          />
+          <DetailRow
+            label="Mobile Phone 1"
+            value={selectedContact.mobile_phone_1 || "--"}
+          />
+          <DetailRow
+            label="Mobile Phone 2"
+            value={selectedContact.mobile_phone_2 || "--"}
+          />
+          <DetailRow
+            label="Assigned To"
+            value={
+              selectedContact.assigned_contact
+                ? `${selectedContact.assigned_contact.first_name} ${selectedContact.assigned_contact.last_name}`
+                : "Unassigned"
+            }
+          />
+          <DetailRow
+            label="Created By"
+            value={
+              selectedContact.contact_creator
+                ? `${selectedContact.contact_creator.first_name} ${selectedContact.contact_creator.last_name}`
+                : "--"
+            }
+          />
+          <DetailRow
+            label="Created At"
+            value={formattedDateTime(selectedContact.created_at) || "--"}
+          />
+          <DetailRow
+            label="Last Updated"
+            value={formattedDateTime(selectedContact.updated_at) || "--"}
+          />
           </div>
 
-          {/* Notes Section */}
-          <div className="mt-6 border-gray-200 pt-4">
+        <div className="mt-6 border-t border-gray-200 pt-4">
             <h3 className="text-md sm:text-lg font-semibold text-gray-800 mb-2">
               Notes
             </h3>
-            <p className="text-sm text-gray-700 leading-relaxed">
+          <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">
               {selectedContact.notes
                 ? selectedContact.notes
                 : "No additional notes were provided for this contact."}
             </p>
           </div>
         </div>
-
       </div>
-    );
-  }
+  ) : null;
 
-  // ===================== CONTACTS TABLE VIEW ===================== //
-  return (
+  const listView = (
     <div className="p-4 sm:p-6 lg:p-8">
-      {/* Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 sm:mb-6 space-y-2 sm:space-y-0">
         <h2 className="flex items-center text-xl sm:text-2xl font-semibold text-gray-800">
           <FiUsers className="mr-2 text-blue-600" /> Contacts Management
         </h2>
 
         <button
-          onClick={() => setShowModal(true)}
-          className="flex items-center bg-black text-white px-3 sm:px-4 py-2 rounded-md hover:bg-gray-800 w-auto sm:w-auto ml-auto sm:ml-0 text-sm sm:text-base"
+          onClick={handleOpenAddModal}
+          className="flex items-center bg-black text-white px-3 sm:px-4 py-2 rounded-md hover:bg-gray-800 text-sm sm:text-base"
         >
-          ＋ Add Contact
+          <FiPlus className="mr-2" /> Add Contact
         </button>
-
       </div>
 
-      {/* Search and Filters */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-2 sm:space-y-0 sm:space-x-3 mb-4 sm:mb-6">
-        <div className="flex items-center bg-white border border-gray-200 rounded-md px-3 py-2 w-full sm:w-1/3 shadow-sm">
-          <FiSearch className="text-gray-500" />
+      <div className="bg-white rounded-xl p-4 shadow-sm mb-6 flex flex-col lg:flex-row items-center justify-between gap-3 w-full">
+        <div className="flex items-center border border-gray-300 rounded-lg px-4 h-11 w-full lg:w-3/4 focus-within:ring-2 focus-within:ring-indigo-500 transition">
+          <FiSearch size={20} className="text-gray-400 mr-3" />
           <input
             type="text"
-            placeholder="Search contacts..."
-            className="ml-2 bg-transparent w-full outline-none text-sm"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            placeholder="Search by name, email, department, or account..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="focus:outline-none text-base w-full"
           />
         </div>
+        <div className="w-full lg:w-1/4">
         <select
-          className="border border-gray-300 rounded-md px-3 py-2 text-sm text-gray-600 bg-white shadow-sm w-full sm:w-auto"
           value={accountFilter}
           onChange={(e) => setAccountFilter(e.target.value)}
-        >
-          <option value="All">All Accounts</option>
-          {Array.isArray(contacts) &&
-            [...new Set(contacts.map((c) => c.account?.name).filter(Boolean))].map(
-              (acc, i) => (
-                <option key={i} value={acc}>
-                  {acc}
+            className="border border-gray-300 rounded-lg px-3 h-11 text-sm text-gray-600 bg-white w-full focus:ring-2 focus:ring-indigo-500 transition"
+          >
+            {accountOptions.map((option) => (
+              <option key={option.value ?? option.label} value={option.value}>
+                {option.label}
                 </option>
-              )
-            )}
+            ))}
         </select>
+        </div>
       </div>
 
-      {/* Table */}
       <div className="overflow-x-auto">
-        <table className="min-w-[600px] w-full border border-gray-200 rounded-lg bg-white shadow-sm">
-          <thead className="bg-gray-100 text-left text-sm text-gray-600">
+        <table className="w-full min-w-[600px] border border-gray-200 rounded-lg bg-white shadow-sm text-sm">
+          <thead className="bg-gray-100 text-left text-gray-600">
             <tr>
               <th className="py-3 px-4">Contact</th>
               <th className="py-3 px-4">Account</th>
@@ -242,84 +648,118 @@ export default function AdminContacts() {
               <th className="py-3 px-4">Department</th>
               <th className="py-3 px-4">Assigned To</th>
               <th className="py-3 px-4">Created</th>
-              <th className="py-3 px-4 text-center">Actions</th>
             </tr>
           </thead>
-
-          <tbody className="text-xs text-gray-700">
-            {Array.isArray(filteredContacts) && filteredContacts.length > 0 ? (
-              filteredContacts.map((c, i) => (
-                <tr
-                  key={i}
-                  className="hover:bg-gray-50 cursor-pointer"
-                  onClick={() => handleContactClick(c)}
+          <tbody>
+            {contactsLoading ? (
+              <tr>
+                <td
+                  className="py-4 px-4 text-center text-sm text-gray-500"
+                  colSpan={6}
                 >
-                  <td className="py-3 px-4">
-                    <div>
+                  Loading contacts...
+                </td>
+              </tr>
+            ) : filteredContacts.length > 0 ? (
+              filteredContacts.map((contact) => {
+                const contactInfoItems = [
+                  { Icon: FiMail, value: contact.email, key: "email" },
+                  { Icon: FiPhone, value: contact.work_phone, key: "work_phone" },
+                  {
+                    Icon: FiSmartphone,
+                    value: contact.mobile_phone_1,
+                    key: "mobile_phone_1",
+                  },
+                  {
+                    Icon: FiSmartphone,
+                    value: contact.mobile_phone_2,
+                    key: "mobile_phone_2",
+                  },
+                ].filter((item) => Boolean(item.value));
+
+                return (
+                <tr
+                  key={contact.id}
+                  className="hover:bg-gray-50 text-sm cursor-pointer transition"
+                  onClick={() => handleContactClick(contact)}
+                >
+                  <td className="py-3 px-4 align-top">
                       <div className="font-medium text-blue-600 hover:underline break-all">
-                        {c.first_name} {c.last_name}
+                      {getContactFullName(contact) || "--"}
                       </div>
-                      <div className="text-xs text-gray-500">{c.title}</div>
+                    <div className="text-xs text-gray-500">
+                      {contact.title || "No title"}
                     </div>
                   </td>
-
-                  <td className="py-3 px-4">
-                    <div className="flex items-center space-x-2">
-                      <BsBuilding className="text-gray-500" />
-                      <span>{c.account?.name}</span>
+                  <td className="py-3 px-4 align-top">
+                    <div className="flex items-center space-x-2 text-sm text-gray-700">
+                      <BsBuilding className="text-gray-500 flex-shrink-0" />
+                      <span className="break-words">
+                        {contact.account?.name || "--"}
+                      </span>
                     </div>
                   </td>
-
-                  <td className="py-3 px-4">
-                    <div className="space-y-1">
-                      <div className="flex items-center space-x-2">
-                        <FiMail className="text-gray-500" />
-                        <span>{c.email}</span>
+                  <td className="py-3 px-4 align-top">
+                    {contactInfoItems.length > 0 ? (
+                      <div className="space-y-1 text-gray-700">
+                        {contactInfoItems.map(({ Icon, value, key }) => (
+                          <div
+                            key={key}
+                            className="flex items-center space-x-2 break-all"
+                          >
+                            <Icon className="text-gray-500 flex-shrink-0" />
+                            <span>{value}</span>
                       </div>
-                      <div className="flex items-center space-x-2">
-                        <FiPhone className="text-gray-500" />
-                        <span>{c.work_phone}</span>
+                        ))}
                       </div>
+                    ) : (
+                      <span className="text-gray-400">--</span>
+                    )}
+                  </td>
+                  <td className="py-3 px-4 align-top">
+                    <div className="flex items-center space-x-2 text-gray-700">
+                      <FiBriefcase className="text-gray-500 flex-shrink-0" />
+                      <span>{contact.department || "--"}</span>
                     </div>
                   </td>
-
-                  <td className="py-3 px-4">{c.department}</td>
-
-                  <td className="py-3 px-4">
+                  <td className="py-3 px-4 align-top">
                     <div className="flex items-center space-x-2">
-                      <FiUser className="text-gray-500" />
-                      <span>{c.assigned_contact?.first_name} {c.assigned_contact?.last_name}</span>
+                      <FiUser className="text-gray-500 flex-shrink-0" />
+                      <span>
+                        {contact.assigned_contact
+                          ? `${contact.assigned_contact.first_name} ${contact.assigned_contact.last_name}`
+                          : "Unassigned"}
+                      </span>
                     </div>
                   </td>
-
-                  <td className="py-3 px-4">
-                    <div className="flex items-center space-x-2">
-                      <FiCalendar className="text-gray-500" />
-                      <span>{c.contact_creator?.first_name} {c.contact_creator?.last_name}</span>
-                    </div>
-                  </td>
-
-                  <td className="py-3 px-4 text-center">
-                    <div className="flex justify-center space-x-2">
-                      <button className="text-blue-500 hover:text-blue-700">
-                        <FiEdit />
-                      </button>
-                      <button className="text-red-500 hover:text-red-700">
-                        <FiTrash2 />
-                      </button>
+                  <td className="py-3 px-4 align-top">
+                    <div className="flex items-center space-x-2 text-gray-500">
+                      <FiCalendar className="text-gray-500 flex-shrink-0" />
+                      <span className="text-xs">
+                        {formattedDateTime(contact.created_at) || "--"}
+                      </span>
                     </div>
                   </td>
                 </tr>
-              ))
+                );
+              })
             ) : (
-              <tr><td className="py-3 px-4">No contacts available</td></tr>
+              <tr>
+                <td
+                  className="py-4 px-4 text-center text-sm text-gray-500"
+                  colSpan={6}
+                >
+                  No contacts found.
+                </td>
+              </tr>
             )}
           </tbody>
         </table>
       </div>
+    </div>
+  );
 
-      {/* Modal */}
-      {showModal && (
+  const formModal = showModal ? (
         <div
           id="modalBackdrop"
           onClick={handleBackdropClick}
@@ -329,135 +769,324 @@ export default function AdminContacts() {
             className="bg-white w-full max-w-full sm:max-w-3xl rounded-2xl shadow-lg p-4 sm:p-6 md:p-8 relative border border-gray-200 overflow-y-auto max-h-[90vh]"
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Close Button */}
             <button
-              onClick={() => setShowModal(false)}
-              className="absolute top-4 right-4 text-gray-500 hover:text-black transition"
+          onClick={closeModal}
+          className="absolute top-4 right-4 text-gray-500 hover:text-black transition disabled:opacity-60"
+          disabled={isSubmitting || confirmProcessing}
             >
               <FiX size={22} />
             </button>
 
-            {/* Header */}
-            <h2 className="text-xl sm:text-2xl font-semibold text-gray-800 mb-4 sm:mb-6 flex items-center justify-center space-x-2">
-              Add New Contact
+        <h2 className="text-xl sm:text-2xl font-semibold text-gray-800 mb-4 sm:mb-6 flex items-center justify-center">
+          {isEditing ? "Edit Contact" : "Add New Contact"}
             </h2>
 
-            {/* FORM */}
-            <form className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 text-sm">
-              {/* Column 1 */}
-              <div className="space-y-2 sm:space-y-3">
-                <div>
-                  <label className="block text-gray-700 font-medium mb-1 text-sm">Name</label>
-                  <input
-                    type="text"
-                    placeholder="Full name"
-                    className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-400 outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="block text-gray-700 font-medium mb-1 text-sm">Email</label>
-                  <input
-                    type="email"
-                    placeholder="example@email.com"
-                    className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-400 outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="block text-gray-700 font-medium mb-1 text-sm">Work Phone</label>
-                  <input
-                    type="text"
-                    placeholder="09 --- --- ---"
-                    className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-400 outline-none"
-                  />
-                </div>
-              </div>
-
-              {/* Column 2 */}
-              <div className="space-y-2 sm:space-y-3">
-                <div>
-                  <label className="block text-gray-700 font-medium mb-1 text-sm">Title</label>
-                  <input
-                    type="text"
+        <form
+          className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm"
+          onSubmit={handleSubmit}
+        >
+          <InputField
+            label="First Name"
+            name="first_name"
+            value={formData.first_name}
+            onChange={handleInputChange}
+            placeholder="First name"
+            required
+            disabled={isSubmitting}
+          />
+          <InputField
+            label="Last Name"
+            name="last_name"
+            value={formData.last_name}
+            onChange={handleInputChange}
+            placeholder="Last name"
+            required
+            disabled={isSubmitting}
+          />
+          <SelectField
+            label="Account"
+            name="account_id"
+            value={formData.account_id}
+            onChange={handleInputChange}
+            options={[
+              { value: "", label: "Select account" },
+              ...accounts.map((acc) => ({
+                value: String(acc.id),
+                label: acc.name,
+              })),
+            ]}
+            required
+            disabled={isSubmitting || accounts.length === 0}
+          />
+          <SelectField
+            label="Assign To"
+            name="assigned_to"
+            value={formData.assigned_to}
+            onChange={handleInputChange}
+            options={[
+              { value: "", label: "Unassigned" },
+              ...users.map((user) => ({
+                value: String(user.id),
+                label: `${user.first_name} ${user.last_name} (${user.role})`,
+              })),
+            ]}
+            disabled={isSubmitting || users.length === 0}
+          />
+          <InputField
+            label="Title"
+            name="title"
+            value={formData.title}
+            onChange={handleInputChange}
                     placeholder="Job title"
-                    className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-400 outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="block text-gray-700 font-medium mb-1 text-sm">Department</label>
-                  <input
-                    type="text"
-                    placeholder="IT / Marketing"
-                    className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-400 outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="block text-gray-700 font-medium mb-1 text-sm">Phone Number 1</label>
-                  <input
-                    type="text"
-                    placeholder="09 --- --- ---"
-                    className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-400 outline-none"
-                  />
-                </div>
-              </div>
-
-              {/* Column 3 */}
-              <div className="space-y-2 sm:space-y-3">
-                <div>
-                  <label className="block text-gray-700 font-medium mb-1 text-sm">Account</label>
-                  <input
-                    type="text"
-                    placeholder=""
-                    className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-400 outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="block text-gray-700 font-medium mb-1 text-sm">Assign To</label>
-                  <select className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-400 outline-none">
-                    <option value="">Assign To</option>
-                    <option value="smith">Smith</option>
-                    <option value="doe">Doe</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-gray-700 font-medium mb-1 text-sm">Phone Number 2</label>
-                  <input
-                    type="text"
-                    placeholder="09 --- --- ---"
-                    className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-400 outline-none"
-                  />
-                </div>
-              </div>
-
-              {/* Notes */}
-              <div className="flex flex-col col-span-1 sm:col-span-2 md:col-span-3">
-                <label className="text-gray-700 font-medium mb-1 text-sm">Notes</label>
-                <textarea
+            disabled={isSubmitting}
+          />
+          <InputField
+            label="Department"
+            name="department"
+            value={formData.department}
+            onChange={handleInputChange}
+            placeholder="Department"
+            disabled={isSubmitting}
+          />
+          <InputField
+            label="Email"
+            name="email"
+            type="email"
+            value={formData.email}
+            onChange={handleInputChange}
+            placeholder="example@email.com"
+            disabled={isSubmitting}
+          />
+          <InputField
+            label="Work Phone"
+            name="work_phone"
+            value={formData.work_phone}
+            onChange={handleInputChange}
+            placeholder="09xx xxx xxxx"
+            disabled={isSubmitting}
+          />
+          <InputField
+            label="Mobile Phone 1"
+            name="mobile_phone_1"
+            value={formData.mobile_phone_1}
+            onChange={handleInputChange}
+            placeholder="09xx xxx xxxx"
+            disabled={isSubmitting}
+          />
+          <InputField
+            label="Mobile Phone 2"
+            name="mobile_phone_2"
+            value={formData.mobile_phone_2}
+            onChange={handleInputChange}
+            placeholder="09xx xxx xxxx"
+            disabled={isSubmitting}
+          />
+          <TextareaField
+            label="Notes"
+            name="notes"
+            value={formData.notes}
+            onChange={handleInputChange}
                   placeholder="Additional details..."
                   rows={3}
-                  className="border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-400 outline-none resize-none"
+            disabled={isSubmitting}
+            className="md:col-span-2"
                 />
-              </div>
 
-              {/* Footer Buttons */}
-              <div className="flex flex-col sm:flex-row justify-end space-y-2 sm:space-y-0 sm:space-x-2 mt-4 col-span-1 sm:col-span-2 md:col-span-3">
+          <div className="flex flex-col sm:flex-row justify-end space-y-2 sm:space-y-0 sm:space-x-2 md:col-span-2 mt-4">
                 <button
                   type="button"
-                  onClick={() => setShowModal(false)}
-                  className="px-4 py-2 text-white bg-red-400 border border-red-300 rounded hover:bg-red-500 transition"
+              onClick={closeModal}
+              className="w-full sm:w-auto px-4 py-2 text-white bg-red-400 border border-red-300 rounded hover:bg-red-500 transition disabled:opacity-70"
+              disabled={isSubmitting || confirmProcessing}
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 text-white border border-tertiary bg-tertiary rounded hover:bg-secondary transition"
-                >
-                  Save Contact
+              className="w-full sm:w-auto px-4 py-2 text-white border border-tertiary bg-tertiary rounded hover:bg-secondary transition disabled:opacity-70"
+              disabled={isSubmitting || confirmProcessing}
+            >
+              {isSubmitting
+                ? "Saving..."
+                : isEditing
+                ? "Update Contact"
+                : "Save Contact"}
                 </button>
               </div>
             </form>
           </div>
         </div>
-      )}
+  ) : null;
+
+  const confirmationModal = confirmModalData ? (
+    <ConfirmationModal
+      open
+      title={confirmModalData.title}
+      message={confirmModalData.message}
+      confirmLabel={confirmModalData.confirmLabel}
+      cancelLabel={confirmModalData.cancelLabel}
+      variant={confirmModalData.variant}
+      onConfirm={handleConfirmAction}
+      onCancel={handleCancelConfirm}
+      loading={confirmProcessing}
+    />
+  ) : null;
+
+  return (
+    <>
+      {selectedContact ? detailView : listView}
+      {formModal}
+      {confirmationModal}
+    </>
+  );
+}
+
+function InputField({
+  label,
+  name,
+  value,
+  onChange,
+  placeholder,
+  type = "text",
+  required = false,
+  disabled = false,
+}) {
+  return (
+    <div>
+      <label className="block text-gray-700 font-medium mb-1 text-sm">
+        {label}
+      </label>
+      <input
+        type={type}
+        name={name}
+        value={value ?? ""}
+        onChange={onChange}
+        placeholder={placeholder}
+        required={required}
+        disabled={disabled}
+        className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-400 outline-none disabled:bg-gray-100"
+      />
+    </div>
+  );
+}
+
+function SelectField({
+  label,
+  name,
+  value,
+  onChange,
+  options,
+  required = false,
+  disabled = false,
+  className = "",
+}) {
+  return (
+    <div className={className}>
+      <label className="block text-gray-700 font-medium mb-1 text-sm">
+        {label}
+      </label>
+      <select
+        name={name}
+        value={value ?? ""}
+        onChange={onChange}
+        required={required}
+        disabled={disabled}
+        className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-400 outline-none disabled:bg-gray-100"
+      >
+        {options.map((option) => (
+          <option key={option.value ?? option.label} value={option.value}>
+            {option.label}
+          </option>
+        ))}
+      </select>
+    </div>
+  );
+}
+
+function TextareaField({
+  label,
+  name,
+  value,
+  onChange,
+  placeholder,
+  rows = 3,
+  disabled = false,
+  className = "",
+}) {
+  return (
+    <div className={className}>
+      <label className="block text-gray-700 font-medium mb-1 text-sm">
+        {label}
+      </label>
+      <textarea
+        name={name}
+        value={value ?? ""}
+        onChange={onChange}
+        placeholder={placeholder}
+        rows={rows}
+        disabled={disabled}
+        className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-blue-400 outline-none disabled:bg-gray-100 resize-none"
+      />
+    </div>
+  );
+}
+
+function DetailRow({ label, value }) {
+  const hasValue =
+    value !== undefined && value !== null && value !== "";
+  return (
+    <p>
+      <span className="font-semibold">{label}:</span> <br />
+      <span className="break-words">{hasValue ? value : "--"}</span>
+    </p>
+  );
+}
+
+function ConfirmationModal({
+  open,
+  title,
+  message,
+  confirmLabel,
+  cancelLabel = "Cancel",
+  variant = "primary",
+  loading = false,
+  onConfirm,
+  onCancel,
+}) {
+  if (!open) return null;
+
+  const confirmClasses =
+    variant === "danger"
+      ? "bg-red-500 hover:bg-red-600 border border-red-400"
+      : "bg-tertiary hover:bg-secondary border border-tertiary";
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-[60]">
+      <div className="bg-white w-full max-w-md rounded-xl shadow-lg p-6 border border-gray-200">
+        <h3 className="text-lg font-semibold text-gray-800">{title}</h3>
+        <p className="text-sm text-gray-600 mt-2 whitespace-pre-line">
+          {message}
+        </p>
+
+        <div className="mt-6 flex flex-col sm:flex-row sm:justify-end sm:space-x-3 space-y-2 sm:space-y-0">
+          <button
+            type="button"
+            onClick={onCancel}
+            className="w-full sm:w-auto px-4 py-2 rounded-md border border-gray-300 text-gray-700 hover:bg-gray-100 transition disabled:opacity-70"
+            disabled={loading}
+          >
+            {cancelLabel}
+          </button>
+          <button
+            type="button"
+            onClick={onConfirm}
+            className={`w-full sm:w-auto px-4 py-2 rounded-md text-white transition disabled:opacity-70 ${confirmClasses}`}
+            disabled={loading}
+          >
+            {loading ? "Processing..." : confirmLabel}
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

@@ -1,5 +1,5 @@
 # backend/schemas/auth.py
-from pydantic import BaseModel, HttpUrl, EmailStr
+from pydantic import BaseModel, EmailStr
 from typing import Optional
 from datetime import datetime
 from .auth import UserBase
@@ -17,6 +17,24 @@ class ContactBase(BaseModel):
     notes: Optional[str] = None
     assigned_to: Optional[int] = None
     created_by: Optional[int] = None    
+
+class ContactCreate(ContactBase):
+    """Payload for creating a contact via admin panel."""
+    pass
+
+class ContactUpdate(BaseModel):
+    """Payload for updating a contact (all fields optional)."""
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
+    account_id: Optional[int] = None
+    title: Optional[str] = None
+    department: Optional[str] = None
+    email: Optional[EmailStr] = None
+    work_phone: Optional[str] = None
+    mobile_phone_1: Optional[str] = None
+    mobile_phone_2: Optional[str] = None
+    notes: Optional[str] = None
+    assigned_to: Optional[int] = None
 
 class UserBase(BaseModel):
     id: int

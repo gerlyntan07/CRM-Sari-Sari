@@ -4,9 +4,9 @@ from typing import Optional
 from datetime import datetime
 from .auth import UserBase
 
-class AccountBase(BaseModel):    
+class AccountBase(BaseModel):
     name: str
-    website: str = None
+    website: Optional[str] = None
     phone_number: Optional[str] = None
     billing_address: Optional[str] = None
     shipping_address: Optional[str] = None
@@ -15,6 +15,24 @@ class AccountBase(BaseModel):
     territory_id: Optional[int] = None
     assigned_to: Optional[int] = None
     created_by: Optional[int] = None
+
+
+class AccountCreate(AccountBase):
+    """Payload for creating an account."""
+    pass
+
+
+class AccountUpdate(BaseModel):
+    """Payload for updating an account (all fields optional)."""
+    name: Optional[str] = None
+    website: Optional[str] = None
+    phone_number: Optional[str] = None
+    billing_address: Optional[str] = None
+    shipping_address: Optional[str] = None
+    industry: Optional[str] = None
+    status: Optional[str] = None
+    territory_id: Optional[int] = None
+    assigned_to: Optional[int] = None
 
 class UserBase(BaseModel):
     id: int

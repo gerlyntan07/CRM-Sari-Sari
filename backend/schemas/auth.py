@@ -18,6 +18,13 @@ class UserCreate(UserBase):
     password: constr(min_length=6)
 
 
+class UserUpdate(BaseModel):
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
+    email: Optional[EmailStr] = None
+    role: Optional[str] = None
+    password: Optional[constr(min_length=6)] = None
+
 
 # ✅ For login
 class UserLogin(BaseModel):

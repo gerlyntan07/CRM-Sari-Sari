@@ -8,6 +8,7 @@ export default function TaskModal({
   onSave,
   setFormData,
   formData,
+  isEditing = false,
 }) {
   const [salesList, setSalesList] = useState([]);
 
@@ -34,6 +35,8 @@ export default function TaskModal({
     onSave?.(formData); // modal does not close immediately; update handled in AdminTask
   };
 
+  const modalTitle = isEditing ? "Edit Task" : "Create Task";
+
   return (
     <Transition appear show={isOpen} as={Fragment}>
       <Dialog as="div" className="relative z-50" onClose={onClose}>
@@ -46,7 +49,7 @@ export default function TaskModal({
           leaveFrom="opacity-100"
           leaveTo="opacity-0"
         >
-          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" />
+          <div className="fixed inset-0 bg-black/40" />
         </Transition.Child>
 
         <div className="fixed inset-0 flex items-center justify-center p-4 overflow-y-auto">
@@ -60,68 +63,65 @@ export default function TaskModal({
               leaveFrom="opacity-100 scale-100"
               leaveTo="opacity-0 scale-95"
             >
-              <Dialog.Panel className="w-full max-w-xl rounded-2xl bg-white shadow-2xl ring-1 ring-gray-100 p-6 text-left align-middle transform transition-all max-h-[90vh] flex flex-col">
-                <div className="flex justify-between items-start gap-4 mb-4">
-                  <div>
-                    <h3 className="text-xl font-semibold text-gray-900">
-                      {formData.title ? "Edit Task" : "Create New Task"}
-                    </h3>
-                    <p className="text-sm text-gray-500">
-                      Fill in the task details.
-                    </p>
-                  </div>
+              <Dialog.Panel className="w-full max-w-full sm:max-w-3xl text-left align-middle transform transition-all">
+                <div className="bg-white w-full rounded-2xl shadow-lg p-4 sm:p-6 md:p-8 relative border border-gray-200 overflow-y-auto max-h-[90vh] flex flex-col">
                   <button
                     onClick={onClose}
                     aria-label="Close modal"
-                    className="text-gray-400 hover:text-gray-600 transition text-xl leading-none"
+                    className="absolute top-4 right-4 text-gray-500 hover:text-black transition"
                   >
                     &times;
                   </button>
-                </div>
 
-                <form
-                  onSubmit={handleSubmit}
-                  className="space-y-5 overflow-y-auto pr-2"
-                >
-                  <div>
-                    <label className="text-sm font-medium text-gray-700">
-                      Title *
-                    </label>
-                    <input
-                      type="text"
-                      name="title"
-                      value={formData.title}
-                      onChange={handleChange}
-                      required
-                      placeholder="Enter task title"
-                      className="w-full mt-1 border border-gray-300 rounded-lg px-3 py-2 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
+                  <h3 className="text-xl sm:text-2xl font-semibold text-gray-800 mb-1 flex items-center justify-center">
+                    {modalTitle}
+                  </h3>
+                  <p className="text-sm text-gray-500 text-center mb-4 sm:mb-6">
+                    Fill in the task details.
+                  </p>
 
-                  <div>
-                    <label className="text-sm font-medium text-gray-700">
-                      Description
-                    </label>
-                    <textarea
-                      name="description"
-                      value={formData.description}
-                      onChange={handleChange}
-                      placeholder="Enter task description"
-                      rows={2}
-                      className="w-full mt-1 border border-gray-300 rounded-lg px-3 py-2 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
+                  <form
+                    onSubmit={handleSubmit}
+                    className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm flex-1"
+                  >
+                    <div className="md:col-span-2">
+                      <label className="block text-gray-700 font-medium mb-1 text-sm">
+                        Title 
+                      </label>
+                      <input
+                        type="text"
+                        name="title"
+                        value={formData.title}
+                        onChange={handleChange}
+                        required
+                        placeholder="Enter task title"
+                        className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-400 outline-none"
+                      />
+                    </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="md:col-span-2">
+                      <label className="block text-gray-700 font-medium mb-1 text-sm">
+                        Description
+                      </label>
+                      <textarea
+                        name="description"
+                        value={formData.description}
+                        onChange={handleChange}
+                        placeholder="Enter task description"
+                        rows={3}
+                        className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-400 outline-none"
+                      />
+                    </div>
+
                     <div>
-                      <label className="text-sm font-medium text-gray-700">
+                      <label className="block text-gray-700 font-medium mb-1 text-sm">
                         Type
                       </label>
                       <select
                         name="type"
                         value={formData.type}
                         onChange={handleChange}
-                        className="w-full mt-1 border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-400 outline-none"
                       >
                         <option>Call</option>
                         <option>Meeting</option>
@@ -131,32 +131,30 @@ export default function TaskModal({
                     </div>
 
                     <div>
-                      <label className="text-sm font-medium text-gray-700">
+                      <label className="block text-gray-700 font-medium mb-1 text-sm">
                         Priority
                       </label>
                       <select
                         name="priority"
                         value={formData.priority}
                         onChange={handleChange}
-                        className="w-full mt-1 border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-400 outline-none"
                       >
                         <option>Low</option>
                         <option>Medium</option>
                         <option>High</option>
                       </select>
                     </div>
-                  </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                      <label className="text-sm font-medium text-gray-700">
+                      <label className="block text-gray-700 font-medium mb-1 text-sm">
                         Status
                       </label>
                       <select
                         name="status"
                         value={formData.status}
                         onChange={handleChange}
-                        className="w-full mt-1 border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-400 outline-none"
                       >
                         <option>To Do</option>
                         <option>In Progress</option>
@@ -165,8 +163,8 @@ export default function TaskModal({
                     </div>
 
                     <div>
-                      <label className="text-sm font-medium text-gray-700">
-                        Due Date *
+                      <label className="block text-gray-700 font-medium mb-1 text-sm">
+                        Due Date 
                       </label>
                       <input
                         type="datetime-local"
@@ -174,77 +172,76 @@ export default function TaskModal({
                         value={formData.dueDate}
                         onChange={handleChange}
                         required
-                        className="w-full mt-1 border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-400 outline-none"
                       />
                     </div>
-                  </div>
 
-                  <div>
-                    <label className="text-sm font-medium text-gray-700">
-                      Assign To
-                    </label>
-                    <select
-                      name="assignedTo"
-                      value={formData.assignedTo}
-                      onChange={handleChange}
-                      className="w-full mt-1 border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    >
-                      <option value="">Select User</option>
-                      {salesList.map((user) => (
-                        <option key={user.id} value={user.id}>
-                          {user.first_name} {user.last_name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
+                    <div>
+                      <label className="block text-gray-700 font-medium mb-1 text-sm">
+                        Assign To
+                      </label>
+                      <select
+                        name="assignedTo"
+                        value={formData.assignedTo}
+                        onChange={handleChange}
+                        className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-400 outline-none"
+                      >
+                        <option value="">Select User</option>
+                        {salesList.map((user) => (
+                          <option key={user.id} value={user.id}>
+                            {user.first_name} {user.last_name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
 
-                  <div>
-                    <label className="text-sm font-medium text-gray-700">
-                      Related To
-                    </label>
-                    <select
-                      name="relatedTo"
-                      value={formData.relatedTo}
-                      onChange={handleChange}
-                      className="w-full mt-1 border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    >
-                      <option value="">Select type</option>
-                      <option>Lead</option>
-                      <option>Opportunity</option>
-                      <option>Customer</option>
-                    </select>
-                  </div>
+                    <div>
+                      <label className="block text-gray-700 font-medium mb-1 text-sm">
+                        Related To
+                      </label>
+                      <select
+                        name="relatedTo"
+                        value={formData.relatedTo}
+                        onChange={handleChange}
+                        className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-400 outline-none"
+                      >
+                        <option value="">Select type</option>
+                        <option>Lead</option>
+                        <option>Opportunity</option>
+                        <option>Customer</option>
+                      </select>
+                    </div>
 
-                  <div>
-                    <label className="text-sm font-medium text-gray-700">
-                      Notes
-                    </label>
-                    <textarea
-                      name="notes"
-                      value={formData.notes}
-                      onChange={handleChange}
-                      placeholder="Additional notes..."
-                      rows={2}
-                      className="w-full mt-1 border border-gray-300 rounded-lg px-3 py-2 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
-                </form>
+                    <div className="md:col-span-2">
+                      <label className="block text-gray-700 font-medium mb-1 text-sm">
+                        Notes
+                      </label>
+                      <textarea
+                        name="notes"
+                        value={formData.notes}
+                        onChange={handleChange}
+                        placeholder="Additional notes..."
+                        rows={3}
+                        className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-400 outline-none"
+                      />
+                    </div>
 
-                <div className="flex justify-end gap-3 pt-4 border-t mt-6">
-                  <button
-                    type="button"
-                    onClick={onClose}
-                    className="px-4 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 transition"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    onClick={handleSubmit}
-                    className="px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 focus:ring-2 focus:ring-blue-400 transition"
-                  >
-                    Save Task
-                  </button>
+                    <div className="flex flex-col sm:flex-row justify-end sm:justify-end space-y-2 sm:space-y-0 sm:space-x-2 col-span-1 md:col-span-2 mt-4 w-full">
+                      <button
+                        type="button"
+                        onClick={onClose}
+                        className="w-full sm:w-auto px-4 py-2 text-white bg-red-400 border border-red-300 rounded hover:bg-red-500 transition"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="submit"
+                        className="w-full sm:w-auto px-4 py-2 text-white border border-tertiary bg-tertiary rounded hover:bg-secondary transition"
+                      >
+                        {isEditing ? "Update Task" : "Create Task"}
+                      </button>
+                    </div>
+                  </form>
                 </div>
               </Dialog.Panel>
             </Transition.Child>

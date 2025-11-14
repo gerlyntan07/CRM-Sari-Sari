@@ -492,6 +492,7 @@ export default function MarketingTask() {
         task={selectedTask}
         setFormData={setFormData}
         formData={formData}
+        isEditing={Boolean(selectedTask)}
         users={users}
       />
 

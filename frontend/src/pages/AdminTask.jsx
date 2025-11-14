@@ -682,6 +682,7 @@ export default function AdminTask() {
         onSave={handleSaveTask}
         setFormData={setFormData}
         formData={formData}
+        isEditing={Boolean(selectedTask)}
         users={users}
         currentUser={currentUser}
       />

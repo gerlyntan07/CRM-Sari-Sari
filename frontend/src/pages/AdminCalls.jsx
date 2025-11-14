@@ -1,357 +1,1121 @@
-import React, { useState, useEffect } from "react";
-import { FiEdit, FiTrash2, FiBriefcase, FiX, FiSearch, FiPhoneCall } from "react-icons/fi";
+import React, { useEffect, useMemo, useState } from "react";
+import {
+  FiSearch,
+  FiPlus,
+  FiPhoneCall,
+  FiClock,
+  FiCheckCircle,
+  FiXCircle,
+  FiX,
+} from "react-icons/fi";
+import { HiArrowLeft } from "react-icons/hi";
+import { toast } from "react-toastify";
+import api from "../api";
+import PaginationControls from "../components/PaginationControls.jsx";
+
+const STATUS_OPTIONS = [
+  { value: "PENDING", label: "Pending" },
+  { value: "COMPLETED", label: "Completed" },
+  { value: "CANCELLED", label: "Cancelled" },
+  { value: "MISSED", label: "Missed" },
+];
+
+const PRIORITY_OPTIONS = [
+  { value: "HIGH", label: "High" },
+  { value: "MEDIUM", label: "Medium" },
+  { value: "LOW", label: "Low" },
+];
+
+const INITIAL_FORM_STATE = {
+  subject: "",
+  primary_contact: "",
+  phone_number: "",
+  call_time: "",
+  call_duration: "",
+  notes: "",
+  due_date: "",
+  assigned_to: "",
+  related_type: "",
+  related_to: "",
+  priority: "LOW",
+};
+
+const normalizeStatus = (status) => (status ? status.toUpperCase() : "");
+
+const formatStatusLabel = (status) => {
+  if (!status) return "--";
+  return status
+    .toString()
+    .toLowerCase()
+    .replace(/\b\w/g, (char) => char.toUpperCase());
+};
+
+const getStatusBadgeClass = (status) => {
+  switch (normalizeStatus(status)) {
+    case "PENDING":
+      return "bg-indigo-100 text-indigo-700";
+    case "COMPLETED":
+      return "bg-green-100 text-green-700";
+    case "CANCELLED":
+      return "bg-gray-200 text-gray-700";
+    case "MISSED":
+      return "bg-red-100 text-red-700";
+    default:
+      return "bg-gray-100 text-gray-700";
+  }
+};
+
+const getPriorityBadgeClass = (priority) => {
+  switch (normalizeStatus(priority)) {
+    case "HIGH":
+      return "bg-red-100 text-red-700";
+    case "MEDIUM":
+      return "bg-yellow-100 text-yellow-700";
+    case "LOW":
+      return "bg-blue-100 text-blue-700";
+    default:
+      return "bg-gray-100 text-gray-700";
+  }
+};
+
+const ITEMS_PER_PAGE = 10;
 
 export default function AdminCalls() {
   useEffect(() => {
     document.title = "Calls | Sari-Sari CRM";
   }, []);
 
-  const [searchQuery, setSearchQuery] = useState("");
-  const [stageFilter, setStageFilter] = useState("");
-  const [ownerFilter, setOwnerFilter] = useState("");
+  const [showModal, setShowModal] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [formData, setFormData] = useState(INITIAL_FORM_STATE);
   const [selectedCall, setSelectedCall] = useState(null);
-  const [activeTab, setActiveTab] = useState("Overview");
-  const [showCallModal, setShowCallModal] = useState(false);
+  const [calls, setCalls] = useState([]);
+  const [callsLoading, setCallsLoading] = useState(false);
+  const [statusFilter, setStatusFilter] = useState("");
+  const [userFilter, setUserFilter] = useState("");
+  const [priorityFilter, setPriorityFilter] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [users, setUsers] = useState([]);
+  const [contacts, setContacts] = useState([]);
+  const [confirmModalData, setConfirmModalData] = useState(null);
+  const [confirmProcessing, setConfirmProcessing] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
 
-  const [callForm, setCallForm] = useState({
-    id: null,
-    name: "",
-    account: "",
-    contact: "",
-    stage: "Proposal Stage",
-    value: "",
-    closeDate: "",
-    owner: "",
-    status: "Proposal",
-    progress: 0,
-    description: "",
-    phone: "",
-    email: "",
-  });
+  const total = calls.length;
+  const pending = useMemo(
+    () => calls.filter((call) => call.status?.toUpperCase() === "PENDING").length,
+    [calls]
+  );
+  const completed = useMemo(
+    () => calls.filter((call) => call.status?.toUpperCase() === "COMPLETED").length,
+    [calls]
+  );
+  const cancelled = useMemo(
+    () => calls.filter((call) => call.status?.toUpperCase() === "CANCELLED").length,
+    [calls]
+  );
+  const missed = useMemo(
+    () => calls.filter((call) => call.status?.toUpperCase() === "MISSED").length,
+    [calls]
+  );
 
-  const [calls, setCalls] = useState([
-    {
-      id: 1,
-      name: "Enterprise ni Dinosaur Tuberow",
-      account: "Gertan Corp.",
-      contact: "Joshua M.",
-      stage: "Proposal Stage",
-      value: 200000,
-      closeDate: "January 12, 2026",
-      owner: "Dinosaur Roar",
-      status: "Proposal",
-      progress: 75,
-      description:
-        "Annual enterprise software license renewal with additional modules.",
-      phone: "+6373737373",
-      email: "jesselle@example.com",
-    },
-  ]);
+  const metricCards = useMemo(
+    () => [
+      {
+        title: "Total",
+        value: total,
+        icon: FiPhoneCall,
+        color: "text-slate-600",
+        bgColor: "bg-slate-100",
+      },
+      {
+        title: "Pending",
+        value: pending,
+        icon: FiClock,
+        color: "text-indigo-600",
+        bgColor: "bg-indigo-100",
+      },
+      {
+        title: "Completed",
+        value: completed,
+        icon: FiCheckCircle,
+        color: "text-green-600",
+        bgColor: "bg-green-100",
+      },
+      {
+        title: "Cancelled",
+        value: cancelled,
+        icon: FiXCircle,
+        color: "text-gray-600",
+        bgColor: "bg-gray-100",
+      },
+      {
+        title: "Missed",
+        value: missed,
+        icon: FiXCircle,
+        color: "text-red-600",
+        bgColor: "bg-red-100",
+      },
+    ],
+    [total, pending, completed, cancelled, missed]
+  );
 
-  // Filtered Calls
-  const filteredCalls = calls.filter((call) => {
-    const matchesSearch =
-      searchQuery === "" ||
-      call.name.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesStage = stageFilter === "" || call.stage === stageFilter;
-    const matchesOwner = ownerFilter === "" || call.owner === ownerFilter;
-    return matchesSearch && matchesStage && matchesOwner;
-  });
+  const fetchUsers = async () => {
+    try {
+      const res = await api.get(`/users/all`);
+      setUsers(Array.isArray(res.data) ? res.data : []);
+    } catch (err) {
+      console.error(err);
+      if (err.response?.status === 403) {
+        toast.warn("Unable to load users for assignment (permission denied).");
+      }
+    }
+  };
 
-  // Handlers
-  const openNewCallModal = () => {
-    setCallForm({
-      id: null,
-      name: "",
-      account: "",
-      contact: "",
-      stage: "Proposal Stage",
-      value: "",
-      closeDate: "",
-      owner: "",
-      status: "Proposal",
-      progress: 0,
-      description: "",
-      phone: "",
-      email: "",
+  const fetchContacts = async () => {
+    try {
+      const res = await api.get(`/contacts/admin/fetch-all`);
+      setContacts(Array.isArray(res.data) ? res.data : []);
+    } catch (err) {
+      console.error(err);
+      if (err.response?.status === 403) {
+        toast.warn("Unable to load contacts (permission denied).");
+      }
+    }
+  };
+
+  const fetchCalls = async () => {
+    setCallsLoading(true);
+    try {
+      const res = await api.get(`/calls/admin/fetch-all`);
+      const data = Array.isArray(res.data) ? res.data : [];
+      // Sort by created_at descending (most recent first)
+      const sorted = [...data].sort((a, b) => {
+        const aDate = a?.created_at ? new Date(a.created_at).getTime() : 0;
+        const bDate = b?.created_at ? new Date(b.created_at).getTime() : 0;
+        return bDate - aDate;
+      });
+      setCalls(sorted);
+    } catch (err) {
+      console.error(err);
+      setCalls([]);
+      if (err.response?.status === 403) {
+        toast.error("Permission denied. Only CEO, Admin, or Group Manager can access this page.");
+      } else {
+        toast.error("Failed to fetch calls. Please try again later.");
+      }
+    } finally {
+      setCallsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchUsers();
+    fetchContacts();
+    fetchCalls();
+  }, []);
+
+  const filteredCalls = useMemo(() => {
+    const normalizedQuery = searchQuery.trim().toLowerCase();
+    const normalizedStatusFilter = statusFilter.trim().toUpperCase();
+    const normalizedUserFilter = userFilter.trim();
+    const normalizedPriorityFilter = priorityFilter.trim().toUpperCase();
+
+    return calls.filter((call) => {
+      // Format due_date for search
+      const formattedDueDate = call.due_date 
+        ? (typeof call.due_date === 'string' 
+            ? new Date(call.due_date).toLocaleDateString('en-US', {
+                month: '2-digit',
+                day: '2-digit',
+                year: 'numeric'
+              })
+            : call.due_date)
+        : '';
+
+      // Search across all visible table fields
+      const searchFields = [
+        call?.subject,
+        call?.notes,
+        call?.primary_contact,
+        call?.phone_number,
+        call?.assigned_to,
+        call?.related_to,
+        call?.related_type,
+        call?.priority ? formatStatusLabel(call.priority) : '',
+        call?.status ? formatStatusLabel(call.status) : '',
+        formattedDueDate,
+      ];
+
+      const matchesSearch =
+        normalizedQuery === "" ||
+        searchFields.some((field) => {
+          if (field === null || field === undefined || field === '') return false;
+          return field.toString().toLowerCase().includes(normalizedQuery);
+        });
+
+      const matchesStatus =
+        normalizedStatusFilter === "" ||
+        normalizeStatus(call.status || "PENDING") === normalizedStatusFilter;
+
+      const matchesUser =
+        normalizedUserFilter === "" ||
+        (call.assigned_to && call.assigned_to.toLowerCase() === normalizedUserFilter.toLowerCase());
+
+      const matchesPriority =
+        normalizedPriorityFilter === "" ||
+        normalizeStatus(call.priority || "LOW") === normalizedPriorityFilter;
+
+      return matchesSearch && matchesStatus && matchesUser && matchesPriority;
     });
-    setShowCallModal(true);
+  }, [calls, searchQuery, statusFilter, userFilter, priorityFilter]);
+
+  const totalPages = Math.max(
+    1,
+    Math.ceil(filteredCalls.length / ITEMS_PER_PAGE) || 1
+  );
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, statusFilter, userFilter, priorityFilter]);
+
+  useEffect(() => {
+    setCurrentPage((prev) => {
+      const maxPage = Math.max(
+        1,
+        Math.ceil(filteredCalls.length / ITEMS_PER_PAGE) || 1
+      );
+      return prev > maxPage ? maxPage : prev;
+    });
+  }, [filteredCalls.length]);
+
+  const paginatedCalls = useMemo(() => {
+    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+    return filteredCalls.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+  }, [filteredCalls, currentPage]);
+
+  const pageStart =
+    filteredCalls.length === 0 ? 0 : (currentPage - 1) * ITEMS_PER_PAGE + 1;
+  const pageEnd = Math.min(currentPage * ITEMS_PER_PAGE, filteredCalls.length);
+
+  const handlePrevPage = () => setCurrentPage((prev) => Math.max(prev - 1, 1));
+  const handleNextPage = () =>
+    setCurrentPage((prev) => Math.min(prev + 1, totalPages));
+
+  const handleCallClick = (call) => setSelectedCall(call);
+
+  const handleBackToList = () => setSelectedCall(null);
+
+  const closeModal = () => {
+    setShowModal(false);
+    setFormData(INITIAL_FORM_STATE);
+    setIsSubmitting(false);
   };
 
+  const handleBackdropClick = (e) => {
+    if (e.target.id === "modalBackdrop") closeModal();
+  };
 
-  const handleCallSubmit = (e) => {
+  const formattedDateTime = (datetime) => {
+    if (!datetime) return "";
+    return new Date(datetime)
+      .toLocaleString("en-US", {
+        month: "2-digit",
+        day: "2-digit",
+        year: "numeric",
+        hour: "numeric",
+        minute: "numeric",
+        hour12: true,
+      })
+      .replace(",", "");
+  };
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prev) => {
+      const updated = {
+        ...prev,
+        [name]: value,
+      };
+      
+      // Auto-fill phone number when primary contact is selected
+      if (name === "primary_contact" && value) {
+        const selectedContact = contacts.find((c) => String(c.id) === value);
+        if (selectedContact) {
+          updated.phone_number = selectedContact.work_phone || selectedContact.mobile_phone_1 || "";
+        }
+      }
+      
+      return updated;
+    });
+  };
+
+  const handleOpenAddModal = () => {
+    setFormData(INITIAL_FORM_STATE);
+    setShowModal(true);
+  };
+
+  const handleConfirmAction = async () => {
+    if (!confirmModalData?.action) {
+      setConfirmModalData(null);
+      return;
+    }
+
+    const { action } = confirmModalData;
+    const { type, payload, name } = action;
+
+    setConfirmProcessing(true);
+
+    try {
+      if (type === "create") {
+        setIsSubmitting(true);
+        const response = await api.post(`/calls/create`, payload);
+        toast.success(`Call "${name}" created successfully.`);
+        closeModal();
+        await fetchCalls();
+      }
+    } catch (err) {
+      console.error(err);
+      const defaultMessage = "Failed to create call. Please review the details and try again.";
+      toast.error(defaultMessage);
+      setIsSubmitting(false);
+    } finally {
+      if (type === "create") {
+        setIsSubmitting(false);
+      }
+      setConfirmProcessing(false);
+      setConfirmModalData(null);
+    }
+  };
+
+  const handleCancelConfirm = () => {
+    if (confirmProcessing) return;
+    setConfirmModalData(null);
+  };
+
+  const handleSubmit = (e) => {
     e.preventDefault();
-    setShowCallModal(false);
+
+    const trimmedSubject = formData.subject.trim();
+    if (!trimmedSubject) {
+      toast.error("Call subject is required.");
+      return;
+    }
+
+    const selectedUser = users.find((u) => String(u.id) === formData.assigned_to);
+    const assignedToName = selectedUser
+      ? `${selectedUser.first_name} ${selectedUser.last_name}`
+      : null;
+
+    const selectedContact = contacts.find((c) => String(c.id) === formData.primary_contact);
+    const primaryContactName = selectedContact
+      ? `${selectedContact.first_name || ""} ${selectedContact.last_name || ""}`.trim()
+      : null;
+    const contactPhone = selectedContact?.work_phone || selectedContact?.mobile_phone_1 || null;
+
+    const payload = {
+      subject: trimmedSubject,
+      primary_contact: primaryContactName,
+      primary_contact_id: formData.primary_contact ? Number(formData.primary_contact) : null,
+      phone_number: formData.phone_number?.trim() || contactPhone || null,
+      call_time: formData.call_time || null,
+      call_duration: formData.call_duration || null,
+      notes: formData.notes?.trim() || null,
+      due_date: formData.due_date || null,
+      assigned_to: assignedToName,
+      assigned_to_id: formData.assigned_to ? Number(formData.assigned_to) : null,
+      related_type: formData.related_type || null,
+      related_to: formData.related_to?.trim() || null,
+      priority: formData.priority || "LOW",
+      status: "PENDING",
+    };
+
+    setConfirmModalData({
+      title: "Confirm New Call",
+      message: (
+        <span>
+          Are you sure you want to create the call{" "}
+          <span className="font-semibold">{trimmedSubject}</span>?
+        </span>
+      ),
+      confirmLabel: "Create Call",
+      cancelLabel: "Cancel",
+      variant: "primary",
+      action: {
+        type: "create",
+        payload,
+        name: trimmedSubject,
+      },
+    });
   };
 
-  return (
-    <div className="p-8 font-inter">
-      {/* Header */}
-      <div className="flex flex-wrap items-center justify-between mb-6 gap-3">
-        <h2 className="flex items-center text-2xl font-semibold text-gray-800">
-          <FiPhoneCall className="mr-2 text-blue-600" /> Calls
-        </h2>
+  const statusFilterOptions = [
+    { label: "All Statuses", value: "" },
+    ...STATUS_OPTIONS.map((option) => ({
+      label: option.label,
+      value: option.value,
+    })),
+  ];
+
+  const detailView = selectedCall ? (
+    <div className="p-4 sm:p-6 lg:p-8 font-inter">
+      <button
+        onClick={handleBackToList}
+        className="inline-flex items-center text-sm sm:text-base text-gray-500 hover:text-gray-700 transition mb-4 sm:mb-6 cursor-pointer"
+      >
+        <HiArrowLeft className="mr-1 w-4 h-4 sm:w-5 sm:h-5" /> Back
+      </button>
+
+      <div className="bg-white border border-gray-200 rounded-lg p-4 sm:p-6 shadow-sm space-y-6 overflow-hidden">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <h1 className="text-xl sm:text-2xl font-semibold text-gray-800 flex items-center gap-2">
+            {selectedCall.subject}
+            <span
+              className={`inline-block text-xs px-2 py-0.5 rounded ${getStatusBadgeClass(
+                selectedCall.status
+              )}`}
+            >
+              {formatStatusLabel(selectedCall.status)}
+            </span>
+          </h1>
+        </div>
+
+        <div className="overflow-x-auto">
+          <h2 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4 text-gray-800">
+            Call Details
+          </h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm text-gray-700">
+            <DetailRow
+              label="Primary Contact"
+              value={selectedCall.primary_contact || "--"}
+            />
+            <DetailRow
+              label="Phone Number"
+              value={selectedCall.phone_number || "--"}
+            />
+            <DetailRow 
+              label="Call Time" 
+              value={
+                selectedCall.call_time 
+                  ? (typeof selectedCall.call_time === 'string' 
+                      ? new Date(selectedCall.call_time).toLocaleTimeString('en-US', {
+                          hour: 'numeric',
+                          minute: '2-digit',
+                          hour12: true
+                        })
+                      : selectedCall.call_time)
+                  : "--"
+              } 
+            />
+            <DetailRow
+              label="Call Duration"
+              value={selectedCall.call_duration ? `${selectedCall.call_duration} min` : "--"}
+            />
+            <DetailRow 
+              label="Due Date" 
+              value={
+                selectedCall.due_date 
+                  ? (typeof selectedCall.due_date === 'string' 
+                      ? new Date(selectedCall.due_date).toLocaleDateString('en-US', {
+                          month: '2-digit',
+                          day: '2-digit',
+                          year: 'numeric'
+                        })
+                      : selectedCall.due_date)
+                  : "--"
+              } 
+            />
+            <DetailRow
+              label="Assigned To"
+              value={selectedCall.assigned_to || "--"}
+            />
+            <DetailRow
+              label="Related Type"
+              value={selectedCall.related_type || "--"}
+            />
+            <DetailRow
+              label="Related To"
+              value={selectedCall.related_to || "--"}
+            />
+            <DetailRow
+              label="Priority"
+              value={
+                <span
+                  className={`px-2 py-1 rounded-full text-xs font-medium ${getPriorityBadgeClass(
+                    selectedCall.priority
+                  )}`}
+                >
+                  {formatStatusLabel(selectedCall.priority)}
+                </span>
+              }
+            />
+            <DetailRow label="Notes" value={selectedCall.notes || "--"} />
+            <DetailRow
+              label="Created At"
+              value={formattedDateTime(selectedCall.created_at) || "--"}
+            />
+          </div>
+        </div>
+      </div>
+    </div>
+  ) : null;
+
+  const listView = (
+    <div className="p-4 sm:p-6 lg:p-8">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 sm:mb-6 space-y-2 sm:space-y-0">
+        <h1 className="flex items-center text-xl sm:text-2xl font-semibold text-gray-800">
+          <FiPhoneCall className="mr-2 text-blue-600" />
+          Calls
+        </h1>
+
         <button
-          onClick={openNewCallModal}
-          className="flex items-center bg-black text-white px-4 py-2 rounded-md hover:bg-gray-800"
+          onClick={handleOpenAddModal}
+          className="flex items-center bg-black text-white px-3 sm:px-4 py-2 rounded-md hover:bg-gray-800 text-sm sm:text-base ml-auto sm:ml-0"
         >
-          + New Call
+          <FiPlus className="mr-2" /> Add Call
         </button>
       </div>
 
-      {/* ✅ Top Summary Boxes */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
-        <div className="bg-white shadow-sm rounded-lg p-4 text-center font-semibold w-full">Calls</div>
-        <div className="bg-white shadow-sm rounded-lg p-5 text-center font-semibold w-full"></div>
-        <div className="bg-white shadow-sm rounded-lg p-5 text-center font-semibold w-full"></div>
-        <div className="bg-white shadow-sm rounded-lg p-5 text-center font-semibold w-full"></div>
-        <div className="bg-white shadow-sm rounded-lg p-5 text-center font-semibold w-full"></div>
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4 mb-6">
+        {metricCards.map((metric) => (
+          <MetricCard key={metric.title} {...metric} />
+        ))}
       </div>
 
-      {/* Search & Filters */}
-      <div className="flex flex-wrap items-center gap-3 mb-3">
-        <div className="relative w-full lg:w-1/3 mb-2 lg:mb-0">
-          <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+      <div className="bg-white rounded-xl p-4 shadow-sm mb-6 flex flex-col lg:flex-row items-center justify-between gap-3 w-full">
+        <div className="flex items-center border border-gray-300 rounded-lg px-4 h-11 w-full lg:w-3/4 focus-within:ring-2 focus-within:ring-indigo-500 transition">
+          <FiSearch size={20} className="text-gray-400 mr-3" />
           <input
             type="text"
-            placeholder="Search Call..."
-            className="border border-gray-300 bg-white rounded-md px-10 py-2 w-full text-sm focus:outline-none focus:ring-2 focus:ring-gray-300"
+            placeholder="Search calls..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
+            className="focus:outline-none text-base w-full"
           />
         </div>
-
-        <div className="flex flex-wrap gap-2 w-full lg:w-auto">
-          <select className="border border-gray-300 rounded-md px-3 py-2 text-sm bg-white w-full lg:w-auto">
-            <option value="">All Status</option>
-            <option value="Proposal Stage">Status daw po</option>
+        <div className="w-full lg:w-auto flex flex-col lg:flex-row gap-3">
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            className="border border-gray-300 rounded-lg px-3 h-11 text-sm text-gray-600 bg-white w-full lg:w-40 focus:ring-2 focus:ring-indigo-500 transition"
+          >
+            {statusFilterOptions.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
           </select>
-          <select className="border border-gray-300 rounded-md px-3 py-2 text-sm bg-white w-full lg:w-auto">
-            <option value="">All User</option>
-            <option value="Proposal Stage">Dinosaur Roar</option>
+          <select
+            value={userFilter}
+            onChange={(e) => setUserFilter(e.target.value)}
+            className="border border-gray-300 rounded-lg px-3 h-11 text-sm text-gray-600 bg-white w-full lg:w-40 focus:ring-2 focus:ring-indigo-500 transition"
+          >
+            <option value="">All Users</option>
+            {users.map((user) => (
+              <option key={user.id} value={`${user.first_name} ${user.last_name}`}>
+                {user.first_name} {user.last_name}
+              </option>
+            ))}
           </select>
-          <select className="border border-gray-300 rounded-md px-3 py-2 text-sm bg-white w-full lg:w-auto">
+          <select
+            value={priorityFilter}
+            onChange={(e) => setPriorityFilter(e.target.value)}
+            className="border border-gray-300 rounded-lg px-3 h-11 text-sm text-gray-600 bg-white w-full lg:w-40 focus:ring-2 focus:ring-indigo-500 transition"
+          >
             <option value="">All Priorities</option>
-            <option value="Dinosaur Roar">High ganun?</option>
+            {PRIORITY_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
           </select>
         </div>
       </div>
 
-      {/* Activities Table */}
-      <div className="overflow-x-auto w-full shadow-sm mt-7">
-        <table className="min-w-full bg-white text-left table-auto border border-gray-200">
-          <thead className="bg-gray-100 text-sm text-gray-600">
+      <div className="overflow-x-auto">
+        <table className="w-full min-w-[500px] border border-gray-200 rounded-lg bg-white shadow-sm text-sm">
+          <thead className="bg-gray-100 text-left text-gray-600 text-sm tracking-wide font-semibold">
             <tr>
-              <th className="py-3 px-4 font-medium">Priority</th>
-              <th className="py-3 px-4 font-medium">Activity</th>
-              <th className="py-3 px-4 font-medium">Related To</th>
-              <th className="py-3 px-4 font-medium">Due Date</th>
-              <th className="py-3 px-4 font-medium">Assigned To</th>
-              <th className="py-3 px-4 font-medium">Status</th>
+              <th className="py-3 px-4">Priority</th>
+              <th className="py-3 px-4">Activity</th>
+              <th className="py-3 px-4">Related To</th>
+              <th className="py-3 px-4">Due Date</th>
+              <th className="py-3 px-4">Assigned To</th>
+              <th className="py-3 px-4">Status</th>
             </tr>
           </thead>
-
-          <tbody className="text-xs text-gray-700">
-            <tr className="hover:bg-gray-50">
-              <td className="py-2 px-3">
-                <span className="bg-red-100 text-red-600 text-[10px] font-semibold px-1.5 py-0.5 rounded">
-                  HIGH
-                </span>
-              </td>
-
-              <td className="py-2 px-3">
-                <div className="font-sm text-gray-900 text-[13px] leading-tight">
-                  Enterprise ni Jesselle Tuberow
-                </div>
-                <div className="text-[11px] text-gray-500">
-                  Discuss implementation timeline and pricing
-                </div>
-              </td>
-
-              <td className="py-2 px-3">
-                <div className="font-sm text-gray-800 text-[13px] leading-tight">
-                  TechCorp Solutions - Enterprise Software
-                </div>
-                <div className="text-[11px] text-gray-500">Deals</div>
-              </td>
-
-              <td className="py-2 px-3 text-gray-800 font-medium text-[13px]">
-                Dec 12, 2004
-              </td>
-
-              <td className="py-2 px-3 text-gray-800 font-medium text-[13px]">
-                Lester Ciano
-              </td>
-
-              <td className="py-2 px-3">
-                <span className="bg-indigo-100 text-indigo-700 text-[10px] font-semibold px-2 py-0.5 rounded-full">
-                  PENDING
-                </span>
-              </td>
-            </tr>
+          <tbody>
+            {callsLoading ? (
+              <tr>
+                <td
+                  className="py-4 px-4 text-center text-sm text-gray-500"
+                  colSpan={6}
+                >
+                  Loading calls...
+                </td>
+              </tr>
+            ) : filteredCalls.length > 0 ? (
+              paginatedCalls.map((call) => {
+                return (
+                  <tr
+                    key={call.id}
+                    className="hover:bg-gray-50 text-xs cursor-pointer"
+                    onClick={() => handleCallClick(call)}
+                  >
+                    <td className="py-2 px-4">
+                      <span
+                        className={`px-2 py-1 rounded-full text-xs font-medium ${getPriorityBadgeClass(
+                          call.priority || "LOW"
+                        )}`}
+                      >
+                        {formatStatusLabel(call.priority || "LOW")}
+                      </span>
+                    </td>
+                    <td className="py-2 px-4">
+                      <div>
+                        <div className="font-medium text-blue-600 hover:underline break-all">
+                          {call.subject}
+                        </div>
+                        <div className="text-gray-500 text-xs break-all">
+                          {call.notes || "--"}
+                        </div>
+                      </div>
+                    </td>
+                    <td className="py-2 px-4">
+                      <div>
+                        <div className="font-medium text-gray-800 text-xs leading-tight">
+                          {call.related_to || "--"}
+                        </div>
+                        <div className="text-gray-500 text-[11px]">
+                          {call.related_type || "--"}
+                        </div>
+                      </div>
+                    </td>
+                    <td className="py-2 px-4 text-gray-800 font-medium text-xs">
+                      {call.due_date 
+                        ? (typeof call.due_date === 'string' 
+                            ? new Date(call.due_date).toLocaleDateString('en-US', {
+                                month: '2-digit',
+                                day: '2-digit',
+                                year: 'numeric'
+                              })
+                            : call.due_date)
+                        : "--"}
+                    </td>
+                    <td className="py-2 px-4 text-gray-800 font-medium text-xs">
+                      {call.assigned_to || "--"}
+                    </td>
+                    <td className="py-2 px-4">
+                      <span
+                        className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusBadgeClass(
+                          call.status || "PENDING"
+                        )}`}
+                      >
+                        {formatStatusLabel(call.status || "PENDING")}
+                      </span>
+                    </td>
+                  </tr>
+                );
+              })
+            ) : (
+              <tr>
+                <td
+                  className="py-4 px-4 text-center text-sm text-gray-500"
+                  colSpan={6}
+                >
+                  No calls found.
+                </td>
+              </tr>
+            )}
           </tbody>
         </table>
       </div>
+      <PaginationControls
+        className="mt-4"
+        totalItems={filteredCalls.length}
+        pageSize={ITEMS_PER_PAGE}
+        currentPage={currentPage}
+        onPrev={handlePrevPage}
+        onNext={handleNextPage}
+        label="calls"
+      />
+    </div>
+  );
 
-      {showCallModal && (
-        <div
-          className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 px-3 sm:px-0 overflow-y-auto"
-          onClick={() => setShowCallModal(false)}
+  const formModal = showModal ? (
+    <div
+      id="modalBackdrop"
+      onClick={handleBackdropClick}
+      className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4"
+    >
+      <div
+        className="bg-white w-full max-w-full sm:max-w-3xl rounded-2xl shadow-lg p-4 sm:p-6 md:p-8 relative border border-gray-200 overflow-y-auto max-h-[90vh]"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <button
+          onClick={closeModal}
+          className="absolute top-4 right-4 text-gray-500 hover:text-black transition"
+          disabled={isSubmitting || confirmProcessing}
         >
-          <div
-            className="bg-white w-full max-w-xl rounded-xl shadow-lg p-6 sm:p-8 relative border border-gray-200 my-10 scale-[0.95] overflow-y-auto max-h-[90vh]"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* Close Button */}
-            <button
-              onClick={() => setShowCallModal(false)}
-              className="absolute top-4 right-4 text-gray-400 hover:text-black transition"
-            >
-              <FiX size={22} />
-            </button>
+          <FiX size={22} />
+        </button>
 
-            {/* Header */}
-            <h2 className="text-xl sm:text-2xl font-semibold text-gray-800 mb-4 sm:mb-6 flex items-center justify-center space-x-2">
-              Schedule Call
-            </h2>
-            <p className="text-sm text-gray-500 mb-4">Create a new call</p>
+        <h2 className="text-xl sm:text-2xl font-semibold text-gray-800 mb-4 sm:mb-6 flex items-center justify-center">
+          Add New Call
+        </h2>
 
-            {/* Form */}
-            <form
-              className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm sm:text-base"
-              onSubmit={handleCallSubmit}
-            >
-              {/* Subject */}
-              <div className="flex flex-col col-span-1 sm:col-span-2">
-                <label className="text-gray-700 font-medium mb-1">Subject*</label>
-                <input
-                  type="text"
-                  placeholder="e.g. Follow-up call with Client"
-                  className="border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-400 outline-none w-full"
-                />
-              </div>
-
-              {/* Primary Contact */}
-              <div className="flex flex-col">
-                <label className="text-gray-700 font-medium mb-1">
-                  Primary Contact
-                </label>
-                <select className="border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-400 outline-none bg-white w-full">
-                  <option value="">Select Contact</option>
-                  <option value="Joshua M.">Joshua M.</option>
-                  <option value="Marcus Lee">Marcus Lee</option>
-                </select>
-              </div>
-
-              {/* Phone Number */}
-              <div className="flex flex-col">
-                <label className="text-gray-700 font-medium mb-1">Phone Number</label>
-                <input
-                  type="text"
-                  placeholder="+63"
-                  className="border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-400 outline-none w-full"
-                />
-              </div>
-
-              {/* Call Time */}
-              <div className="flex flex-col">
-                <label className="text-gray-700 font-medium mb-1">Call Time</label>
-                <input
-                  type="time"
-                  className="border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-400 outline-none w-full"
-                />
-              </div>
-
-              {/* Call Duration */}
-              <div className="flex flex-col">
-                <label className="text-gray-700 font-medium mb-1">Call Duration</label>
-                <input
-                  type="number"
-                  placeholder="30"
-                  className="border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-400 outline-none w-full"
-                />
-              </div>
-
-              {/* Notes */}
-              <div className="flex flex-col col-span-1 sm:col-span-2">
-                <label className="text-gray-700 font-medium mb-1">Notes</label>
-                <textarea
-                  rows={3}
-                  placeholder="Add call notes and key discussion points."
-                  className="border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-400 outline-none resize-none w-full"
-                />
-              </div>
-
-              {/* Due Date */}
-              <div className="flex flex-col">
-                <label className="text-gray-700 font-medium mb-1">Due Date*</label>
-                <input
-                  type="date"
-                  className="border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-400 outline-none w-full"
-                />
-              </div>
-
-              {/* Assigned To */}
-              <div className="flex flex-col">
-                <label className="text-gray-700 font-medium mb-1">Assigned To*</label>
-                <select className="border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-400 outline-none bg-white w-full">
-                  <option value="">Select User</option>
-                  <option value="Dinosaur Roar">Dinosaur Roar</option>
-                  <option value="Marcus Lee">Marcus Lee</option>
-                </select>
-              </div>
-
-              {/* Related Type */}
-              <div className="flex flex-col">
-                <label className="text-gray-700 font-medium mb-1">Related Type</label>
-                <select className="border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-400 outline-none bg-white w-full">
-                  <option value="">Select Type</option>
-                  <option value="Deal">Deal</option>
-                  <option value="Lead">Lead</option>
-                  <option value="Contact">Contact</option>
-                </select>
-              </div>
-
-              {/* Related To */}
-              <div className="flex flex-col">
-                <label className="text-gray-700 font-medium mb-1">Related To</label>
-                <input
-                  type="text"
-                  placeholder="Enter name"
-                  className="border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-400 outline-none w-full"
-                />
-              </div>
-
-              {/* Priority */}
-              <div className="flex flex-col col-span-1 sm:col-span-2">
-                <label className="text-gray-700 font-medium mb-1">Priority</label>
-                <select className="border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-400 outline-none bg-white w-full">
-                  <option>Medium</option>
-                  <option>High</option>
-                  <option>Low</option>
-                </select>
-              </div>
-
-              {/* Footer Buttons */}
-              <div className="flex justify-end gap-2 mt-4 col-span-1 sm:col-span-2">
-                <button
-                  type="button"
-                  onClick={() => setShowCallModal(false)}
-                  className="px-5 py-2 text-gray-700 bg-gray-100 border border-gray-300 rounded hover:bg-gray-200 transition"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="px-5 py-2 text-white bg-gray-900 rounded hover:bg-gray-800 transition"
-                >
-                  Create Call
-                </button>
-              </div>
-            </form>
+        <form
+          className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm"
+          onSubmit={handleSubmit}
+        >
+          <InputField
+            label="Subject"
+            name="subject"
+            value={formData.subject}
+            onChange={handleInputChange}
+            placeholder="e.g. Follow-up call with Client"
+            required
+            disabled={isSubmitting}
+          />
+          <TextAreaField
+            label="Notes"
+            name="notes"
+            value={formData.notes}
+            onChange={handleInputChange}
+            placeholder="Add call notes and key discussion points."
+            disabled={isSubmitting}
+            className="md:row-span-6"
+            rows={12}
+          />
+          <SelectField
+            label="Primary Contact"
+            name="primary_contact"
+            value={formData.primary_contact}
+            onChange={handleInputChange}
+            options={[
+              { value: "", label: "Select Contact" },
+              ...contacts.map((contact) => ({
+                value: String(contact.id),
+                label: `${contact.first_name || ""} ${contact.last_name || ""}`.trim() || "Unnamed Contact",
+              })),
+            ]}
+            disabled={isSubmitting || contacts.length === 0}
+          />
+          <InputField
+            label="Phone Number"
+            name="phone_number"
+            value={formData.phone_number}
+            onChange={handleInputChange}
+            placeholder="+63"
+            type="tel"
+            disabled={isSubmitting}
+          />
+          <InputField
+            label="Call Time"
+            name="call_time"
+            value={formData.call_time}
+            onChange={handleInputChange}
+            placeholder="10:00 AM"
+            type="time"
+            disabled={isSubmitting}
+          />
+          <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4 -mt-7">
+            <InputField
+              label="Call Duration (minutes)"
+              name="call_duration"
+              value={formData.call_duration}
+              onChange={handleInputChange}
+              placeholder="30"
+              type="number"
+              disabled={isSubmitting}
+            />
+            <InputField
+              label="Due Date"
+              name="due_date"
+              value={formData.due_date}
+              onChange={handleInputChange}
+              type="date"
+              required
+              disabled={isSubmitting}
+            />
           </div>
+          <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4">
+            <SelectField
+              label="Assigned To"
+              name="assigned_to"
+              value={formData.assigned_to}
+              onChange={handleInputChange}
+              options={[
+                { value: "", label: "Select User" },
+                ...users.map((user) => ({
+                  value: String(user.id),
+                  label: `${user.first_name} ${user.last_name}`,
+                })),
+              ]}
+              required
+              disabled={isSubmitting || users.length === 0}
+            />
+            <SelectField
+              label="Related Type"
+              name="related_type"
+              value={formData.related_type}
+              onChange={handleInputChange}
+              options={[
+                { value: "", label: "Select Type" },
+                { value: "Deal", label: "Deal" },
+                { value: "Lead", label: "Lead" },
+                { value: "Contact", label: "Contact" },
+              ]}
+              disabled={isSubmitting}
+            />
+          </div>
+          <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4">
+            <InputField
+              label="Related To"
+              name="related_to"
+              value={formData.related_to}
+              onChange={handleInputChange}
+              placeholder="Enter name"
+              disabled={isSubmitting}
+            />
+            <SelectField
+              label="Priority"
+              name="priority"
+              value={formData.priority}
+              onChange={handleInputChange}
+              options={PRIORITY_OPTIONS.map((option) => ({
+                value: option.value,
+                label: option.label,
+              }))}
+              disabled={isSubmitting}
+            />
+          </div>
+
+          <div className="flex flex-col sm:flex-row justify-end sm:justify-end space-y-2 sm:space-y-0 sm:space-x-2 col-span-1 md:col-span-2 mt-4 w-full">
+            <button
+              type="button"
+              onClick={closeModal}
+              className="w-full sm:w-auto px-4 py-2 text-white bg-red-400 border border-red-300 rounded hover:bg-red-500 transition disabled:opacity-70"
+              disabled={isSubmitting || confirmProcessing}
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="w-full sm:w-auto px-4 py-2 text-white border border-tertiary bg-tertiary rounded hover:bg-secondary transition disabled:opacity-70"
+              disabled={isSubmitting || confirmProcessing}
+            >
+              {isSubmitting ? "Saving..." : "Save Call"}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  ) : null;
+
+  const confirmationModal = confirmModalData ? (
+    <ConfirmationModal
+      open
+      title={confirmModalData.title}
+      message={confirmModalData.message}
+      confirmLabel={confirmModalData.confirmLabel}
+      cancelLabel={confirmModalData.cancelLabel}
+      variant={confirmModalData.variant}
+      onConfirm={handleConfirmAction}
+      onCancel={handleCancelConfirm}
+      loading={confirmProcessing}
+    />
+  ) : null;
+
+  return (
+    <>
+      {selectedCall ? detailView : listView}
+      {formModal}
+      {confirmationModal}
+    </>
+  );
+}
+
+function MetricCard({
+  icon: Icon,
+  title,
+  value,
+  color = "text-blue-600",
+  bgColor = "bg-blue-100",
+  onClick,
+}) {
+  const handleClick = () => {
+    if (typeof onClick === "function") {
+      onClick();
+    } else {
+      console.log(`Clicked: ${title}`);
+    }
+  };
+
+  return (
+    <div
+      className="flex items-center p-4 bg-white rounded-xl shadow-md hover:shadow-lg hover:ring-2 hover:ring-blue-500 cursor-pointer transition-all duration-300"
+      onClick={handleClick}
+    >
+      <div
+        className={`flex-shrink-0 p-3 rounded-full ${bgColor} ${color} mr-4`}
+      >
+        {Icon ? <Icon size={22} /> : null}
+      </div>
+      <div className="min-w-0">
+        <p className="text-xs text-gray-500 uppercase">{title}</p>
+        <p className="text-2xl font-bold text-gray-800">{value}</p>
+      </div>
+    </div>
+  );
+}
+
+function InputField({
+  label,
+  name,
+  value,
+  onChange,
+  placeholder,
+  type = "text",
+  required = false,
+  disabled = false,
+  className = "",
+}) {
+  return (
+    <div className={className}>
+      <label className="block text-gray-700 font-medium mb-1 text-sm">
+        {label}
+      </label>
+      <input
+        type={type}
+        name={name}
+        value={value ?? ""}
+        onChange={onChange}
+        placeholder={placeholder}
+        required={required}
+        disabled={disabled}
+        className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-400 outline-none disabled:bg-gray-100"
+      />
+    </div>
+  );
+}
+
+function SelectField({
+  label,
+  name,
+  value,
+  onChange,
+  options,
+  required = false,
+  disabled = false,
+}) {
+  return (
+    <div>
+      <label className="block text-gray-700 font-medium mb-1 text-sm">
+        {label}
+      </label>
+      <select
+        name={name}
+        value={value ?? ""}
+        onChange={onChange}
+        required={required}
+        disabled={disabled}
+        className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-400 outline-none disabled:bg-gray-100"
+      >
+        {options.map((option) => (
+          <option key={option.value} value={option.value}>
+            {option.label}
+          </option>
+        ))}
+      </select>
+    </div>
+  );
+}
+
+function TextAreaField({
+  label,
+  name,
+  value,
+  onChange,
+  placeholder,
+  required = false,
+  disabled = false,
+  className = "",
+  rows = 3,
+}) {
+  return (
+    <div className={className}>
+      <label className="block text-gray-700 font-medium mb-1 text-sm">
+        {label}
+      </label>
+      <textarea
+        name={name}
+        value={value ?? ""}
+        onChange={onChange}
+        placeholder={placeholder}
+        required={required}
+        disabled={disabled}
+        rows={rows}
+        className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-400 outline-none disabled:bg-gray-100 resize-none"
+      />
+    </div>
+  );
+}
+
+function DetailRow({ label, value }) {
+  return (
+    <p>
+      <span className="font-semibold">{label}:</span> <br />
+      <span className="break-words">{value || "--"}</span>
+    </p>
+  );
+}
+
+function ConfirmationModal({
+  open,
+  title,
+  message,
+  confirmLabel,
+  cancelLabel = "Cancel",
+  variant = "primary",
+  loading = false,
+  onConfirm,
+  onCancel,
+}) {
+  if (!open) return null;
+
+  const confirmClasses =
+    variant === "danger"
+      ? "bg-red-500 hover:bg-red-600 border border-red-400"
+      : "bg-tertiary hover:bg-secondary border border-tertiary";
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-[60]">
+      <div className="bg-white w-full max-w-md rounded-xl shadow-lg p-6 border border-gray-200">
+        <h3 className="text-lg font-semibold text-gray-800">{title}</h3>
+        <p className="text-sm text-gray-600 mt-2 whitespace-pre-line">
+          {message}
+        </p>
+
+        <div className="mt-6 flex flex-col sm:flex-row sm:justify-end sm:space-x-3 space-y-2 sm:space-y-0">
+          <button
+            type="button"
+            onClick={onCancel}
+            className="w-full sm:w-auto px-4 py-2 rounded-md border border-gray-300 text-gray-700 hover:bg-gray-100 transition disabled:opacity-70"
+            disabled={loading}
+          >
+            {cancelLabel}
+          </button>
+          <button
+            type="button"
+            onClick={onConfirm}
+            className={`w-full sm:w-auto px-4 py-2 rounded-md text-white transition disabled:opacity-70 ${confirmClasses}`}
+            disabled={loading}
+          >
+            {loading ? "Processing..." : confirmLabel}
+          </button>
         </div>
-      )}
+      </div>
     </div>
   );
 }

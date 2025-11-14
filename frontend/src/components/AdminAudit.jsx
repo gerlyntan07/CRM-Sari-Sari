@@ -35,7 +35,7 @@ export default function AdminAudit() {
     const normalizedSearch = search.trim().toLowerCase();
     const normalizedFilter = filter?.toUpperCase?.() || "ALL";
 
-    return logs.filter((log) => {
+    const filtered = logs.filter((log) => {
       const timestampString = log.timestamp
         ? new Date(log.timestamp).toLocaleString("en-US", {
             month: "short",
@@ -80,6 +80,13 @@ export default function AdminAudit() {
         (log.action || "").toUpperCase() === normalizedFilter;
 
       return matchesSearch && matchesFilter;
+    });
+
+    // Sort by timestamp descending (most recent first)
+    return filtered.sort((a, b) => {
+      const timestampA = a.timestamp ? new Date(a.timestamp).getTime() : 0;
+      const timestampB = b.timestamp ? new Date(b.timestamp).getTime() : 0;
+      return timestampB - timestampA; // Descending order (newest first)
     });
   }, [logs, search, filter]);
 

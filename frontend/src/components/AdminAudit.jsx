@@ -1,7 +1,10 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { FiEye, FiDownload, FiSearch } from "react-icons/fi";
 import api from "../api";
 import toast, { Toaster } from "react-hot-toast";
+import PaginationControls from "./PaginationControls.jsx";
+
+const ITEMS_PER_PAGE = 10;
 
 export default function AdminAudit() {
   useEffect(() => {
@@ -9,101 +12,159 @@ export default function AdminAudit() {
   }, []);
 
   const [logs, setLogs] = useState(null);
-  const [search, setSearch]   = useState('');
+  const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("All");
+  const [currentPage, setCurrentPage] = useState(1);
 
-  const fetchLogs = async() => {
-    try{
-      const res = await api.get('/logs/read-all');
-      setLogs(res.data);       
-    } catch(error){
+  const fetchLogs = async () => {
+    try {
+      const res = await api.get("/logs/read-all");
+      setLogs(res.data);
+    } catch (error) {
       console.error("Error fetching audit logs:", error);
     }
-  }
+  };
 
   useEffect(() => {
     fetchLogs();
-  },[])
+  }, []);
 
-  const filteredLogs = Array.isArray(logs)
-  ? logs.filter((c) => {
-      const monthNames = [
-        "jan", "feb", "mar", "apr", "may", "jun",
-        "jul", "aug", "sep", "oct", "nov", "dec"
+  const filteredLogs = useMemo(() => {
+    if (!Array.isArray(logs)) return [];
+
+    const normalizedSearch = search.trim().toLowerCase();
+    const normalizedFilter = filter?.toUpperCase?.() || "ALL";
+
+    return logs.filter((log) => {
+      const timestampString = log.timestamp
+        ? new Date(log.timestamp).toLocaleString("en-US", {
+            month: "short",
+            day: "numeric",
+            year: "numeric",
+            hour: "numeric",
+            minute: "2-digit",
+            hour12: true,
+          })
+        : "";
+
+      const resourceString = `${log.entity_type || ""} ${
+        log.entity_name ||
+        log.entity_details?.name ||
+        log.entity_details?.title ||
+        log.entity_id ||
+        ""
+      }`;
+
+      const userName = `${log.logger?.first_name || ""} ${
+        log.logger?.last_name || ""
+      }`;
+
+      const searchFields = [
+        timestampString,
+        userName,
+        log.action,
+        log.entity_type,
+        resourceString,
+        log.description,
       ];
 
-      // Convert timestamp to month string
-      const dateObj = new Date(c.timestamp);
-      const month = monthNames[dateObj.getMonth()]; // e.g., "oct"
-
-      const searchLower = search.toLowerCase();
-
       const matchesSearch =
-        c.description?.toLowerCase().includes(searchLower) ||
-        c.action?.toLowerCase().includes(searchLower) ||
-        c.entity_type?.toLowerCase().includes(searchLower) ||
-        `${c.logger?.first_name} ${c.logger?.last_name}`.toLowerCase().includes(searchLower) ||
-        month.includes(searchLower); // <-- checks month
+        normalizedSearch === "" ||
+        searchFields.some((field) => {
+          if (field === null || field === undefined) return false;
+          return field.toString().toLowerCase().includes(normalizedSearch);
+        });
 
-      const matchesAccount =
-        filter === "All" || c.action === filter;
+      const matchesFilter =
+        normalizedFilter === "ALL" ||
+        (log.action || "").toUpperCase() === normalizedFilter;
 
-      return matchesSearch && matchesAccount;
-    })
-  : [];
+      return matchesSearch && matchesFilter;
+    });
+  }, [logs, search, filter]);
+
+  const totalPages = Math.max(
+    1,
+    Math.ceil(filteredLogs.length / ITEMS_PER_PAGE) || 1
+  );
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, filter]);
+
+  useEffect(() => {
+    setCurrentPage((prev) => {
+      const maxPage = Math.max(
+        1,
+        Math.ceil(filteredLogs.length / ITEMS_PER_PAGE) || 1
+      );
+      return prev > maxPage ? maxPage : prev;
+    });
+  }, [filteredLogs.length]);
+
+  const paginatedLogs = useMemo(() => {
+    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+    return filteredLogs.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+  }, [filteredLogs, currentPage]);
+
+  const pageStart =
+    filteredLogs.length === 0 ? 0 : (currentPage - 1) * ITEMS_PER_PAGE + 1;
+  const pageEnd = Math.min(currentPage * ITEMS_PER_PAGE, filteredLogs.length);
+
+  const handlePrevPage = () => setCurrentPage((prev) => Math.max(prev - 1, 1));
+  const handleNextPage = () =>
+    setCurrentPage((prev) => Math.min(prev + 1, totalPages));
 
   const exportToExcel = () => {
-  if (!filteredLogs.length) {
-    toast.error("No logs to export!");
-    return;
-  }
+    if (!filteredLogs.length) {
+      toast.error("No logs to export!");
+      return;
+    }
 
-  // Define the table headers
-  const headers = ["Timestamp", "User", "Action", "Resource", "Details"];
+    // Define the table headers
+    const headers = ["Timestamp", "User", "Action", "Resource", "Details"];
 
-  // Map filteredLogs into rows
-  const rows = filteredLogs.map((log) => [
-    new Date(log.timestamp).toLocaleString("en-US", {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-      hour: "numeric",
-      minute: "2-digit",
-      hour12: true,
-    }),
-    `${log.logger?.first_name || ""} ${log.logger?.last_name || ""}`.trim(),
-    log.action,
-    `${log.entity_type}: ${log.entity_id}`,
-    log.description || "",
-  ]);
+    // Map filteredLogs into rows
+    const rows = filteredLogs.map((log) => [
+      new Date(log.timestamp).toLocaleString("en-US", {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+        hour: "numeric",
+        minute: "2-digit",
+        hour12: true,
+      }),
+      `${log.logger?.first_name || ""} ${log.logger?.last_name || ""}`.trim(),
+      log.action,
+      `${log.entity_type}: ${log.entity_id}`,
+      log.description || "",
+    ]);
 
-  // Convert to CSV-like content (Excel can open CSV)
-  const csvContent = [
-    headers.join(","), // header row
-    ...rows.map((row) =>
-      row
-        .map((cell) =>
-          `"${String(cell).replace(/"/g, '""')}"` // Escape double quotes
-        )
-        .join(",")
-    ),
-  ].join("\n");
+    // Convert to CSV-like content (Excel can open CSV)
+    const csvContent = [
+      headers.join(","), // header row
+      ...rows.map((row) =>
+        row
+          .map(
+            (cell) => `"${String(cell).replace(/"/g, '""')}"` // Escape double quotes
+          )
+          .join(",")
+      ),
+    ].join("\n");
 
-  // Create a downloadable Blob (in memory)
-  const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    // Create a downloadable Blob (in memory)
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
 
-  // Create a temporary link and trigger download
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = `AuditLogs_${new Date().toISOString().split("T")[0]}.csv`;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
-};
-
-
+    // Create a temporary link and trigger download
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `AuditLogs_${new Date().toISOString().split("T")[0]}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
 
   const getTagColor = (type) => {
     switch (type) {
@@ -122,9 +183,11 @@ export default function AdminAudit() {
 
   return (
     <div className="p-4 sm:p-6">
-      <Toaster toastOptions={{
-    duration: 1000
-  }} />
+      <Toaster
+        toastOptions={{
+          duration: 1000,
+        }}
+      />
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-5 space-y-3 sm:space-y-0">
         <div className="flex items-center space-x-2">
@@ -133,61 +196,67 @@ export default function AdminAudit() {
             Audit Logs
           </h2>
         </div>
-        <button className="flex items-center justify-center border border-tertiary hover:text-white hover:bg-secondary text-gray-700 px-3 py-2 rounded-md text-sm font-medium transition w-full sm:w-auto" onClick={exportToExcel}>
+        <button
+          className="flex items-center bg-black text-white px-3 sm:px-4 py-2 rounded-md hover:bg-gray-800 text-sm sm:text-base w-full sm:w-auto transition"
+          onClick={exportToExcel}
+        >
           <FiDownload className="mr-2" />
           Export Logs
         </button>
       </div>
 
-       {/* Search and Filter */}
-            <div className="flex flex-col sm:flex-row flex-wrap items-start sm:items-center gap-3 mb-7">
-              <div className="flex items-center bg-white border border-gray-200 rounded-md px-3 py-2 w-full sm:w-1/3 shadow-sm">
-                <FiSearch className="text-gray-500" />
-                <input
-                  type="text"
-                  placeholder="Search Audit..."
-                  className="ml-2 bg-transparent w-full outline-none text-sm"
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                />
-              </div>
-              <select className="border border-gray-300 rounded-md px-3 py-2 text-sm text-gray-600 bg-white shadow-sm cursor-pointer w-full sm:w-auto" value={filter} onChange={(e) => setFilter(e.target.value)}>
-                <option className="All">All</option>
-                <option value='CREATE'>CREATE</option>
-                <option value='DELETE'>DELETE</option>
-                <option value='UPDATE'>UPDATE</option>
-                <option value='READ'>READ</option>
-              </select>
-            </div>
+      {/* Search and Filter */}
+      <div className="bg-white rounded-xl p-4 shadow-sm mb-6 flex flex-col lg:flex-row items-center justify-between gap-3 w-full">
+        <div className="flex items-center border border-gray-300 rounded-lg px-4 h-11 w-full lg:w-3/4 focus-within:ring-2 focus-within:ring-indigo-500 transition bg-white">
+          <FiSearch size={20} className="text-gray-400 mr-3" />
+          <input
+            type="text"
+            placeholder="Search by timestamp, user, action, resource, or details..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="focus:outline-none text-base w-full"
+          />
+        </div>
+        <div className="w-full lg:w-1/4">
+          <select
+            value={filter}
+            onChange={(e) => setFilter(e.target.value)}
+            className="border border-gray-300 rounded-lg px-3 h-11 text-sm text-gray-600 bg-white w-full focus:ring-2 focus:ring-indigo-500 transition"
+          >
+            <option value="All">All Actions</option>
+            <option value="CREATE">CREATE</option>
+            <option value="DELETE">DELETE</option>
+            <option value="UPDATE">UPDATE</option>
+          </select>
+        </div>
+      </div>
 
-      <div className="bg-white rounded-md shadow-sm overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="min-w-full text-sm">
-            <thead className="bg-gray-100 text-gray-600 text-left">
-              <tr>
-                <th className="px-6 py-3 whitespace-nowrap">Timestamp</th>
-                <th className="px-6 py-3 whitespace-nowrap">User</th>
-                <th className="px-6 py-3 whitespace-nowrap">Action</th>
-                <th className="px-6 py-3 whitespace-nowrap">Resource</th>
-                <th className="px-6 py-3 whitespace-nowrap">Details</th>
-              </tr>
-            </thead>
-            <tbody>
-              {Array.isArray(filteredLogs) && filteredLogs.length > 0 ? (
-                filteredLogs.map((log, i) => (
-                <tr
-                  key={i}
-                  className="hover:bg-gray-50 transition-colors text-xs" 
-                >
+      <div className="overflow-x-auto">
+        <table className="w-full min-w-[600px] border border-gray-200 rounded-lg bg-white shadow-sm text-sm">
+          <thead className="bg-gray-100 text-left text-gray-600 text-sm tracking-wide font-semibold">
+            <tr>
+              <th className="px-6 py-3 whitespace-nowrap">Timestamp</th>
+              <th className="px-6 py-3 whitespace-nowrap">User</th>
+              <th className="px-6 py-3 whitespace-nowrap">Action</th>
+              <th className="px-6 py-3 whitespace-nowrap">Resource</th>
+              <th className="px-6 py-3 whitespace-nowrap">Details</th>
+            </tr>
+          </thead>
+          <tbody>
+            {Array.isArray(filteredLogs) && filteredLogs.length > 0 ? (
+              paginatedLogs.map((log, i) => (
+                <tr key={i} className="hover:bg-gray-50 text-xs">
                   <td className="px-6 py-3 text-gray-700 whitespace-nowrap">
-                    {new Date(log.timestamp).toLocaleString("en-US", {
-                  month: "numeric",
-                  day: "numeric",
-                  year: "numeric",
-                  hour: "numeric",
-                  minute: "2-digit",
-                  hour12: true,
-                }).replace(",", "")}
+                    {new Date(log.timestamp)
+                      .toLocaleString("en-US", {
+                        month: "numeric",
+                        day: "numeric",
+                        year: "numeric",
+                        hour: "numeric",
+                        minute: "2-digit",
+                        hour12: true,
+                      })
+                      .replace(",", "")}
                   </td>
                   <td className="px-6 py-3 text-gray-700">{log.name}</td>
                   <td className="px-6 py-3">
@@ -199,18 +268,31 @@ export default function AdminAudit() {
                       {log.action}
                     </span>
                   </td>
-                  <td className="px-6 py-3 text-gray-700">{log.entity_type}: {log.entity_id}</td>
+                  <td className="px-6 py-3 text-gray-700">
+                    {log.entity_type}: {log.entity_id}
+                  </td>
                   <td className="px-6 py-3 text-gray-700">{log.description}</td>
                 </tr>
               ))
-              ): (
-                <tr><td className="px-6 py-3 text-gray-700 col-span-5">No activites to show</td></tr>
-              )}
-              
-            </tbody>
-          </table>
-        </div>
+            ) : (
+              <tr>
+                <td className="px-6 py-3 text-gray-500 text-center" colSpan={5}>
+                  No activities to show.
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
       </div>
+      <PaginationControls
+        className="mt-4"
+        totalItems={filteredLogs.length}
+        pageSize={ITEMS_PER_PAGE}
+        currentPage={currentPage}
+        onPrev={handlePrevPage}
+        onNext={handleNextPage}
+        label="logs"
+      />
     </div>
   );
 }

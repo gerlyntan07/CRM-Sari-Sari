@@ -11,6 +11,7 @@ import { HiArrowLeft } from "react-icons/hi";
 import { toast } from "react-toastify";
 import api from "../api";
 import useFetchUser from "../hooks/useFetchUser";
+import PaginationControls from "../components/PaginationControls.jsx";
 
 const ROLE_OPTIONS = [
   { value: "CEO", label: "CEO" },
@@ -103,6 +104,8 @@ const renderRoleBadge = (role, { size = "sm" } = {}) => {
   );
 };
 
+const ITEMS_PER_PAGE = 10;
+
 const getUserInitials = (firstName, lastName) => {
   const first = firstName?.trim()?.[0] ?? "";
   const last = lastName?.trim()?.[0] ?? "";
@@ -135,26 +138,24 @@ export default function AdminUser() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [confirmModalData, setConfirmModalData] = useState(null);
   const [confirmProcessing, setConfirmProcessing] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
 
   const normalizedUserRole = normalizeRoleValue(currentUser?.role);
   const isAuthorized = ["ADMIN", "CEO"].includes(normalizedUserRole);
   const shouldShowContent = !userLoading && isAuthorized;
 
-  const roleFilterOptions = useMemo(
-    () => {
-      const otherRoles = ROLE_OPTIONS.filter((option) => {
-        const normalizedValue = normalizeRoleValue(option.value);
-        return normalizedValue !== "CEO";
-      });
+  const roleFilterOptions = useMemo(() => {
+    const otherRoles = ROLE_OPTIONS.filter((option) => {
+      const normalizedValue = normalizeRoleValue(option.value);
+      return normalizedValue !== "CEO";
+    });
 
-      return [
-        { label: "All Roles", value: "" },
-        { label: "CEO", value: "CEO" },
-        ...otherRoles,
-      ];
-    },
-    []
-  );
+    return [
+      { label: "All Roles", value: "" },
+      { label: "CEO", value: "CEO" },
+      ...otherRoles,
+    ];
+  }, []);
 
   const flashHighlight = useCallback((userId) => {
     if (!userId) return;
@@ -238,6 +239,38 @@ export default function AdminUser() {
       })
     );
   }, [users, searchQuery, roleFilter]);
+
+  const totalPages = Math.max(
+    1,
+    Math.ceil(filteredUsers.length / ITEMS_PER_PAGE) || 1
+  );
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, roleFilter]);
+
+  useEffect(() => {
+    setCurrentPage((prev) => {
+      const maxPage = Math.max(
+        1,
+        Math.ceil(filteredUsers.length / ITEMS_PER_PAGE) || 1
+      );
+      return prev > maxPage ? maxPage : prev;
+    });
+  }, [filteredUsers.length]);
+
+  const paginatedUsers = useMemo(() => {
+    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+    return filteredUsers.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+  }, [filteredUsers, currentPage]);
+
+  const pageStart =
+    filteredUsers.length === 0 ? 0 : (currentPage - 1) * ITEMS_PER_PAGE + 1;
+  const pageEnd = Math.min(currentPage * ITEMS_PER_PAGE, filteredUsers.length);
+
+  const handlePrevPage = () => setCurrentPage((prev) => Math.max(prev - 1, 1));
+  const handleNextPage = () =>
+    setCurrentPage((prev) => Math.min(prev + 1, totalPages));
 
   if (userLoading) {
     return (
@@ -517,7 +550,7 @@ export default function AdminUser() {
 
       <div className="overflow-x-auto">
         <table className="w-full min-w-[600px] border border-gray-200 rounded-lg bg-white shadow-sm text-sm">
-          <thead className="bg-gray-100 text-left text-gray-600 uppercase text-xs tracking-wide">
+          <thead className="bg-gray-100 text-left text-gray-600 text-sm tracking-wide font-semibold">
             <tr>
               <th className="py-3 px-4">Fullname</th>
               <th className="py-3 px-4">Email</th>
@@ -544,7 +577,7 @@ export default function AdminUser() {
                 </td>
               </tr>
             ) : (
-              filteredUsers.map((user) => {
+              paginatedUsers.map((user) => {
                 return (
                   <tr
                     key={user.id}
@@ -556,7 +589,7 @@ export default function AdminUser() {
                       className="py-3 px-4 cursor-pointer"
                       onClick={() => handleRowClick(user)}
                     >
-                      <div className="font-medium text-gray-900">
+                      <div className="font-medium text-blue-600 hover:underline">
                         {user.first_name} {user.last_name}
                       </div>
                     </td>
@@ -579,6 +612,15 @@ export default function AdminUser() {
           </tbody>
         </table>
       </div>
+      <PaginationControls
+        className="mt-4"
+        totalItems={filteredUsers.length}
+        pageSize={ITEMS_PER_PAGE}
+        currentPage={currentPage}
+        onPrev={handlePrevPage}
+        onNext={handleNextPage}
+        label="users"
+      />
     </div>
   );
 
@@ -886,14 +928,14 @@ function UserFormModal({
             <button
               type="button"
               onClick={onClose}
-              className="w-full sm:w-auto px-4 py-2 text-gray-700 border border-gray-300 rounded-md hover:bg-gray-100 transition disabled:opacity-60"
+              className="w-full sm:w-auto px-4 py-2 text-white bg-red-400 border border-red-300 rounded hover:bg-red-500 transition disabled:opacity-70"
               disabled={disabled}
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="w-full sm:w-auto px-4 py-2 text-white bg-black rounded-md hover:bg-gray-800 transition disabled:opacity-60"
+              className="w-full sm:w-auto px-4 py-2 text-white border border-tertiary bg-tertiary rounded hover:bg-secondary transition disabled:opacity-70"
               disabled={disabled}
             >
               {isSubmitting

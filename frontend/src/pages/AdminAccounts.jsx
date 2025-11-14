@@ -15,6 +15,7 @@ import {
 import { HiArrowLeft } from "react-icons/hi";
 import api from "../api.js";
 import { toast } from "react-toastify";
+import PaginationControls from "../components/PaginationControls.jsx";
 
 const STATUS_OPTIONS = [
   { value: "CUSTOMER", label: "Customer" },
@@ -85,6 +86,8 @@ const getTableBadgeClass = (status) => {
   }
 };
 
+const ITEMS_PER_PAGE = 10;
+
 export default function AdminAccounts() {
   useEffect(() => {
     document.title = "Accounts | Sari-Sari CRM";
@@ -105,6 +108,7 @@ export default function AdminAccounts() {
   const [searchQuery, setSearchQuery] = useState("");
   const [confirmModalData, setConfirmModalData] = useState(null);
   const [confirmProcessing, setConfirmProcessing] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
 
   const fetchAccounts = useCallback(
     async (preserveSelectedId = null) => {
@@ -286,6 +290,41 @@ export default function AdminAccounts() {
       return matchesSearch && matchesStage;
     });
   }, [accounts, searchQuery, stageFilter]);
+
+  const totalPages = Math.max(
+    1,
+    Math.ceil(filteredAccounts.length / ITEMS_PER_PAGE) || 1
+  );
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, stageFilter]);
+
+  useEffect(() => {
+    setCurrentPage((prev) => {
+      const maxPage = Math.max(
+        1,
+        Math.ceil(filteredAccounts.length / ITEMS_PER_PAGE) || 1
+      );
+      return prev > maxPage ? maxPage : prev;
+    });
+  }, [filteredAccounts.length]);
+
+  const paginatedAccounts = useMemo(() => {
+    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+    return filteredAccounts.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+  }, [filteredAccounts, currentPage]);
+
+  const pageStart =
+    filteredAccounts.length === 0 ? 0 : (currentPage - 1) * ITEMS_PER_PAGE + 1;
+  const pageEnd = Math.min(
+    currentPage * ITEMS_PER_PAGE,
+    filteredAccounts.length
+  );
+
+  const handlePrevPage = () => setCurrentPage((prev) => Math.max(prev - 1, 1));
+  const handleNextPage = () =>
+    setCurrentPage((prev) => Math.min(prev + 1, totalPages));
 
   const handleAccountClick = (acc) => setSelectedAccount(acc);
 
@@ -547,26 +586,25 @@ export default function AdminAccounts() {
 
   const detailView = selectedAccount ? (
     <div className="p-4 sm:p-6 lg:p-8 font-inter">
-      <div className="mb-6">
-        <button
-          onClick={handleBackToList}
-          className="inline-flex items-center text-sm sm:text-base text-gray-500 hover:text-gray-700 transition mb-4 sm:mb-6 cursor-pointer"
-        >
-          <HiArrowLeft className="mr-1 w-4 h-4 sm:w-5 sm:h-5" /> Back
-        </button>
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">
-          <div>
-            <h1 className="text-xl sm:text-2xl font-semibold text-gray-800 flex items-center gap-2">
-              {selectedAccount.name}
-              <span
-                className={`inline-block text-xs px-2 py-0.5 rounded ${detailStatusBadge}`}
-              >
-                {formatStatusLabel(selectedAccount.status)}
-              </span>
-            </h1>
-          </div>
+      <button
+        onClick={handleBackToList}
+        className="inline-flex items-center text-sm sm:text-base text-gray-500 hover:text-gray-700 transition mb-4 sm:mb-6 cursor-pointer"
+      >
+        <HiArrowLeft className="mr-1 w-4 h-4 sm:w-5 sm:h-5" /> Back
+      </button>
 
-          <div className="flex flex-col sm:flex-row sm:space-x-3 space-y-2 sm:space-y-0 mt-3 sm:mt-0">
+      <div className="bg-white border border-gray-200 rounded-lg p-4 sm:p-6 shadow-sm space-y-6 overflow-hidden">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <h1 className="text-xl sm:text-2xl font-semibold text-gray-800 flex items-center gap-2">
+            {selectedAccount.name}
+            <span
+              className={`inline-block text-xs px-2 py-0.5 rounded ${detailStatusBadge}`}
+            >
+              {formatStatusLabel(selectedAccount.status)}
+            </span>
+          </h1>
+
+          <div className="flex flex-col sm:flex-row sm:space-x-3 space-y-2 sm:space-y-0">
             <button
               className="inline-flex items-center justify-center w-full sm:w-auto bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 disabled:opacity-70"
               onClick={() => handleEditClick(selectedAccount)}
@@ -594,74 +632,74 @@ export default function AdminAccounts() {
             </button>
           </div>
         </div>
-      </div>
 
-      <div className="bg-white border border-gray-200 rounded-lg p-4 sm:p-6 shadow-sm overflow-x-auto">
-        <h2 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4 text-gray-800">
-          Account Details
-        </h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm text-gray-700">
-          <DetailRow
-            label="Website"
-            value={
-              selectedAccount.website ? (
-                <a
-                  href={selectedAccount.website}
-                  className="text-blue-600 hover:underline break-all"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  {selectedAccount.website}
-                </a>
-              ) : (
-                "--"
-              )
-            }
-          />
-          <DetailRow
-            label="Industry"
-            value={selectedAccount.industry || "--"}
-          />
-          <DetailRow
-            label="Territory"
-            value={selectedAccount.territory?.name || "--"}
-          />
-          <DetailRow
-            label="Phone Number"
-            value={selectedAccount.phone_number || "--"}
-          />
-          <DetailRow
-            label="Billing Address"
-            value={selectedAccount.billing_address || "--"}
-          />
-          <DetailRow
-            label="Shipping Address"
-            value={selectedAccount.shipping_address || "--"}
-          />
-          <DetailRow
-            label="Assigned To"
-            value={
-              selectedAccount.assigned_accs
-                ? `${selectedAccount.assigned_accs.first_name} ${selectedAccount.assigned_accs.last_name}`
-                : "Unassigned"
-            }
-          />
-          <DetailRow
-            label="Created By"
-            value={
-              selectedAccount.acc_creator
-                ? `${selectedAccount.acc_creator.first_name} ${selectedAccount.acc_creator.last_name}`
-                : "--"
-            }
-          />
-          <DetailRow
-            label="Created At"
-            value={formattedDateTime(selectedAccount.created_at) || "--"}
-          />
-          <DetailRow
-            label="Last Updated"
-            value={formattedDateTime(selectedAccount.updated_at) || "--"}
-          />
+        <div className="overflow-x-auto">
+          <h2 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4 text-gray-800">
+            Account Details
+          </h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm text-gray-700">
+            <DetailRow
+              label="Website"
+              value={
+                selectedAccount.website ? (
+                  <a
+                    href={selectedAccount.website}
+                    className="text-blue-600 hover:underline break-all"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    {selectedAccount.website}
+                  </a>
+                ) : (
+                  "--"
+                )
+              }
+            />
+            <DetailRow
+              label="Industry"
+              value={selectedAccount.industry || "--"}
+            />
+            <DetailRow
+              label="Territory"
+              value={selectedAccount.territory?.name || "--"}
+            />
+            <DetailRow
+              label="Phone Number"
+              value={selectedAccount.phone_number || "--"}
+            />
+            <DetailRow
+              label="Billing Address"
+              value={selectedAccount.billing_address || "--"}
+            />
+            <DetailRow
+              label="Shipping Address"
+              value={selectedAccount.shipping_address || "--"}
+            />
+            <DetailRow
+              label="Assigned To"
+              value={
+                selectedAccount.assigned_accs
+                  ? `${selectedAccount.assigned_accs.first_name} ${selectedAccount.assigned_accs.last_name}`
+                  : "Unassigned"
+              }
+            />
+            <DetailRow
+              label="Created By"
+              value={
+                selectedAccount.acc_creator
+                  ? `${selectedAccount.acc_creator.first_name} ${selectedAccount.acc_creator.last_name}`
+                  : "--"
+              }
+            />
+            <DetailRow
+              label="Created At"
+              value={formattedDateTime(selectedAccount.created_at) || "--"}
+            />
+            <DetailRow
+              label="Last Updated"
+              value={formattedDateTime(selectedAccount.updated_at) || "--"}
+            />
+          </div>
         </div>
       </div>
     </div>
@@ -717,7 +755,7 @@ export default function AdminAccounts() {
 
       <div className="overflow-x-auto">
         <table className="w-full min-w-[500px] border border-gray-200 rounded-lg bg-white shadow-sm text-sm">
-          <thead className="bg-gray-100 text-left text-gray-600">
+          <thead className="bg-gray-100 text-left text-gray-600 text-sm tracking-wide font-semibold">
             <tr>
               <th className="py-3 px-4">Account</th>
               <th className="py-3 px-4">Status</th>
@@ -737,7 +775,7 @@ export default function AdminAccounts() {
                 </td>
               </tr>
             ) : filteredAccounts.length > 0 ? (
-              filteredAccounts.map((acc) => {
+              paginatedAccounts.map((acc) => {
                 return (
                   <tr
                     key={acc.id}
@@ -787,6 +825,15 @@ export default function AdminAccounts() {
           </tbody>
         </table>
       </div>
+      <PaginationControls
+        className="mt-4"
+        totalItems={filteredAccounts.length}
+        pageSize={ITEMS_PER_PAGE}
+        currentPage={currentPage}
+        onPrev={handlePrevPage}
+        onNext={handleNextPage}
+        label="accounts"
+      />
     </div>
   );
 
@@ -824,6 +871,7 @@ export default function AdminAccounts() {
             placeholder="Company name"
             required
             disabled={isSubmitting}
+            className="md:col-span-2"
           />
           <InputField
             label="Website"
@@ -996,9 +1044,10 @@ function InputField({
   type = "text",
   required = false,
   disabled = false,
+  className = "",
 }) {
   return (
-    <div>
+    <div className={className}>
       <label className="block text-gray-700 font-medium mb-1 text-sm">
         {label}
       </label>

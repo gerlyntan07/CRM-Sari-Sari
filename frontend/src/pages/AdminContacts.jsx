@@ -17,6 +17,9 @@ import { HiArrowLeft } from "react-icons/hi";
 import { BsBuilding } from "react-icons/bs";
 import api from "../api.js";
 import { toast } from "react-toastify";
+import PaginationControls from "../components/PaginationControls.jsx";
+
+const ITEMS_PER_PAGE = 10;
 
 const INITIAL_FORM_STATE = {
   first_name: "",
@@ -87,7 +90,6 @@ export default function AdminContacts() {
     );
   };
 
-
   const [contacts, setContacts] = useState([]);
   const [contactsLoading, setContactsLoading] = useState(false);
   const [accounts, setAccounts] = useState([]);
@@ -103,6 +105,7 @@ export default function AdminContacts() {
   const [searchQuery, setSearchQuery] = useState("");
   const [accountFilter, setAccountFilter] = useState("");
   const [deletingId, setDeletingId] = useState(null);
+  const [currentPage, setCurrentPage] = useState(1);
 
   const fetchContacts = useCallback(
     async (preserveSelectedId = null) => {
@@ -169,8 +172,8 @@ export default function AdminContacts() {
       setUsers([]);
       if (err.response?.status === 403) {
         toast.warn("Unable to load users for assignment (permission denied).");
+      }
     }
-  }
   }, []);
 
   useEffect(() => {
@@ -237,6 +240,41 @@ export default function AdminContacts() {
     });
   }, [contacts, searchQuery, accountFilter]);
 
+  const totalPages = Math.max(
+    1,
+    Math.ceil(filteredContacts.length / ITEMS_PER_PAGE) || 1
+  );
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, accountFilter]);
+
+  useEffect(() => {
+    setCurrentPage((prev) => {
+      const maxPage = Math.max(
+        1,
+        Math.ceil(filteredContacts.length / ITEMS_PER_PAGE) || 1
+      );
+      return prev > maxPage ? maxPage : prev;
+    });
+  }, [filteredContacts.length]);
+
+  const paginatedContacts = useMemo(() => {
+    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+    return filteredContacts.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+  }, [filteredContacts, currentPage]);
+
+  const pageStart =
+    filteredContacts.length === 0 ? 0 : (currentPage - 1) * ITEMS_PER_PAGE + 1;
+  const pageEnd = Math.min(
+    currentPage * ITEMS_PER_PAGE,
+    filteredContacts.length
+  );
+
+  const handlePrevPage = () => setCurrentPage((prev) => Math.max(prev - 1, 1));
+  const handleNextPage = () =>
+    setCurrentPage((prev) => Math.min(prev + 1, totalPages));
+
   const closeModal = useCallback(() => {
     setShowModal(false);
     setIsEditing(false);
@@ -246,7 +284,11 @@ export default function AdminContacts() {
   }, []);
 
   const handleBackdropClick = (e) => {
-    if (e.target.id === "modalBackdrop" && !isSubmitting && !confirmProcessing) {
+    if (
+      e.target.id === "modalBackdrop" &&
+      !isSubmitting &&
+      !confirmProcessing
+    ) {
       closeModal();
     }
   };
@@ -335,9 +377,7 @@ export default function AdminContacts() {
       mobile_phone_1: formData.mobile_phone_1?.trim() || null,
       mobile_phone_2: formData.mobile_phone_2?.trim() || null,
       notes: formData.notes?.trim() || null,
-      assigned_to: formData.assigned_to
-        ? Number(formData.assigned_to)
-        : null,
+      assigned_to: formData.assigned_to ? Number(formData.assigned_to) : null,
     };
 
     const actionType = isEditing && currentContactId ? "update" : "create";
@@ -354,8 +394,8 @@ export default function AdminContacts() {
           </span>
         ) : (
           <span>
-            Save changes to{" "}
-            <span className="font-semibold">{contactName}</span>?
+            Save changes to <span className="font-semibold">{contactName}</span>
+            ?
           </span>
         ),
       confirmLabel:
@@ -465,129 +505,130 @@ export default function AdminContacts() {
     selectedContact && deletingId === selectedContact.id;
 
   const detailView = selectedContact ? (
-      <div className="p-4 sm:p-6 lg:p-8 font-inter">
-        <button
-          onClick={handleBackToList}
-          className="inline-flex items-center text-sm sm:text-base text-gray-500 hover:text-gray-700 transition mb-4 sm:mb-6 cursor-pointer"
-        >
-          <HiArrowLeft className="mr-1 w-4 h-4 sm:w-5 sm:h-5" /> Back
-        </button>
+    <div className="p-4 sm:p-6 lg:p-8 font-inter">
+      <button
+        onClick={handleBackToList}
+        className="inline-flex items-center text-sm sm:text-base text-gray-500 hover:text-gray-700 transition mb-4 sm:mb-6 cursor-pointer"
+      >
+        <HiArrowLeft className="mr-1 w-4 h-4 sm:w-5 sm:h-5" /> Back
+      </button>
 
-      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between mb-6 gap-4">
-        <div>
-          <div className="flex items-center gap-3 flex-wrap">
-            <h1 className="text-xl sm:text-2xl font-semibold text-gray-800">
-              {selectedContact.account?.name || "No associated account"}
-            </h1>
-            {renderAccountStatusBadge(selectedContact.account?.status)}
-          </div>
+      <div className="bg-white border border-gray-200 rounded-lg p-4 sm:p-6 shadow-sm space-y-6 overflow-hidden">
+        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+          <div>
+            <div className="flex items-center gap-3 flex-wrap">
+              <h1 className="text-xl sm:text-2xl font-semibold text-gray-800">
+                {selectedContact.account?.name || "No associated account"}
+              </h1>
+              {renderAccountStatusBadge(selectedContact.account?.status)}
+            </div>
+            <p className="text-sm text-gray-500 mt-1">
+              {getContactFullName(selectedContact) || "Unnamed contact"}
+            </p>
           </div>
 
-        <div className="flex flex-col sm:flex-row sm:space-x-3 space-y-2 sm:space-y-0">
-          <button
-            className="inline-flex items-center justify-center w-full sm:w-auto bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 disabled:opacity-70"
-            onClick={() => handleEditClick(selectedContact)}
-            disabled={
-              confirmProcessing ||
-              (confirmModalData?.action?.type === "update" &&
-                confirmModalData.action.targetId === selectedContact.id)
-            }
-          >
-            <FiEdit className="mr-2" />
-            Edit
-          </button>
-          <button
-            className="inline-flex items-center justify-center w-full sm:w-auto bg-red-500 text-white px-4 py-2 rounded-md hover:bg-red-600 disabled:opacity-70"
-            onClick={() => handleDelete(selectedContact)}
-            disabled={Boolean(selectedContactDeleteDisabled)}
-          >
-            {selectedContactDeleting ? (
-              "Deleting..."
-            ) : (
-              <>
-                <FiTrash2 className="mr-2" />
-              Delete
-              </>
-            )}
+          <div className="flex flex-col sm:flex-row sm:space-x-3 space-y-2 sm:space-y-0">
+            <button
+              className="inline-flex items-center justify-center w-full sm:w-auto bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 disabled:opacity-70"
+              onClick={() => handleEditClick(selectedContact)}
+              disabled={
+                confirmProcessing ||
+                (confirmModalData?.action?.type === "update" &&
+                  confirmModalData.action.targetId === selectedContact.id)
+              }
+            >
+              <FiEdit className="mr-2" />
+              Edit
+            </button>
+            <button
+              className="inline-flex items-center justify-center w-full sm:w-auto bg-red-500 text-white px-4 py-2 rounded-md hover:bg-red-600 disabled:opacity-70"
+              onClick={() => handleDelete(selectedContact)}
+              disabled={Boolean(selectedContactDeleteDisabled)}
+            >
+              {selectedContactDeleting ? (
+                "Deleting..."
+              ) : (
+                <>
+                  <FiTrash2 className="mr-2" />
+                  Delete
+                </>
+              )}
             </button>
           </div>
         </div>
 
-      <div className="bg-white border border-gray-200 rounded-lg p-4 sm:p-6 shadow-sm overflow-x-auto">
-        <h2 className="text-lg sm:text-xl font-semibold mb-4 text-gray-800">
+        <div className="overflow-x-auto">
+          <h2 className="text-lg sm:text-xl font-semibold mb-4 text-gray-800">
             Contact Details
           </h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-gray-700">
-          <DetailRow
-            label="Contact Name"
-            value={getContactFullName(selectedContact) || "--"}
-          />
-          <DetailRow
-            label="Title"
-            value={selectedContact.title || "--"}
-          />
-          <DetailRow
-            label="Email"
-            value={
-              selectedContact.email ? (
-                <a
-                  href={`mailto:${selectedContact.email}`}
-                  className="text-blue-600 hover:underline break-all"
-                >
-              {selectedContact.email}
-                </a>
-              ) : (
-                "--"
-              )
-            }
-          />
-          <DetailRow
-            label="Department"
-            value={selectedContact.department || "--"}
-          />
-          <DetailRow
-            label="Work Phone"
-            value={selectedContact.work_phone || "--"}
-          />
-          <DetailRow
-            label="Mobile Phone 1"
-            value={selectedContact.mobile_phone_1 || "--"}
-          />
-          <DetailRow
-            label="Mobile Phone 2"
-            value={selectedContact.mobile_phone_2 || "--"}
-          />
-          <DetailRow
-            label="Assigned To"
-            value={
-              selectedContact.assigned_contact
-                ? `${selectedContact.assigned_contact.first_name} ${selectedContact.assigned_contact.last_name}`
-                : "Unassigned"
-            }
-          />
-          <DetailRow
-            label="Created By"
-            value={
-              selectedContact.contact_creator
-                ? `${selectedContact.contact_creator.first_name} ${selectedContact.contact_creator.last_name}`
-                : "--"
-            }
-          />
-          <DetailRow
-            label="Created At"
-            value={formattedDateTime(selectedContact.created_at) || "--"}
-          />
-          <DetailRow
-            label="Last Updated"
-            value={formattedDateTime(selectedContact.updated_at) || "--"}
-          />
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-gray-700">
+            <DetailRow
+              label="Contact Name"
+              value={getContactFullName(selectedContact) || "--"}
+            />
+            <DetailRow label="Title" value={selectedContact.title || "--"} />
+            <DetailRow
+              label="Email"
+              value={
+                selectedContact.email ? (
+                  <a
+                    href={`mailto:${selectedContact.email}`}
+                    className="text-blue-600 hover:underline break-all"
+                  >
+                    {selectedContact.email}
+                  </a>
+                ) : (
+                  "--"
+                )
+              }
+            />
+            <DetailRow
+              label="Department"
+              value={selectedContact.department || "--"}
+            />
+            <DetailRow
+              label="Work Phone"
+              value={selectedContact.work_phone || "--"}
+            />
+            <DetailRow
+              label="Mobile Phone 1"
+              value={selectedContact.mobile_phone_1 || "--"}
+            />
+            <DetailRow
+              label="Mobile Phone 2"
+              value={selectedContact.mobile_phone_2 || "--"}
+            />
+            <DetailRow
+              label="Assigned To"
+              value={
+                selectedContact.assigned_contact
+                  ? `${selectedContact.assigned_contact.first_name} ${selectedContact.assigned_contact.last_name}`
+                  : "Unassigned"
+              }
+            />
+            <DetailRow
+              label="Created By"
+              value={
+                selectedContact.contact_creator
+                  ? `${selectedContact.contact_creator.first_name} ${selectedContact.contact_creator.last_name}`
+                  : "--"
+              }
+            />
+            <DetailRow
+              label="Created At"
+              value={formattedDateTime(selectedContact.created_at) || "--"}
+            />
+            <DetailRow
+              label="Last Updated"
+              value={formattedDateTime(selectedContact.updated_at) || "--"}
+            />
           </div>
 
-        <div className="mt-6 border-t border-gray-200 pt-4">
+          <div className="mt-6 border-t border-gray-200 pt-4">
             <h3 className="text-md sm:text-lg font-semibold text-gray-800 mb-2">
               Notes
             </h3>
-          <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">
+            <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">
               {selectedContact.notes
                 ? selectedContact.notes
                 : "No additional notes were provided for this contact."}
@@ -595,6 +636,7 @@ export default function AdminContacts() {
           </div>
         </div>
       </div>
+    </div>
   ) : null;
 
   const listView = (
@@ -624,23 +666,23 @@ export default function AdminContacts() {
           />
         </div>
         <div className="w-full lg:w-1/4">
-        <select
-          value={accountFilter}
-          onChange={(e) => setAccountFilter(e.target.value)}
+          <select
+            value={accountFilter}
+            onChange={(e) => setAccountFilter(e.target.value)}
             className="border border-gray-300 rounded-lg px-3 h-11 text-sm text-gray-600 bg-white w-full focus:ring-2 focus:ring-indigo-500 transition"
           >
             {accountOptions.map((option) => (
               <option key={option.value ?? option.label} value={option.value}>
                 {option.label}
-                </option>
+              </option>
             ))}
-        </select>
+          </select>
         </div>
       </div>
 
       <div className="overflow-x-auto">
         <table className="w-full min-w-[600px] border border-gray-200 rounded-lg bg-white shadow-sm text-sm">
-          <thead className="bg-gray-100 text-left text-gray-600">
+          <thead className="bg-gray-100 text-left text-gray-600 text-sm tracking-wide font-semibold">
             <tr>
               <th className="py-3 px-4">Contact</th>
               <th className="py-3 px-4">Account</th>
@@ -661,10 +703,14 @@ export default function AdminContacts() {
                 </td>
               </tr>
             ) : filteredContacts.length > 0 ? (
-              filteredContacts.map((contact) => {
+              paginatedContacts.map((contact) => {
                 const contactInfoItems = [
                   { Icon: FiMail, value: contact.email, key: "email" },
-                  { Icon: FiPhone, value: contact.work_phone, key: "work_phone" },
+                  {
+                    Icon: FiPhone,
+                    value: contact.work_phone,
+                    key: "work_phone",
+                  },
                   {
                     Icon: FiSmartphone,
                     value: contact.mobile_phone_1,
@@ -678,69 +724,69 @@ export default function AdminContacts() {
                 ].filter((item) => Boolean(item.value));
 
                 return (
-                <tr
-                  key={contact.id}
-                  className="hover:bg-gray-50 text-sm cursor-pointer transition"
-                  onClick={() => handleContactClick(contact)}
-                >
-                  <td className="py-3 px-4 align-top">
+                  <tr
+                    key={contact.id}
+                    className="hover:bg-gray-50 text-sm cursor-pointer transition"
+                    onClick={() => handleContactClick(contact)}
+                  >
+                    <td className="py-3 px-4 align-top">
                       <div className="font-medium text-blue-600 hover:underline break-all">
-                      {getContactFullName(contact) || "--"}
+                        {getContactFullName(contact) || "--"}
                       </div>
-                    <div className="text-xs text-gray-500">
-                      {contact.title || "No title"}
-                    </div>
-                  </td>
-                  <td className="py-3 px-4 align-top">
-                    <div className="flex items-center space-x-2 text-sm text-gray-700">
-                      <BsBuilding className="text-gray-500 flex-shrink-0" />
-                      <span className="break-words">
-                        {contact.account?.name || "--"}
-                      </span>
-                    </div>
-                  </td>
-                  <td className="py-3 px-4 align-top">
-                    {contactInfoItems.length > 0 ? (
-                      <div className="space-y-1 text-gray-700">
-                        {contactInfoItems.map(({ Icon, value, key }) => (
-                          <div
-                            key={key}
-                            className="flex items-center space-x-2 break-all"
-                          >
-                            <Icon className="text-gray-500 flex-shrink-0" />
-                            <span>{value}</span>
+                      <div className="text-xs text-gray-500">
+                        {contact.title || "No title"}
                       </div>
-                        ))}
+                    </td>
+                    <td className="py-3 px-4 align-top">
+                      <div className="flex items-center space-x-2 text-sm text-gray-700">
+                        <BsBuilding className="text-gray-500 flex-shrink-0" />
+                        <span className="break-words">
+                          {contact.account?.name || "--"}
+                        </span>
                       </div>
-                    ) : (
-                      <span className="text-gray-400">--</span>
-                    )}
-                  </td>
-                  <td className="py-3 px-4 align-top">
-                    <div className="flex items-center space-x-2 text-gray-700">
-                      <FiBriefcase className="text-gray-500 flex-shrink-0" />
-                      <span>{contact.department || "--"}</span>
-                    </div>
-                  </td>
-                  <td className="py-3 px-4 align-top">
-                    <div className="flex items-center space-x-2">
-                      <FiUser className="text-gray-500 flex-shrink-0" />
-                      <span>
-                        {contact.assigned_contact
-                          ? `${contact.assigned_contact.first_name} ${contact.assigned_contact.last_name}`
-                          : "Unassigned"}
-                      </span>
-                    </div>
-                  </td>
-                  <td className="py-3 px-4 align-top">
-                    <div className="flex items-center space-x-2 text-gray-500">
-                      <FiCalendar className="text-gray-500 flex-shrink-0" />
-                      <span className="text-xs">
-                        {formattedDateTime(contact.created_at) || "--"}
-                      </span>
-                    </div>
-                  </td>
-                </tr>
+                    </td>
+                    <td className="py-3 px-4 align-top">
+                      {contactInfoItems.length > 0 ? (
+                        <div className="space-y-1 text-gray-700">
+                          {contactInfoItems.map(({ Icon, value, key }) => (
+                            <div
+                              key={key}
+                              className="flex items-center space-x-2 break-all"
+                            >
+                              <Icon className="text-gray-500 flex-shrink-0" />
+                              <span>{value}</span>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <span className="text-gray-400">--</span>
+                      )}
+                    </td>
+                    <td className="py-3 px-4 align-top">
+                      <div className="flex items-center space-x-2 text-gray-700">
+                        <FiBriefcase className="text-gray-500 flex-shrink-0" />
+                        <span>{contact.department || "--"}</span>
+                      </div>
+                    </td>
+                    <td className="py-3 px-4 align-top">
+                      <div className="flex items-center space-x-2">
+                        <FiUser className="text-gray-500 flex-shrink-0" />
+                        <span>
+                          {contact.assigned_contact
+                            ? `${contact.assigned_contact.first_name} ${contact.assigned_contact.last_name}`
+                            : "Unassigned"}
+                        </span>
+                      </div>
+                    </td>
+                    <td className="py-3 px-4 align-top">
+                      <div className="flex items-center space-x-2 text-gray-500">
+                        <FiCalendar className="text-gray-500 flex-shrink-0" />
+                        <span className="text-xs">
+                          {formattedDateTime(contact.created_at) || "--"}
+                        </span>
+                      </div>
+                    </td>
+                  </tr>
                 );
               })
             ) : (
@@ -756,30 +802,39 @@ export default function AdminContacts() {
           </tbody>
         </table>
       </div>
+      <PaginationControls
+        className="mt-4"
+        totalItems={filteredContacts.length}
+        pageSize={ITEMS_PER_PAGE}
+        currentPage={currentPage}
+        onPrev={handlePrevPage}
+        onNext={handleNextPage}
+        label="contacts"
+      />
     </div>
   );
 
   const formModal = showModal ? (
-        <div
-          id="modalBackdrop"
-          onClick={handleBackdropClick}
-          className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4"
-        >
-          <div
-            className="bg-white w-full max-w-full sm:max-w-3xl rounded-2xl shadow-lg p-4 sm:p-6 md:p-8 relative border border-gray-200 overflow-y-auto max-h-[90vh]"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <button
+    <div
+      id="modalBackdrop"
+      onClick={handleBackdropClick}
+      className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4"
+    >
+      <div
+        className="bg-white w-full max-w-full sm:max-w-3xl rounded-2xl shadow-lg p-4 sm:p-6 md:p-8 relative border border-gray-200 overflow-y-auto max-h-[90vh]"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <button
           onClick={closeModal}
           className="absolute top-4 right-4 text-gray-500 hover:text-black transition disabled:opacity-60"
           disabled={isSubmitting || confirmProcessing}
-            >
-              <FiX size={22} />
-            </button>
+        >
+          <FiX size={22} />
+        </button>
 
         <h2 className="text-xl sm:text-2xl font-semibold text-gray-800 mb-4 sm:mb-6 flex items-center justify-center">
           {isEditing ? "Edit Contact" : "Add New Contact"}
-            </h2>
+        </h2>
 
         <form
           className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm"
@@ -837,7 +892,7 @@ export default function AdminContacts() {
             name="title"
             value={formData.title}
             onChange={handleInputChange}
-                    placeholder="Job title"
+            placeholder="Job title"
             disabled={isSubmitting}
           />
           <InputField
@@ -886,23 +941,23 @@ export default function AdminContacts() {
             name="notes"
             value={formData.notes}
             onChange={handleInputChange}
-                  placeholder="Additional details..."
-                  rows={3}
+            placeholder="Additional details..."
+            rows={3}
             disabled={isSubmitting}
             className="md:col-span-2"
-                />
+          />
 
           <div className="flex flex-col sm:flex-row justify-end space-y-2 sm:space-y-0 sm:space-x-2 md:col-span-2 mt-4">
-                <button
-                  type="button"
+            <button
+              type="button"
               onClick={closeModal}
               className="w-full sm:w-auto px-4 py-2 text-white bg-red-400 border border-red-300 rounded hover:bg-red-500 transition disabled:opacity-70"
               disabled={isSubmitting || confirmProcessing}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
               className="w-full sm:w-auto px-4 py-2 text-white border border-tertiary bg-tertiary rounded hover:bg-secondary transition disabled:opacity-70"
               disabled={isSubmitting || confirmProcessing}
             >
@@ -911,11 +966,11 @@ export default function AdminContacts() {
                 : isEditing
                 ? "Update Contact"
                 : "Save Contact"}
-                </button>
-              </div>
-            </form>
+            </button>
           </div>
-        </div>
+        </form>
+      </div>
+    </div>
   ) : null;
 
   const confirmationModal = confirmModalData ? (
@@ -1032,8 +1087,7 @@ function TextareaField({
 }
 
 function DetailRow({ label, value }) {
-  const hasValue =
-    value !== undefined && value !== null && value !== "";
+  const hasValue = value !== undefined && value !== null && value !== "";
   return (
     <p>
       <span className="font-semibold">{label}:</span> <br />

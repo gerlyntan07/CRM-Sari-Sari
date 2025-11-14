@@ -11,6 +11,12 @@ class TerritoryCreate(TerritoryBase):
     user_id: int
     company_id: int
 
+class TerritoryUpdate(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
+    user_id: Optional[int] = None
+    company_id: Optional[int] = None
+
 class TerritoryManager(BaseModel):
     id: int
     first_name: str

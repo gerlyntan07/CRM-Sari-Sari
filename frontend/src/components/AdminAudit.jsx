@@ -192,7 +192,7 @@ export default function AdminAudit() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-5 space-y-3 sm:space-y-0">
         <div className="flex items-center space-x-2">
           <FiEye className="text-blue-600" size={20} />
-          <h2 className="text-lg sm:text-xl font-semibold text-gray-700">
+          <h2 className="text-2xl sm:text-xl font-semibold text-gray-700">
             Audit Logs
           </h2>
         </div>

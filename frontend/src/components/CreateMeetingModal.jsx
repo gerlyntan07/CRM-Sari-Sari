@@ -1,59 +1,55 @@
 import React, { useState } from 'react';
-import { ChevronDown, X } from 'lucide-react'; // Import the X icon
+import { ChevronDown, X } from 'lucide-react';
 
-const CreateMeetingModal = () => {
-    // State for each form field
+const CreateMeetingModal = ({ onClose }) => { // receive onClose prop
+    // Form states
     const [meetingTitle, setMeetingTitle] = useState('');
     const [location, setLocation] = useState('');
-    const [duration, setDuration] = useState('30'); // Default duration
+    const [duration, setDuration] = useState('30');
     const [meetingLink, setMeetingLink] = useState('');
     const [agenda, setAgenda] = useState('');
     const [dueDate, setDueDate] = useState('');
     const [assignedTo, setAssignedTo] = useState('');
     const [relatedType, setRelatedType] = useState('');
     const [relatedTo, setRelatedTo] = useState('');
-    const [priority, setPriority] = useState('Medium'); // Default priority
+    const [priority, setPriority] = useState('Medium');
 
-    // Dummy data for dropdowns (you'd likely fetch this from an API)
+    // Dropdown options
     const assignedToOptions = ['Lester Claro', 'Maria Sanchez', 'John Doe', 'Sarah Connor'];
     const relatedTypeOptions = ['Client', 'Project', 'Internal'];
     const relatedToOptions = {
         'Client': ['TechCorp Solutions', 'Alpha Solutions'],
         'Project': ['Project Falcon', 'Q3 Budget Review'],
         'Internal': ['Finance Department', 'HR Department'],
-    }; // Nested options for 'Related To' based on 'Related Type'
+    };
     const priorityOptions = ['High', 'Medium', 'Low'];
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        // Here you would typically send this data to a backend
         console.log('Meeting Scheduled:', {
-            meetingTitle,
-            location,
-            duration,
-            meetingLink,
-            agenda,
-            dueDate,
-            assignedTo,
-            relatedType,
-            relatedTo,
-            priority,
+            meetingTitle, location, duration, meetingLink, agenda,
+            dueDate, assignedTo, relatedType, relatedTo, priority
         });
         alert('Meeting scheduled! Check console for details.');
-        // Optionally, reset form or close modal
+        onClose(); // close modal after submit
     };
 
-    const handleClose = () => {
-        console.log('Close button clicked - implement your close logic here (e.g., close modal, navigate away)');
-        // Example: If this was in a modal, you'd call a prop like onClose()
+    // Optional: close modal when clicking on overlay
+    const handleOverlayClick = (e) => {
+        if (e.target === e.currentTarget) onClose();
     };
 
     return (
-        <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
-            <div className="bg-white rounded-xl shadow-2xl p-8 w-full max-w-2xl border border-gray-200 relative"> {/* Added relative for positioning X button */}
+        <div
+            className="fixed inset-0 z-50 flex items-start justify-center backdrop-blur-sm bg-black/50 pt-10 overflow-auto"
+            onClick={handleOverlayClick} // close on background click
+        >
+            {/* Modal container */}
+            <div className="bg-white rounded-xl shadow-2xl p-8 w-full max-w-2xl border border-gray-200 relative max-h-[90vh] overflow-y-auto">
+
                 {/* Close Button */}
                 <button
-                    onClick={handleClose}
+                    onClick={onClose}
                     className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-300 rounded-full p-1 transition-colors"
                     aria-label="Close"
                 >
@@ -66,6 +62,7 @@ const CreateMeetingModal = () => {
                     <p className="text-sm text-gray-500 mt-1">Create new Meeting</p>
                 </div>
 
+                {/* Form */}
                 <form onSubmit={handleSubmit} className="space-y-5">
                     {/* Meeting Title */}
                     <div>
@@ -196,7 +193,7 @@ const CreateMeetingModal = () => {
                                     value={relatedType}
                                     onChange={(e) => {
                                         setRelatedType(e.target.value);
-                                        setRelatedTo(''); // Reset Related To when Related Type changes
+                                        setRelatedTo('');
                                     }}
                                 >
                                     <option value="">Select type</option>
@@ -217,7 +214,7 @@ const CreateMeetingModal = () => {
                                     className="w-full px-4 py-2 border border-gray-300 rounded-lg appearance-none bg-white focus:ring-gray-900 focus:border-gray-900 transition-colors shadow-sm text-sm"
                                     value={relatedTo}
                                     onChange={(e) => setRelatedTo(e.target.value)}
-                                    disabled={!relatedType} // Disable if no Related Type is selected
+                                    disabled={!relatedType}
                                 >
                                     <option value="">Select related item</option>
                                     {relatedType && relatedToOptions[relatedType]?.map((option) => (
@@ -254,7 +251,7 @@ const CreateMeetingModal = () => {
                         <button
                             type="button"
                             className="px-6 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-300 transition-colors"
-                            onClick={() => console.log('Cancel clicked')} // You can add logic to close modal/clear form
+                            onClick={onClose} // Cancel closes modal
                         >
                             Cancel
                         </button>

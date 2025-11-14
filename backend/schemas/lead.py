@@ -17,6 +17,9 @@ class LeadBase(BaseModel):
     notes: str    
     source: Optional[str]    
 
+class LeadStatusUpdate(BaseModel):
+    status: str
+
 class LeadCreate(LeadBase):
     status: str
     territory_id: Optional[int]
@@ -37,6 +40,7 @@ class UserWithTerritories(BaseModel):
     first_name: str
     last_name: str
     email: EmailStr
+    related_to_company: int
     role: str
     profile_picture: Optional[str] = None
     territory: Optional[TerritoryBase] = None

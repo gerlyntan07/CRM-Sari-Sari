@@ -11,6 +11,7 @@ import AdminLeadsInformation from "../components/AdminLeadsInformation";
 import api from "../api";
 
 import * as countryCodesList from "country-codes-list";
+import { useNavigate, useParams } from "react-router-dom";
 
 const allCountries = countryCodesList.all();
 
@@ -23,6 +24,8 @@ const COUNTRY_CODES = allCountries.map(country => ({
 
 
 export default function AdminLeads() {
+  const navigate = useNavigate();
+  const { leadID } = useParams();
   const [selectedLead, setSelectedLead] = useState(null);
   const [showModal, setShowModal] = useState(false);
   const [users, setUsers] = useState(null);
@@ -68,6 +71,7 @@ export default function AdminLeads() {
     try {
       const res = await api.get(`/leads/admin/getLeads`);
       setLeads(res.data);
+      console.log(res.data);
     } catch (err) {
       console.error(`Error fetching leads: ${err}`);
     }
@@ -77,6 +81,13 @@ export default function AdminLeads() {
     fetchAccounts();
     fetchLeads();
   }, []);
+
+  useEffect(() => {
+    if (leadID && leads.length > 0) {
+      const found = leads.find((l) => l.id === Number(leadID));
+      if (found) setSelectedLead(found);
+    }
+  }, [leadID, leads]);
 
   const filteredLeads = Array.isArray(leads)
     ? leads.filter((c) => {
@@ -90,15 +101,13 @@ export default function AdminLeads() {
     })
     : [];
 
-  const handleLeadClick = (lead) => setSelectedLead(lead);
+  const handleLeadClick = (lead) => {
+    setSelectedLead(lead);
+    navigate(`/admin/leads/${lead.id}`);
+  };
   const handleBackToList = () => setSelectedLead(null);
   const handleBackdropClick = () => setShowModal(false);
 
-  if (selectedLead) {
-    return (
-      <AdminLeadsInformation lead={selectedLead} setSelectedLead={setSelectedLead} onBack={handleBackToList} fetchLeads={fetchLeads} />
-    );
-  }
 
   const handleLeadChange = (e) => {
     const { name, value } = e.target;

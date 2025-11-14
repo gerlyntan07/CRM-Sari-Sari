@@ -135,7 +135,7 @@ function App() {
           <Route path="accounts" element={<AdminAccounts />} />
           <Route path="contacts" element={<AdminContacts />} />
           <Route path="leads" element={<AdminLeads />} />
-          <Route path="leads/info" element={<AdminLeadsInformation />} />
+          <Route path="leads/:leadID" element={<AdminLeadsInformation />} />
           <Route path="audit" element={<AdminAudit />} />
           <Route path="targets" element={<AdminTargets />} />
           <Route path="quotes" element={<AdminQuotes />} />

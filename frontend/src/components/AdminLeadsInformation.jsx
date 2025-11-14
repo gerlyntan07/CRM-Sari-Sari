@@ -1,8 +1,10 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { HiX } from "react-icons/hi";
 import { FiPhone, FiMail, FiCalendar } from "react-icons/fi";
 import AdminLeadsConvert from "./AdminLeadsConvert";
 import { toast } from 'react-toastify';
+import { useNavigate, useParams } from "react-router-dom";
+import api from "../api";
 
 function Detail({ label, value }) {
   return (
@@ -13,13 +15,17 @@ function Detail({ label, value }) {
   );
 }
 
-export default function AdminLeadsInformation({ lead, onBack, fetchLeads }) {
+export default function AdminLeadsInformation({ onBack, fetchLeads }) {
+  const navigate = useNavigate();
   const [isModalOpen, setIsModalOpen] = useState(false);
-
+  const { leadID } = useParams();
+  const [lead, setLead] = useState(null);
   const [activeTab, setActiveTab] = useState("Overview");
+  const [selectedStatus, setSelectedStatus] = useState('');
+
 
   const [accountData, setAccountData] = useState({
-    name: lead.company_name || "",
+    name: "",
     website: '',
     countryCode: '+63',
     phone_number: '',
@@ -27,24 +33,24 @@ export default function AdminLeadsInformation({ lead, onBack, fetchLeads }) {
     shipping_address: '',
     industry: '',
     status: 'Prospect',
-    territory_id: lead.assigned_to.territory?.id || null,
-    assigned_to: lead.assigned_to?.id || null,
-    created_by: lead.creator?.id || null,
+    territory_id: null,
+    assigned_to: null,
+    created_by: null,
   });
 
   const [contactData, setContactData] = useState({
-    last_name: lead.last_name || "",
-    first_name: lead.first_name || "",
+    last_name: "",
+    first_name: "",
     account_id: null,
-    title: lead.title || "",
-    department: lead.department || "",
-    email: lead.email || "",
-    work_phone: lead.work_phone || "",
-    mobile_phone_1: lead.mobile_phone_1 || "",
-    mobile_phone_2: lead.mobile_phone_2 || "",
+    title: "",
+    department: "",
+    email: "",
+    work_phone: "",
+    mobile_phone_1: "",
+    mobile_phone_2: "",
     notes: '',
-    assigned_to: lead.assigned_to?.id || null,
-    created_by: lead.creator?.id || null,
+    assigned_to: null,
+    created_by: null,
   });
 
   const [dealData, setDealData] = useState({
@@ -56,11 +62,80 @@ export default function AdminLeadsInformation({ lead, onBack, fetchLeads }) {
     amount: 0.0,
     currency: 'PHP',
     description: 'Initial deal from lead conversion.',
-    assigned_to: lead.assigned_to?.id || null,
-    created_by: lead.creator?.id || null,
+    assigned_to: null,
+    created_by: null,
   });
 
+  const fetchLead = async () => {
+      try {
+        const res = await api.get(`/leads/get/${leadID}`);
+        setLead(res.data);
+
+        setSelectedStatus(res.status)
+        // Populate dependent states
+        setAccountData({
+          name: res.data.company_name || "",
+          website: '',
+          countryCode: '+63',
+          phone_number: '',
+          billing_address: '',
+          shipping_address: '',
+          industry: '',
+          status: 'Prospect',
+          territory_id: res.data.assigned_to?.territory?.id || null,
+          assigned_to: res.data.assigned_to?.id || null,
+          created_by: res.data.creator?.id || null,
+        });
+
+        setContactData({
+          last_name: res.data.last_name || "",
+          first_name: res.data.first_name || "",
+          account_id: null,
+          title: res.data.title || "",
+          department: res.data.department || "",
+          email: res.data.email || "",
+          work_phone: res.data.work_phone || "",
+          mobile_phone_1: res.data.mobile_phone_1 || "",
+          mobile_phone_2: res.data.mobile_phone_2 || "",
+          notes: '',
+          assigned_to: res.data.assigned_to?.id || null,
+          created_by: res.data.creator?.id || null,
+        });
+
+        setDealData({
+          name: 'Converted from Lead',
+          account_id: null,
+          primary_contact_id: null,
+          stage: 'Prospecting',
+          probability: 10,
+          amount: 0.0,
+          currency: 'PHP',
+          description: 'Initial deal from lead conversion.',
+          assigned_to: res.data.assigned_to?.id || null,
+          created_by: res.data.creator?.id || null,
+        });
+      } catch (err) {
+        console.error(err);
+      }
+    };
+
+  useEffect(() => {    
+    fetchLead();
+  }, [leadID]);
+
+  const updateStatus = async() => {
+    try{
+      const res = await api.put(`/leads/${lead.id}/update/status`, {status: selectedStatus})
+      console.log(res.data)
+      toast.success('Lead status updated successfully')
+      fetchLead();
+    } catch(err){
+      console.error(err)
+    }
+  }
+
   if (!lead) return null;
+
 
   return (
     <>
@@ -72,7 +147,7 @@ export default function AdminLeadsInformation({ lead, onBack, fetchLeads }) {
           {/* Close Button */}
           <div className="flex justify-end w-full">
             <button
-              onClick={onBack}
+              onClick={() => navigate(`/admin/leads`)}
               className="text-gray-500 hover:text-gray-700 transition mb-5 cursor-pointer"
             >
               <HiX size={30} />
@@ -284,13 +359,26 @@ export default function AdminLeadsInformation({ lead, onBack, fetchLeads }) {
                 <h4 className="font-semibold text-gray-800 mb-2 text-sm">
                   Status
                 </h4>
-                <select className="border border-gray-200 rounded-md px-2 sm:px-3 py-1.5 w-full text-sm mb-2 focus:ring-2 focus:ring-gray-300">
-                  <option>New</option>
-                  <option>Unqualified</option>
-                  <option>Qualified</option>
-                  <option>Contacted</option>
+                <select
+                  className="border border-gray-200 rounded-md px-2 sm:px-3 py-1.5 w-full text-sm mb-2 focus:ring-2 focus:ring-gray-300"
+                  value={selectedStatus}
+                  onChange={(e) => setSelectedStatus(e.target.value)}
+                >
+                  <option value='New'>New</option>
+                  <option value='Contacted'>Contacted</option>
+                  <option value='Qualified'>Qualified</option>
+                  <option value='Lost'>Lost</option>
                 </select>
-                <button className="w-full bg-gray-900 text-white py-1.5 rounded-md text-sm hover:bg-gray-800 transition">
+
+                <button
+                  onClick={updateStatus}
+                  disabled={selectedStatus === lead.status} // disabled if status not changed
+                  className={`w-full py-1.5 rounded-md text-sm transition
+      ${selectedStatus === lead.status
+                      ? "bg-gray-400 cursor-not-allowed"
+                      : "bg-gray-900 text-white hover:bg-gray-800"
+                    }`}
+                >
                   Update
                 </button>
               </div>

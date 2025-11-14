@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status, Request
 from sqlalchemy.orm import Session
 from typing import List
 from database import get_db
-from schemas.lead import LeadCreate, LeadResponse
+from schemas.lead import LeadCreate, LeadResponse, LeadStatusUpdate
 from schemas.auth import UserResponse, UserWithTerritories
 from .auth_utils import get_current_user, hash_password,get_default_avatar
 from models.auth import User
@@ -191,3 +191,68 @@ def get_sales_leads(
             "updated_at": lead.updated_at,
         })
     return lead_list
+
+@router.get("/get/{lead}", response_model=LeadResponse)
+def get_lead(
+    lead: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    lead = db.query(Lead).filter(Lead.id == lead).first()
+    if not lead:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Lead not found"
+        )
+    
+    # Optional: check if current_user has access to this lead
+    if lead.assigned_to.related_to_company != current_user.related_to_company:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not authorized to access this lead"
+        )    
+
+    return lead
+
+@router.put("/{lead_id}/update/status", response_model=LeadResponse)
+def update_lead_status(
+    lead_id: int,
+    data: LeadStatusUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    request: Request = None
+):
+    lead = db.query(Lead).filter(Lead.id == lead_id).first()
+    if not lead:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Lead not found"
+        )
+    
+    if current_user.role not in ['CEO', 'Admin', 'Group Manager'] and \
+        current_user.id != lead.assigned_to.id and \
+        current_user.id != lead.creator.id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Not authorized to access this lead"
+            )
+
+    old_data = serialize_instance(lead)
+    lead.status = data.status    
+    db.commit()
+    db.refresh(lead)
+
+    new_data = serialize_instance(lead)
+
+    create_audit_log(
+        db=db,
+        current_user=current_user,
+        instance=lead,
+        action="UPDATE",
+        request=request,
+        old_data=old_data,
+        new_data=new_data,
+        custom_message=f"updated lead status of '{lead.first_name} {lead.last_name}'"
+    )
+
+    return lead

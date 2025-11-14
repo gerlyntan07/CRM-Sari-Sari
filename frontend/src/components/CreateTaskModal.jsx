@@ -30,7 +30,7 @@ export default function CreateTaskModal({ isOpen, onClose }) {
           leaveFrom="opacity-100"
           leaveTo="opacity-0"
         >
-          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" />
+          <div className="fixed inset-0 bg-black/40" />
         </Transition.Child>
 
         {/* center container */}
@@ -45,122 +45,134 @@ export default function CreateTaskModal({ isOpen, onClose }) {
             leaveFrom="opacity-100 scale-100"
             leaveTo="opacity-0 scale-95"
           >
-            <div className="w-full max-w-xl rounded-2xl bg-white shadow-2xl ring-1 ring-gray-100 p-6">
-              {/* header */}
-              <div className="flex justify-between items-start gap-4 mb-4">
-                <h3 className="text-xl font-semibold text-gray-900">Create New Task</h3>
-                <button
-                  onClick={onClose}
-                  aria-label="Close modal"
-                  className="text-gray-400 hover:text-gray-600 transition text-xl leading-none"
-                >
-                  &times;
-                </button>
-              </div>
+            <div className="bg-white w-full max-w-full sm:max-w-3xl rounded-2xl shadow-lg p-4 sm:p-6 md:p-8 relative border border-gray-200 overflow-y-auto max-h-[90vh]">
+              <button
+                onClick={onClose}
+                aria-label="Close modal"
+                className="absolute top-4 right-4 text-gray-500 hover:text-black transition"
+              >
+                &times;
+              </button>
 
-              {/* form */}
-              <form onSubmit={handleSubmit} className="space-y-5">
-                <div>
-                  <label className="text-sm font-medium text-gray-700">Title *</label>
+              <h2 className="text-xl sm:text-2xl font-semibold text-gray-800 mb-4 sm:mb-6 flex items-center justify-center">
+                Create New Task
+              </h2>
+
+              <form
+                onSubmit={handleSubmit}
+                className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm"
+              >
+                <div className="md:col-span-2">
+                  <label className="block text-gray-700 font-medium mb-1 text-sm">
+                    Title *
+                  </label>
                   <input
                     type="text"
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
                     required
                     placeholder="Enter task title"
-                    className="w-full mt-1 border border-gray-300 rounded-lg px-3 py-2 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-400 outline-none"
                   />
                 </div>
 
-                <div>
-                  <label className="text-sm font-medium text-gray-700">Description</label>
-                  <textarea
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                    placeholder="Optional details about the task"
-                    className="w-full mt-1 border border-gray-300 rounded-lg px-3 py-2 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    rows={2}
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-sm font-medium text-gray-700">Type</label>
-                    <select
-                      value={type}
-                      onChange={(e) => setType(e.target.value)}
-                      className="w-full mt-1 border border-gray-300 rounded-lg px-3 py-2 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    >
-                      <option>Call</option>
-                      <option>Email</option>
-                      <option>Meeting</option>
-                      <option>Follow-up</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="text-sm font-medium text-gray-700">Priority</label>
-                    <select
-                      value={priority}
-                      onChange={(e) => setPriority(e.target.value)}
-                      className="w-full mt-1 border border-gray-300 rounded-lg px-3 py-2 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    >
-                      <option>Low</option>
-                      <option>Medium</option>
-                      <option>High</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-sm font-medium text-gray-700">Due Date *</label>
-                    <input
-                      type="datetime-local"
-                      value={dueDate}
-                      onChange={(e) => setDueDate(e.target.value)}
-                      required
-                      className="w-full mt-1 border border-gray-300 rounded-lg px-3 py-2 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                <div className="md:col-span-2">
+                  <label className="block text-gray-700 font-medium mb-1 text-sm">
+                    Description
+                  </label>
+                    <textarea
+                      value={description}
+                      onChange={(e) => setDescription(e.target.value)}
+                      placeholder="Optional details about the task"
+                      className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-400 outline-none"
+                      rows={3}
                     />
-                  </div>
-
-                  <div>
-                    <label className="text-sm font-medium text-gray-700">Related To</label>
-                    <select
-                      value={relatedTo}
-                      onChange={(e) => setRelatedTo(e.target.value)}
-                      className="w-full mt-1 border border-gray-300 rounded-lg px-3 py-2 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    >
-                      <option>Lead</option>
-                      <option>Account</option>
-                      <option>Deal</option>
-                      <option>Contact</option>
-                    </select>
-                  </div>
                 </div>
 
                 <div>
-                  <label className="text-sm font-medium text-gray-700">Notes</label>
+                  <label className="block text-gray-700 font-medium mb-1 text-sm">
+                    Type
+                  </label>
+                  <select
+                    value={type}
+                    onChange={(e) => setType(e.target.value)}
+                    className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-400 outline-none"
+                  >
+                    <option>Call</option>
+                    <option>Email</option>
+                    <option>Meeting</option>
+                    <option>Follow-up</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-gray-700 font-medium mb-1 text-sm">
+                    Priority
+                  </label>
+                  <select
+                    value={priority}
+                    onChange={(e) => setPriority(e.target.value)}
+                    className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-400 outline-none"
+                  >
+                    <option>Low</option>
+                    <option>Medium</option>
+                    <option>High</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-gray-700 font-medium mb-1 text-sm">
+                    Due Date *
+                  </label>
+                  <input
+                    type="datetime-local"
+                    value={dueDate}
+                    onChange={(e) => setDueDate(e.target.value)}
+                    required
+                    className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-400 outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-gray-700 font-medium mb-1 text-sm">
+                    Related To
+                  </label>
+                  <select
+                    value={relatedTo}
+                    onChange={(e) => setRelatedTo(e.target.value)}
+                    className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-400 outline-none"
+                  >
+                    <option>Lead</option>
+                    <option>Account</option>
+                    <option>Deal</option>
+                    <option>Contact</option>
+                  </select>
+                </div>
+
+                <div className="md:col-span-2">
+                  <label className="block text-gray-700 font-medium mb-1 text-sm">
+                    Notes
+                  </label>
                   <textarea
                     value={notes}
                     onChange={(e) => setNotes(e.target.value)}
                     placeholder="Add any internal notes or comments"
-                    className="w-full mt-1 border border-gray-300 rounded-lg px-3 py-2 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    rows={2}
+                    className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-400 outline-none"
+                    rows={3}
                   />
                 </div>
 
-                <div className="flex justify-end gap-3 pt-4 border-t mt-6">
+                <div className="flex flex-col sm:flex-row justify-end sm:justify-end space-y-2 sm:space-y-0 sm:space-x-2 col-span-1 md:col-span-2 mt-4 w-full">
                   <button
                     type="button"
                     onClick={onClose}
-                    className="px-4 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 transition"
+                    className="w-full sm:w-auto px-4 py-2 text-white bg-red-400 border border-red-300 rounded hover:bg-red-500 transition"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
-                    className="px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 focus:ring-2 focus:ring-blue-400 transition"
+                    className="w-full sm:w-auto px-4 py-2 text-white border border-tertiary bg-tertiary rounded hover:bg-secondary transition"
                   >
                     Create Task
                   </button>

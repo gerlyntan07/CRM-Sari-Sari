@@ -497,7 +497,7 @@ export default function AdminTerritory() {
             <FiSearch size={20} className="text-gray-400 mr-3" />
             <input
               type="text"
-              placeholder="Search by territory or manager..."
+              placeholder="Search by territory..."
               className="focus:outline-none text-base w-full"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}

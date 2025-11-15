@@ -21,7 +21,7 @@ const INITIAL_TERRITORY_STATE = {
 };
 
 const STATUS_FILTER_OPTIONS = [
-  { label: "All Statuses", value: "" },
+  { label: "Filter by Status", value: "" },
   { label: "Active", value: "Active" },
   { label: "Inactive", value: "Inactive" },
 ];
@@ -441,6 +441,18 @@ export default function AdminTerritory() {
 
   const hasResults = filteredTerritories.length > 0;
 
+  // Helper function for status badges in list view
+  const getStatusBadgeClass = (status) => {
+    switch (status) {
+      case "Active":
+        return "bg-green-100 text-green-700";
+      case "Inactive":
+        return "bg-gray-100 text-gray-700";
+      default:
+        return "bg-gray-100 text-gray-700";
+    }
+  };
+
   const handlePrevPage = () => setCurrentPage((prev) => Math.max(prev - 1, 1));
   const handleNextPage = () =>
     setCurrentPage((prev) =>
@@ -497,7 +509,7 @@ export default function AdminTerritory() {
             <FiSearch size={20} className="text-gray-400 mr-3" />
             <input
               type="text"
-              placeholder="Search by territory..."
+              placeholder="Search territory"
               className="focus:outline-none text-base w-full"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
@@ -521,7 +533,7 @@ export default function AdminTerritory() {
               value={userFilter}
               onChange={(e) => setUserFilter(e.target.value)}
             >
-              <option value="">All Users</option>
+              <option value="">Filter by Users</option>
               {Array.isArray(users) &&
                 users.map((user) => (
                   <option key={user.id} value={String(user.id)}>
@@ -572,9 +584,15 @@ export default function AdminTerritory() {
                   {/* Top horizontal line */}
                   <div className="absolute top-0 left-0 w-full h-5 bg-secondary rounded-t-md" />
 
-                  <h3 className="font-medium text-gray-900 mb-2 py-7">
+                  <h3 className="font-medium text-gray-900 mb-2 pt-7">
                     {territory.name}
                   </h3>
+
+                  {territory.description && (
+                    <p className="text-xs text-gray-600 mb-2 line-clamp-2">
+                      {territory.description}
+                    </p>
+                  )}
 
                   <div className="flex items-center gap-2 text-gray-500 text-sm mb-2">
                     <FiUser />{" "}
@@ -649,8 +667,14 @@ export default function AdminTerritory() {
                             ? `${territory.managed_by.first_name} ${territory.managed_by.last_name}`
                             : "Unassigned"}
                         </td>
-                        <td className="px-6 py-3 text-gray-700 whitespace-nowrap">
-                          {territory.status || "—"}
+                        <td className="px-6 py-3 whitespace-nowrap">
+                          <span
+                            className={`px-2 py-1 rounded-full text-xs font-medium whitespace-nowrap ${getStatusBadgeClass(
+                              territory.status || "Inactive"
+                            )}`}
+                          >
+                            {territory.status || "—"}
+                          </span>
                         </td>
                         <td className="px-6 py-3 text-gray-700 whitespace-nowrap">
                           {territory.created_at
@@ -695,11 +719,11 @@ export default function AdminTerritory() {
               </div>
 
               {/* Header */}
-              <div className="flex items-center justify-between mb-6 py-6">
-                <h2 className="text-3xl font-semibold text-gray-900 mt-6">
+              <div className="flex items-center justify-between mb-4 pt-10">
+                <h2 className="text-3xl font-semibold text-gray-900">
                   {selectedTerritory.name}
                 </h2>
-                <div className="flex items-center gap-2 text-sm font-medium text-gray-600 mt-6">
+                <div className="flex items-center gap-2 text-sm font-medium text-gray-600">
                   {selectedTerritory.status || "—"}
                   {selectedTerritory.status && (
                     <span
@@ -712,10 +736,10 @@ export default function AdminTerritory() {
                   )}
                 </div>
               </div>
-              <div className="h-px bg-gray-200 w-full" />
+              <div className="h-px bg-gray-200 w-full mb-4" />
 
               {/* Assigned user & date */}
-              <div className="grid grid-cols-2 gap-6 mb-6 text-sm py-5">
+              <div className="grid grid-cols-2 gap-6 mb-6 text-sm">
                 <div>
                   <p className="text-gray-500">Assigned To</p>
                   <div className="flex items-center gap-2 text-gray-800 font-medium mt-1">
@@ -748,9 +772,11 @@ export default function AdminTerritory() {
               {/* Description */}
               <div>
                 <p className="text-gray-500 mb-1">Description</p>
-                <p className="text-gray-700 text-sm leading-relaxed">
-                  {selectedTerritory.description}
-                </p>
+                <div className="max-h-[150px] overflow-y-auto hide-scrollbar">
+                  <p className="text-gray-700 text-sm leading-relaxed">
+                    {selectedTerritory.description || "—"}
+                  </p>
+                </div>
               </div>
 
               {/* Buttons */}
@@ -795,22 +821,13 @@ export default function AdminTerritory() {
 
               <div className="text-center mb-6">
                 <h2 className="text-xl font-semibold text-gray-900">
-                  {isEditing ? "Edit Territory" : "Create a Territory"}
+                  {isEditing ? "Edit Territory" : "Create Territory"}
                 </h2>
-                <p className="text-gray-500 text-sm mt-1">
-                  {isEditing
-                    ? "Update territory details or reassign to another manager."
-                    : "Add a new sales territory to your organization."}
-                </p>
               </div>
 
               <form className="space-y-4" onSubmit={handleSubmit}>
                 <InputField
-                  label={
-                    <>
-                      Territory Name<span className="text-red-500">*</span>
-                    </>
-                  }
+                  label="Territory Name"
                   name="name"
                   value={territoryData.name}
                   onChange={handleTerritoryChange}

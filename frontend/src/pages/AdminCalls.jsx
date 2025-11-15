@@ -91,9 +91,9 @@ export default function AdminCalls() {
   const [selectedCall, setSelectedCall] = useState(null);
   const [calls, setCalls] = useState([]);
   const [callsLoading, setCallsLoading] = useState(false);
-  const [statusFilter, setStatusFilter] = useState("");
-  const [userFilter, setUserFilter] = useState("");
-  const [priorityFilter, setPriorityFilter] = useState("");
+  const [statusFilter, setStatusFilter] = useState("Filter by Status");
+  const [userFilter, setUserFilter] = useState("Filter by Users");
+  const [priorityFilter, setPriorityFilter] = useState("Filter by Priority");
   const [searchQuery, setSearchQuery] = useState("");
   const [users, setUsers] = useState([]);
   const [contacts, setContacts] = useState([]);
@@ -255,15 +255,15 @@ export default function AdminCalls() {
         });
 
       const matchesStatus =
-        normalizedStatusFilter === "" ||
+        normalizedStatusFilter === "FILTER BY STATUS" ||
         normalizeStatus(call.status || "PENDING") === normalizedStatusFilter;
 
       const matchesUser =
-        normalizedUserFilter === "" ||
+        normalizedUserFilter === "Filter by Users" ||
         (call.assigned_to && call.assigned_to.toLowerCase() === normalizedUserFilter.toLowerCase());
 
       const matchesPriority =
-        normalizedPriorityFilter === "" ||
+        normalizedPriorityFilter === "FILTER BY PRIORITY" ||
         normalizeStatus(call.priority || "LOW") === normalizedPriorityFilter;
 
       return matchesSearch && matchesStatus && matchesUser && matchesPriority;
@@ -450,7 +450,7 @@ export default function AdminCalls() {
   };
 
   const statusFilterOptions = [
-    { label: "All Statuses", value: "" },
+    { label: "Filter by Status", value: "Filter by Status" },
     ...STATUS_OPTIONS.map((option) => ({
       label: option.label,
       value: option.value,
@@ -587,7 +587,7 @@ export default function AdminCalls() {
           <FiSearch size={20} className="text-gray-400 mr-3" />
           <input
             type="text"
-            placeholder="Search calls..."
+            placeholder="Search calls"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="focus:outline-none text-base w-full"
@@ -610,7 +610,7 @@ export default function AdminCalls() {
             onChange={(e) => setUserFilter(e.target.value)}
             className="border border-gray-300 rounded-lg px-3 h-11 text-sm text-gray-600 bg-white w-full lg:w-40 focus:ring-2 focus:ring-indigo-500 transition"
           >
-            <option value="">All Users</option>
+            <option value="Filter by Users">Filter by Users</option>
             {users.map((user) => (
               <option key={user.id} value={`${user.first_name} ${user.last_name}`}>
                 {user.first_name} {user.last_name}
@@ -622,7 +622,7 @@ export default function AdminCalls() {
             onChange={(e) => setPriorityFilter(e.target.value)}
             className="border border-gray-300 rounded-lg px-3 h-11 text-sm text-gray-600 bg-white w-full lg:w-40 focus:ring-2 focus:ring-indigo-500 transition"
           >
-            <option value="">All Priorities</option>
+            <option value="Filter by Priority">Filter by Priority</option>
             {PRIORITY_OPTIONS.map((option) => (
               <option key={option.value} value={option.value}>
                 {option.label}
@@ -749,7 +749,7 @@ export default function AdminCalls() {
       className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4"
     >
       <div
-        className="bg-white w-full max-w-full sm:max-w-3xl rounded-2xl shadow-lg p-4 sm:p-6 md:p-8 relative border border-gray-200 overflow-y-auto max-h-[90vh]"
+        className="bg-white w-full max-w-full sm:max-w-3xl rounded-2xl shadow-lg p-4 sm:p-6 md:p-8 relative border border-gray-200 overflow-y-auto max-h-[90vh] hide-scrollbar"
         onClick={(e) => e.stopPropagation()}
       >
         <button

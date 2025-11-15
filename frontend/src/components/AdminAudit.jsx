@@ -13,7 +13,7 @@ export default function AdminAudit() {
 
   const [logs, setLogs] = useState(null);
   const [search, setSearch] = useState("");
-  const [filter, setFilter] = useState("All");
+  const [filter, setFilter] = useState("Filter by Actions");
   const [currentPage, setCurrentPage] = useState(1);
 
   const fetchLogs = async () => {
@@ -76,7 +76,7 @@ export default function AdminAudit() {
         });
 
       const matchesFilter =
-        normalizedFilter === "ALL" ||
+        normalizedFilter === "FILTER BY ACTIONS" ||
         (log.action || "").toUpperCase() === normalizedFilter;
 
       return matchesSearch && matchesFilter;
@@ -218,7 +218,7 @@ export default function AdminAudit() {
           <FiSearch size={20} className="text-gray-400 mr-3" />
           <input
             type="text"
-            placeholder="Search by timestamp, user, action, resource, or details..."
+            placeholder="Search audit logs"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="focus:outline-none text-base w-full"
@@ -230,7 +230,7 @@ export default function AdminAudit() {
             onChange={(e) => setFilter(e.target.value)}
             className="border border-gray-300 rounded-lg px-3 h-11 text-sm text-gray-600 bg-white w-full focus:ring-2 focus:ring-indigo-500 transition"
           >
-            <option value="All">All Actions</option>
+            <option value="Filter by Actions">Filter by Actions</option>
             <option value="CREATE">CREATE</option>
             <option value="DELETE">DELETE</option>
             <option value="UPDATE">UPDATE</option>

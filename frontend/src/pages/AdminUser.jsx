@@ -148,7 +148,7 @@ export default function AdminUser() {
     });
 
     return [
-      { label: "All Roles", value: "" },
+      { label: "Filter by Roles", value: "" },
       { label: "CEO", value: "CEO" },
       ...otherRoles,
     ];
@@ -524,7 +524,7 @@ export default function AdminUser() {
           <FiSearch size={20} className="text-gray-400 mr-3" />
           <input
             type="text"
-            placeholder="Search by name, email, or role..."
+            placeholder="Search users"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="focus:outline-none text-base w-full"
@@ -884,8 +884,7 @@ function UserFormModal({
           />
           <div className="md:col-span-2">
             <label className="block text-gray-700 font-medium mb-1 text-sm">
-              Password{isEditing ? "" : " "}
-              {!isEditing && <span className="text-red-500">*</span>}
+              Password
             </label>
             <div className="flex flex-col sm:flex-row sm:items-center gap-2">
               <input
@@ -961,7 +960,7 @@ function FormInput({
   return (
     <div>
       <label className="block text-gray-700 font-medium mb-1 text-sm">
-        {label} {required ? <span className="text-red-500">*</span> : null}
+        {label}
       </label>
       {type === "select" ? (
         <select

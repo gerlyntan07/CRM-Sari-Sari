@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import {
   FiClock,
   FiActivity,
@@ -9,6 +9,7 @@ import {
   FiSearch,
   FiPlus,
   FiTrash2,
+  FiUser,
 } from "react-icons/fi";
 import TaskModal from "../components/TaskModal";
 import PaginationControls from "../components/PaginationControls.jsx";
@@ -17,8 +18,198 @@ import { toast } from "react-toastify";
 import useFetchUser from "../hooks/useFetchUser";
 
 const BOARD_COLUMNS = ["To Do", "In Progress", "Review", "Completed"];
-const BOARD_PAGE_SIZE = 12;
 const LIST_PAGE_SIZE = 10;
+
+// Mock Data
+const MOCK_USERS = [
+  { id: 1, first_name: "John", last_name: "Doe", email: "john.doe@example.com" },
+  { id: 2, first_name: "Jane", last_name: "Smith", email: "jane.smith@example.com" },
+  { id: 3, first_name: "Mike", last_name: "Johnson", email: "mike.johnson@example.com" },
+  { id: 4, first_name: "Sarah", last_name: "Williams", email: "sarah.williams@example.com" },
+];
+
+const MOCK_TASKS = [
+  {
+    id: 1,
+    title: "Follow up with TechStart Inc",
+    description: "Schedule a meeting to discuss the new product proposal",
+    type: "Call",
+    priority: "High",
+    status: "To Do",
+    dueDate: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString(),
+    dateAssigned: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
+    assignedToId: 1,
+    assignedToName: "John Doe",
+    createdAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
+    createdById: 1,
+    createdBy: "Admin User",
+    relatedTo: "TechStart Inc",
+    notes: "Important client, need to follow up soon",
+    isPersonal: false,
+  },
+  {
+    id: 2,
+    title: "Review Q4 Sales Report",
+    description: "Analyze the quarterly sales data and prepare summary",
+    type: "Task",
+    priority: "Medium",
+    status: "In Progress",
+    dueDate: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString(),
+    dateAssigned: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
+    assignedToId: 2,
+    assignedToName: "Jane Smith",
+    createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
+    createdById: 1,
+    createdBy: "Admin User",
+    relatedTo: "Q4 Report",
+    notes: "Due by end of week",
+    isPersonal: false,
+  },
+  {
+    id: 3,
+    title: "Update CRM Database",
+    description: "Sync customer information and update contact details",
+    type: "Task",
+    priority: "Low",
+    status: "Review",
+    dueDate: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
+    dateAssigned: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
+    assignedToId: 3,
+    assignedToName: "Mike Johnson",
+    createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
+    createdById: 1,
+    createdBy: "Admin User",
+    relatedTo: "CRM System",
+    notes: "Overdue task",
+    isPersonal: false,
+  },
+  {
+    id: 4,
+    title: "Client Meeting Preparation",
+    description: "Prepare presentation materials for upcoming client meeting",
+    type: "Meeting",
+    priority: "High",
+    status: "Completed",
+    dueDate: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+    dateAssigned: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString(),
+    assignedToId: 4,
+    assignedToName: "Sarah Williams",
+    createdAt: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString(),
+    createdById: 1,
+    createdBy: "Admin User",
+    relatedTo: "Client ABC",
+    notes: "Completed successfully",
+    isPersonal: false,
+  },
+  {
+    id: 5,
+    title: "Send Proposal to New Client",
+    description: "Draft and send proposal document to potential new client",
+    type: "Email",
+    priority: "Medium",
+    status: "To Do",
+    dueDate: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString(),
+    dateAssigned: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+    assignedToId: 1,
+    assignedToName: "John Doe",
+    createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+    createdById: 1,
+    createdBy: "Admin User",
+    relatedTo: "New Client XYZ",
+    notes: "",
+    isPersonal: false,
+  },
+  {
+    id: 6,
+    title: "Team Standup Meeting",
+    description: "Daily team synchronization meeting",
+    type: "Meeting",
+    priority: "Low",
+    status: "In Progress",
+    dueDate: new Date(Date.now() + 1 * 24 * 60 * 60 * 1000).toISOString(),
+    dateAssigned: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
+    assignedToId: 2,
+    assignedToName: "Jane Smith",
+    createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
+    createdById: 1,
+    createdBy: "Admin User",
+    relatedTo: "Team",
+    notes: "Recurring meeting",
+    isPersonal: false,
+  },
+  {
+    id: 7,
+    title: "Update Marketing Materials",
+    description: "Refresh marketing collateral with new branding",
+    type: "Task",
+    priority: "Medium",
+    status: "Review",
+    dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+    dateAssigned: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000).toISOString(),
+    assignedToId: 3,
+    assignedToName: "Mike Johnson",
+    createdAt: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000).toISOString(),
+    createdById: 1,
+    createdBy: "Admin User",
+    relatedTo: "Marketing",
+    notes: "Waiting for approval",
+    isPersonal: false,
+  },
+  {
+    id: 8,
+    title: "Customer Feedback Analysis",
+    description: "Review and analyze customer feedback from Q4",
+    type: "Task",
+    priority: "High",
+    status: "Completed",
+    dueDate: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
+    dateAssigned: new Date(Date.now() - 12 * 24 * 60 * 60 * 1000).toISOString(),
+    assignedToId: 4,
+    assignedToName: "Sarah Williams",
+    createdAt: new Date(Date.now() - 12 * 24 * 60 * 60 * 1000).toISOString(),
+    createdById: 1,
+    createdBy: "Admin User",
+    relatedTo: "Customer Feedback",
+    notes: "Analysis complete",
+    isPersonal: false,
+  },
+  {
+    id: 9,
+    title: "Prepare Budget Report",
+    description: "Compile monthly budget report for management review",
+    type: "Task",
+    priority: "High",
+    status: "To Do",
+    dueDate: new Date(Date.now() + 4 * 24 * 60 * 60 * 1000).toISOString(),
+    dateAssigned: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
+    assignedToId: 1,
+    assignedToName: "John Doe",
+    createdAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
+    createdById: 1,
+    createdBy: "Admin User",
+    relatedTo: "Finance",
+    notes: "Urgent",
+    isPersonal: false,
+  },
+  {
+    id: 10,
+    title: "Website Content Update",
+    description: "Update website content with latest product information",
+    type: "Task",
+    priority: "Low",
+    status: "In Progress",
+    dueDate: new Date(Date.now() + 6 * 24 * 60 * 60 * 1000).toISOString(),
+    dateAssigned: new Date(Date.now() - 6 * 24 * 60 * 60 * 1000).toISOString(),
+    assignedToId: 2,
+    assignedToName: "Jane Smith",
+    createdAt: new Date(Date.now() - 6 * 24 * 60 * 60 * 1000).toISOString(),
+    createdById: 1,
+    createdBy: "Admin User",
+    relatedTo: "Website",
+    notes: "In progress",
+    isPersonal: false,
+  },
+];
 
 const toDateTimeInputValue = (value) => {
   if (!value) return "";
@@ -67,11 +258,12 @@ export default function AdminTask() {
   const [view, setView] = useState("board");
   const [showModal, setShowModal] = useState(false);
   const [selectedTask, setSelectedTask] = useState(null);
+  const [viewMode, setViewMode] = useState(false);
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
-  const [filterStatus, setFilterStatus] = useState("All");
-  const [filterPriority, setFilterPriority] = useState("All");
+  const [filterStatus, setFilterStatus] = useState("Filter by Status");
+  const [filterPriority, setFilterPriority] = useState("Filter by Priority");
   const [users, setUsers] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [confirmModalData, setConfirmModalData] = useState(null);
@@ -89,19 +281,28 @@ export default function AdminTask() {
     isPersonal: false,
   });
 
-  const pageSize = view === "board" ? BOARD_PAGE_SIZE : LIST_PAGE_SIZE;
-
   useEffect(() => {
     if (!userLoading) {
-      fetchUsers();
-      fetchTasks();
+      // Use mock data for frontend development
+      // Backend API calls are kept below for future use
+      loadMockData();
+      // fetchUsers();
+      // fetchTasks();
     }
   }, [userLoading]);
 
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [search, filterStatus, filterPriority, view]);
+  // Load mock data for frontend development
+  const loadMockData = () => {
+    setLoading(true);
+    // Simulate API delay
+    setTimeout(() => {
+      setUsers(MOCK_USERS);
+      setTasks(MOCK_TASKS);
+      setLoading(false);
+    }, 500);
+  };
 
+  // Backend API functions - kept for future use
   const fetchTasks = async () => {
     try {
       setLoading(true);
@@ -136,7 +337,9 @@ export default function AdminTask() {
         return bDate - aDate;
       });
       setTasks(formatted);
-      setCurrentPage(1);
+      if (view === "list") {
+        setCurrentPage(1);
+      }
     } catch (error) {
       console.error("Failed to load tasks:", error);
       toast.error("Failed to load tasks. Please try again.");
@@ -170,8 +373,9 @@ export default function AdminTask() {
     });
   };
 
-  const handleOpenModal = (task = null) => {
+  const handleOpenModal = (task = null, isViewOnly = false) => {
     setSelectedTask(task);
+    setViewMode(isViewOnly);
     if (task) {
       setFormData({
         title: task.title || "",
@@ -194,6 +398,7 @@ export default function AdminTask() {
   const handleCloseModal = () => {
     setShowModal(false);
     setSelectedTask(null);
+    setViewMode(false);
     resetForm();
   };
 
@@ -252,30 +457,87 @@ export default function AdminTask() {
     setConfirmProcessing(true);
 
     try {
+      // Using mock data for frontend development
+      // Backend API calls are kept below for future use
+      
       if (type === "create") {
-        const requestPayload = buildTaskPayload(payload);
-        await api.post("/tasks/createtask", requestPayload);
+        // Mock create - add to local state
+        const newTask = {
+          id: Date.now(), // Generate temporary ID
+          title: payload.title || "",
+          description: payload.description || "",
+          type: payload.type || "Call",
+          priority: payload.priority || "Low",
+          status: payload.status || "To Do",
+          dueDate: payload.dueDate || null,
+          dateAssigned: new Date().toISOString(),
+          assignedToId: payload.assignedTo ? Number(payload.assignedTo) : null,
+          assignedToName: MOCK_USERS.find(u => String(u.id) === payload.assignedTo) 
+            ? `${MOCK_USERS.find(u => String(u.id) === payload.assignedTo).first_name} ${MOCK_USERS.find(u => String(u.id) === payload.assignedTo).last_name}`
+            : "Unassigned",
+          createdAt: new Date().toISOString(),
+          createdById: currentUser?.id || 1,
+          createdBy: currentUser ? `${currentUser.first_name} ${currentUser.last_name}` : "Admin User",
+          relatedTo: payload.relatedTo || "",
+          notes: payload.notes || "",
+          isPersonal: Boolean(payload.isPersonal),
+        };
+        setTasks(prev => [newTask, ...prev]);
         toast.success("Task created successfully.");
-        await fetchTasks();
         handleCloseModal();
+        
+        // Backend API call (commented for now)
+        // const requestPayload = buildTaskPayload(payload);
+        // await api.post("/tasks/createtask", requestPayload);
+        // await fetchTasks();
       } else if (type === "update") {
         if (!targetId) {
           throw new Error("Missing task identifier for update.");
         }
-        const requestPayload = buildTaskPayload(payload);
-        await api.put(`/tasks/${targetId}`, requestPayload);
+        // Mock update - update in local state
+        setTasks(prev => prev.map(task => {
+          if (task.id === targetId) {
+            return {
+              ...task,
+              title: payload.title || task.title,
+              description: payload.description || task.description,
+              type: payload.type || task.type,
+              priority: payload.priority || task.priority,
+              status: payload.status || task.status,
+              dueDate: payload.dueDate || task.dueDate,
+              assignedToId: payload.assignedTo ? Number(payload.assignedTo) : task.assignedToId,
+              assignedToName: payload.assignedTo 
+                ? (MOCK_USERS.find(u => String(u.id) === payload.assignedTo) 
+                  ? `${MOCK_USERS.find(u => String(u.id) === payload.assignedTo).first_name} ${MOCK_USERS.find(u => String(u.id) === payload.assignedTo).last_name}`
+                  : "Unassigned")
+                : task.assignedToName,
+              relatedTo: payload.relatedTo || task.relatedTo,
+              notes: payload.notes || task.notes,
+              isPersonal: Boolean(payload.isPersonal),
+            };
+          }
+          return task;
+        }));
         toast.success("Task updated successfully.");
-        await fetchTasks();
         handleCloseModal();
+        
+        // Backend API call (commented for now)
+        // const requestPayload = buildTaskPayload(payload);
+        // await api.put(`/tasks/${targetId}`, requestPayload);
+        // await fetchTasks();
       } else if (type === "delete") {
         if (!targetId) {
           throw new Error("Missing task identifier for deletion.");
         }
-        await api.delete(`/tasks/${targetId}`);
+        // Mock delete - remove from local state
+        setTasks(prev => prev.filter(task => task.id !== targetId));
         toast.success(
           name ? `Task "${name}" deleted successfully.` : "Task deleted."
         );
-        await fetchTasks();
+        
+        // Backend API call (commented for now)
+        // await api.delete(`/tasks/${targetId}`);
+        // await fetchTasks();
       }
     } catch (error) {
       console.error("Task action failed:", error);
@@ -315,28 +577,40 @@ export default function AdminTask() {
         task.createdBy?.toLowerCase().includes(normalized);
 
       const matchesStatus =
-        filterStatus === "All" || task.status === filterStatus;
+        filterStatus === "Filter by Status" || task.status === filterStatus;
       const matchesPriority =
-        filterPriority === "All" || task.priority === filterPriority;
+        filterPriority === "Filter by Priority" || task.priority === filterPriority;
 
       return matchesSearch && matchesStatus && matchesPriority;
     });
   }, [tasks, search, filterStatus, filterPriority]);
 
+  // Pagination for list view only
   useEffect(() => {
-    const maxPage =
-      filteredTasks.length === 0
-        ? 1
-        : Math.ceil(filteredTasks.length / pageSize);
-    if (currentPage > maxPage) {
-      setCurrentPage(maxPage);
-    }
-  }, [filteredTasks.length, currentPage, pageSize]);
+    setCurrentPage(1);
+  }, [search, filterStatus, filterPriority, view]);
 
-  const paginatedTasks = useMemo(() => {
-    const startIndex = (currentPage - 1) * pageSize;
-    return filteredTasks.slice(startIndex, startIndex + pageSize);
-  }, [filteredTasks, currentPage, pageSize]);
+  useEffect(() => {
+    if (view === "list") {
+      const maxPage =
+        filteredTasks.length === 0
+          ? 1
+          : Math.ceil(filteredTasks.length / LIST_PAGE_SIZE);
+      if (currentPage > maxPage) {
+        setCurrentPage(maxPage);
+      }
+    }
+  }, [filteredTasks.length, currentPage, view]);
+
+  // Board view: show all tasks, List view: paginated
+  const displayTasks = useMemo(() => {
+    if (view === "board") {
+      return filteredTasks;
+    } else {
+      const startIndex = (currentPage - 1) * LIST_PAGE_SIZE;
+      return filteredTasks.slice(startIndex, startIndex + LIST_PAGE_SIZE);
+    }
+  }, [filteredTasks, currentPage, view]);
 
   const METRICS = useMemo(() => {
     const now = new Date();
@@ -387,6 +661,51 @@ export default function AdminTask() {
     new Date(task.dueDate) < new Date() &&
     task.status !== "Completed";
 
+  const getTaskCardColor = (task) => {
+    // Use status-based colors matching list view badges
+    switch (task.status) {
+      case "To Do":
+        return "bg-blue-50 hover:bg-blue-100 border-blue-200";
+      case "In Progress":
+        return "bg-purple-50 hover:bg-purple-100 border-purple-200";
+      case "Review":
+        return "bg-orange-50 hover:bg-orange-100 border-orange-200";
+      case "Completed":
+        return "bg-green-50 hover:bg-green-100 border-green-200";
+      default:
+        return "bg-gray-50 hover:bg-gray-100 border-gray-100";
+    }
+  };
+
+  // Helper functions for list view badges
+  const getStatusBadgeClass = (status) => {
+    switch (status) {
+      case "To Do":
+        return "bg-blue-100 text-blue-700";
+      case "In Progress":
+        return "bg-purple-100 text-purple-700";
+      case "Review":
+        return "bg-orange-100 text-orange-700";
+      case "Completed":
+        return "bg-green-100 text-green-700";
+      default:
+        return "bg-gray-100 text-gray-700";
+    }
+  };
+
+  const getPriorityBadgeClass = (priority) => {
+    switch (priority) {
+      case "High":
+        return "bg-red-100 text-red-700";
+      case "Medium":
+        return "bg-yellow-100 text-yellow-700";
+      case "Low":
+        return "bg-gray-100 text-gray-700";
+      default:
+        return "bg-gray-100 text-gray-700";
+    }
+  };
+
   const confirmationModal = confirmModalData ? (
     <ConfirmationModal
       open
@@ -432,7 +751,7 @@ export default function AdminTask() {
           <FiSearch size={20} className="text-gray-400 mr-3" />
           <input
             type="text"
-            placeholder="Search by title, description, or assignee..."
+            placeholder="Search tasks"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="focus:outline-none text-base w-full"
@@ -444,7 +763,7 @@ export default function AdminTask() {
             onChange={(e) => setFilterStatus(e.target.value)}
             className="border border-gray-300 rounded-lg px-3 h-11 text-sm text-gray-600 bg-white w-full focus:ring-2 focus:ring-indigo-500 transition"
           >
-            <option>All</option>
+            <option>Filter by Status</option>
             {BOARD_COLUMNS.map((status) => (
               <option key={status}>{status}</option>
             ))}
@@ -454,7 +773,7 @@ export default function AdminTask() {
             onChange={(e) => setFilterPriority(e.target.value)}
             className="border border-gray-300 rounded-lg px-3 h-11 text-sm text-gray-600 bg-white w-full focus:ring-2 focus:ring-indigo-500 transition"
           >
-            <option>All</option>
+            <option>Filter by Priority</option>
             <option>High</option>
             <option>Medium</option>
             <option>Low</option>
@@ -492,38 +811,37 @@ export default function AdminTask() {
 
       {/* Board View */}
       {!loading && view === "board" && (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 rounded-md">
           {BOARD_COLUMNS.map((column) => {
-            const columnTasks = paginatedTasks.filter(
+            const columnTasks = displayTasks.filter(
               (task) => task.status === column
             );
+            
             return (
               <div
                 key={column}
-                className="bg-white rounded-xl shadow-sm border border-gray-100 p-4"
+                className="bg-white p-4 shadow border border-gray-200 flex flex-col relative"
               >
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className="font-semibold text-gray-800">{column}</h3>
+                {/* Top horizontal line */}
+                <div className="absolute top-0 left-0 w-full h-5 bg-secondary rounded-t-md" />
+
+                <div className="flex items-center justify-between mb-3 pt-7">
+                  <h3 className="font-medium text-gray-900">{column}</h3>
                   <span className="text-xs bg-gray-100 px-2 py-1 rounded-full text-gray-500">
                     {columnTasks.length}
                   </span>
                 </div>
-                <div className="space-y-3">
+                <div 
+                  className={`space-y-3 ${columnTasks.length > 3 ? 'overflow-y-auto max-h-[480px] hide-scrollbar' : ''}`}
+                >
                   {columnTasks.length > 0 ? (
                     columnTasks.map((task) => (
                       <div
                         key={task.id}
-                        className={`border border-gray-100 rounded-lg p-3 transition flex justify-between items-start ${
-                          isTaskOverdue(task)
-                            ? "bg-red-50 hover:bg-red-100"
-                            : "bg-gray-50 hover:bg-gray-100"
-                        }`}
+                        className={`border rounded-lg p-3 transition flex justify-between items-start cursor-pointer ${getTaskCardColor(task)}`}
+                        onClick={() => handleOpenModal(task, true)}
                       >
-                        <button
-                          type="button"
-                          onClick={() => handleOpenModal(task)}
-                          className="text-left"
-                        >
+                        <div className="text-left flex-1">
                           <p className="font-medium text-gray-800 text-sm">
                             {task.title}
                           </p>
@@ -547,18 +865,24 @@ export default function AdminTask() {
                                 : "—"}
                             </span>
                           </p>
-                        </button>
-                        <div className="flex items-center gap-3">
+                        </div>
+                        <div className="flex items-center gap-2 ml-3">
                           <button
                             type="button"
-                            onClick={() => handleOpenModal(task)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleOpenModal(task);
+                            }}
                             className="text-blue-500 hover:text-blue-700"
                           >
                             <FiEdit2 />
                           </button>
                           <button
                             type="button"
-                            onClick={() => handleDeleteTask(task)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeleteTask(task);
+                            }}
                             className="text-red-500 hover:text-red-700"
                           >
                             <FiTrash2 />
@@ -580,73 +904,96 @@ export default function AdminTask() {
 
       {/* List View */}
       {!loading && view === "list" && (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-          <table className="min-w-full border-collapse">
-            <thead>
-              <tr className="text-left text-gray-600 border-b border-gray-200 text-sm">
-                <th className="py-3 px-4 font-medium">Task</th>
-                <th className="py-3 px-4 font-medium">Status</th>
-                <th className="py-3 px-4 font-medium">Priority</th>
-                <th className="py-3 px-4 font-medium">Assigned To</th>
-                <th className="py-3 px-4 font-medium">Date Assigned</th>
-                <th className="py-3 px-4 font-medium">Actions</th>
-              </tr>
-            </thead>
+        <div className="bg-white rounded-md shadow-sm overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="min-w-full text-sm">
+              <thead className="bg-gray-100 text-gray-600 text-left">
+                <tr>
+                  <th className="px-6 py-3 whitespace-nowrap font-medium">
+                    Task
+                  </th>
+                  <th className="px-6 py-3 whitespace-nowrap font-medium">
+                    Status
+                  </th>
+                  <th className="px-6 py-3 whitespace-nowrap font-medium">
+                    Priority
+                  </th>
+                  <th className="px-6 py-3 whitespace-nowrap font-medium">
+                    Assigned To
+                  </th>
+                  <th className="px-6 py-3 whitespace-nowrap font-medium">
+                    Date Assigned
+                  </th>
+                  <th className="px-6 py-3 whitespace-nowrap font-medium">
+                    Actions
+                  </th>
+                </tr>
+              </thead>
             <tbody>
-              {paginatedTasks.length > 0 ? (
-                paginatedTasks.map((task) => (
+              {displayTasks.length > 0 ? (
+                displayTasks.map((task) => (
                   <tr
                     key={task.id}
-                    className={`border-b border-gray-100 hover:bg-gray-50 ${
-                      isTaskOverdue(task) ? "bg-red-50 hover:bg-red-100" : ""
-                    }`}
+                    className="hover:bg-gray-50 transition-colors text-xs cursor-pointer"
+                    onClick={() => handleOpenModal(task, true)}
                   >
-                    <td
-                      className="py-3 px-4 text-gray-800 text-sm font-medium cursor-pointer"
-                      onClick={() => handleOpenModal(task)}
-                    >
+                    <td className="px-6 py-3 text-gray-700 whitespace-nowrap font-medium">
                       {task.title}
                     </td>
-                    <td className="py-3 px-4 text-sm text-gray-600">
-                      {task.status}
+                    <td className="px-6 py-3 whitespace-nowrap">
+                      <span
+                        className={`px-2 py-1 rounded-full text-xs font-medium whitespace-nowrap ${getStatusBadgeClass(
+                          task.status || "To Do"
+                        )}`}
+                      >
+                        {task.status || "To Do"}
+                      </span>
                     </td>
-                    <td className="py-3 px-4 text-sm text-gray-600">
-                      {task.priority}
+                    <td className="px-6 py-3 whitespace-nowrap">
+                      <span
+                        className={`px-2 py-1 rounded-full text-xs font-medium whitespace-nowrap ${getPriorityBadgeClass(
+                          task.priority || "Low"
+                        )}`}
+                      >
+                        {task.priority || "Low"}
+                      </span>
                     </td>
-                    <td className="py-3 px-4 text-sm text-gray-600">
+                    <td className="px-6 py-3 text-gray-700 whitespace-nowrap">
                       {task.assignedToName || "Unassigned"}
                     </td>
                     <td
-                      className={`py-3 px-4 text-sm ${
-                        isTaskOverdue(task) ? "text-red-600" : "text-gray-600"
+                      className={`px-6 py-3 text-gray-700 whitespace-nowrap ${
+                        isTaskOverdue(task) ? "text-red-600 font-medium" : ""
                       }`}
                     >
                       {task.dateAssigned
                         ? formatDateDisplay(task.dateAssigned)
                         : "—"}
                     </td>
-                    <td className="py-3 px-4 flex items-center gap-3">
-                      <button
-                        type="button"
-                        onClick={() => handleOpenModal(task)}
-                        className="text-blue-500 hover:text-blue-700 flex items-center gap-1"
-                      >
-                        <FiEdit2 /> Edit
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleDeleteTask(task)}
-                        className="text-red-500 hover:text-red-700 flex items-center gap-1"
-                      >
-                        <FiTrash2 /> Delete
-                      </button>
+                    <td className="px-6 py-3 whitespace-nowrap">
+                      <div className="flex items-center gap-3" onClick={(e) => e.stopPropagation()}>
+                        <button
+                          type="button"
+                          onClick={() => handleOpenModal(task)}
+                          className="text-blue-500 hover:text-blue-700 flex items-center gap-1"
+                        >
+                          <FiEdit2 /> Edit
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteTask(task)}
+                          className="text-red-500 hover:text-red-700 flex items-center gap-1"
+                        >
+                          <FiTrash2 /> Delete
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))
               ) : (
                 <tr>
                   <td
-                    className="py-4 px-4 text-center text-sm text-gray-500"
+                    className="px-6 py-3 text-center text-sm text-gray-500"
                     colSpan={6}
                   >
                     No tasks found.
@@ -654,26 +1001,30 @@ export default function AdminTask() {
                 </tr>
               )}
             </tbody>
-          </table>
+            </table>
+          </div>
         </div>
       )}
 
-      <PaginationControls
-        className="mt-6"
-        totalItems={filteredTasks.length}
-        pageSize={pageSize}
-        currentPage={filteredTasks.length === 0 ? 0 : currentPage}
-        onPrev={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
-        onNext={() =>
-          setCurrentPage((prev) =>
-            Math.min(
-              prev + 1,
-              Math.max(1, Math.ceil(filteredTasks.length / pageSize) || 1)
+      {/* Pagination for List View only */}
+      {!loading && view === "list" && (
+        <PaginationControls
+          className="mt-6"
+          totalItems={filteredTasks.length}
+          pageSize={LIST_PAGE_SIZE}
+          currentPage={filteredTasks.length === 0 ? 0 : currentPage}
+          onPrev={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+          onNext={() =>
+            setCurrentPage((prev) =>
+              Math.min(
+                prev + 1,
+                Math.max(1, Math.ceil(filteredTasks.length / LIST_PAGE_SIZE) || 1)
+              )
             )
-          )
-        }
-        label="tasks"
-      />
+          }
+          label="tasks"
+        />
+      )}
 
       {/* Task Modal */}
       <TaskModal
@@ -682,7 +1033,8 @@ export default function AdminTask() {
         onSave={handleSaveTask}
         setFormData={setFormData}
         formData={formData}
-        isEditing={Boolean(selectedTask)}
+        isEditing={Boolean(selectedTask) && !viewMode}
+        viewMode={viewMode}
         users={users}
         currentUser={currentUser}
       />

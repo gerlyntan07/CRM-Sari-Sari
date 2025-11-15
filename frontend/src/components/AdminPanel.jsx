@@ -21,7 +21,7 @@ import AdminHeader from "./AdminHeader";
 import useFetchUser from "../hooks/useFetchUser";
 
 export default function AdminPanel() {
-  const [salesOpen, setSalesOpen] = useState(true);
+  const [salesOpen, setSalesOpen] = useState(false);
   const [activityOpen, setActivityOpen] = useState(false);
   const [userMgmtOpen, setUserMgmtOpen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false); // mobile sidebar
@@ -36,11 +36,6 @@ export default function AdminPanel() {
     document.title = `Panel | Sari-Sari CRM`;
   }, []);
 
-  const activeLink =
-    "flex items-center gap-3 px-3 py-2 rounded-lg bg-white text-[#1e293b] font-semibold shadow-sm";
-  const normalLink =
-    "flex items-center gap-3 px-3 py-2 rounded-lg text-gray-300 hover:bg-[#334155] hover:text-white transition";
-
   const salesRoutes = [
     "/admin/accounts",
     "/admin/contacts",
@@ -50,6 +45,18 @@ export default function AdminPanel() {
     "/admin/targets",
   ];
   const isSalesActive = salesRoutes.includes(location.pathname);
+
+  // Auto-open Sales dropdown when navigating to a sales route
+  useEffect(() => {
+    if (isSalesActive) {
+      setSalesOpen(true);
+    }
+  }, [location.pathname]);
+
+  const activeLink =
+    "flex items-center gap-3 px-3 py-2 rounded-lg bg-white text-[#1e293b] font-semibold shadow-sm";
+  const normalLink =
+    "flex items-center gap-3 px-3 py-2 rounded-lg text-gray-300 hover:bg-[#334155] hover:text-white transition";
 
   return (
     <div className="flex h-screen bg-gray-100 overflow-hidden">
@@ -64,7 +71,7 @@ export default function AdminPanel() {
         </div>
 
         {/* Nav */}
-        <nav className="flex-1 overflow-y-auto p-4 space-y-2">
+        <nav className="flex-1 overflow-y-auto p-4 space-y-2 hide-scrollbar">
           {/* Dashboard */}
           <NavLink
             to="/admin/dashboard"
@@ -85,11 +92,11 @@ export default function AdminPanel() {
                 Sales
               </span>
               <FiChevronDown
-                className={`transition-transform ${salesOpen || isSalesActive ? "rotate-180" : ""}`}
+                className={`transition-transform ${salesOpen ? "rotate-180" : ""}`}
               />
             </button>
 
-            {(salesOpen || isSalesActive) && (
+            {salesOpen && (
               <div className="ml-6 mt-2 space-y-1">
                 <NavLink
                   to="/admin/accounts"
@@ -234,7 +241,7 @@ export default function AdminPanel() {
       <div className="flex-1 flex flex-col lg:ml-64 overflow-hidden">
         <AdminHeader toggleSidebar={() => setSidebarOpen(!sidebarOpen)} />
         <main
-          className="flex-1 p-6 overflow-auto"
+          className="flex-1 p-6 overflow-auto hide-scrollbar"
           style={{ backgroundColor: "#fffeee" }}
         >
           <Outlet />

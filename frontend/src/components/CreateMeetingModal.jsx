@@ -8,32 +8,25 @@ const CreateMeetingModal = ({
   isEditing = false,
   onSubmit,
   isSubmitting = false,
+  users = [],
 }) => {
   // Use external formData if provided, otherwise use internal state
   const [internalFormData, setInternalFormData] = useState({
     meetingTitle: "",
     location: "",
-    duration: "30",
+    duration: "",
     meetingLink: "",
     agenda: "",
     dueDate: "",
     assignedTo: "",
     relatedType: "",
     relatedTo: "",
-    priority: "Medium",
+    priority: "Low",
   });
 
   const formData =
     externalFormData !== undefined ? externalFormData : internalFormData;
   const setFormData = setExternalFormData || setInternalFormData;
-
-  // Dropdown options
-  const assignedToOptions = [
-    "Lester Claro",
-    "Maria Sanchez",
-    "John Doe",
-    "Sarah Connor",
-  ];
   const relatedTypeOptions = ["Client", "Project", "Internal"];
   const relatedToOptions = {
     Client: ["TechCorp Solutions", "Alpha Solutions"],
@@ -155,13 +148,13 @@ const CreateMeetingModal = ({
             onChange={handleInputChange}
             options={[
               { value: "", label: "Select assignee" },
-              ...assignedToOptions.map((option) => ({
-                value: option,
-                label: option,
+              ...users.map((user) => ({
+                value: String(user.id),
+                label: `${user.first_name} ${user.last_name}`,
               })),
             ]}
             required
-            disabled={isSubmitting}
+            disabled={isSubmitting || users.length === 0}
           />
           <SelectField
             label="Related Type"

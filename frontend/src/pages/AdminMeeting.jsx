@@ -9,57 +9,11 @@ import {
   FiStar,
 } from "react-icons/fi";
 import { toast } from "react-toastify";
+import api from "../api";
 import CreateMeetingModal from "../components/CreateMeetingModal";
 import AdminMeetingInfomation from "../components/AdminMeetingInfomation";
 import PaginationControls from "../components/PaginationControls.jsx";
 
-// --- DUMMY DATA ---
-const DUMMY_MEETINGS = [
-  {
-    id: 1,
-    priority: "HIGH",
-    activity: "Enterprise ni Jesselle Toborow",
-    description: "Discuss implementation timeline and pricing",
-    relatedTo: "TechCorp Solutions - Enterprise Software Deals",
-    dueDate: "Dec 12, 2024",
-    assignedTo: "Lester Claro",
-    status: "PENDING",
-    completed: false,
-  },
-  {
-    id: 2,
-    priority: "MEDIUM",
-    activity: "Q3 Budget Review",
-    description: "Review departmental spend and forecast for Q4",
-    relatedTo: "Finance Department",
-    dueDate: "Oct 30, 2024",
-    assignedTo: "Maria Sanchez",
-    status: "IN PROGRESS",
-    completed: false,
-  },
-  {
-    id: 3,
-    priority: "LOW",
-    activity: "Team Standup (Daily)",
-    description: "Daily synchronization meeting",
-    relatedTo: "Project Falcon",
-    dueDate: "Today",
-    assignedTo: "John Doe",
-    status: "DONE",
-    completed: true,
-  },
-  {
-    id: 4,
-    priority: "HIGH",
-    activity: "Client Onboarding Call",
-    description: "First call with new client: Alpha Solutions",
-    relatedTo: "Sales Leads",
-    dueDate: "Nov 5, 2024",
-    assignedTo: "Sarah Connor",
-    status: "PENDING",
-    completed: false,
-  },
-];
 
 // --- HELPER FUNCTIONS ---
 const normalizeStatus = (status) => (status ? status.toUpperCase() : "");
@@ -106,14 +60,14 @@ const ITEMS_PER_PAGE = 10;
 const INITIAL_FORM_STATE = {
   meetingTitle: "",
   location: "",
-  duration: "30",
+  duration: "",
   meetingLink: "",
   agenda: "",
   dueDate: "",
   assignedTo: "",
   relatedType: "",
   relatedTo: "",
-  priority: "Medium",
+  priority: "Low",
 };
 
 const AdminMeeting = () => {
@@ -121,7 +75,9 @@ const AdminMeeting = () => {
     document.title = "Meetings | Sari-Sari CRM";
   }, []);
 
-  const [meetings, setMeetings] = useState(DUMMY_MEETINGS);
+  const [meetings, setMeetings] = useState([]);
+  const [meetingsLoading, setMeetingsLoading] = useState(false);
+  const [users, setUsers] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("Filter by Status");
   const [priorityFilter, setPriorityFilter] = useState("Filter by Priority");
@@ -134,6 +90,46 @@ const AdminMeeting = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [confirmModalData, setConfirmModalData] = useState(null);
   const [confirmProcessing, setConfirmProcessing] = useState(false);
+
+  // Fetch meetings from backend
+  const fetchMeetings = async () => {
+    setMeetingsLoading(true);
+    try {
+      const res = await api.get(`/meetings/admin/fetch-all`);
+      const data = Array.isArray(res.data) ? res.data : [];
+      // Sort by created_at descending (most recent first)
+      const sorted = [...data].sort((a, b) => {
+        const aDate = a?.createdAt ? new Date(a.createdAt).getTime() : 0;
+        const bDate = b?.createdAt ? new Date(b.createdAt).getTime() : 0;
+        return bDate - aDate;
+      });
+      setMeetings(sorted);
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to load meetings.");
+      setMeetings([]);
+    } finally {
+      setMeetingsLoading(false);
+    }
+  };
+
+  // Fetch users for assignment dropdown
+  const fetchUsers = async () => {
+    try {
+      const res = await api.get(`/users/all`);
+      setUsers(Array.isArray(res.data) ? res.data : []);
+    } catch (err) {
+      console.error(err);
+      if (err.response?.status === 403) {
+        toast.warn("Unable to load users for assignment (permission denied).");
+      }
+    }
+  };
+
+  useEffect(() => {
+    fetchMeetings();
+    fetchUsers();
+  }, []);
 
   const handleSearch = (event) => setSearchTerm(event.target.value);
 
@@ -222,17 +218,26 @@ const AdminMeeting = () => {
   };
 
   const handleEditClick = (meeting) => {
+    // Find user ID from assignedTo name
+    let assignedToId = "";
+    if (meeting.assignedTo) {
+      const user = users.find(
+        (u) => `${u.first_name} ${u.last_name}` === meeting.assignedTo
+      );
+      assignedToId = user?.id ? String(user.id) : "";
+    }
+
     setFormData({
       meetingTitle: meeting.activity || "",
       location: meeting.location || "",
-      duration: meeting.duration || "30",
+      duration: meeting.duration ? String(meeting.duration) : "",
       meetingLink: meeting.meetingLink || "",
       agenda: meeting.description || "",
       dueDate: meeting.dueDate || "",
-      assignedTo: meeting.assignedTo || "",
+      assignedTo: assignedToId,
       relatedType: meeting.relatedType || "",
       relatedTo: meeting.relatedTo || "",
-      priority: meeting.priority || "Medium",
+      priority: meeting.priority || "Low",
     });
     setIsEditing(true);
     setCurrentMeetingId(meeting.id);
@@ -275,17 +280,27 @@ const AdminMeeting = () => {
       return;
     }
 
+    // Convert duration to integer
+    const duration = formDataFromModal.duration
+      ? parseInt(formDataFromModal.duration, 10)
+      : null;
+
+    // Convert assignedTo to integer (user ID)
+    const assignedToId = formDataFromModal.assignedTo
+      ? parseInt(formDataFromModal.assignedTo, 10)
+      : null;
+
     const payload = {
-      activity: trimmedTitle,
+      subject: trimmedTitle,
       location: formDataFromModal.location?.trim() || null,
-      duration: formDataFromModal.duration || null,
-      meetingLink: formDataFromModal.meetingLink?.trim() || null,
-      description: formDataFromModal.agenda?.trim() || null,
-      dueDate: formDataFromModal.dueDate,
-      assignedTo: formDataFromModal.assignedTo || null,
-      relatedType: formDataFromModal.relatedType || null,
-      relatedTo: formDataFromModal.relatedTo || null,
-      priority: formDataFromModal.priority || "Medium",
+      duration: duration,
+      meeting_link: formDataFromModal.meetingLink?.trim() || null,
+      agenda: formDataFromModal.agenda?.trim() || null,
+      due_date: formDataFromModal.dueDate,
+      assigned_to: assignedToId,
+      related_type: formDataFromModal.relatedType || null,
+      related_to: formDataFromModal.relatedTo || null,
+      priority: formDataFromModal.priority || "Low",
       status: "PENDING",
     };
 
@@ -333,40 +348,32 @@ const AdminMeeting = () => {
     try {
       if (type === "create") {
         setIsSubmitting(true);
-        // TODO: Replace with actual API call
-        // await api.post(`/meetings/create`, payload);
-        const newMeeting = {
-          id: meetings.length + 1,
-          ...payload,
-          status: "PENDING",
-          completed: false,
-        };
-        setMeetings((prev) => [newMeeting, ...prev]);
+        await api.post(`/meetings/create`, payload);
         toast.success(`Meeting "${name}" created successfully.`);
         closeModal();
+        // Refresh meetings list
+        await fetchMeetings();
       } else if (type === "update") {
         if (!targetId) {
           throw new Error("Missing meeting identifier for update.");
         }
         setIsSubmitting(true);
-        // TODO: Replace with actual API call
-        // await api.put(`/meetings/${targetId}`, payload);
-        setMeetings((prev) =>
-          prev.map((m) => (m.id === targetId ? { ...m, ...payload } : m))
-        );
+        await api.put(`/meetings/${targetId}`, payload);
         toast.success(`Meeting "${name}" updated successfully.`);
         closeModal();
+        // Refresh meetings list
+        await fetchMeetings();
       } else if (type === "delete") {
         if (!targetId) {
           throw new Error("Missing meeting identifier for deletion.");
         }
-        // TODO: Replace with actual API call
-        // await api.delete(`/meetings/${targetId}`);
-        setMeetings((prev) => prev.filter((m) => m.id !== targetId));
+        await api.delete(`/meetings/${targetId}`);
         toast.success(`Meeting "${name}" deleted successfully.`);
         if (selectedMeeting?.id === targetId) {
           setSelectedMeeting(null);
         }
+        // Refresh meetings list
+        await fetchMeetings();
       }
     } catch (err) {
       console.error(err);
@@ -591,6 +598,7 @@ const AdminMeeting = () => {
           isEditing={isEditing}
           onSubmit={handleSubmit}
           isSubmitting={isSubmitting || confirmProcessing}
+          users={users}
         />
       )}
 

@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { HiX } from "react-icons/hi";
-import { FiPhone, FiMail, FiCalendar, FiEdit2, FiTrash2 } from "react-icons/fi";
+import { FiPhone, FiMail, FiCalendar, FiEdit2, FiTrash2, FiFileText } from "react-icons/fi";
 
 const AdminMeetingInfomation = ({ meeting, onClose, onEdit, onDelete }) => {
   const [activeTab, setActiveTab] = useState("Overview");
@@ -115,20 +115,37 @@ const AdminMeetingInfomation = ({ meeting, onClose, onEdit, onDelete }) => {
                 <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6 md:p-8 border border-gray-200">
                   <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-4 sm:gap-6 text-sm text-gray-700">
                     <div>
-                      <p className="font-semibold">Activity:</p>
+                      <p className="font-semibold">Meeting Title:</p>
                       <p>{meeting.activity || "N/A"}</p>
                     </div>
                     <div>
-                      <p className="font-semibold">Description:</p>
+                      <p className="font-semibold">Location:</p>
+                      <p>{meeting.location || "N/A"}</p>
+                    </div>
+                    <div>
+                      <p className="font-semibold">Duration:</p>
+                      <p>{meeting.duration ? `${meeting.duration} minutes` : "N/A"}</p>
+                    </div>
+                    <div>
+                      <p className="font-semibold">Meeting Link:</p>
+                      <p>
+                        {meeting.meetingLink ? (
+                          <a
+                            href={meeting.meetingLink}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-blue-600 hover:underline break-all"
+                          >
+                            {meeting.meetingLink}
+                          </a>
+                        ) : (
+                          "N/A"
+                        )}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="font-semibold">Agenda:</p>
                       <p>{meeting.description || "N/A"}</p>
-                    </div>
-                    <div>
-                      <p className="font-semibold">Priority:</p>
-                      <p>{meeting.priority || "N/A"}</p>
-                    </div>
-                    <div>
-                      <p className="font-semibold">Related To:</p>
-                      <p>{meeting.relatedTo || "N/A"}</p>
                     </div>
                     <div>
                       <p className="font-semibold">Due Date:</p>
@@ -137,6 +154,18 @@ const AdminMeetingInfomation = ({ meeting, onClose, onEdit, onDelete }) => {
                     <div>
                       <p className="font-semibold">Assigned To:</p>
                       <p>{meeting.assignedTo || "N/A"}</p>
+                    </div>
+                    <div>
+                      <p className="font-semibold">Related Type:</p>
+                      <p>{meeting.relatedType || "N/A"}</p>
+                    </div>
+                    <div>
+                      <p className="font-semibold">Related To:</p>
+                      <p>{meeting.relatedTo || "N/A"}</p>
+                    </div>
+                    <div>
+                      <p className="font-semibold">Priority:</p>
+                      <p>{meeting.priority || "N/A"}</p>
                     </div>
                     <div>
                       <p className="font-semibold">Status:</p>
@@ -214,18 +243,19 @@ const AdminMeetingInfomation = ({ meeting, onClose, onEdit, onDelete }) => {
               )}
             </div>
 
-            <div className="flex flex-col gap-4 h-full">
+            <div className="flex flex-col gap-4">
               {/* QUICK ACTIONS */}
-              <div className="bg-white border border-gray-100 rounded-lg p-3 sm:p-4 shadow-sm flex flex-col flex-grow">
+              <div className="bg-white border border-gray-100 rounded-lg p-3 sm:p-4 shadow-sm">
                 <h4 className="font-semibold text-gray-800 mb-2 text-sm">
                   Quick Actions
                 </h4>
 
-                <div className="flex flex-col gap-2 w-full flex-grow">
+                <div className="flex flex-col gap-2 w-full">
                   {[
                     { icon: FiPhone, text: "Schedule Call" },
                     { icon: FiMail, text: "Send E-mail" },
                     { icon: FiCalendar, text: "Book Meeting" },
+                    { icon: FiFileText, text: "Create Quote" },
                   ].map(({ icon: Icon, text }) => (
                     <button
                       key={text}
@@ -235,20 +265,6 @@ const AdminMeetingInfomation = ({ meeting, onClose, onEdit, onDelete }) => {
                       {text}
                     </button>
                   ))}
-                </div>
-              </div>
-
-              {/* STATUS */}
-              <div className="bg-white border border-gray-100 rounded-lg p-3 sm:p-4 shadow-sm w-full">
-                <h4 className="font-semibold text-gray-800 mb-2 text-sm">
-                  Status
-                </h4>
-                <div
-                  className={`w-full py-2 px-3 rounded-md text-sm text-center font-medium whitespace-nowrap ${getStatusBadgeClass(
-                    meeting.status
-                  )}`}
-                >
-                  {formatStatusLabel(meeting.status || "PENDING")}
                 </div>
               </div>
             </div>

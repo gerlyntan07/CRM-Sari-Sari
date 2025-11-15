@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { FiX, FiPhone, FiMail, FiCalendar, FiFileText } from "react-icons/fi";
+import { FiX, FiPhone, FiMail, FiCalendar, FiFileText, FiEdit2, FiTrash2 } from "react-icons/fi";
 import AdminDealsQuickAction from "../components/AdminDealsQuickAction";
 
 export default function AdminDealsInformation({
@@ -8,6 +8,8 @@ export default function AdminDealsInformation({
   onClose,
   activeTab,
   setActiveTab,
+  onEdit,
+  onDelete,
 }) {  
 
   const [showNoteModal, setShowNoteModal] = useState(false);
@@ -104,6 +106,34 @@ export default function AdminDealsInformation({
             className="absolute top-3 sm:top-4 right-3 text-gray-500 hover:text-gray-700"
           >
             <FiX size={20} />
+          </button>
+        </div>
+
+        {/* Action Buttons */}
+        <div className="flex flex-col sm:flex-row sm:space-x-3 space-y-2 sm:space-y-0 px-4 sm:px-6 pb-4">
+          <button
+            type="button"
+            onClick={() => {
+              if (onEdit) {
+                onEdit(selectedDeal);
+              }
+            }}
+            className="inline-flex items-center justify-center w-full sm:w-auto bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 transition text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+          >
+            <FiEdit2 className="mr-2" />
+            Edit
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              if (onDelete) {
+                onDelete(selectedDeal);
+              }
+            }}
+            className="inline-flex items-center justify-center w-full sm:w-auto px-4 py-2 rounded-md text-sm bg-red-500 text-white hover:bg-red-600 transition focus:outline-none focus:ring-2 focus:ring-red-400"
+          >
+            <FiTrash2 className="mr-2" />
+            Delete
           </button>
         </div>
 

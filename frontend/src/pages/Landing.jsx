@@ -49,10 +49,10 @@ const HeroSection = () => {
         <div className="lg:text-left text-center">
           <h1 className="text-5xl sm:text-6xl lg:text-7xl font-lg text-secondary mb-6 leading-tight">
             Sari-Sari{" "}
-            <span className="text-accent font-extrabold">Sari-Sari.</span>
+            <span className="text-accent font-extrabold">CRM</span>
           </h1>
           <p className="max-w-xl mx-auto lg:mx-0 text-lg sm:text-xl text-secondary mb-10 italic">
-            Sari-Sari CRM
+            The CRM that keeps your customers organized and your sales growing.
           </p>
           <div className="flex flex-col sm:flex-row justify-center lg:justify-start space-y-4 sm:space-y-0 sm:space-x-4">
             <a
@@ -181,7 +181,7 @@ const CTASection = () => (
       Start Building Your Future, Today.
     </h2>
     <p className="text-xl text-gray-400 mb-10">
-      Join thousands leveraging AuraCRM's intelligent platform.
+      Join thousands leveraging Sari-Sari CRM's intelligent platform.
     </p>
     <a
       href="/signup"
@@ -197,11 +197,9 @@ const Footer = () => (
   <footer className="bg-secondary text-white border-t py-10">
     <div className="container mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-2 md:grid-cols-5 gap-8">
       <div>
-        <span className="text-xl font-white">
-          CRM<span className="text-accent">Sari-Sari</span>
-        </span>
+        <span className="text-xl font-white">Sari-Sari <span className="text-accent">CRM</span></span>        
         <p className="text-sm text-white mt-4">
-          &copy; 2025 CRMSari-Sari, Inc.
+          &copy; 2025 Sari-Sari CRM
         </p>
       </div>
       {[

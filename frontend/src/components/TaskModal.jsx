@@ -9,6 +9,7 @@ export default function TaskModal({
   setFormData,
   formData,
   isEditing = false,
+  viewMode = false,
 }) {
   const [salesList, setSalesList] = useState([]);
 
@@ -35,7 +36,7 @@ export default function TaskModal({
     onSave?.(formData); // modal does not close immediately; update handled in AdminTask
   };
 
-  const modalTitle = isEditing ? "Edit Task" : "Create Task";
+  const modalTitle = viewMode ? "Task Details" : isEditing ? "Edit Task" : "Create Task";
 
   return (
     <Transition appear show={isOpen} as={Fragment}>
@@ -64,7 +65,7 @@ export default function TaskModal({
               leaveTo="opacity-0 scale-95"
             >
               <Dialog.Panel className="w-full max-w-full sm:max-w-3xl text-left align-middle transform transition-all">
-                <div className="bg-white w-full rounded-2xl shadow-lg p-4 sm:p-6 md:p-8 relative border border-gray-200 overflow-y-auto max-h-[90vh] flex flex-col">
+                <div className="bg-white w-full rounded-2xl shadow-lg p-4 sm:p-6 md:p-8 relative border border-gray-200 overflow-y-auto max-h-[90vh] flex flex-col hide-scrollbar">
                   <button
                     onClick={onClose}
                     aria-label="Close modal"
@@ -73,12 +74,9 @@ export default function TaskModal({
                     &times;
                   </button>
 
-                  <h3 className="text-xl sm:text-2xl font-semibold text-gray-800 mb-1 flex items-center justify-center">
+                  <h3 className="text-xl sm:text-2xl font-semibold text-gray-800 mb-4 sm:mb-6 flex items-center justify-center">
                     {modalTitle}
                   </h3>
-                  <p className="text-sm text-gray-500 text-center mb-4 sm:mb-6">
-                    Fill in the task details.
-                  </p>
 
                   <form
                     onSubmit={handleSubmit}
@@ -94,8 +92,11 @@ export default function TaskModal({
                         value={formData.title}
                         onChange={handleChange}
                         required
+                        disabled={viewMode}
                         placeholder="Enter task title"
-                        className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-400 outline-none"
+                        className={`w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-400 outline-none ${
+                          viewMode ? "bg-gray-50 cursor-not-allowed" : ""
+                        }`}
                       />
                     </div>
 
@@ -107,9 +108,12 @@ export default function TaskModal({
                         name="description"
                         value={formData.description}
                         onChange={handleChange}
+                        disabled={viewMode}
                         placeholder="Enter task description"
                         rows={3}
-                        className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-400 outline-none"
+                        className={`w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-400 outline-none ${
+                          viewMode ? "bg-gray-50 cursor-not-allowed" : ""
+                        }`}
                       />
                     </div>
 
@@ -121,7 +125,10 @@ export default function TaskModal({
                         name="type"
                         value={formData.type}
                         onChange={handleChange}
-                        className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-400 outline-none"
+                        disabled={viewMode}
+                        className={`w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-400 outline-none ${
+                          viewMode ? "bg-gray-50 cursor-not-allowed" : ""
+                        }`}
                       >
                         <option>Call</option>
                         <option>Meeting</option>
@@ -138,7 +145,10 @@ export default function TaskModal({
                         name="priority"
                         value={formData.priority}
                         onChange={handleChange}
-                        className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-400 outline-none"
+                        disabled={viewMode}
+                        className={`w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-400 outline-none ${
+                          viewMode ? "bg-gray-50 cursor-not-allowed" : ""
+                        }`}
                       >
                         <option>Low</option>
                         <option>Medium</option>
@@ -154,7 +164,10 @@ export default function TaskModal({
                         name="status"
                         value={formData.status}
                         onChange={handleChange}
-                        className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-400 outline-none"
+                        disabled={viewMode}
+                        className={`w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-400 outline-none ${
+                          viewMode ? "bg-gray-50 cursor-not-allowed" : ""
+                        }`}
                       >
                         <option>To Do</option>
                         <option>In Progress</option>
@@ -172,7 +185,10 @@ export default function TaskModal({
                         value={formData.dueDate}
                         onChange={handleChange}
                         required
-                        className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-400 outline-none"
+                        disabled={viewMode}
+                        className={`w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-400 outline-none ${
+                          viewMode ? "bg-gray-50 cursor-not-allowed" : ""
+                        }`}
                       />
                     </div>
 
@@ -184,7 +200,10 @@ export default function TaskModal({
                         name="assignedTo"
                         value={formData.assignedTo}
                         onChange={handleChange}
-                        className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-400 outline-none"
+                        disabled={viewMode}
+                        className={`w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-400 outline-none ${
+                          viewMode ? "bg-gray-50 cursor-not-allowed" : ""
+                        }`}
                       >
                         <option value="">Select User</option>
                         {salesList.map((user) => (
@@ -203,7 +222,10 @@ export default function TaskModal({
                         name="relatedTo"
                         value={formData.relatedTo}
                         onChange={handleChange}
-                        className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-400 outline-none"
+                        disabled={viewMode}
+                        className={`w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-400 outline-none ${
+                          viewMode ? "bg-gray-50 cursor-not-allowed" : ""
+                        }`}
                       >
                         <option value="">Select type</option>
                         <option>Lead</option>
@@ -220,27 +242,32 @@ export default function TaskModal({
                         name="notes"
                         value={formData.notes}
                         onChange={handleChange}
+                        disabled={viewMode}
                         placeholder="Additional notes..."
                         rows={3}
-                        className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-400 outline-none"
+                        className={`w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-400 outline-none ${
+                          viewMode ? "bg-gray-50 cursor-not-allowed" : ""
+                        }`}
                       />
                     </div>
 
-                    <div className="flex flex-col sm:flex-row justify-end sm:justify-end space-y-2 sm:space-y-0 sm:space-x-2 col-span-1 md:col-span-2 mt-4 w-full">
-                      <button
-                        type="button"
-                        onClick={onClose}
-                        className="w-full sm:w-auto px-4 py-2 text-white bg-red-400 border border-red-300 rounded hover:bg-red-500 transition"
-                      >
-                        Cancel
-                      </button>
-                      <button
-                        type="submit"
-                        className="w-full sm:w-auto px-4 py-2 text-white border border-tertiary bg-tertiary rounded hover:bg-secondary transition"
-                      >
-                        {isEditing ? "Update Task" : "Create Task"}
-                      </button>
-                    </div>
+                    {!viewMode && (
+                      <div className="flex flex-col sm:flex-row justify-end sm:justify-end space-y-2 sm:space-y-0 sm:space-x-2 col-span-1 md:col-span-2 mt-4 w-full">
+                        <button
+                          type="button"
+                          onClick={onClose}
+                          className="w-full sm:w-auto px-4 py-2 text-white bg-red-400 border border-red-300 rounded hover:bg-red-500 transition"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          type="submit"
+                          className="w-full sm:w-auto px-4 py-2 text-white border border-tertiary bg-tertiary rounded hover:bg-secondary transition"
+                        >
+                          {isEditing ? "Update Task" : "Create Task"}
+                        </button>
+                      </div>
+                    )}
                   </form>
                 </div>
               </Dialog.Panel>

@@ -104,7 +104,7 @@ export default function AdminAccounts() {
   const [accountsLoading, setAccountsLoading] = useState(false);
   const [users, setUsers] = useState([]);
   const [territories, setTerritories] = useState([]);
-  const [stageFilter, setStageFilter] = useState("");
+  const [stageFilter, setStageFilter] = useState("Filter by Status");
   const [searchQuery, setSearchQuery] = useState("");
   const [confirmModalData, setConfirmModalData] = useState(null);
   const [confirmProcessing, setConfirmProcessing] = useState(false);
@@ -284,7 +284,7 @@ export default function AdminAccounts() {
         });
 
       const matchesStage =
-        normalizedFilter === "" ||
+        normalizedFilter === "FILTER BY STATUS" ||
         normalizeStatus(acc.status) === normalizedFilter;
 
       return matchesSearch && matchesStage;
@@ -452,6 +452,10 @@ export default function AdminAccounts() {
             : null;
         closeModal();
         await fetchAccounts(preserveId);
+        // Ensure list view is shown to see table changes
+        if (selectedAccount?.id === targetId) {
+          setSelectedAccount(null);
+        }
       } else if (type === "delete") {
         if (!targetId) {
           throw new Error("Missing account identifier for deletion.");
@@ -560,7 +564,7 @@ export default function AdminAccounts() {
   };
 
   const statusFilterOptions = [
-    { label: "All Statuses", value: "" },
+    { label: "Filter by Status", value: "Filter by Status" },
     ...STATUS_OPTIONS.map((option) => ({
       label: option.label,
       value: option.value,
@@ -732,7 +736,7 @@ export default function AdminAccounts() {
           <FiSearch size={20} className="text-gray-400 mr-3" />
           <input
             type="text"
-            placeholder="Search by company, website, industry, territory, or phone..."
+            placeholder="Search accounts"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="focus:outline-none text-base w-full"

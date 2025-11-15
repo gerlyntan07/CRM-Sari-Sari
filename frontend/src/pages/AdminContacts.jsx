@@ -103,7 +103,7 @@ export default function AdminContacts() {
   const [currentContactId, setCurrentContactId] = useState(null);
   const [formData, setFormData] = useState(INITIAL_FORM_STATE);
   const [searchQuery, setSearchQuery] = useState("");
-  const [accountFilter, setAccountFilter] = useState("");
+  const [accountFilter, setAccountFilter] = useState("Filter by Accounts");
   const [deletingId, setDeletingId] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
 
@@ -197,7 +197,7 @@ export default function AdminContacts() {
     const options = Array.from(map.entries())
       .sort((a, b) => a[1].localeCompare(b[1]))
       .map(([value, label]) => ({ value, label }));
-    return [{ value: "", label: "All Accounts" }, ...options];
+    return [{ value: "Filter by Accounts", label: "Filter by Accounts" }, ...options];
   }, [accounts, contacts]);
 
   const filteredContacts = useMemo(() => {
@@ -233,7 +233,7 @@ export default function AdminContacts() {
         });
 
       const matchesAccount =
-        normalizedFilter === "" ||
+        normalizedFilter === "Filter by Accounts" ||
         String(contact.account_id) === normalizedFilter;
 
       return matchesSearch && matchesAccount;
@@ -443,6 +443,10 @@ export default function AdminContacts() {
             : selectedContact?.id || null;
         closeModal();
         await fetchContacts(preserveId);
+        // Ensure list view is shown to see table changes
+        if (selectedContact?.id === targetId) {
+          setSelectedContact(null);
+        }
       } else if (type === "delete") {
         if (!targetId) {
           throw new Error("Missing contact identifier for deletion.");
@@ -659,7 +663,7 @@ export default function AdminContacts() {
           <FiSearch size={20} className="text-gray-400 mr-3" />
           <input
             type="text"
-            placeholder="Search by name, email, department, or account..."
+            placeholder="Search contacts"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="focus:outline-none text-base w-full"
@@ -821,7 +825,7 @@ export default function AdminContacts() {
       className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4"
     >
       <div
-        className="bg-white w-full max-w-full sm:max-w-3xl rounded-2xl shadow-lg p-4 sm:p-6 md:p-8 relative border border-gray-200 overflow-y-auto max-h-[90vh]"
+        className="bg-white w-full max-w-full sm:max-w-3xl rounded-2xl shadow-lg p-4 sm:p-6 md:p-8 relative border border-gray-200 overflow-y-auto max-h-[90vh] hide-scrollbar"
         onClick={(e) => e.stopPropagation()}
       >
         <button

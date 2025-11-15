@@ -491,6 +491,10 @@ const ActivityItem = ({ type, title, assigned, time, priority }) => {
 // --- Main App Component ---
 
 const App = () => {
+  useEffect(() => {
+    document.title = "Dashboard | Sari-Sari CRM";
+  }, []);
+
   return (
     <div className="min-h-screen pt-5 pb-10 font-sans">
       

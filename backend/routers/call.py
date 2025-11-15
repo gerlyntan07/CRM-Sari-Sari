@@ -169,13 +169,16 @@ def create_call(
     related_to_lead = None
     related_to_deal = None
     
-    # Only set relationship fields based on what user actually selected
+    # Always set primary_contact_id as related_to_contact if provided
+    # This ensures the contact relationship is established for call details
+    if data.primary_contact_id:
+        related_to_contact = data.primary_contact_id
+    
+    # Set additional relationship fields based on related_type if needed
     if data.related_type:
         related_type_lower = data.related_type.lower()
-        if related_type_lower == "contact" and data.primary_contact_id:
-            related_to_contact = data.primary_contact_id
         # Additional logic can be added for other types (Account, Lead, Deal)
-        # For now, we only support Contact relationship
+        # Note: primary_contact is already set above, so we don't override it here
     
     # Store phone_number, priority, related_to, and related_type as JSON metadata in notes
     metadata = {

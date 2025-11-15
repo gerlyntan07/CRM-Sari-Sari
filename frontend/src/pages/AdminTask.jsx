@@ -254,6 +254,10 @@ const buildTaskPayload = (data) => {
 };
 
 export default function AdminTask() {
+  useEffect(() => {
+    document.title = "Tasks | Sari-Sari CRM";
+  }, []);
+
   const { user: currentUser, loading: userLoading } = useFetchUser();
   const [view, setView] = useState("board");
   const [showModal, setShowModal] = useState(false);

@@ -33,7 +33,7 @@ export default function AdminPanel() {
   }, []);
 
   useEffect(() => {
-    document.title = `Panel | Sari-Sari CRM`;
+    document.title = `Admin Panel | Sari-Sari CRM`;
   }, []);
 
   const salesRoutes = [

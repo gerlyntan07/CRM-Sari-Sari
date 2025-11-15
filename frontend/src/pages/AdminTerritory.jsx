@@ -30,6 +30,10 @@ const BOARD_PAGE_SIZE = 12;
 const TABLE_PAGE_SIZE = 10;
 
 export default function AdminTerritory() {
+  useEffect(() => {
+    document.title = "Territory | Sari-Sari CRM";
+  }, []);
+
   const navigate = useNavigate();
   const { id } = useParams();
   const [searchQuery, setSearchQuery] = useState("");

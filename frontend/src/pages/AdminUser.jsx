@@ -205,7 +205,7 @@ export default function AdminUser() {
   }, [userLoading, isAuthorized, fetchUsers]);
 
   useEffect(() => {
-    document.title = "User Management | Sari-Sari CRM";
+    document.title = "Users | Sari-Sari CRM";
   }, []);
 
   const filteredUsers = useMemo(() => {

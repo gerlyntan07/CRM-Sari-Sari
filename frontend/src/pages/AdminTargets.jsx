@@ -1,7 +1,11 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { FiSearch, FiEdit2, FiTrash2, FiTarget, FiX } from "react-icons/fi";
 
 export default function AdminTargets() {
+  useEffect(() => {
+    document.title = "Targets | Sari-Sari CRM";
+  }, []);
+
   const [searchTerm, setSearchTerm] = useState("");
   const [showModal, setShowModal] = useState(false);
   const [selectedTarget, setSelectedTarget] = useState(null);

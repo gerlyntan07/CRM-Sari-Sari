@@ -624,21 +624,21 @@ export default function AdminTask() {
         value: tasks.filter((t) => t.status === "To Do").length,
         icon: FiClock,
         color: "text-blue-600",
-        bgColor: "bg-blue-50",
+        bgColor: "bg-blue-100",
       },
       {
         title: "In Progress",
         value: tasks.filter((t) => t.status === "In Progress").length,
         icon: FiActivity,
         color: "text-purple-600",
-        bgColor: "bg-purple-50",
+        bgColor: "bg-purple-100",
       },
       {
         title: "Completed",
         value: tasks.filter((t) => t.status === "Completed").length,
         icon: FiCheckCircle,
         color: "text-green-600",
-        bgColor: "bg-green-50",
+        bgColor: "bg-green-100",
       },
       {
         title: "Overdue",
@@ -648,14 +648,14 @@ export default function AdminTask() {
         ).length,
         icon: FiAlertCircle,
         color: "text-red-600",
-        bgColor: "bg-red-50",
+        bgColor: "bg-red-100",
       },
       {
         title: "High Priority",
         value: tasks.filter((t) => t.priority === "High").length,
         icon: FiStar,
         color: "text-orange-600",
-        bgColor: "bg-orange-50",
+        bgColor: "bg-orange-100",
       },
     ];
   }, [tasks]);
@@ -730,7 +730,7 @@ export default function AdminTask() {
       <div className="flex justify-between items-start mb-6">
         <div>
           <h1 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
-            <FiActivity className="text-blue-600" /> Tasks and Reminders
+            <FiActivity className="text-blue-600" /> Tasks Board
           </h1>
         </div>
         <button
@@ -743,7 +743,7 @@ export default function AdminTask() {
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-4 mb-6">
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4 mb-6">
         {METRICS.map((metric) => (
           <MetricCard key={metric.title} {...metric} />
         ))}
@@ -1053,10 +1053,22 @@ function MetricCard({
   title,
   value,
   color = "text-blue-600",
-  bgColor = "bg-blue-50",
+  bgColor = "bg-blue-100",
+  onClick,
 }) {
+  const handleClick = () => {
+    if (typeof onClick === "function") {
+      onClick();
+    } else {
+      console.log(`Clicked: ${title}`);
+    }
+  };
+
   return (
-    <div className="flex items-center p-4 bg-white rounded-xl shadow-lg hover:shadow-xl hover:ring-2 hover:ring-blue-500 cursor-pointer transition-all duration-300">
+    <div
+      className="flex items-center p-4 bg-white rounded-xl shadow-md hover:shadow-lg hover:ring-2 hover:ring-blue-500 cursor-pointer transition-all duration-300"
+      onClick={handleClick}
+    >
       <div
         className={`flex-shrink-0 p-3 rounded-full ${bgColor} ${color} mr-4`}
       >

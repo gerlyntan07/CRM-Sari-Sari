@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import {
     FiSearch,
     FiEdit,
@@ -7,15 +7,16 @@ import {
     FiCheckCircle,
     FiXCircle,
     FiTrash2,
-    FiX
+    FiX,
+    FiPlus
 } from "react-icons/fi";
 import { LuUserSearch } from "react-icons/lu";
 import api from '../api'
 import { toast } from "react-toastify";
-
-
-
+import PaginationControls from "../components/PaginationControls.jsx";
 import AdminDealsInformation from "../components/AdminDealsInformation";
+
+const ITEMS_PER_PAGE = 10;
 
 export default function AdminDeals() {
     useEffect(() => {
@@ -23,12 +24,18 @@ export default function AdminDeals() {
     }, []);
 
     const [searchQuery, setSearchQuery] = useState("");
-    const [stageFilter, setStageFilter] = useState("");
-    const [ownerFilter, setOwnerFilter] = useState("");
+    const [stageFilter, setStageFilter] = useState("Filter by Stage");
+    const [ownerFilter, setOwnerFilter] = useState("Filter by Owner");
     const [selectedDeal, setSelectedDeal] = useState(null);
     const [activeTab, setActiveTab] = useState("Overview");
     const [showDealModal, setShowDealModal] = useState(false);
     const [deals, setDeals] = useState(null);
+    const [currentPage, setCurrentPage] = useState(1);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [confirmModalData, setConfirmModalData] = useState(null);
+    const [confirmProcessing, setConfirmProcessing] = useState(false);
+    const [isEditing, setIsEditing] = useState(false);
+    const [currentDealId, setCurrentDealId] = useState(null);
 
     const [dealForm, setDealForm] = useState({
         id: null,
@@ -57,22 +64,72 @@ export default function AdminDeals() {
         "Closed Lost Stage": "CLOSED_LOST",
     };
 
-    const filteredDeals = (deals ?? []).filter((deal) => {
-        const matchesSearch =
-            searchQuery === "" ||
-            deal.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            deal.description?.toLowerCase().includes(searchQuery.toLowerCase());
+    const filteredDeals = useMemo(() => {
+        const normalizedQuery = searchQuery.trim().toLowerCase();
+        const normalizedStageFilter = stageFilter.trim();
+        const normalizedOwnerFilter = ownerFilter.trim();
 
-        const matchesStage =
-            stageFilter === "" || deal.stage === stageMap[stageFilter];
+        return (deals ?? []).filter((deal) => {
+            const searchFields = [
+                deal?.name,
+                deal?.description,
+                deal?.account?.name,
+                deal?.contact?.first_name,
+                deal?.contact?.last_name,
+                deal?.assigned_deals?.first_name,
+                deal?.assigned_deals?.last_name,
+            ];
 
-        const matchesOwner =
-            ownerFilter === "" ||
-            `${deal.assigned_deals?.first_name} ${deal.assigned_deals?.last_name}`.toLowerCase() ===
-            ownerFilter.toLowerCase();
+            const matchesSearch =
+                normalizedQuery === "" ||
+                searchFields.some((field) => {
+                    if (field === null || field === undefined || field === "")
+                        return false;
+                    return field.toString().toLowerCase().includes(normalizedQuery);
+                });
 
-        return matchesSearch && matchesStage && matchesOwner;
-    });
+            const matchesStage =
+                normalizedStageFilter === "Filter by Stage" ||
+                normalizedStageFilter === "" ||
+                deal.stage === stageMap[normalizedStageFilter];
+
+            const matchesOwner =
+                normalizedOwnerFilter === "Filter by Owner" ||
+                normalizedOwnerFilter === "" ||
+                `${deal.assigned_deals?.first_name} ${deal.assigned_deals?.last_name}`.toLowerCase() ===
+                normalizedOwnerFilter.toLowerCase();
+
+            return matchesSearch && matchesStage && matchesOwner;
+        });
+    }, [deals, searchQuery, stageFilter, ownerFilter]);
+
+    const totalPages = Math.max(
+        1,
+        Math.ceil(filteredDeals.length / ITEMS_PER_PAGE) || 1
+    );
+
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [searchQuery, stageFilter, ownerFilter]);
+
+    useEffect(() => {
+        setCurrentPage((prev) => {
+            const maxPage = Math.max(
+                1,
+                Math.ceil(filteredDeals.length / ITEMS_PER_PAGE) || 1
+            );
+            return prev > maxPage ? maxPage : prev;
+        });
+    }, [filteredDeals.length]);
+
+    const paginatedDeals = useMemo(() => {
+        const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+        return filteredDeals.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+    }, [filteredDeals, currentPage]);
+
+    const handlePrevPage = () => setCurrentPage((prev) => Math.max(prev - 1, 1));
+    const handleNextPage = () =>
+        setCurrentPage((prev) => Math.min(prev + 1, totalPages));
 
 
 
@@ -93,6 +150,8 @@ export default function AdminDeals() {
             phone: "",
             email: "",
         });
+        setIsEditing(false);
+        setCurrentDealId(null);
         setShowDealModal(true);
     };
 
@@ -115,7 +174,29 @@ export default function AdminDeals() {
     }, [])
 
     const openEditDealModal = (deal) => {
-        setDealForm(deal);
+        if (!deal) return;
+        setDealForm({
+            id: deal.id || null,
+            name: deal.name || "",
+            account: deal.account?.name || "",
+            contact: deal.contact?.first_name && deal.contact?.last_name 
+                ? `${deal.contact.first_name} ${deal.contact.last_name}` 
+                : deal.contact?.first_name || "",
+            stage: deal.stage || "Proposal Stage",
+            value: deal.amount?.toString() || "",
+            closeDate: deal.close_date || "",
+            owner: deal.assigned_deals?.first_name && deal.assigned_deals?.last_name
+                ? `${deal.assigned_deals.first_name} ${deal.assigned_deals.last_name}`
+                : deal.assigned_deals?.first_name || "",
+            status: deal.status || "Proposal",
+            progress: deal.progress || 0,
+            description: deal.description || "",
+            phone: deal.contact?.work_phone || "",
+            email: deal.contact?.email || "",
+        });
+        setIsEditing(true);
+        setCurrentDealId(deal.id);
+        setSelectedDeal(null);
         setShowDealModal(true);
     };
 
@@ -133,358 +214,739 @@ export default function AdminDeals() {
         setDealForm({ ...dealForm, [key]: value });
     };
 
-    const handleDealSubmit = (e) => {
-        e.preventDefault();
-        if (dealForm.id) {
-            // Edit deal in local state
-            setDeals((prev) =>
-                prev.map((d) => (d.id === dealForm.id ? dealForm : d))
-            );
-        } else {
-            // Add new deal to local state
-            setDeals([...deals, { ...dealForm, id: deals.length + 1 }]);
+    const handleDealSubmit = (formDataFromModal) => {
+        const trimmedName = formDataFromModal.name.trim();
+        if (!trimmedName) {
+            toast.error("Deal name is required.");
+            return;
         }
-        setShowDealModal(false);
+
+        const actionType = isEditing && currentDealId ? "update" : "create";
+        const dealName = trimmedName;
+
+        setConfirmModalData({
+            title: actionType === "create" ? "Confirm New Deal" : "Confirm Update",
+            message:
+                actionType === "create" ? (
+                    <span>
+                        Are you sure you want to create{" "}
+                        <span className="font-semibold">{dealName}</span>?
+                    </span>
+                ) : (
+                    <span>
+                        Save changes to <span className="font-semibold">{dealName}</span>?
+                    </span>
+                ),
+            confirmLabel: actionType === "create" ? "Create Deal" : "Update Deal",
+            cancelLabel: "Cancel",
+            variant: "primary",
+            action: {
+                type: actionType,
+                formData: formDataFromModal,
+                targetId: currentDealId || null,
+                name: dealName,
+            },
+        });
     };
 
-    const handleDeleteDeal = (id) => {
-        setDeals(deals.filter((d) => d.id !== id));
+    const handleDeleteDeal = (deal) => {
+        if (!deal) return;
+        const name = deal.name || "this deal";
+        setConfirmModalData({
+            title: "Delete Deal",
+            message: (
+                <span>
+                    Are you sure you want to permanently delete{" "}
+                    <span className="font-semibold">{name}</span>? This action cannot be
+                    undone.
+                </span>
+            ),
+            confirmLabel: "Delete Deal",
+            cancelLabel: "Cancel",
+            variant: "danger",
+            action: {
+                type: "delete",
+                targetId: deal.id,
+                name,
+            },
+        });
     };
+
+    const handleConfirmAction = async () => {
+        if (!confirmModalData?.action) {
+            setConfirmModalData(null);
+            return;
+        }
+
+        const { action } = confirmModalData;
+        const { type, formData, targetId, name } = action;
+
+        setConfirmProcessing(true);
+
+        try {
+            if (type === "create") {
+                setIsSubmitting(true);
+                // TODO: Replace with actual API call
+                // await api.post(`/deals/create`, formData);
+                setDeals([...(deals ?? []), { ...formData, id: (deals?.length ?? 0) + 1 }]);
+                toast.success(`Deal "${name}" created successfully.`);
+                setShowDealModal(false);
+                await fetchDeals();
+            } else if (type === "update") {
+                if (!targetId) {
+                    throw new Error("Missing deal identifier for update.");
+                }
+                setIsSubmitting(true);
+                // TODO: Replace with actual API call
+                // await api.put(`/deals/${targetId}`, formData);
+                setDeals((prev) =>
+                    prev.map((d) => (d.id === targetId ? { ...formData, id: targetId } : d))
+                );
+                toast.success(`Deal "${name}" updated successfully.`);
+                setShowDealModal(false);
+                await fetchDeals();
+            } else if (type === "delete") {
+                if (!targetId) {
+                    throw new Error("Missing deal identifier for deletion.");
+                }
+                // TODO: Replace with actual API call
+                // await api.delete(`/deals/${targetId}`);
+                setDeals((prev) => prev.filter((d) => d.id !== targetId));
+                toast.success(`Deal "${name}" deleted successfully.`);
+                if (selectedDeal?.id === targetId) {
+                    setSelectedDeal(null);
+                }
+                await fetchDeals();
+            }
+        } catch (err) {
+            console.error(err);
+            const defaultMessage =
+                type === "create"
+                    ? "Failed to create deal. Please review the details and try again."
+                    : type === "update"
+                    ? "Failed to update deal. Please review the details and try again."
+                    : "Failed to delete deal. Please try again.";
+            const message = err.response?.data?.detail || defaultMessage;
+            toast.error(message);
+        } finally {
+            if (type === "create" || type === "update") {
+                setIsSubmitting(false);
+            }
+            setConfirmProcessing(false);
+            setConfirmModalData(null);
+        }
+    };
+
+    const handleCancelConfirm = () => {
+        if (confirmProcessing) return;
+        setConfirmModalData(null);
+    };
+
+    const closeModal = () => {
+        setShowDealModal(false);
+        setDealForm({
+            id: null,
+            name: "",
+            account: "",
+            contact: "",
+            stage: "Proposal Stage",
+            value: "",
+            closeDate: "",
+            owner: "",
+            status: "Proposal",
+            progress: 0,
+            description: "",
+            phone: "",
+            email: "",
+        });
+        setIsEditing(false);
+        setCurrentDealId(null);
+        setIsSubmitting(false);
+    };
+
+    const handleBackdropClick = (e) => {
+        if (e.target.id === "modalBackdrop") closeModal();
+    };
+
+    const prospecting = (deals ?? []).filter((d) => d.stage === "PROSPECTING").length;
+    const qualification = (deals ?? []).filter((d) => d.stage === "QUALIFICATION").length;
+    const proposal = (deals ?? []).filter((d) => d.stage === "PROPOSAL").length;
+    const negotiation = (deals ?? []).filter((d) => d.stage === "NEGOTIATION").length;
+    const closedWon = (deals ?? []).filter((d) => d.stage === "CLOSED_WON").length;
+    const closedLost = (deals ?? []).filter((d) => d.stage === "CLOSED_LOST").length;
+
+    const metricCards = [
+        {
+            title: "Prospecting",
+            value: prospecting,
+            icon: LuUserSearch,
+            color: "text-blue-600",
+            bgColor: "bg-blue-100",
+        },
+        {
+            title: "Qualification",
+            value: qualification,
+            icon: FiEdit,
+            color: "text-yellow-600",
+            bgColor: "bg-yellow-100",
+        },
+        {
+            title: "Proposal",
+            value: proposal,
+            icon: FiBriefcase,
+            color: "text-orange-600",
+            bgColor: "bg-orange-100",
+        },
+        {
+            title: "Negotiation",
+            value: negotiation,
+            icon: FiTrendingUp,
+            color: "text-purple-600",
+            bgColor: "bg-purple-100",
+        },
+        {
+            title: "Closed Won",
+            value: closedWon,
+            icon: FiCheckCircle,
+            color: "text-green-600",
+            bgColor: "bg-green-100",
+        },
+        {
+            title: "Closed Lost",
+            value: closedLost,
+            icon: FiXCircle,
+            color: "text-red-600",
+            bgColor: "bg-red-100",
+        },
+    ];
 
     return (
-        <div className="p-8 font-inter">
-            {/* Header */}
-            <div className="flex flex-wrap items-center justify-between mb-6 gap-3">
-                <h2 className="flex items-center text-2xl font-semibold text-gray-800">
-                    <FiBriefcase className="mr-2 text-blue-600" /> Deals Management
-                </h2>
+        <div className="p-4 sm:p-6 lg:p-8">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 sm:mb-6 space-y-2 sm:space-y-0">
+                <h1 className="flex items-center text-xl sm:text-2xl font-semibold text-gray-800">
+                    <FiBriefcase className="mr-2 text-blue-600" />
+                    Deals
+                </h1>
+
                 <button
                     onClick={openNewDealModal}
-                    className="flex items-center bg-black text-white px-4 py-2 rounded-md hover:bg-gray-800"
+                    className="flex items-center bg-black text-white px-3 sm:px-4 py-2 rounded-md hover:bg-gray-800 text-sm sm:text-base ml-auto sm:ml-0"
                 >
-                    + New Deal
+                    <FiPlus className="mr-2" /> Add Deal
                 </button>
             </div>
-            {/* ✅ Top Summary Boxes */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-4 mb-6">
-                {[
-                    { label: "Prospecting", icon: <LuUserSearch />, color: "border-blue-500 text-blue-500" },
-                    { label: "Qualification", icon: <FiEdit />, color: "border-yellow-500 text-yellow-500" },
-                    { label: "Proposal", icon: <FiBriefcase />, color: "border-orange-500 text-orange-600" },
-                    { label: "Negotiation", icon: <FiTrendingUp />, color: "border-purple-500 text-purple-500" },
-                    { label: "Closed Won", icon: <FiCheckCircle />, color: "border-green-500 text-green-500" },
-                    { label: "Closed Lost", icon: <FiXCircle />, color: "border-red-500 text-red-600" },
-                ].map((card, i) => {
-                    // Map summary labels to actual deal stages
-                    const stageMap = {
-                        Prospecting: "PROSPECTING",
-                        Qualification: "QUALIFICATION",
-                        Proposal: "PROPOSAL",
-                        Negotiation: "NEGOTIATION",
-                        "Closed Won": "CLOSED_WON",
-                        "Closed Lost": "CLOSED_LOST",
-                    };
 
-                    const count = (deals ?? []).filter(
-                        (deal) => deal.stage === stageMap[card.label]
-                    ).length;
-
-
-
-                    return (
-                        <div
-                            key={i}
-                            className={`flex items-center justify-between bg-white border ${card.color} rounded-xl p-4 shadow-sm`}
-                        >
-                            <div>
-                                <p className="text-sm text-gray-500">{card.label}</p>
-                                <p className="text-2xl font-bold text-gray-800">{count}</p>
-                            </div>
-                            <div className={`text-3xl opacity-80 ${card.color}`}>
-                                {card.icon}
-                            </div>
-                        </div>
-                    );
-                })}
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-6">
+                {metricCards.map((metric) => (
+                    <MetricCard key={metric.title} {...metric} />
+                ))}
             </div>
 
 
-            {/* Search & Filters */}
-            <div className="flex flex-wrap items-center justify-between mb-3 bg-white border border-gray-200 rounded-lg shadow-sm px-4 py-3">
-                {/* Search Box */}
-                <div className="relative w-full lg:w-1/3 mb-2 lg:mb-0">
-                    <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+            <div className="bg-white rounded-xl p-4 shadow-sm mb-6 flex flex-col lg:flex-row items-center justify-between gap-3 w-full">
+                <div className="flex items-center border border-gray-300 rounded-lg px-4 h-11 w-full lg:w-3/4 focus-within:ring-2 focus-within:ring-indigo-500 transition">
+                    <FiSearch size={20} className="text-gray-400 mr-3" />
                     <input
                         type="text"
-                        placeholder="Search by title or description..."
-                        className="border border-gray-200 bg-gray-50 rounded-md px-10 py-2 w-full text-sm focus:outline-none focus:ring-2 focus:ring-blue-200 focus:bg-white transition-all"
+                        placeholder="Search deals"
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
+                        className="focus:outline-none text-base w-full"
                     />
                 </div>
-
-                {/* Filters */}
-                <div className="flex gap-2 w-full lg:w-auto">
+                <div className="w-full lg:w-auto flex flex-col lg:flex-row gap-3">
                     <select
-                        className="border border-gray-200 bg-gray-50 rounded-md px-4 py-2 text-sm focus:ring-2 focus:ring-blue-200 focus:bg-white transition-all"
                         value={stageFilter}
                         onChange={(e) => setStageFilter(e.target.value)}
+                        className="border border-gray-300 rounded-lg px-3 h-11 text-sm text-gray-600 bg-white w-full lg:w-40 focus:ring-2 focus:ring-indigo-500 transition"
                     >
-                        <option value="">Filter by Stages</option>
-                        <option value="Prospecting Stage">Prospecting Stage</option>
-                        <option value="Qualification Stage">Qualification Stage</option>
-                        <option value="Proposal Stage">Proposal Stage</option>
-                        <option value="Negotiation Stage">Negotiation Stage</option>
-                        <option value="Closed Won Stage">Closed Won Stage</option>
-                        <option value="Closed Lost Stage">Closed Lost Stage</option>
+                        <option value="Filter by Stage">Filter by Stage</option>
+                        <option value="Prospecting Stage">Prospecting</option>
+                        <option value="Qualification Stage">Qualification</option>
+                        <option value="Proposal Stage">Proposal</option>
+                        <option value="Negotiation Stage">Negotiation</option>
+                        <option value="Closed Won Stage">Closed Won</option>
+                        <option value="Closed Lost Stage">Closed Lost</option>
                     </select>
                     <select
                         value={ownerFilter}
                         onChange={(e) => setOwnerFilter(e.target.value)}
-                        className="border border-gray-200 bg-gray-50 rounded-md px-4 py-2 text-sm"
+                        className="border border-gray-300 rounded-lg px-3 h-11 text-sm text-gray-600 bg-white w-full lg:w-40 focus:ring-2 focus:ring-indigo-500 transition"
                     >
-                        <option value="">Filter by Owner</option>
+                        <option value="Filter by Owner">Filter by Owner</option>
                         {[...new Set((deals ?? []).map(
                             deal => `${deal.assigned_deals?.first_name} ${deal.assigned_deals?.last_name}`
                         ))].map((owner, i) => (
                             <option key={i} value={owner}>{owner}</option>
                         ))}
                     </select>
-
                 </div>
             </div>
 
 
-            {/* Deals Table */}
-            <div className="overflow-x-auto w-full shadow-sm mt-7">
-                <table className="min-w-full bg-white text-left table-auto">
-                    <thead className="bg-gray-100 text-sm text-gray-600 sticky top-0 z-10 font-bold">
+            <div className="overflow-x-auto">
+                <table className="w-full min-w-[500px] border border-gray-200 rounded-lg bg-white shadow-sm text-sm">
+                    <thead className="bg-gray-100 text-left text-gray-600 text-sm tracking-wide font-semibold">
                         <tr>
-                            <th className="py-3 px-2 sm:px-4 ">Deal Name</th>
-                            <th className="py-3 px-2 sm:px-4 ">Account</th>
-                            <th className="py-3 px-2 sm:px-4 ">Contact</th>
-                            <th className="py-3 px-2 sm:px-4 ">Stage</th>
-                            <th className="py-3 px-2 sm:px-4 ">Value</th>
-                            <th className="py-3 px-2 sm:px-4 ">Close Date</th>
-                            <th className="py-3 px-2 sm:px-4 ">Owner</th>
-                            <th className="py-3 px-2 sm:px-4 font-medium text-center">Actions</th>
+                            <th className="py-3 px-4">Deal Name</th>
+                            <th className="py-3 px-4">Account</th>
+                            <th className="py-3 px-4">Contact</th>
+                            <th className="py-3 px-4">Stage</th>
+                            <th className="py-3 px-4">Value</th>
+                            <th className="py-3 px-4">Close Date</th>
+                            <th className="py-3 px-4">Owner</th>
                         </tr>
                     </thead>
-                    <tbody className="text-xs">
+                    <tbody>
                         {filteredDeals.length > 0 ? (
-                            filteredDeals.map((deal, index) => {
-                                const isEven = index % 2 === 0;
-                                return (
-                                    <tr
-                                        key={deal.id}
-                                        onClick={() => openDetailsModal(deal)}
-                                        className={`border-b border-gray-200 cursor-pointer ${isEven ? "bg-white hover:bg-gray-200" : "bg-gray-50 hover:bg-gray-200"
-                                            }`}
-                                    >
-                                        <td className="py-3 px-2 sm:px-4">{deal.name}</td>
-                                        <td className="py-3 px-2 sm:px-4">{deal.account?.name}</td>
-                                        <td className="py-3 px-2 sm:px-4">{deal.contact?.first_name} {deal.contact?.last_name}</td>
-                                        <td className="py-3 px-2 sm:px-4 text-orange-500">{deal.stage}</td>
-                                        <td className="py-3 px-2 sm:px-4">₱ {deal.amount.toLocaleString()}</td>
-                                        <td className="py-3 px-2 sm:px-4">{deal.close_date}</td>
-                                        <td className="py-3 px-2 sm:px-4">{deal.assigned_deals?.first_name} {deal.assigned_deals?.last_name}</td>
-                                        <td className="py-3 px-2 sm:px-4 text-center">
-                                            <div className="flex justify-center space-x-2">
-                                                <button
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        openEditDealModal(deal);
-                                                    }}
-                                                    className="text-blue-500 hover:text-blue-700"
-                                                >
-                                                    <FiEdit />
-                                                </button>
-                                                <button
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        handleDeleteDeal(deal.id);
-                                                    }}
-                                                    className="text-red-500 hover:text-red-700"
-                                                >
-                                                    <FiTrash2 />
-                                                </button>
+                            paginatedDeals.map((deal) => (
+                                <tr
+                                    key={deal.id}
+                                    className="hover:bg-gray-50 text-xs cursor-pointer"
+                                    onClick={() => {
+                                        // Force re-render by creating a new object reference
+                                        setSelectedDeal({ ...deal });
+                                    }}
+                                >
+                                    <td className="py-2 px-4">
+                                        <div>
+                                            <div className="font-medium text-blue-600 hover:underline break-all">
+                                                {deal.name}
                                             </div>
-                                        </td>
-                                    </tr>
-                                );
-                            })
+                                            <div className="text-gray-500 text-xs break-all">
+                                                {deal.description || "--"}
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td className="py-2 px-4 text-gray-800 font-medium text-xs">
+                                        {deal.account?.name || "--"}
+                                    </td>
+                                    <td className="py-2 px-4 text-gray-800 font-medium text-xs">
+                                        {deal.contact?.first_name && deal.contact?.last_name
+                                            ? `${deal.contact.first_name} ${deal.contact.last_name}`
+                                            : deal.contact?.first_name || deal.contact?.last_name || "--"}
+                                    </td>
+                                    <td className="py-2 px-4">
+                                        <span className="px-2 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-700">
+                                            {deal.stage || "--"}
+                                        </span>
+                                    </td>
+                                    <td className="py-2 px-4 text-gray-800 font-medium text-xs">
+                                        ₱ {deal.amount?.toLocaleString() || "0"}
+                                    </td>
+                                    <td className="py-2 px-4 text-gray-800 font-medium text-xs">
+                                        {deal.close_date || "--"}
+                                    </td>
+                                    <td className="py-2 px-4 text-gray-800 font-medium text-xs">
+                                        {deal.assigned_deals?.first_name && deal.assigned_deals?.last_name
+                                            ? `${deal.assigned_deals.first_name} ${deal.assigned_deals.last_name}`
+                                            : deal.assigned_deals?.first_name || deal.assigned_deals?.last_name || "--"}
+                                    </td>
+                                </tr>
+                            ))
                         ) : (
                             <tr>
-                                <td colSpan="8" className="text-center py-6 text-gray-500">
-                                    No deals found
+                                <td
+                                    className="py-4 px-4 text-center text-sm text-gray-500"
+                                    colSpan={7}
+                                >
+                                    No deals found.
                                 </td>
                             </tr>
                         )}
                     </tbody>
                 </table>
             </div>
-
-            {/* Deal Details Modal */}
-            <AdminDealsInformation
-                selectedDeal={selectedDeal}
-                show={!!selectedDeal}
-                onClose={closeDetailsModal}
-                activeTab={activeTab}
-                setActiveTab={setActiveTab}
+            <PaginationControls
+                className="mt-4"
+                totalItems={filteredDeals.length}
+                pageSize={ITEMS_PER_PAGE}
+                currentPage={currentPage}
+                onPrev={handlePrevPage}
+                onNext={handleNextPage}
+                label="deals"
             />
 
+            {/* Modal: Create/Edit Deal */}
             {showDealModal && (
-                <div
-                    className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 px-2 sm:px-0"
-                    onClick={() => setShowDealModal(false)}
-                >
-                    <div
-                        className="bg-white w-full max-w-3xl rounded-xl shadow-lg p-5 sm:p-6 relative border border-gray-200 my-10 scale-[0.95]"
-                        onClick={(e) => e.stopPropagation()}
-                    >
-                        <button
-                            onClick={() => setShowDealModal(false)}
-                            className="absolute top-3 right-3 text-gray-400 hover:text-black transition"
-                        >
-                            <FiX size={20} />
-                        </button>
-
-                        <h2 className="text-lg sm:text-xl font-semibold text-gray-800 mb-4 text-center">
-                            {dealForm.id ? "Edit Deal" : "Add New Deal"}
-                        </h2>
-
-                        <form
-                            className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs sm:text-sm"
-                            onSubmit={handleDealSubmit}
-                        >
-                            {/* Deal Name */}
-                            <div className="flex flex-col w-full">
-                                <label className="text-gray-700 font-medium mb-1">Deal Name</label>
-                                <input
-                                    type="text"
-                                    placeholder="Enter deal name"
-                                    value={dealForm.name}
-                                    onChange={(e) => handleInputChange("name", e.target.value)}
-                                    className="border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-400 outline-none w-full"
-                                />
-                            </div>
-
-                            {/* Account */}
-                            <div className="flex flex-col w-full">
-                                <label className="text-gray-700 font-medium mb-1">Account</label>
-                                <select
-                                    value={dealForm.account}
-                                    onChange={(e) => handleInputChange("account", e.target.value)}
-                                    className="border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-400 outline-none bg-white w-full"
-                                >
-                                    <option value="">Select Account</option>
-                                    <option value="Gertan Corp.">Gertan Corp.</option>
-                                    <option value="ABC Company">ABC Company</option>
-                                </select>
-                            </div>
-
-                            {/* Primary Contact */}
-                            <div className="flex flex-col w-full">
-                                <label className="text-gray-700 font-medium mb-1">Primary Contact</label>
-                                <select
-                                    value={dealForm.contact}
-                                    onChange={(e) => handleInputChange("contact", e.target.value)}
-                                    className="border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-400 outline-none bg-white w-full"
-                                >
-                                    <option value="">Select Contact</option>
-                                    <option value="Joshua M.">Joshua M.</option>
-                                    <option value="Marcus Lee">Marcus Lee</option>
-                                </select>
-                            </div>
-
-                            {/* Stage */}
-                            <div className="flex flex-col w-full">
-                                <label className="text-gray-700 font-medium mb-1">Stage</label>
-                                <select
-                                    value={dealForm.stage}
-                                    onChange={(e) => handleInputChange("stage", e.target.value)}
-                                    className="border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-400 outline-none bg-white w-full"
-                                >
-                                    <option>Proposal Stage</option>
-                                    <option>Negotiation Stage</option>
-                                    <option>Closed Won</option>
-                                    <option>Closed Lost</option>
-                                </select>
-                            </div>
-
-                            {/* Amount */}
-                            <div className="flex flex-col w-full">
-                                <label className="text-gray-700 font-medium mb-1">Amount</label>
-                                <input
-                                    type="number"
-                                    placeholder="₱0"
-                                    value={dealForm.value}
-                                    onChange={(e) => handleInputChange("value", e.target.value)}
-                                    className="border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-400 outline-none w-full"
-                                />
-                            </div>
-
-                            {/* Currency */}
-                            <div className="flex flex-col w-full">
-                                <label className="text-gray-700 font-medium mb-1">Currency</label>
-                                <select
-                                    value={dealForm.currency || ""}
-                                    onChange={(e) => handleInputChange("currency", e.target.value)}
-                                    className="border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-400 outline-none bg-white w-full"
-                                >
-                                    <option value="">Select Currency</option>
-                                    <option value="PHP">PHP</option>
-                                    <option value="USD">USD</option>
-                                </select>
-                            </div>
-
-                            {/* Assign To */}
-                            <div className="flex flex-col w-full">
-                                <label className="text-gray-700 font-medium mb-1">Assign To</label>
-                                <select
-                                    value={dealForm.owner}
-                                    onChange={(e) => handleInputChange("owner", e.target.value)}
-                                    className="border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-400 outline-none bg-white w-full"
-                                >
-                                    <option value="">Assign To</option>
-                                    <option value="Dinosaur Roar">Dinosaur Roar</option>
-                                    <option value="Marcus Lee">Marcus Lee</option>
-                                </select>
-                            </div>
-
-                            {/* Description (full width) */}
-                            <div className="flex flex-col col-span-1 sm:col-span-2 w-full">
-                                <label className="text-gray-700 font-medium mb-1">Description</label>
-                                <textarea
-                                    rows={3}
-                                    placeholder="Additional details..."
-                                    value={dealForm.description}
-                                    onChange={(e) => handleInputChange("description", e.target.value)}
-                                    className="border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-400 outline-none resize-none w-full"
-                                />
-                            </div>
-
-                            {/* Footer buttons */}
-                            <div className="flex flex-wrap justify-end gap-2 mt-2 col-span-1 sm:col-span-2">
-                                <button
-                                    type="button"
-                                    onClick={() => setShowDealModal(false)}
-                                    className="px-4 py-2 text-white bg-red-400 border border-red-300 rounded hover:bg-red-500 transition-100"
-                                >
-                                    Cancel
-                                </button>
-                                <button
-                                    type="submit"
-                                    className="px-4 py-2 text-white border border-tertiary bg-tertiary rounded hover:bg-secondary transition-100"
-                                >
-                                    Save Deal
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
+                <CreateDealModal
+                    onClose={closeModal}
+                    formData={dealForm}
+                    setFormData={setDealForm}
+                    isEditing={isEditing}
+                    onSubmit={handleDealSubmit}
+                    isSubmitting={isSubmitting || confirmProcessing}
+                />
             )}
 
+            {/* Modal: Selected Deal Info */}
+            {selectedDeal && (
+                <AdminDealsInformation
+                    selectedDeal={selectedDeal}
+                    show={!!selectedDeal}
+                    onClose={() => setSelectedDeal(null)}
+                    activeTab={activeTab}
+                    setActiveTab={setActiveTab}
+                    onEdit={openEditDealModal}
+                    onDelete={handleDeleteDeal}
+                />
+            )}
+
+            {/* Confirmation Modal */}
+            {confirmModalData && (
+                <ConfirmationModal
+                    open
+                    title={confirmModalData.title}
+                    message={confirmModalData.message}
+                    confirmLabel={confirmModalData.confirmLabel}
+                    cancelLabel={confirmModalData.cancelLabel}
+                    variant={confirmModalData.variant}
+                    onConfirm={handleConfirmAction}
+                    onCancel={handleCancelConfirm}
+                    loading={confirmProcessing}
+                />
+            )}
+
+        </div>
+    );
+}
+
+function ConfirmationModal({
+    open,
+    title,
+    message,
+    confirmLabel,
+    cancelLabel = "Cancel",
+    variant = "primary",
+    loading = false,
+    onConfirm,
+    onCancel,
+}) {
+    if (!open) return null;
+
+    const confirmClasses =
+        variant === "danger"
+            ? "bg-red-500 hover:bg-red-600 border border-red-400"
+            : "bg-tertiary hover:bg-secondary border border-tertiary";
+
+    return (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-[60]">
+            <div className="bg-white w-full max-w-md rounded-xl shadow-lg p-6 border border-gray-200">
+                <h3 className="text-lg font-semibold text-gray-800">{title}</h3>
+                <p className="text-sm text-gray-600 mt-2 whitespace-pre-line">
+                    {message}
+                </p>
+
+                <div className="mt-6 flex flex-col sm:flex-row sm:justify-end sm:space-x-3 space-y-2 sm:space-y-0">
+                    <button
+                        type="button"
+                        onClick={onCancel}
+                        className="w-full sm:w-auto px-4 py-2 rounded-md border border-gray-300 text-gray-700 hover:bg-gray-100 transition disabled:opacity-70"
+                        disabled={loading}
+                    >
+                        {cancelLabel}
+                    </button>
+                    <button
+                        type="button"
+                        onClick={onConfirm}
+                        className={`w-full sm:w-auto px-4 py-2 rounded-md text-white transition disabled:opacity-70 ${confirmClasses}`}
+                        disabled={loading}
+                    >
+                        {loading ? "Processing..." : confirmLabel}
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+function MetricCard({
+    icon: Icon,
+    title,
+    value,
+    color = "text-blue-600",
+    bgColor = "bg-blue-100",
+    onClick,
+}) {
+    const handleClick = () => {
+        if (typeof onClick === "function") {
+            onClick();
+        } else {
+            console.log(`Clicked: ${title}`);
+        }
+    };
+
+    return (
+        <div
+            className="flex items-center p-4 bg-white rounded-xl shadow-md hover:shadow-lg hover:ring-2 hover:ring-blue-500 cursor-pointer transition-all duration-300"
+            onClick={handleClick}
+        >
+            <div
+                className={`flex-shrink-0 p-3 rounded-full ${bgColor} ${color} mr-4`}
+            >
+                {Icon ? <Icon size={22} /> : null}
+            </div>
+            <div className="min-w-0">
+                <p className="text-xs text-gray-500 uppercase">{title}</p>
+                <p className="text-2xl font-bold text-gray-800">{value}</p>
+            </div>
+        </div>
+    );
+}
+
+function CreateDealModal({
+    onClose,
+    formData: externalFormData,
+    setFormData: setExternalFormData,
+    isEditing = false,
+    onSubmit,
+    isSubmitting = false,
+}) {
+    const handleSubmit = (e) => {
+        e.preventDefault();
+        if (onSubmit) {
+            onSubmit(externalFormData);
+        }
+    };
+
+    const handleBackdropClick = (e) => {
+        if (e.target.id === "modalBackdrop") {
+            onClose();
+        }
+    };
+
+    return (
+        <div
+            id="modalBackdrop"
+            onClick={handleBackdropClick}
+            className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4"
+        >
+            <div
+                className="bg-white w-full max-w-full sm:max-w-3xl rounded-2xl shadow-lg p-4 sm:p-6 md:p-8 relative border border-gray-200 overflow-y-auto max-h-[90vh] hide-scrollbar"
+                onClick={(e) => e.stopPropagation()}
+            >
+                <button
+                    onClick={onClose}
+                    className="absolute top-4 right-4 text-gray-500 hover:text-black transition"
+                >
+                    <FiX size={22} />
+                </button>
+
+                <h2 className="text-xl sm:text-2xl font-semibold text-gray-800 mb-4 sm:mb-6 flex items-center justify-center">
+                    {isEditing ? "Edit Deal" : "Create Deal"}
+                </h2>
+
+                <form
+                    className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm"
+                    onSubmit={handleSubmit}
+                >
+                    <InputField
+                        label="Deal Name"
+                        name="name"
+                        value={externalFormData.name}
+                        onChange={(e) => setExternalFormData({ ...externalFormData, name: e.target.value })}
+                        placeholder="Enter deal name"
+                        required
+                        disabled={isSubmitting}
+                        className="md:col-span-2"
+                    />
+                    <SelectField
+                        label="Account"
+                        name="account"
+                        value={externalFormData.account || ""}
+                        onChange={(e) => setExternalFormData({ ...externalFormData, account: e.target.value })}
+                        options={[
+                            { value: "", label: "Select Account" },
+                            { value: "Gertan Corp.", label: "Gertan Corp." },
+                            { value: "ABC Company", label: "ABC Company" },
+                        ]}
+                        disabled={isSubmitting}
+                    />
+                    <SelectField
+                        label="Primary Contact"
+                        name="contact"
+                        value={externalFormData.contact || ""}
+                        onChange={(e) => setExternalFormData({ ...externalFormData, contact: e.target.value })}
+                        options={[
+                            { value: "", label: "Select Contact" },
+                            { value: "Joshua M.", label: "Joshua M." },
+                            { value: "Marcus Lee", label: "Marcus Lee" },
+                        ]}
+                        disabled={isSubmitting}
+                    />
+                    <SelectField
+                        label="Stage"
+                        name="stage"
+                        value={externalFormData.stage}
+                        onChange={(e) => setExternalFormData({ ...externalFormData, stage: e.target.value })}
+                        options={[
+                            { value: "Proposal Stage", label: "Proposal Stage" },
+                            { value: "Negotiation Stage", label: "Negotiation Stage" },
+                            { value: "Closed Won", label: "Closed Won" },
+                            { value: "Closed Lost", label: "Closed Lost" },
+                        ]}
+                        disabled={isSubmitting}
+                    />
+                    <InputField
+                        label="Amount"
+                        name="value"
+                        type="number"
+                        value={externalFormData.value}
+                        onChange={(e) => setExternalFormData({ ...externalFormData, value: e.target.value })}
+                        placeholder="₱0"
+                        disabled={isSubmitting}
+                    />
+                    <SelectField
+                        label="Currency"
+                        name="currency"
+                        value={externalFormData.currency || ""}
+                        onChange={(e) => setExternalFormData({ ...externalFormData, currency: e.target.value })}
+                        options={[
+                            { value: "", label: "Select Currency" },
+                            { value: "PHP", label: "PHP" },
+                            { value: "USD", label: "USD" },
+                        ]}
+                        disabled={isSubmitting}
+                    />
+                    <SelectField
+                        label="Assign To"
+                        name="owner"
+                        value={externalFormData.owner}
+                        onChange={(e) => setExternalFormData({ ...externalFormData, owner: e.target.value })}
+                        options={[
+                            { value: "", label: "Assign To" },
+                            { value: "Dinosaur Roar", label: "Dinosaur Roar" },
+                            { value: "Marcus Lee", label: "Marcus Lee" },
+                        ]}
+                        disabled={isSubmitting}
+                    />
+                    <TextareaField
+                        label="Description"
+                        name="description"
+                        value={externalFormData.description}
+                        onChange={(e) => setExternalFormData({ ...externalFormData, description: e.target.value })}
+                        placeholder="Additional details..."
+                        rows={3}
+                        className="md:col-span-2"
+                        disabled={isSubmitting}
+                    />
+
+                    <div className="flex flex-col sm:flex-row justify-end space-y-2 sm:space-y-0 sm:space-x-2 md:col-span-2 mt-4">
+                        <button
+                            type="button"
+                            onClick={onClose}
+                            className="w-full sm:w-auto px-4 py-2 text-white bg-red-400 border border-red-300 rounded hover:bg-red-500 transition disabled:opacity-70"
+                            disabled={isSubmitting}
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            type="submit"
+                            className="w-full sm:w-auto px-4 py-2 text-white border border-tertiary bg-tertiary rounded hover:bg-secondary transition disabled:opacity-70"
+                            disabled={isSubmitting}
+                        >
+                            {isSubmitting
+                                ? "Saving..."
+                                : isEditing
+                                ? "Update Deal"
+                                : "Save Deal"}
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    );
+}
+
+function InputField({
+    label,
+    name,
+    value,
+    onChange,
+    placeholder,
+    type = "text",
+    required = false,
+    disabled = false,
+    className = "",
+}) {
+    return (
+        <div className={className}>
+            <label className="block text-gray-700 font-medium mb-1 text-sm">
+                {label}
+            </label>
+            <input
+                type={type}
+                name={name}
+                value={value ?? ""}
+                onChange={onChange}
+                placeholder={placeholder}
+                required={required}
+                disabled={disabled}
+                className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-400 outline-none disabled:bg-gray-100"
+            />
+        </div>
+    );
+}
+
+function SelectField({
+    label,
+    name,
+    value,
+    onChange,
+    options,
+    required = false,
+    disabled = false,
+    className = "",
+}) {
+    return (
+        <div className={className}>
+            <label className="block text-gray-700 font-medium mb-1 text-sm">
+                {label}
+            </label>
+            <select
+                name={name}
+                value={value ?? ""}
+                onChange={onChange}
+                required={required}
+                disabled={disabled}
+                className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-400 outline-none disabled:bg-gray-100"
+            >
+                {options.map((option) => (
+                    <option key={option.value} value={option.value}>
+                        {option.label}
+                    </option>
+                ))}
+            </select>
+        </div>
+    );
+}
+
+function TextareaField({
+    label,
+    name,
+    value,
+    onChange,
+    placeholder,
+    required = false,
+    disabled = false,
+    className = "",
+    rows = 3,
+}) {
+    return (
+        <div className={className}>
+            <label className="block text-gray-700 font-medium mb-1 text-sm">
+                {label}
+            </label>
+            <textarea
+                name={name}
+                value={value ?? ""}
+                onChange={onChange}
+                placeholder={placeholder}
+                required={required}
+                disabled={disabled}
+                rows={rows}
+                className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-400 outline-none disabled:bg-gray-100 resize-none"
+            />
         </div>
     );
 }

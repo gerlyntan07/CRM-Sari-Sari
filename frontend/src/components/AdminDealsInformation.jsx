@@ -78,68 +78,73 @@ export default function AdminDealsInformation({
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[9999] font-inter p-2 sm:p-4 overflow-x-hidden">
-      <div className="bg-white rounded-xl shadow-lg w-full max-w-full sm:max-w-6xl max-h-[90vh] overflow-y-auto relative box-border">
+      <div className="bg-white rounded-xl shadow-lg w-full max-w-full sm:max-w-6xl max-h-[90vh] overflow-y-auto hide-scrollbar relative box-border p-4 sm:p-6 md:p-8">
 
         {/* HEADER */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-4 sm:p-6 border-b border-gray-200">
-          <div className="mb-4 sm:mb-0">
-            <h1 className="text-xl sm:text-2xl font-semibold break-words">{selectedDeal.name}</h1>
-            <p className="text-gray-500 text-sm mt-1 break-words">Created on {formattedDateTime(selectedDeal.created_at)}</p>
-            <span className="mt-2 inline-block bg-yellow-100 text-yellow-700 text-sm font-medium px-3 py-1 rounded-full break-words">
-              {selectedDeal.stage}
-            </span>
-          </div>
-          <div className="text-left sm:text-right mb-4 sm:mb-0">
-            <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 break-words">
-              ₱ {selectedDeal.amount.toLocaleString()}
-            </h2>
-            <div className="w-full sm:w-40 bg-gray-200 rounded-full h-2 mt-1">
-              <div
-                className="bg-green-500 h-2 rounded-full"
-                style={{ width: `${selectedDeal.probability}%` }}
-              />
+        <div className="flex flex-col gap-2 sm:gap-4 mb-4">
+          <div className="flex flex-wrap items-start justify-between gap-2 sm:gap-3">
+            <div className="flex flex-col gap-1">
+              <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+                <h1 className="text-xl sm:text-2xl font-semibold break-words">{selectedDeal.name}</h1>
+                <span className="inline-block bg-yellow-100 text-yellow-700 text-sm font-medium px-3 py-1 rounded-full break-words">
+                  {selectedDeal.stage}
+                </span>
+              </div>
+              <p className="text-gray-500 text-sm break-words">Created on {formattedDateTime(selectedDeal.created_at)}</p>
             </div>
-            <p className="text-xs text-gray-500 mt-1 break-words">{selectedDeal.probability}% Complete</p>
+            <div className="flex flex-col items-end gap-2">
+              <div className="flex items-center gap-2 sm:gap-3">
+                <h2 className="text-xl sm:text-2xl font-bold text-gray-900 break-words">
+                  ₱ {selectedDeal.amount.toLocaleString()}
+                </h2>
+                <button
+                  onClick={onClose}
+                  className="text-gray-500 hover:text-gray-700"
+                >
+                  <FiX size={20} />
+                </button>
+              </div>
+              <div className="w-full sm:w-40 bg-gray-200 rounded-full h-2">
+                <div
+                  className="bg-green-500 h-2 rounded-full"
+                  style={{ width: `${selectedDeal.probability}%` }}
+                />
+              </div>
+              <p className="text-xs text-gray-500 break-words">{selectedDeal.probability}% Complete</p>
+              <div className="flex items-center gap-2 sm:gap-3 mt-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (onEdit) {
+                      onEdit(selectedDeal);
+                    }
+                  }}
+                  className="inline-flex items-center justify-center bg-blue-500 text-white px-3 sm:px-4 py-1.5 sm:py-2 rounded-md hover:bg-blue-600 transition text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+                >
+                  <FiEdit2 className="mr-1 sm:mr-2" size={16} />
+                  <span className="hidden sm:inline">Edit</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (onDelete) {
+                      onDelete(selectedDeal);
+                    }
+                  }}
+                  className="inline-flex items-center justify-center px-3 sm:px-4 py-1.5 sm:py-2 rounded-md text-sm bg-red-500 text-white hover:bg-red-600 transition focus:outline-none focus:ring-2 focus:ring-red-400"
+                >
+                  <FiTrash2 className="mr-1 sm:mr-2" size={16} />
+                  <span className="hidden sm:inline">Delete</span>
+                </button>
+              </div>
+            </div>
           </div>
-          <button
-            onClick={onClose}
-            className="absolute top-3 sm:top-4 right-3 text-gray-500 hover:text-gray-700"
-          >
-            <FiX size={20} />
-          </button>
         </div>
-
-        {/* Action Buttons */}
-        <div className="flex flex-col sm:flex-row sm:space-x-3 space-y-2 sm:space-y-0 px-4 sm:px-6 pb-4">
-          <button
-            type="button"
-            onClick={() => {
-              if (onEdit) {
-                onEdit(selectedDeal);
-              }
-            }}
-            className="inline-flex items-center justify-center w-full sm:w-auto bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 transition text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
-          >
-            <FiEdit2 className="mr-2" />
-            Edit
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              if (onDelete) {
-                onDelete(selectedDeal);
-              }
-            }}
-            className="inline-flex items-center justify-center w-full sm:w-auto px-4 py-2 rounded-md text-sm bg-red-500 text-white hover:bg-red-600 transition focus:outline-none focus:ring-2 focus:ring-red-400"
-          >
-            <FiTrash2 className="mr-2" />
-            Delete
-          </button>
-        </div>
+        <div className="border-b border-gray-200 mb-6"></div>
 
         {/* TABS */}
-        <div className="flex w-full bg-[#6A727D] text-white mt-1 overflow-x-auto lg:w-[64%] lg:ml-5">
-          {["Overview", "Activities", "Notes", "Edit"].map((tab) => (
+        <div className="flex w-full bg-[#6A727D] text-white mt-1 overflow-x-auto mb-6">
+          {["Overview", "Activities", "Notes"].map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
@@ -156,9 +161,9 @@ export default function AdminDealsInformation({
         </div>
 
         {/* LEFT + RIGHT COLUMNS */}
-        <div className="p-4 sm:p-6 grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 w-full">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 items-start">
           {/* LEFT COLUMN */}
-          <div className="lg:col-span-2 space-y-6">
+          <div className="lg:col-span-3 space-y-6">
 
             {/* OVERVIEW */}
             {activeTab === "Overview" && (
@@ -336,42 +341,50 @@ export default function AdminDealsInformation({
 
         {/* ADD NOTE MODAL */}
         {showNoteModal && (
-          <div className="fixed inset-0 z-[10000] flex items-center justify-center p-2 sm:p-4 overflow-x-hidden">
+          <div
+            className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4"
+            onClick={() => setShowNoteModal(false)}
+          >
             <div
-              className="absolute inset-0 bg-black/40"
-              onClick={() => setShowNoteModal(false)}
-            />
-            <div className="relative bg-white rounded-lg shadow-lg w-full max-w-full sm:max-w-md max-h-[90vh] overflow-y-auto mx-2 sm:mx-auto p-6 z-10 box-border">
-              <div className="flex items-center justify-between mb-4">
-                <h4 className="text-lg font-semibold break-words">Add Note</h4>
-                <button
-                  onClick={() => setShowNoteModal(false)}
-                  className="text-gray-500 hover:text-gray-700"
-                >
-                  <FiX size={18} />
-                </button>
-              </div>
-              <form onSubmit={handleSaveNote}>
-                <label className="block text-sm text-gray-700 mb-2 break-words">
-                  Name
+              className="bg-white w-full max-w-full sm:max-w-md rounded-2xl shadow-lg p-4 sm:p-6 md:p-8 relative border border-gray-200 overflow-y-auto max-h-[90vh] hide-scrollbar"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <button
+                onClick={() => setShowNoteModal(false)}
+                className="absolute top-4 right-4 text-gray-500 hover:text-black transition"
+              >
+                <FiX size={22} />
+              </button>
+
+              <h2 className="text-xl sm:text-2xl font-semibold text-gray-800 mb-4 sm:mb-6">
+                Add Note
+              </h2>
+
+              <form onSubmit={handleSaveNote} className="space-y-4">
+                <div className="flex flex-col">
+                  <label className="text-sm text-gray-700 font-medium mb-1 break-words">
+                    Name
+                  </label>
                   <input
                     type="text"
                     value={noteName}
                     onChange={(e) => setNoteName(e.target.value)}
-                    className="mt-1 block w-full border border-gray-200 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-200"
+                    className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-blue-400 outline-none w-full"
                     placeholder="Your name"
                   />
-                </label>
-                <label className="block text-sm text-gray-700 mb-3 break-words">
-                  Note
+                </div>
+                <div className="flex flex-col">
+                  <label className="text-sm text-gray-700 font-medium mb-1 break-words">
+                    Note
+                  </label>
                   <textarea
                     value={noteContent}
                     onChange={(e) => setNoteContent(e.target.value)}
-                    className="mt-1 block w-full border border-gray-200 rounded-md px-3 py-2 text-sm h-28 resize-y focus:outline-none focus:ring-2 focus:ring-gray-200"
+                    className="border border-gray-300 rounded-md px-3 py-2 text-sm h-28 resize-y focus:ring-2 focus:ring-blue-400 outline-none w-full"
                     placeholder="Write your note here..."
                   />
-                </label>
-                <div className="flex justify-end gap-3 flex-wrap">
+                </div>
+                <div className="flex justify-end gap-3 flex-wrap mt-6">
                   <button
                     type="button"
                     onClick={() => {
@@ -379,13 +392,13 @@ export default function AdminDealsInformation({
                       setNoteName("");
                       setNoteContent("");
                     }}
-                    className="px-4 py-2 rounded-md border border-gray-200 text-sm"
+                    className="px-4 py-2 rounded-md border border-gray-200 text-sm hover:bg-gray-50 transition"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
-                    className="px-4 py-2 rounded-md bg-gray-900 text-white text-sm hover:bg-gray-800"
+                    className="px-4 py-2 rounded-md bg-gray-900 text-white text-sm hover:bg-gray-800 transition"
                   >
                     Save
                   </button>

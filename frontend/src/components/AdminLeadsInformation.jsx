@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { HiX } from "react-icons/hi";
-import { FiPhone, FiMail, FiCalendar } from "react-icons/fi";
+import { FiPhone, FiMail, FiCalendar, FiEdit2, FiTrash2 } from "react-icons/fi";
 import AdminLeadsConvert from "./AdminLeadsConvert";
 import { toast } from 'react-toastify';
 import { useNavigate, useParams } from "react-router-dom";
@@ -15,11 +15,11 @@ function Detail({ label, value }) {
   );
 }
 
-export default function AdminLeadsInformation({ onBack, fetchLeads }) {
+export default function AdminLeadsInformation({ lead: leadProp, onBack, fetchLeads, onEdit, onDelete, onConvert }) {
   const navigate = useNavigate();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const { leadID } = useParams();
-  const [lead, setLead] = useState(null);
+  const [lead, setLead] = useState(leadProp || null);
   const [activeTab, setActiveTab] = useState("Overview");
   const [selectedStatus, setSelectedStatus] = useState('');
 
@@ -68,10 +68,19 @@ export default function AdminLeadsInformation({ onBack, fetchLeads }) {
 
   const fetchLead = async () => {
       try {
+        if (leadProp) {
+          // Use prop if available
+          setLead(leadProp);
+          setSelectedStatus(leadProp.status || 'New');
+          return;
+        }
+        
+        if (!leadID) return;
+        
         const res = await api.get(`/leads/get/${leadID}`);
         setLead(res.data);
 
-        setSelectedStatus(res.status)
+        setSelectedStatus(res.data.status || 'New')
         // Populate dependent states
         setAccountData({
           name: res.data.company_name || "",
@@ -120,8 +129,13 @@ export default function AdminLeadsInformation({ onBack, fetchLeads }) {
     };
 
   useEffect(() => {    
-    fetchLead();
-  }, [leadID]);
+    if (leadProp) {
+      setLead(leadProp);
+      setSelectedStatus(leadProp.status || 'New');
+    } else if (leadID) {
+      fetchLead();
+    }
+  }, [leadID, leadProp]);
 
   const updateStatus = async() => {
     try{
@@ -136,18 +150,41 @@ export default function AdminLeadsInformation({ onBack, fetchLeads }) {
 
   if (!lead) return null;
 
+  const getStatusBadgeClass = (status) => {
+    const normalizedStatus = (status || "").toUpperCase();
+    switch (normalizedStatus) {
+      case "NEW":
+        return "bg-indigo-100 text-indigo-700";
+      case "CONTACTED":
+        return "bg-blue-100 text-blue-700";
+      case "QUALIFIED":
+        return "bg-green-100 text-green-700";
+      case "CONVERTED":
+        return "bg-emerald-100 text-emerald-700";
+      case "LOST":
+        return "bg-red-100 text-red-700";
+      default:
+        return "bg-gray-100 text-gray-700";
+    }
+  };
+
+  const formatStatusLabel = (status) => {
+    if (!status) return "--";
+    return status
+      .toString()
+      .toLowerCase()
+      .replace(/\b\w/g, (char) => char.toUpperCase());
+  };
 
   return (
     <>
       <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
-
         {/* MODAL */}
-        <div className="bg-white rounded-xl shadow-xl w-full max-w-6xl max-h-[92vh] overflow-y-auto animate-scale-in p-4 sm:p-6 md:p-8 font-inter relative">
-
+        <div className="bg-white rounded-xl shadow-xl w-full max-w-6xl max-h-[92vh] overflow-y-auto hide-scrollbar animate-scale-in p-4 sm:p-6 md:p-8 font-inter relative">
           {/* Close Button */}
           <div className="flex justify-end w-full">
             <button
-              onClick={() => navigate(`/admin/leads`)}
+              onClick={onBack}
               className="text-gray-500 hover:text-gray-700 transition mb-5 cursor-pointer"
             >
               <HiX size={30} />
@@ -157,30 +194,57 @@ export default function AdminLeadsInformation({ onBack, fetchLeads }) {
           {/* Header */}
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-6 sm:mb-8 gap-2 sm:gap-4">
             <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-              <h1 className="text-xl sm:text-2xl font-semibold">{lead.first_name} {lead.last_name}</h1>
-              <span className="bg-blue-100 text-blue-700 text-xs sm:text-sm font-medium px-2 sm:px-3 py-1 rounded-full">
-                {lead.status}
+              <h1 className="text-xl sm:text-2xl font-semibold">
+                {lead.first_name} {lead.last_name}
+              </h1>
+              <span
+                className={`text-xs sm:text-sm font-medium px-2 sm:px-3 py-1 rounded-full whitespace-nowrap ${getStatusBadgeClass(
+                  lead.status
+                )}`}
+              >
+                {formatStatusLabel(lead.status || "New")}
               </span>
 
               <button
                 onClick={() => {
                   if (lead.status === "Qualified") {
-                    setIsModalOpen(true);
+                    // Call onConvert to open convert modal in parent and close this modal
+                    if (onConvert) {
+                      onConvert(lead);
+                    }
                   } else {
                     toast.warn("Cannot convert lead. Only leads with 'Qualified' status can be converted.");
                   }
                 }}
-                className="bg-green-600 hover:bg-green-700 text-white px-3 sm:px-5 py-1.5 sm:py-2 rounded-lg font-medium text-xs sm:text-sm"
+                className="bg-green-600 hover:bg-green-700 text-white px-3 sm:px-4 py-1.5 sm:py-2 rounded-md font-medium text-xs sm:text-sm transition focus:outline-none focus:ring-2 focus:ring-green-400"
               >
                 Convert
               </button>
             </div>
 
-            <div className="mt-2 lg:mt-0 flex flex-wrap gap-2 sm:gap-3">
-              <button className="bg-blue-600 hover:bg-blue-700 text-white px-3 sm:px-5 py-1.5 sm:py-2 rounded-lg font-medium text-xs sm:text-sm">
+            <div className="flex flex-col sm:flex-row sm:space-x-3 space-y-2 sm:space-y-0">
+              <button
+                type="button"
+                onClick={() => {
+                  if (onEdit && lead) {
+                    onEdit(lead);
+                  }
+                }}
+                className="inline-flex items-center justify-center w-full sm:w-auto bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 transition text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+              >
+                <FiEdit2 className="mr-2" />
                 Edit
               </button>
-              <button className="bg-red-500 hover:bg-red-600 text-white px-3 sm:px-5 py-1.5 sm:py-2 rounded-lg font-medium text-xs sm:text-sm">
+              <button
+                type="button"
+                onClick={() => {
+                  if (onDelete && lead) {
+                    onDelete(lead);
+                  }
+                }}
+                className="inline-flex items-center justify-center w-full sm:w-auto px-4 py-2 rounded-md text-sm bg-red-500 text-white hover:bg-red-600 transition focus:outline-none focus:ring-2 focus:ring-red-400"
+              >
+                <FiTrash2 className="mr-2" />
                 Delete
               </button>
             </div>
@@ -213,59 +277,66 @@ export default function AdminLeadsInformation({ onBack, fetchLeads }) {
                   <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-4 sm:gap-6 text-sm text-gray-700">
                     <div>
                       <p className="font-semibold">Name:</p>
-                      <p>{lead.first_name} {lead.last_name}</p>
+                      <p>{lead.first_name} {lead.last_name || "N/A"}</p>
                     </div>
                     <div>
                       <p className="font-semibold">Company:</p>
-                      <p>{lead.company_name}</p>
+                      <p>{lead.company_name || "N/A"}</p>
                     </div>
                     <div>
                       <p className="font-semibold">Title:</p>
-                      <p>{lead.title}</p>
+                      <p>{lead.title || "N/A"}</p>
                     </div>
                     <div>
                       <p className="font-semibold">Department:</p>
-                      <p>{lead.department}</p>
+                      <p>{lead.department || "N/A"}</p>
                     </div>
                     <div>
                       <p className="font-semibold">Email:</p>
-                      <p>{lead.email}</p>
+                      <p>{lead.email || "N/A"}</p>
                     </div>
                     <div>
                       <p className="font-semibold">Territory:</p>
-                      <p>{lead.assigned_to.territory?.name || ""}</p>
+                      <p>{lead.assigned_to?.territory?.name || "N/A"}</p>
                     </div>
                     <div>
                       <p className="font-semibold">Assigned To:</p>
-                      <p>{lead.assigned_to.first_name} {lead.assigned_to.last_name}</p>
+                      <p>
+                        {lead.assigned_to
+                          ? `${lead.assigned_to.first_name} ${lead.assigned_to.last_name}`
+                          : "N/A"}
+                      </p>
                     </div>
                     <div>
                       <p className="font-semibold">Created By:</p>
-                      <p>{lead.creator.first_name} {lead.creator.last_name}</p>
+                      <p>
+                        {lead.creator
+                          ? `${lead.creator.first_name} ${lead.creator.last_name}`
+                          : "N/A"}
+                      </p>
                     </div>
                     <div>
                       <p className="font-semibold">Work Phone:</p>
-                      <p>{lead.work_phone}</p>
+                      <p>{lead.work_phone || "N/A"}</p>
                     </div>
                     <div>
                       <p className="font-semibold">Mobile Phone 1:</p>
-                      <p>{lead.mobile_phone_1}</p>
+                      <p>{lead.mobile_phone_1 || "N/A"}</p>
                     </div>
                     <div>
                       <p className="font-semibold">Mobile Phone 2:</p>
-                      <p>{lead.mobile_phone_2}</p>
+                      <p>{lead.mobile_phone_2 || "N/A"}</p>
                     </div>
                     <div>
                       <p className="font-semibold">Source:</p>
-                      <p>{lead.source}</p>
+                      <p>{lead.source || "N/A"}</p>
                     </div>
                     <div>
                       <p className="font-semibold">Address:</p>
-                      <p> {lead.address}</p>
+                      <p>{lead.address || "N/A"}</p>
                     </div>
                   </div>
                 </div>
-
               )}
 
               {activeTab === "Notes" && (
@@ -334,23 +405,27 @@ export default function AdminLeadsInformation({ onBack, fetchLeads }) {
               )}
             </div>
 
-            <div className="flex flex-col gap-4 h-full">
+            <div className="flex flex-col gap-4">
               {/* QUICK ACTIONS */}
-              <div className="bg-white border border-gray-100 rounded-lg p-3 sm:p-4 shadow-sm flex flex-col flex-grow">
-                <h4 className="font-semibold text-gray-800 mb-2 text-sm">Quick Actions</h4>
+              <div className="bg-white border border-gray-100 rounded-lg p-3 sm:p-4 shadow-sm">
+                <h4 className="font-semibold text-gray-800 mb-2 text-sm">
+                  Quick Actions
+                </h4>
 
-                <div className="flex flex-col gap-2 w-full flex-grow">
-                  {[{ icon: FiPhone, text: "Schedule Call" },
-                  { icon: FiMail, text: "Send E-mail" },
-                  { icon: FiCalendar, text: "Book Meeting" }].map(
-                    ({ icon: Icon, text }) => (
-                      <button
-                        key={text}
-                        className="flex items-center gap-2 border border-gray-100 rounded-md py-1.5 px-2 sm:px-3 hover:bg-gray-50 transition text-sm">
-                        <Icon className="text-gray-600 w-4 h-4 flex-shrink-0" /> {text}
-                      </button>
-                    )
-                  )}
+                <div className="flex flex-col gap-2 w-full">
+                  {[
+                    { icon: FiPhone, text: "Schedule Call" },
+                    { icon: FiMail, text: "Send E-mail" },
+                    { icon: FiCalendar, text: "Book Meeting" },
+                  ].map(({ icon: Icon, text }) => (
+                    <button
+                      key={text}
+                      className="flex items-center gap-2 border border-gray-100 rounded-md py-1.5 px-2 sm:px-3 hover:bg-gray-50 transition text-sm"
+                    >
+                      <Icon className="text-gray-600 w-4 h-4 flex-shrink-0" />{" "}
+                      {text}
+                    </button>
+                  ))}
                 </div>
               </div>
 
@@ -360,24 +435,25 @@ export default function AdminLeadsInformation({ onBack, fetchLeads }) {
                   Status
                 </h4>
                 <select
-                  className="border border-gray-200 rounded-md px-2 sm:px-3 py-1.5 w-full text-sm mb-2 focus:ring-2 focus:ring-gray-300"
+                  className="border border-gray-200 rounded-md px-2 sm:px-3 py-1.5 w-full text-sm mb-2 focus:ring-2 focus:ring-indigo-500 outline-none"
                   value={selectedStatus}
                   onChange={(e) => setSelectedStatus(e.target.value)}
                 >
                   <option value='New'>New</option>
                   <option value='Contacted'>Contacted</option>
                   <option value='Qualified'>Qualified</option>
+                  <option value='Converted'>Converted</option>
                   <option value='Lost'>Lost</option>
                 </select>
 
                 <button
                   onClick={updateStatus}
-                  disabled={selectedStatus === lead.status} // disabled if status not changed
-                  className={`w-full py-1.5 rounded-md text-sm transition
-      ${selectedStatus === lead.status
-                      ? "bg-gray-400 cursor-not-allowed"
-                      : "bg-gray-900 text-white hover:bg-gray-800"
-                    }`}
+                  disabled={selectedStatus === lead.status}
+                  className={`w-full py-1.5 rounded-md text-sm transition focus:outline-none focus:ring-2 ${
+                    selectedStatus === lead.status
+                      ? "bg-gray-400 cursor-not-allowed text-white"
+                      : "bg-gray-900 text-white hover:bg-gray-800 focus:ring-gray-400"
+                  }`}
                 >
                   Update
                 </button>

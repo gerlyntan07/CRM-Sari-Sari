@@ -630,7 +630,7 @@ function ConfirmationModal({
             : "bg-tertiary hover:bg-secondary border border-tertiary";
 
     return (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-[60]">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-[10000]">
             <div className="bg-white w-full max-w-md rounded-xl shadow-lg p-6 border border-gray-200">
                 <h3 className="text-lg font-semibold text-gray-800">{title}</h3>
                 <p className="text-sm text-gray-600 mt-2 whitespace-pre-line">

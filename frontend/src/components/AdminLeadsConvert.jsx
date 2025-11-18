@@ -331,14 +331,14 @@ export default function AdminLeadsConvert({ setSelectedLead, fetchLeads, isOpen,
         </div>
 
         {/* Step Content */}
-        <div className="flex-1 overflow-y-auto p-6">{renderStepContent()}</div>
+        <div className="flex-1 overflow-y-auto hide-scrollbar p-6">{renderStepContent()}</div>
 
         {/* Footer */}
         <div className="p-4 border-t border-gray-200 bg-gray-50 flex justify-end space-x-3">
           {currentStep > 1 && (
             <button
               onClick={prevStep}
-              className="px-6 py-2 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-100 flex items-center"
+              className="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-100 transition text-sm focus:outline-none focus:ring-2 focus:ring-gray-400"
             >
               Cancel
             </button>
@@ -346,14 +346,14 @@ export default function AdminLeadsConvert({ setSelectedLead, fetchLeads, isOpen,
           {currentStep < totalSteps ? (
             <button
               onClick={nextStep}
-              className="px-5 py-2 text-white bg-gray-900 rounded-xl hover:bg-gray-800 transition"
+              className="px-4 py-2 text-white bg-black rounded-md hover:bg-gray-800 transition text-sm focus:outline-none focus:ring-2 focus:ring-gray-400"
             >
               Next
             </button>
           ) : (
             <button
               onClick={handleSubmit}
-              className="px-5 py-2 text-white bg-gray-900 rounded-xl hover:bg-gray-800 transition"
+              className="px-4 py-2 text-white bg-black rounded-md hover:bg-gray-800 transition text-sm focus:outline-none focus:ring-2 focus:ring-gray-400"
             >
               Convert
             </button>

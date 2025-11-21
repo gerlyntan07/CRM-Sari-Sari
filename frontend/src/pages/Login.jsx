@@ -70,10 +70,8 @@ const Login = () => {
 
   React.useEffect(() => {
     if (isLoggedIn) {
-      if (userRole === "CEO") {
+      if (userRole === "CEO" || userRole === "Admin") {
         navigate("/admin");
-      } else if (userRole === "Admin") {
-        navigate("/admin-dashboard");
       } else if (userRole === "Group Manager") {
         navigate("/group-manager");
       } else if (userRole === "Manager") {

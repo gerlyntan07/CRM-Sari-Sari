@@ -39,7 +39,7 @@ export const useAuth = () => {
 
   const login = (user) => {
     saveAuthData(user);
-    if (user.role === 'CEO') {
+    if (user.role === 'CEO' || user.role === 'Admin') {
       navigate(`/admin`);
     } else if (user.role === 'Manager') {
       navigate(`/manager/dashboard`)

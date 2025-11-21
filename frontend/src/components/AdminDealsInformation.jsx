@@ -10,7 +10,7 @@ export default function AdminDealsInformation({
   setActiveTab,
   onEdit,
   onDelete,
-}) {  
+}) {
 
   const [showNoteModal, setShowNoteModal] = useState(false);
   const [noteName, setNoteName] = useState("");
@@ -63,17 +63,17 @@ export default function AdminDealsInformation({
     setShowNoteModal(false);
   }
 
-  function formattedDateTime(datetime){
+  function formattedDateTime(datetime) {
     if (!datetime) return "";
     return new Date(datetime).toLocaleString("en-US", {
       month: "2-digit",
-    day: "2-digit",
-    year: "numeric",
-    hour: "numeric",
-    minute: "numeric",
-    hour12: true,
+      day: "2-digit",
+      year: "numeric",
+      hour: "numeric",
+      minute: "numeric",
+      hour12: true,
     })
-    .replace(",", "")
+      .replace(",", "")
   }
 
   return (
@@ -144,15 +144,14 @@ export default function AdminDealsInformation({
 
         {/* TABS */}
         <div className="flex w-full bg-[#6A727D] text-white mt-1 overflow-x-auto mb-6">
-          {["Overview", "Activities", "Notes"].map((tab) => (
+          {["Overview", "Notes", "Activities"].map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
               className={`flex-1 min-w-[90px] px-4 py-2.5 text-xs sm:text-sm font-medium text-center transition-all duration-200 border-b-2
-                ${
-                  activeTab === tab
-                    ? "bg-paper-white text-[#6A727D] border-white"
-                    : "text-white hover:bg-[#5c636d]"
+                ${activeTab === tab
+                  ? "bg-paper-white text-[#6A727D] border-white"
+                  : "text-white hover:bg-[#5c636d]"
                 }`}
             >
               {tab}
@@ -187,13 +186,12 @@ export default function AdminDealsInformation({
                         {["green", "green", "orange", "gray", "gray"].map((color, i) => (
                           <React.Fragment key={i}>
                             <div
-                              className={`relative z-10 w-6 h-6 rounded-full border-2 ${
-                                color === "green"
+                              className={`relative z-10 w-6 h-6 rounded-full border-2 ${color === "green"
                                   ? "bg-green-500 border-green-500"
                                   : color === "orange"
-                                  ? "bg-orange-400 border-orange-400"
-                                  : "bg-gray-300 border-gray-300"
-                              }`}
+                                    ? "bg-orange-400 border-orange-400"
+                                    : "bg-gray-300 border-gray-300"
+                                }`}
                             />
                             {i < 4 && <div className="flex-grow h-1 bg-gray-200 mx-1 min-w-0"></div>}
                           </React.Fragment>
@@ -235,6 +233,38 @@ export default function AdminDealsInformation({
               </div>
             )}
 
+             {/* NOTES */}
+            {activeTab === "Notes" && (
+              <div className="mt-4 w-full">
+                <div className="flex flex-wrap items-center justify-between mb-4 gap-2">
+                  <h3 className="text-lg font-semibold text-gray-800 break-words">Deals Note</h3>
+                  <button
+                    onClick={() => setShowNoteModal(true)}
+                    className="bg-gray-900 text-white text-sm px-4 py-2 rounded-md hover:bg-gray-800 transition"
+                  >
+                    Add Note
+                  </button>
+                </div>
+
+                <div className="space-y-4 w-full">
+                  {notes.map((n) => (
+                    <div key={n.id} className="bg-white border border-gray-100 rounded-lg p-4 shadow-sm break-words">
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <p className="text-sm font-medium text-gray-800 break-words">{n.name}</p>
+                          <p className="text-xs text-gray-500 mt-1 break-words">{n.time}</p>
+                        </div>
+                      </div>
+                      <div className="mt-3 text-sm text-gray-700 break-words">{n.content}</div>
+                    </div>
+                  ))}
+                  <div className="bg-white border border-dashed border-gray-200 rounded-lg p-6 text-center text-sm text-gray-400 break-words">
+                    No more notes
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* ACTIVITIES */}
             {activeTab === "Activities" && (
               <div className="mt-4 space-y-4 w-full">
@@ -270,38 +300,6 @@ export default function AdminDealsInformation({
                     <p className="text-sm text-gray-500 break-words">{act.date}</p>
                   </div>
                 ))}
-              </div>
-            )}
-
-            {/* NOTES */}
-            {activeTab === "Notes" && (
-              <div className="mt-4 w-full">
-                <div className="flex flex-wrap items-center justify-between mb-4 gap-2">
-                  <h3 className="text-lg font-semibold text-gray-800 break-words">Deals Note</h3>
-                  <button
-                    onClick={() => setShowNoteModal(true)}
-                    className="bg-gray-900 text-white text-sm px-4 py-2 rounded-md hover:bg-gray-800 transition"
-                  >
-                    Add Note
-                  </button>
-                </div>
-
-                <div className="space-y-4 w-full">
-                  {notes.map((n) => (
-                    <div key={n.id} className="bg-white border border-gray-100 rounded-lg p-4 shadow-sm break-words">
-                      <div className="flex items-start justify-between">
-                        <div>
-                          <p className="text-sm font-medium text-gray-800 break-words">{n.name}</p>
-                          <p className="text-xs text-gray-500 mt-1 break-words">{n.time}</p>
-                        </div>
-                      </div>
-                      <div className="mt-3 text-sm text-gray-700 break-words">{n.content}</div>
-                    </div>
-                  ))}
-                  <div className="bg-white border border-dashed border-gray-200 rounded-lg p-6 text-center text-sm text-gray-400 break-words">
-                    No more notes
-                  </div>
-                </div>
               </div>
             )}
 

@@ -67,68 +67,68 @@ export default function AdminLeadsInformation({ lead: leadProp, onBack, fetchLea
   });
 
   const fetchLead = async () => {
-      try {
-        if (leadProp) {
-          // Use prop if available
-          setLead(leadProp);
-          setSelectedStatus(leadProp.status || 'New');
-          return;
-        }
-        
-        if (!leadID) return;
-        
-        const res = await api.get(`/leads/get/${leadID}`);
-        setLead(res.data);
-
-        setSelectedStatus(res.data.status || 'New')
-        // Populate dependent states
-        setAccountData({
-          name: res.data.company_name || "",
-          website: '',
-          countryCode: '+63',
-          phone_number: '',
-          billing_address: '',
-          shipping_address: '',
-          industry: '',
-          status: 'Prospect',
-          territory_id: res.data.assigned_to?.territory?.id || null,
-          assigned_to: res.data.assigned_to?.id || null,
-          created_by: res.data.creator?.id || null,
-        });
-
-        setContactData({
-          last_name: res.data.last_name || "",
-          first_name: res.data.first_name || "",
-          account_id: null,
-          title: res.data.title || "",
-          department: res.data.department || "",
-          email: res.data.email || "",
-          work_phone: res.data.work_phone || "",
-          mobile_phone_1: res.data.mobile_phone_1 || "",
-          mobile_phone_2: res.data.mobile_phone_2 || "",
-          notes: '',
-          assigned_to: res.data.assigned_to?.id || null,
-          created_by: res.data.creator?.id || null,
-        });
-
-        setDealData({
-          name: 'Converted from Lead',
-          account_id: null,
-          primary_contact_id: null,
-          stage: 'Prospecting',
-          probability: 10,
-          amount: 0.0,
-          currency: 'PHP',
-          description: 'Initial deal from lead conversion.',
-          assigned_to: res.data.assigned_to?.id || null,
-          created_by: res.data.creator?.id || null,
-        });
-      } catch (err) {
-        console.error(err);
+    try {
+      if (leadProp) {
+        // Use prop if available
+        setLead(leadProp);
+        setSelectedStatus(leadProp.status || 'New');
+        return;
       }
-    };
 
-  useEffect(() => {    
+      if (!leadID) return;
+
+      const res = await api.get(`/leads/get/${leadID}`);
+      setLead(res.data);
+
+      setSelectedStatus(res.data.status || 'New')
+      // Populate dependent states
+      setAccountData({
+        name: res.data.company_name || "",
+        website: '',
+        countryCode: '+63',
+        phone_number: '',
+        billing_address: '',
+        shipping_address: '',
+        industry: '',
+        status: 'Prospect',
+        territory_id: res.data.assigned_to?.territory?.id || null,
+        assigned_to: res.data.assigned_to?.id || null,
+        created_by: res.data.creator?.id || null,
+      });
+
+      setContactData({
+        last_name: res.data.last_name || "",
+        first_name: res.data.first_name || "",
+        account_id: null,
+        title: res.data.title || "",
+        department: res.data.department || "",
+        email: res.data.email || "",
+        work_phone: res.data.work_phone || "",
+        mobile_phone_1: res.data.mobile_phone_1 || "",
+        mobile_phone_2: res.data.mobile_phone_2 || "",
+        notes: '',
+        assigned_to: res.data.assigned_to?.id || null,
+        created_by: res.data.creator?.id || null,
+      });
+
+      setDealData({
+        name: 'Converted from Lead',
+        account_id: null,
+        primary_contact_id: null,
+        stage: 'Prospecting',
+        probability: 10,
+        amount: 0.0,
+        currency: 'PHP',
+        description: 'Initial deal from lead conversion.',
+        assigned_to: res.data.assigned_to?.id || null,
+        created_by: res.data.creator?.id || null,
+      });
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  useEffect(() => {
     if (leadProp) {
       setLead(leadProp);
       setSelectedStatus(leadProp.status || 'New');
@@ -137,13 +137,13 @@ export default function AdminLeadsInformation({ lead: leadProp, onBack, fetchLea
     }
   }, [leadID, leadProp]);
 
-  const updateStatus = async() => {
-    try{
-      const res = await api.put(`/leads/${lead.id}/update/status`, {status: selectedStatus})
+  const updateStatus = async () => {
+    try {
+      const res = await api.put(`/leads/${lead.id}/update/status`, { status: selectedStatus })
       console.log(res.data)
       toast.success('Lead status updated successfully')
       fetchLead();
-    } catch(err){
+    } catch (err) {
       console.error(err)
     }
   }
@@ -253,7 +253,7 @@ export default function AdminLeadsInformation({ lead: leadProp, onBack, fetchLea
 
           {/* TABS */}
           <div className="flex w-full bg-[#6A727D] text-white mt-1 overflow-x-auto mb-6">
-            {["Overview", "Notes", "Related Activities"].map((tab) => (
+            {["Overview", "Notes", "Activities"].map((tab) => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
@@ -340,68 +340,64 @@ export default function AdminLeadsInformation({ lead: leadProp, onBack, fetchLea
                 </div>
               )}
 
+              {/* ------- Notes ------ */}
               {activeTab === "Notes" && (
-                <div className="bg-white p-4 sm:p-6 rounded-xl border border-gray-200 shadow-sm">
-                  <h3 className="font-semibold text-gray-800 mb-2">Notes:</h3>
-                  <p className="text-sm text-gray-700 leading-relaxed">
-                    {lead.notes || "No notes available."}
-                  </p>
+                <div className="mt-4 w-full">
+                  <div className="flex flex-wrap items-center justify-between mb-4 gap-2">
+                    <h3 className="text-lg font-semibold text-gray-800 break-words">Lead Note</h3>
+                  </div>
+
+                  <div className="bg-white border border-gray-100 rounded-lg p-4 shadow-sm break-words">
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <p className="text-sm font-medium text-gray-800 break-words">
+                          Note
+                        </p>
+                      </div>
+                    </div>
+                    <div className="mt-3 text-sm text-gray-700 whitespace-pre-wrap break-words">
+                      {lead.notes || "No notes available."}
+                    </div>
+                  </div>
                 </div>
               )}
 
-              {activeTab === "Related Activities" && (
-                <div className="bg-white p-4 sm:p-6 rounded-xl border border-gray-200 shadow-sm">
-                  <h3 className="font-semibold text-gray-800 mb-4 sm:mb-6">Related Activities</h3>
 
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8 text-sm">
+              {/* ACTIVITIES */}
+              {activeTab === "Activities" && (
+                <div className="mt-4 space-y-4 w-full">
+                  <h3 className="text-lg font-semibold text-gray-800 break-words">Recent Activities</h3>
 
-                    {/* Tasks */}
-                    <div>
-                      <h4 className="font-semibold mb-2">Task (2)</h4>
-                      <div className="space-y-1 text-gray-700">
-                        <p>Schedule follow-up call</p>
-                        <p className="text-xs text-gray-500">Due: 2025-09-15 | In Progress</p>
-                        <p>Schedule follow-up call</p>
-                        <p className="text-xs text-gray-500">Due: 2025-09-18 | In Progress</p>
+                  {[{
+                    icon: FiPhone,
+                    title: "Schedule Call",
+                    desc: "Discuss implementation timeline and pricing",
+                    user: "Lester James",
+                    date: "December 12, 2025 at 8:00 AM",
+                  }, {
+                    icon: FiCalendar,
+                    title: "Meeting regarding Enterprise Software License",
+                    desc: "Discuss implementation timeline and pricing",
+                    user: "Lester James",
+                    date: "December 12, 2025 at 8:00 AM",
+                  }].map((act, idx) => (
+                    <div key={idx} className="flex flex-col sm:flex-row justify-between items-start border border-gray-200 rounded-lg p-4 shadow-sm bg-white w-full break-words">
+                      <div className="flex gap-4 mb-2 sm:mb-0 flex-1 min-w-0">
+                        <div className="text-gray-600 mt-1">
+                          <act.icon size={24} />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <h4 className="font-medium text-gray-900 break-words">{act.title}</h4>
+                          <p className="text-sm text-gray-500 break-words">{act.desc}</p>
+                          <div className="flex items-center gap-2 mt-2">
+                            <div className="w-7 h-7 rounded-full bg-gray-200 shrink-0"></div>
+                            <p className="text-sm text-gray-700 break-words">{act.user}</p>
+                          </div>
+                        </div>
                       </div>
-                      <a
-                        href="#"
-                        className="text-blue-600 hover:underline text-xs font-medium mt-2 inline-block"
-                      >
-                        View All Tasks
-                      </a>
+                      <p className="text-sm text-gray-500 break-words">{act.date}</p>
                     </div>
-
-                    {/* Notes */}
-                    <div>
-                      <h4 className="font-semibold mb-2">Notes (1)</h4>
-                      <div className="space-y-1 text-gray-700">
-                        <p>Initial conversation summary</p>
-                        <p className="text-xs text-gray-500">Added: 2025-09-10</p>
-                      </div>
-                      <a
-                        href="#"
-                        className="text-blue-600 hover:underline text-xs font-medium mt-2 inline-block"
-                      >
-                        View All Notes
-                      </a>
-                    </div>
-
-                    {/* Meetings */}
-                    <div>
-                      <h4 className="font-semibold mb-2">Meetings (1)</h4>
-                      <div className="space-y-1 text-gray-700">
-                        <p> Product demo - Zoom </p>
-                        <p className="text-xs text-gray-500">Scheduled: 2025-09-20</p>
-                      </div>
-                      <a
-                        href="#"
-                        className="text-blue-600 hover:underline text-xs font-medium mt-2 inline-block"
-                      >
-                        View All Meetings
-                      </a>
-                    </div>
-                  </div>
+                  ))}
                 </div>
               )}
             </div>
@@ -450,11 +446,10 @@ export default function AdminLeadsInformation({ lead: leadProp, onBack, fetchLea
                 <button
                   onClick={updateStatus}
                   disabled={selectedStatus === lead.status}
-                  className={`w-full py-1.5 rounded-md text-sm transition focus:outline-none focus:ring-2 ${
-                    selectedStatus === lead.status
+                  className={`w-full py-1.5 rounded-md text-sm transition focus:outline-none focus:ring-2 ${selectedStatus === lead.status
                       ? "bg-gray-400 cursor-not-allowed text-white"
                       : "bg-gray-900 text-white hover:bg-gray-800 focus:ring-gray-400"
-                  }`}
+                    }`}
                 >
                   Update
                 </button>

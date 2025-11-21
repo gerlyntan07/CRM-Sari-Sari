@@ -474,8 +474,8 @@ export default function AdminContacts() {
         type === "create"
           ? "Failed to create contact. Please review the details and try again."
           : type === "update"
-          ? "Failed to update contact. Please review the details and try again."
-          : "Failed to delete contact. Please try again.";
+            ? "Failed to update contact. Please review the details and try again."
+            : "Failed to delete contact. Please try again.";
       const message = err.response?.data?.detail || defaultMessage;
       toast.error(message);
     } finally {
@@ -527,7 +527,7 @@ export default function AdminContacts() {
       onClick={handleContactModalBackdropClick}
       className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4"
     >
-      <div 
+      <div
         className="bg-white rounded-xl shadow-xl w-full max-w-6xl max-h-[92vh] overflow-y-auto hide-scrollbar animate-scale-in p-4 sm:p-6 md:p-8 font-inter relative"
         onClick={(e) => e.stopPropagation()}
       >
@@ -586,7 +586,7 @@ export default function AdminContacts() {
 
         {/* TABS */}
         <div className="flex w-full bg-[#6A727D] text-white mt-1 overflow-x-auto mb-6">
-          {["Overview", "Notes"].map((tab) => (
+          {["Overview", "Notes", "Activities"].map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
@@ -599,6 +599,8 @@ export default function AdminContacts() {
               {tab}
             </button>
           ))}
+
+
         </div>
 
         {/* TAB CONTENT */}
@@ -674,12 +676,64 @@ export default function AdminContacts() {
               </div>
             )}
 
-            {activeTab === "Notes" && (
-              <div className="bg-white p-4 sm:p-6 rounded-xl border border-gray-200 shadow-sm">
-                <h3 className="font-semibold text-gray-800 mb-2">Notes:</h3>
-                <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">
-                  {selectedContact.notes || "No notes available."}
-                </p>
+            {/* ------- Notes ------ */}
+              {activeTab === "Notes" && (
+                  <div className="mt-4 w-full">
+                <div className="flex flex-wrap items-center justify-between mb-4 gap-2">
+                  <h3 className="text-lg font-semibold text-gray-800 break-words">Contact Note</h3>
+                </div>
+
+                  <div className="bg-white border border-gray-100 rounded-lg p-4 shadow-sm break-words">
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <p className="text-sm font-medium text-gray-800 break-words">
+                            Note
+                          </p>
+                        </div>
+                      </div>
+                      <div className="mt-3 text-sm text-gray-700 whitespace-pre-wrap break-words">
+                         {selectedContact.notes || "No notes available."}
+                      </div>
+                    </div>
+                </div>
+              )}
+
+
+            {/* ACTIVITIES */}
+            {activeTab === "Activities" && (
+              <div className="mt-4 space-y-4 w-full">
+                <h3 className="text-lg font-semibold text-gray-800 break-words">Recent Activities</h3>
+
+                {[{
+                  icon: FiPhone,
+                  title: "Schedule Call",
+                  desc: "Discuss implementation timeline and pricing",
+                  user: "Lester James",
+                  date: "December 12, 2025 at 8:00 AM",
+                }, {
+                  icon: FiCalendar,
+                  title: "Meeting regarding Enterprise Software License",
+                  desc: "Discuss implementation timeline and pricing",
+                  user: "Lester James",
+                  date: "December 12, 2025 at 8:00 AM",
+                }].map((act, idx) => (
+                  <div key={idx} className="flex flex-col sm:flex-row justify-between items-start border border-gray-200 rounded-lg p-4 shadow-sm bg-white w-full break-words">
+                    <div className="flex gap-4 mb-2 sm:mb-0 flex-1 min-w-0">
+                      <div className="text-gray-600 mt-1">
+                        <act.icon size={24} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h4 className="font-medium text-gray-900 break-words">{act.title}</h4>
+                        <p className="text-sm text-gray-500 break-words">{act.desc}</p>
+                        <div className="flex items-center gap-2 mt-2">
+                          <div className="w-7 h-7 rounded-full bg-gray-200 shrink-0"></div>
+                          <p className="text-sm text-gray-700 break-words">{act.user}</p>
+                        </div>
+                      </div>
+                    </div>
+                    <p className="text-sm text-gray-500 break-words">{act.date}</p>
+                  </div>
+                ))}
               </div>
             )}
           </div>
@@ -1071,8 +1125,8 @@ export default function AdminContacts() {
               {isSubmitting
                 ? "Saving..."
                 : isEditing
-                ? "Update Contact"
-                : "Save Contact"}
+                  ? "Update Contact"
+                  : "Save Contact"}
             </button>
           </div>
         </form>

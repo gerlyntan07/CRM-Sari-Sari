@@ -6,10 +6,14 @@ import {
   FiPlus,
   FiFileText,
   FiX,
+  FiPhone,
+  FiMail,
+  FiCalendar,
 } from "react-icons/fi";
-import { HiArrowLeft } from "react-icons/hi";
+import { HiX } from "react-icons/hi";
 import { toast } from "react-toastify";
 import PaginationControls from "../components/PaginationControls.jsx";
+import LoadingSpinner from "../components/LoadingSpinner.jsx";
 
 const ITEMS_PER_PAGE = 10;
 
@@ -59,6 +63,22 @@ const getStatusBadgeClass = (status) => {
   }
 };
 
+const getDetailBadgeClass = (status) => {
+  const normalized = normalizeStatus(status).toLowerCase();
+  switch (normalized) {
+    case "draft":
+      return "bg-gray-600 text-white";
+    case "presented":
+      return "bg-yellow-600 text-white";
+    case "accepted":
+      return "bg-green-600 text-white";
+    case "rejected":
+      return "bg-red-600 text-white";
+    default:
+      return "bg-gray-600 text-white";
+  }
+};
+
 const formattedDateTime = (datetime) => {
   if (!datetime) return "";
   return new Date(datetime)
@@ -104,6 +124,8 @@ export default function AdminQuotes() {
   const [statusFilter, setStatusFilter] = useState("Filter by Status");
   const [deletingId, setDeletingId] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
+  const [activeTab, setActiveTab] = useState("Overview");
+  const [selectedStatus, setSelectedStatus] = useState("Draft");
 
   // Mock data for demonstration
   const [mockQuotes, setMockQuotes] = useState([
@@ -285,9 +307,22 @@ export default function AdminQuotes() {
   const handleNextPage = () =>
     setCurrentPage((prev) => Math.min(prev + 1, totalPages));
 
-  const handleQuoteClick = (quote) => setSelectedQuote(quote);
+  const handleQuoteClick = (quote) => {
+    setSelectedQuote(quote);
+    setActiveTab("Overview");
+    setSelectedStatus(quote?.status || "Draft");
+  };
 
-  const handleBackToList = () => setSelectedQuote(null);
+  const handleBackToList = () => {
+    setSelectedQuote(null);
+    setActiveTab("Overview");
+  };
+
+  const handleQuoteModalBackdropClick = (e) => {
+    if (e.target.id === "quoteModalBackdrop" && !confirmProcessing) {
+      handleBackToList();
+    }
+  };
 
   const closeModal = useCallback(() => {
     setShowModal(false);
@@ -324,6 +359,8 @@ export default function AdminQuotes() {
 
   const handleEditClick = (quote) => {
     if (!quote) return;
+    // Close the quote details modal
+    setSelectedQuote(null);
     setFormData({
       deal_name: quote.deal_name || "",
       created_by_id: quote.created_by?.id ? String(quote.created_by.id) : "",
@@ -601,37 +638,43 @@ export default function AdminQuotes() {
     selectedQuote && deletingId === selectedQuote.id;
 
   const detailView = selectedQuote ? (
-    <div className="p-4 sm:p-6 lg:p-8 font-inter">
-      <button
-        onClick={handleBackToList}
-        className="inline-flex items-center text-sm sm:text-base text-gray-500 hover:text-gray-700 transition mb-4 sm:mb-6 cursor-pointer"
+    <div
+      id="quoteModalBackdrop"
+      onClick={handleQuoteModalBackdropClick}
+      className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4"
+    >
+      <div
+        className="bg-white rounded-xl shadow-xl w-full max-w-6xl max-h-[92vh] overflow-y-auto hide-scrollbar animate-scale-in p-4 sm:p-6 md:p-8 font-inter relative"
+        onClick={(e) => e.stopPropagation()}
       >
-        <HiArrowLeft className="mr-1 w-4 h-4 sm:w-5 sm:h-5" /> Back
-      </button>
+        {/* Close Button */}
+        <div className="flex justify-end w-full">
+          <button
+            onClick={handleBackToList}
+            className="text-gray-500 hover:text-gray-700 transition mb-5 cursor-pointer"
+          >
+            <HiX size={30} />
+          </button>
+        </div>
 
-      <div className="bg-white border border-gray-200 rounded-lg p-4 sm:p-6 shadow-sm space-y-6 overflow-hidden">
-        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
-          <div>
-            <div className="flex items-center gap-3 flex-wrap">
-              <h1 className="text-xl sm:text-2xl font-semibold text-gray-800">
-                {selectedQuote.deal_name || "Untitled Quote"}
-              </h1>
-              <span
-                className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${getStatusBadgeClass(
-                  selectedQuote.status
-                )}`}
-              >
-                {formatStatusLabel(selectedQuote.status)}
-              </span>
-            </div>
-            <p className="text-sm text-gray-500 mt-1">
-              {selectedQuote.quote_id || "No quote ID"}
-            </p>
+        {/* Header */}
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-4 gap-2 sm:gap-4">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+            <h1 className="text-xl sm:text-2xl font-semibold text-gray-800">
+              {selectedQuote.deal_name || "Untitled Quote"}
+            </h1>
+            <span
+              className={`text-xs sm:text-sm font-medium px-2 sm:px-3 py-1 rounded-full whitespace-nowrap ${getDetailBadgeClass(
+                selectedQuote.status
+              )}`}
+            >
+              {formatStatusLabel(selectedQuote.status)}
+            </span>
           </div>
 
           <div className="flex flex-col sm:flex-row sm:space-x-3 space-y-2 sm:space-y-0">
             <button
-              className="inline-flex items-center justify-center w-full sm:w-auto bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 disabled:opacity-70"
+              className="inline-flex items-center justify-center w-full sm:w-auto bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 disabled:opacity-70 transition text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
               onClick={() => handleEditClick(selectedQuote)}
               disabled={
                 confirmProcessing ||
@@ -643,7 +686,7 @@ export default function AdminQuotes() {
               Edit
             </button>
             <button
-              className="inline-flex items-center justify-center w-full sm:w-auto bg-red-500 text-white px-4 py-2 rounded-md hover:bg-red-600 disabled:opacity-70"
+              className="inline-flex items-center justify-center w-full sm:w-auto px-4 py-2 rounded-md text-sm bg-red-500 text-white hover:bg-red-600 transition focus:outline-none focus:ring-2 focus:ring-red-400"
               onClick={() => handleDelete(selectedQuote)}
               disabled={Boolean(selectedQuoteDeleteDisabled)}
             >
@@ -658,87 +701,165 @@ export default function AdminQuotes() {
             </button>
           </div>
         </div>
+        <div className="border-b border-gray-200 mb-6"></div>
 
-        <div className="overflow-x-auto">
-          <h2 className="text-lg sm:text-xl font-semibold mb-4 text-gray-800">
-            Quote Details
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-gray-700">
-            <DetailRow
-              label="Quote ID"
-              value={selectedQuote.quote_id || "--"}
-            />
-            <DetailRow
-              label="Deal Name"
-              value={selectedQuote.deal_name || "--"}
-            />
-            <DetailRow
-              label="Account"
-              value={selectedQuote.account?.name || "--"}
-            />
-            <DetailRow
-              label="Contact"
-              value={
-                selectedQuote.contact
-                  ? `${selectedQuote.contact.first_name} ${selectedQuote.contact.last_name}`
-                  : "--"
-              }
-            />
-            <DetailRow
-              label="Total Amount"
-              value={
-                selectedQuote.total_amount
-                  ? `₱${Number(selectedQuote.total_amount).toLocaleString()}`
-                  : "--"
-              }
-            />
-            <DetailRow
-              label="Presented Date"
-              value={formatDate(selectedQuote.presented_date) || "--"}
-            />
-            <DetailRow
-              label="Validity Date"
-              value={formatDate(selectedQuote.validity_date) || "--"}
-            />
-            <DetailRow
-              label="Created By"
-              value={
-                selectedQuote.created_by
-                  ? `${selectedQuote.created_by.first_name} ${selectedQuote.created_by.last_name}`
-                  : "--"
-              }
-            />
-            <DetailRow
-              label="Created At"
-              value={formattedDateTime(selectedQuote.created_at) || "--"}
-            />
-            <DetailRow
-              label="Last Updated"
-              value={formattedDateTime(selectedQuote.updated_at) || "--"}
-            />
-            <DetailRow
-              label="Status"
-              value={formatStatusLabel(selectedQuote.status)}
-            />
-            <DetailRow
-              label="Assigned To"
-              value={
-                selectedQuote.assigned_to
-                  ? `${selectedQuote.assigned_to.first_name} ${selectedQuote.assigned_to.last_name}`
-                  : "Unassigned"
-              }
-            />
+        {/* TABS */}
+        <div className="flex w-full bg-[#6A727D] text-white mt-1 overflow-x-auto mb-6">
+          {["Overview", "Notes"].map((tab) => (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className={`flex-1 min-w-[90px] px-4 py-2.5 text-xs sm:text-sm font-medium text-center transition-all duration-200 border-b-2
+        ${activeTab === tab
+                  ? "bg-paper-white text-[#6A727D] border-white"
+                  : "text-white hover:bg-[#5c636d]"
+                }`}
+            >
+              {tab}
+            </button>
+          ))}
+        </div>
+
+        {/* TAB CONTENT */}
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 items-start">
+          <div className="lg:col-span-3">
+            {activeTab === "Overview" && (
+              <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6 md:p-8 border border-gray-200">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-4 sm:gap-6 text-sm text-gray-700">
+                  <div>
+                    <p className="font-semibold">Quote ID:</p>
+                    <p>{selectedQuote.quote_id || "N/A"}</p>
+                  </div>
+                  <div>
+                    <p className="font-semibold">Deal Name:</p>
+                    <p>{selectedQuote.deal_name || "N/A"}</p>
+                  </div>
+                  <div>
+                    <p className="font-semibold">Account:</p>
+                    <p>{selectedQuote.account?.name || "N/A"}</p>
+                  </div>
+                  <div>
+                    <p className="font-semibold">Contact:</p>
+                    <p>
+                      {selectedQuote.contact
+                        ? `${selectedQuote.contact.first_name} ${selectedQuote.contact.last_name}`
+                        : "N/A"}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="font-semibold">Total Amount:</p>
+                    <p>
+                      {selectedQuote.total_amount
+                        ? `₱${Number(selectedQuote.total_amount).toLocaleString()}`
+                        : "N/A"}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="font-semibold">Presented Date:</p>
+                    <p>{formatDate(selectedQuote.presented_date) || "N/A"}</p>
+                  </div>
+                  <div>
+                    <p className="font-semibold">Validity Date:</p>
+                    <p>{formatDate(selectedQuote.validity_date) || "N/A"}</p>
+                  </div>
+                  <div>
+                    <p className="font-semibold">Created By:</p>
+                    <p>
+                      {selectedQuote.created_by
+                        ? `${selectedQuote.created_by.first_name} ${selectedQuote.created_by.last_name}`
+                        : "N/A"}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="font-semibold">Created At:</p>
+                    <p>{formattedDateTime(selectedQuote.created_at) || "N/A"}</p>
+                  </div>
+                  <div>
+                    <p className="font-semibold">Last Updated:</p>
+                    <p>{formattedDateTime(selectedQuote.updated_at) || "N/A"}</p>
+                  </div>
+                  <div>
+                    <p className="font-semibold">Status:</p>
+                    <p>{formatStatusLabel(selectedQuote.status)}</p>
+                  </div>
+                  <div>
+                    <p className="font-semibold">Assigned To:</p>
+                    <p>
+                      {selectedQuote.assigned_to
+                        ? `${selectedQuote.assigned_to.first_name} ${selectedQuote.assigned_to.last_name}`
+                        : "Unassigned"}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {activeTab === "Notes" && (
+              <div className="bg-white p-4 sm:p-6 rounded-xl border border-gray-200 shadow-sm">
+                <h3 className="font-semibold text-gray-800 mb-2">Notes:</h3>
+                <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">
+                  {selectedQuote.notes || "No notes available."}
+                </p>
+              </div>
+            )}
           </div>
 
-          <div className="mt-6 border-t border-gray-200 pt-4">
-            <h3 className="text-md sm:text-lg font-semibold text-gray-800 mb-2">
-              Notes
-            </h3>
-            <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">
-              {selectedQuote.notes
-                ? selectedQuote.notes
-                : "No additional notes were provided for this quote."}
-            </p>
+          <div className="flex flex-col gap-4">
+            {/* QUICK ACTIONS */}
+            <div className="bg-white border border-gray-100 rounded-lg p-3 sm:p-4 shadow-sm">
+              <h4 className="font-semibold text-gray-800 mb-2 text-sm">
+                Quick Actions
+              </h4>
+
+              <div className="flex flex-col gap-2 w-full">
+                {[
+                  { icon: FiPhone, text: "Schedule Call" },
+                  { icon: FiMail, text: "Send E-mail" },
+                  { icon: FiCalendar, text: "Book Meeting" },
+                ].map(({ icon: Icon, text }) => (
+                  <button
+                    key={text}
+                    className="flex items-center gap-2 border border-gray-100 rounded-md py-1.5 px-2 sm:px-3 hover:bg-gray-50 transition text-sm"
+                  >
+                    <Icon className="text-gray-600 w-4 h-4 flex-shrink-0" />{" "}
+                    {text}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* STATUS */}
+            <div className="bg-white border border-gray-100 rounded-lg p-3 sm:p-4 shadow-sm w-full">
+              <h4 className="font-semibold text-gray-800 mb-2 text-sm">
+                Status
+              </h4>
+              <select
+                className="border border-gray-200 rounded-md px-2 sm:px-3 py-1.5 w-full text-sm mb-2 focus:ring-2 focus:ring-indigo-500 outline-none"
+                value={selectedStatus || selectedQuote.status || "Draft"}
+                onChange={(e) => setSelectedStatus(e.target.value)}
+              >
+                {STATUS_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+
+              <button
+                onClick={() => {
+                  // Handle status update
+                  console.log("Update status to:", selectedStatus);
+                }}
+                disabled={selectedStatus === selectedQuote.status}
+                className={`w-full py-1.5 rounded-md text-sm transition focus:outline-none focus:ring-2 ${
+                  selectedStatus === selectedQuote.status
+                    ? "bg-gray-400 cursor-not-allowed text-white"
+                    : "bg-gray-900 text-white hover:bg-gray-800 focus:ring-gray-400"
+                }`}
+              >
+                Update
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -746,7 +867,8 @@ export default function AdminQuotes() {
   ) : null;
 
   const listView = (
-    <div className="p-4 sm:p-6 lg:p-8">
+    <div className="p-4 sm:p-6 lg:p-8 font-inter relative">
+      {quotesLoading && <LoadingSpinner message="Loading quotes..." />}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 sm:mb-6 space-y-2 sm:space-y-0">
         <h2 className="flex items-center text-xl sm:text-2xl font-semibold text-gray-800">
           <FiFileText className="mr-2 text-blue-600" /> Quotes Management

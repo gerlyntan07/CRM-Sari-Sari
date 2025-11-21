@@ -15,6 +15,7 @@ import api from '../api'
 import { toast } from "react-toastify";
 import PaginationControls from "../components/PaginationControls.jsx";
 import AdminDealsInformation from "../components/AdminDealsInformation";
+import LoadingSpinner from "../components/LoadingSpinner.jsx";
 
 const ITEMS_PER_PAGE = 10;
 
@@ -30,6 +31,7 @@ export default function AdminDeals() {
     const [activeTab, setActiveTab] = useState("Overview");
     const [showDealModal, setShowDealModal] = useState(false);
     const [deals, setDeals] = useState(null);
+    const [dealsLoading, setDealsLoading] = useState(false);
     const [currentPage, setCurrentPage] = useState(1);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [confirmModalData, setConfirmModalData] = useState(null);
@@ -156,6 +158,7 @@ export default function AdminDeals() {
     };
 
     const fetchDeals = async () => {
+        setDealsLoading(true);
         try {
             const res = await api.get(`/deals/admin/fetch-all`);
             setDeals(res.data)
@@ -166,6 +169,8 @@ export default function AdminDeals() {
                 toast.error("Failed to fetch accounts. Please try again later.");
             }
             console.error(err);
+        } finally {
+            setDealsLoading(false);
         }
     }
 
@@ -421,7 +426,8 @@ export default function AdminDeals() {
     ];
 
     return (
-        <div className="p-4 sm:p-6 lg:p-8">
+        <div className="p-4 sm:p-6 lg:p-8 font-inter relative">
+            {dealsLoading && <LoadingSpinner message="Loading deals..." />}
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 sm:mb-6 space-y-2 sm:space-y-0">
                 <h1 className="flex items-center text-xl sm:text-2xl font-semibold text-gray-800">
                     <FiBriefcase className="mr-2 text-blue-600" />
@@ -502,15 +508,15 @@ export default function AdminDeals() {
                             paginatedDeals.map((deal) => (
                                 <tr
                                     key={deal.id}
-                                    className="hover:bg-gray-50 text-xs cursor-pointer"
+                                    className="hover:bg-gray-50 text-sm cursor-pointer"
                                     onClick={() => {
                                         // Force re-render by creating a new object reference
                                         setSelectedDeal({ ...deal });
                                     }}
                                 >
-                                    <td className="py-2 px-4">
+                                    <td className="py-3 px-4">
                                         <div>
-                                            <div className="font-medium text-blue-600 hover:underline break-all">
+                                            <div className="font-medium text-blue-600 hover:underline break-all text-sm">
                                                 {deal.name}
                                             </div>
                                             <div className="text-gray-500 text-xs break-all">
@@ -518,26 +524,26 @@ export default function AdminDeals() {
                                             </div>
                                         </div>
                                     </td>
-                                    <td className="py-2 px-4 text-gray-800 font-medium text-xs">
+                                    <td className="py-3 px-4 text-gray-800 font-medium text-sm">
                                         {deal.account?.name || "--"}
                                     </td>
-                                    <td className="py-2 px-4 text-gray-800 font-medium text-xs">
+                                    <td className="py-3 px-4 text-gray-800 font-medium text-sm">
                                         {deal.contact?.first_name && deal.contact?.last_name
                                             ? `${deal.contact.first_name} ${deal.contact.last_name}`
                                             : deal.contact?.first_name || deal.contact?.last_name || "--"}
                                     </td>
-                                    <td className="py-2 px-4">
+                                    <td className="py-3 px-4">
                                         <span className="px-2 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-700">
                                             {deal.stage || "--"}
                                         </span>
                                     </td>
-                                    <td className="py-2 px-4 text-gray-800 font-medium text-xs">
+                                    <td className="py-3 px-4 text-gray-800 font-medium text-sm">
                                         ₱ {deal.amount?.toLocaleString() || "0"}
                                     </td>
-                                    <td className="py-2 px-4 text-gray-800 font-medium text-xs">
+                                    <td className="py-3 px-4 text-gray-800 font-medium text-sm">
                                         {deal.close_date || "--"}
                                     </td>
-                                    <td className="py-2 px-4 text-gray-800 font-medium text-xs">
+                                    <td className="py-3 px-4 text-gray-800 font-medium text-sm">
                                         {deal.assigned_deals?.first_name && deal.assigned_deals?.last_name
                                             ? `${deal.assigned_deals.first_name} ${deal.assigned_deals.last_name}`
                                             : deal.assigned_deals?.first_name || deal.assigned_deals?.last_name || "--"}

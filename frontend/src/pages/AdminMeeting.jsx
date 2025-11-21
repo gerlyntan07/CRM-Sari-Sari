@@ -13,6 +13,7 @@ import api from "../api";
 import CreateMeetingModal from "../components/CreateMeetingModal";
 import AdminMeetingInfomation from "../components/AdminMeetingInfomation";
 import PaginationControls from "../components/PaginationControls.jsx";
+import LoadingSpinner from "../components/LoadingSpinner.jsx";
 
 
 // --- HELPER FUNCTIONS ---
@@ -444,7 +445,8 @@ const AdminMeeting = () => {
   ];
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8">
+    <div className="p-4 sm:p-6 lg:p-8 font-inter relative">
+      {meetingsLoading && <LoadingSpinner message="Loading meetings..." />}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 sm:mb-6 space-y-2 sm:space-y-0">
         <h1 className="flex items-center text-xl sm:text-2xl font-semibold text-gray-800">
           <FiCalendar className="mr-2 text-blue-600" />
@@ -517,13 +519,13 @@ const AdminMeeting = () => {
               paginatedMeetings.map((meeting) => (
                 <tr
                   key={meeting.id}
-                  className="hover:bg-gray-50 text-xs cursor-pointer"
+                  className="hover:bg-gray-50 text-sm cursor-pointer"
                   onClick={() => {
                     // Force re-render by creating a new object reference
                     setSelectedMeeting({ ...meeting });
                   }}
                 >
-                  <td className="py-2 px-4">
+                  <td className="py-3 px-4">
                     <span
                       className={`px-2 py-1 rounded-full text-xs font-medium ${getPriorityBadgeClass(
                         meeting.priority || "LOW"
@@ -532,9 +534,9 @@ const AdminMeeting = () => {
                       {formatStatusLabel(meeting.priority || "LOW")}
                     </span>
                   </td>
-                  <td className="py-2 px-4">
+                  <td className="py-3 px-4">
                     <div>
-                      <div className="font-medium text-blue-600 hover:underline break-all">
+                      <div className="font-medium text-blue-600 hover:underline break-all text-sm">
                         {meeting.activity}
                       </div>
                       <div className="text-gray-500 text-xs break-all">
@@ -542,20 +544,20 @@ const AdminMeeting = () => {
                       </div>
                     </div>
                   </td>
-                  <td className="py-2 px-4">
+                  <td className="py-3 px-4">
                     <div>
-                      <div className="font-medium text-gray-800 text-xs leading-tight">
+                      <div className="font-medium text-gray-800 text-sm leading-tight">
                         {meeting.relatedTo || "--"}
                       </div>
                     </div>
                   </td>
-                  <td className="py-2 px-4 text-gray-800 font-medium text-xs">
+                  <td className="py-3 px-4 text-gray-800 font-medium text-sm">
                     {meeting.dueDate || "--"}
                   </td>
-                  <td className="py-2 px-4 text-gray-800 font-medium text-xs">
+                  <td className="py-3 px-4 text-gray-800 font-medium text-sm">
                     {meeting.assignedTo || "--"}
                   </td>
-                  <td className="py-2 px-4">
+                  <td className="py-3 px-4">
                     <span
                       className={`px-2 py-1 rounded-full text-xs font-medium whitespace-nowrap ${getStatusBadgeClass(
                         meeting.status || "PENDING"

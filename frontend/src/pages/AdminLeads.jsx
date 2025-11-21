@@ -18,6 +18,7 @@ import AdminLeadsConvert from "../components/AdminLeadsConvert";
 import PaginationControls from "../components/PaginationControls.jsx";
 import { toast } from "react-toastify";
 import api from "../api";
+import LoadingSpinner from "../components/LoadingSpinner.jsx";
 
 import * as countryCodesList from "country-codes-list";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
@@ -90,6 +91,7 @@ export default function AdminLeads() {
   const [users, setUsers] = useState(null);
   const [selectedUser, setSelectedUser] = useState(null);
   const [leads, setLeads] = useState([]);
+  const [leadsLoading, setLeadsLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("Filter by Status");
   const [currentPage, setCurrentPage] = useState(1);
@@ -156,12 +158,15 @@ export default function AdminLeads() {
   };
 
   const fetchLeads = async () => {
+    setLeadsLoading(true);
     try {
       const res = await api.get(`/leads/admin/getLeads`);
       setLeads(res.data);
       console.log(res.data);
     } catch (err) {
       console.error(`Error fetching leads: ${err}`);
+    } finally {
+      setLeadsLoading(false);
     }
   }
 
@@ -555,7 +560,8 @@ export default function AdminLeads() {
   // Note: We always render the list view, and show detail modal as overlay if selectedLead exists
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8">
+    <div className="p-4 sm:p-6 lg:p-8 font-inter relative">
+      {leadsLoading && <LoadingSpinner message="Loading leads..." />}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 sm:mb-6 space-y-2 sm:space-y-0">
         <h1 className="flex items-center text-xl sm:text-2xl font-semibold text-gray-800">
           <FiUserPlus className="mr-2 text-blue-600" />
@@ -631,31 +637,31 @@ export default function AdminLeads() {
               paginatedLeads.map((lead) => (
                 <tr
                   key={lead.id}
-                  className="hover:bg-gray-50 text-xs cursor-pointer"
+                  className="hover:bg-gray-50 text-sm cursor-pointer"
                   onClick={() => handleLeadClick(lead)}
                 >
-                  <td className="py-2 px-4">
-                    <div className="font-medium text-blue-600 hover:underline break-all">
+                  <td className="py-3 px-4">
+                    <div className="font-medium text-blue-600 hover:underline break-all text-sm">
                       {lead.first_name} {lead.last_name}
                     </div>
                   </td>
-                  <td className="py-2 px-4">
-                    <div className="font-medium text-gray-800 text-xs leading-tight">
+                  <td className="py-3 px-4">
+                    <div className="font-medium text-gray-800 text-sm leading-tight">
                       {lead.company_name || "--"}
                     </div>
                   </td>
-                  <td className="py-2 px-4 text-gray-800 font-medium text-xs">
+                  <td className="py-3 px-4 text-gray-800 font-medium text-sm">
                     {lead.title || "--"}
                   </td>
-                  <td className="py-2 px-4 text-gray-800 font-medium text-xs">
+                  <td className="py-3 px-4 text-gray-800 font-medium text-sm">
                     {lead.email || "--"}
                   </td>
-                  <td className="py-2 px-4 text-gray-800 font-medium text-xs">
+                  <td className="py-3 px-4 text-gray-800 font-medium text-sm">
                     {lead.assigned_to
                       ? `${lead.assigned_to.first_name} ${lead.assigned_to.last_name}`
                       : "--"}
                   </td>
-                  <td className="py-2 px-4">
+                  <td className="py-3 px-4">
                     <span
                       className={`px-2 py-1 rounded-full text-xs font-medium whitespace-nowrap ${getStatusBadgeClass(
                         lead.status || "New"

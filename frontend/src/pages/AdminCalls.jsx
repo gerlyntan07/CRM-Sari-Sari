@@ -7,11 +7,17 @@ import {
   FiCheckCircle,
   FiXCircle,
   FiX,
+  FiEdit,
+  FiTrash2,
+  FiPhone,
+  FiMail,
+  FiCalendar,
 } from "react-icons/fi";
-import { HiArrowLeft } from "react-icons/hi";
+import { HiX } from "react-icons/hi";
 import { toast } from "react-toastify";
 import api from "../api";
 import PaginationControls from "../components/PaginationControls.jsx";
+import LoadingSpinner from "../components/LoadingSpinner.jsx";
 
 const STATUS_OPTIONS = [
   { value: "PENDING", label: "Pending" },
@@ -100,6 +106,8 @@ export default function AdminCalls() {
   const [confirmModalData, setConfirmModalData] = useState(null);
   const [confirmProcessing, setConfirmProcessing] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
+  const [activeTab, setActiveTab] = useState("Overview");
+  const [selectedStatus, setSelectedStatus] = useState("");
 
   const total = calls.length;
   const pending = useMemo(
@@ -302,9 +310,19 @@ export default function AdminCalls() {
   const handleNextPage = () =>
     setCurrentPage((prev) => Math.min(prev + 1, totalPages));
 
-  const handleCallClick = (call) => setSelectedCall(call);
+  const handleCallClick = (call) => {
+    setSelectedCall(call);
+    setActiveTab("Overview");
+    setSelectedStatus(call?.status || "PENDING");
+  };
 
   const handleBackToList = () => setSelectedCall(null);
+
+  const handleCallModalBackdropClick = (e) => {
+    if (e.target.id === "callModalBackdrop" && !confirmProcessing) {
+      handleBackToList();
+    }
+  };
 
   const closeModal = () => {
     setShowModal(false);
@@ -458,102 +476,200 @@ export default function AdminCalls() {
   ];
 
   const detailView = selectedCall ? (
-    <div className="p-4 sm:p-6 lg:p-8 font-inter">
-      <button
-        onClick={handleBackToList}
-        className="inline-flex items-center text-sm sm:text-base text-gray-500 hover:text-gray-700 transition mb-4 sm:mb-6 cursor-pointer"
-      >
-        <HiArrowLeft className="mr-1 w-4 h-4 sm:w-5 sm:h-5" /> Back
-      </button>
+    <div
+      id="callModalBackdrop"
+      onClick={handleCallModalBackdropClick}
+      className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4"
+    >
+      <div className="bg-white rounded-xl shadow-xl w-full max-w-6xl max-h-[92vh] overflow-y-auto hide-scrollbar animate-scale-in p-4 sm:p-6 md:p-8 font-inter relative">
+        {/* Close Button */}
+        <div className="flex justify-end w-full">
+          <button
+            onClick={handleBackToList}
+            className="text-gray-500 hover:text-gray-700 transition mb-5 cursor-pointer"
+          >
+            <HiX size={30} />
+          </button>
+        </div>
 
-      <div className="bg-white border border-gray-200 rounded-lg p-4 sm:p-6 shadow-sm space-y-6 overflow-hidden">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <h1 className="text-xl sm:text-2xl font-semibold text-gray-800 flex items-center gap-2">
-            {selectedCall.subject}
+        {/* Header */}
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-4 gap-2 sm:gap-4">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+            <h1 className="text-xl sm:text-2xl font-semibold text-gray-800">
+              {selectedCall.subject}
+            </h1>
             <span
-              className={`inline-block text-xs px-2 py-0.5 rounded ${getStatusBadgeClass(
+              className={`text-xs sm:text-sm font-medium px-2 sm:px-3 py-1 rounded-full whitespace-nowrap ${getStatusBadgeClass(
                 selectedCall.status
               )}`}
             >
               {formatStatusLabel(selectedCall.status)}
             </span>
-          </h1>
+          </div>
+        </div>
+        <div className="border-b border-gray-200 mb-6"></div>
+
+        {/* TABS */}
+        <div className="flex w-full bg-[#6A727D] text-white mt-1 overflow-x-auto mb-6">
+          {["Overview", "Notes"].map((tab) => (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className={`flex-1 min-w-[90px] px-4 py-2.5 text-xs sm:text-sm font-medium text-center transition-all duration-200 border-b-2
+        ${activeTab === tab
+                  ? "bg-paper-white text-[#6A727D] border-white"
+                  : "text-white hover:bg-[#5c636d]"
+                }`}
+            >
+              {tab}
+            </button>
+          ))}
         </div>
 
-        <div className="overflow-x-auto">
-          <h2 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4 text-gray-800">
-            Call Details
-          </h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm text-gray-700">
-            <DetailRow
-              label="Primary Contact"
-              value={selectedCall.primary_contact || "--"}
-            />
-            <DetailRow
-              label="Phone Number"
-              value={selectedCall.phone_number || "--"}
-            />
-            <DetailRow 
-              label="Call Time" 
-              value={
-                selectedCall.call_time 
-                  ? (typeof selectedCall.call_time === 'string' 
-                      ? new Date(selectedCall.call_time).toLocaleTimeString('en-US', {
-                          hour: 'numeric',
-                          minute: '2-digit',
-                          hour12: true
-                        })
-                      : selectedCall.call_time)
-                  : "--"
-              } 
-            />
-            <DetailRow
-              label="Call Duration"
-              value={selectedCall.call_duration ? `${selectedCall.call_duration} min` : "--"}
-            />
-            <DetailRow 
-              label="Due Date" 
-              value={
-                selectedCall.due_date 
-                  ? (typeof selectedCall.due_date === 'string' 
-                      ? new Date(selectedCall.due_date).toLocaleDateString('en-US', {
-                          month: '2-digit',
-                          day: '2-digit',
-                          year: 'numeric'
-                        })
-                      : selectedCall.due_date)
-                  : "--"
-              } 
-            />
-            <DetailRow
-              label="Assigned To"
-              value={selectedCall.assigned_to || "--"}
-            />
-            <DetailRow
-              label="Related Type"
-              value={selectedCall.related_type || "--"}
-            />
-            <DetailRow
-              label="Related To"
-              value={selectedCall.related_to || "--"}
-            />
-            <DetailRow
-              label="Priority"
-              value={
-                <span
-                  className={`px-2 py-1 rounded-full text-xs font-medium ${getPriorityBadgeClass(
-                    selectedCall.priority
-                  )}`}
-                >
-                  {formatStatusLabel(selectedCall.priority)}
-                </span>
-              }
-            />
-            <DetailRow label="Notes" value={selectedCall.notes || "--"} />
-            <DetailRow
-              label="Created At"
-              value={formattedDateTime(selectedCall.created_at) || "--"}
-            />
+        {/* TAB CONTENT */}
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 items-start">
+          <div className="lg:col-span-3">
+            {activeTab === "Overview" && (
+              <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6 md:p-8 border border-gray-200">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-4 sm:gap-6 text-sm text-gray-700">
+                  <div>
+                    <p className="font-semibold">Primary Contact:</p>
+                    <p>{selectedCall.primary_contact || "N/A"}</p>
+                  </div>
+                  <div>
+                    <p className="font-semibold">Phone Number:</p>
+                    <p>{selectedCall.phone_number || "N/A"}</p>
+                  </div>
+                  <div>
+                    <p className="font-semibold">Call Time:</p>
+                    <p>
+                      {selectedCall.call_time 
+                        ? (typeof selectedCall.call_time === 'string' 
+                            ? new Date(selectedCall.call_time).toLocaleTimeString('en-US', {
+                                hour: 'numeric',
+                                minute: '2-digit',
+                                hour12: true
+                              })
+                            : selectedCall.call_time)
+                        : "N/A"}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="font-semibold">Call Duration:</p>
+                    <p>{selectedCall.call_duration ? `${selectedCall.call_duration} min` : "N/A"}</p>
+                  </div>
+                  <div>
+                    <p className="font-semibold">Due Date:</p>
+                    <p>
+                      {selectedCall.due_date 
+                        ? (typeof selectedCall.due_date === 'string' 
+                            ? new Date(selectedCall.due_date).toLocaleDateString('en-US', {
+                                month: '2-digit',
+                                day: '2-digit',
+                                year: 'numeric'
+                              })
+                            : selectedCall.due_date)
+                        : "N/A"}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="font-semibold">Assigned To:</p>
+                    <p>{selectedCall.assigned_to || "N/A"}</p>
+                  </div>
+                  <div>
+                    <p className="font-semibold">Related Type:</p>
+                    <p>{selectedCall.related_type || "N/A"}</p>
+                  </div>
+                  <div>
+                    <p className="font-semibold">Related To:</p>
+                    <p>{selectedCall.related_to || "N/A"}</p>
+                  </div>
+                  <div>
+                    <p className="font-semibold">Priority:</p>
+                    <p>
+                      <span
+                        className={`px-2 py-1 rounded-full text-xs font-medium ${getPriorityBadgeClass(
+                          selectedCall.priority
+                        )}`}
+                      >
+                        {formatStatusLabel(selectedCall.priority)}
+                      </span>
+                    </p>
+                  </div>
+                  <div>
+                    <p className="font-semibold">Created At:</p>
+                    <p>{formattedDateTime(selectedCall.created_at) || "N/A"}</p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {activeTab === "Notes" && (
+              <div className="bg-white p-4 sm:p-6 rounded-xl border border-gray-200 shadow-sm">
+                <h3 className="font-semibold text-gray-800 mb-2">Notes:</h3>
+                <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">
+                  {selectedCall.notes || "No notes available."}
+                </p>
+              </div>
+            )}
+          </div>
+
+          <div className="flex flex-col gap-4">
+            {/* QUICK ACTIONS */}
+            <div className="bg-white border border-gray-100 rounded-lg p-3 sm:p-4 shadow-sm">
+              <h4 className="font-semibold text-gray-800 mb-2 text-sm">
+                Quick Actions
+              </h4>
+
+              <div className="flex flex-col gap-2 w-full">
+                {[
+                  { icon: FiPhone, text: "Schedule Call" },
+                  { icon: FiMail, text: "Send E-mail" },
+                  { icon: FiCalendar, text: "Book Meeting" },
+                ].map(({ icon: Icon, text }) => (
+                  <button
+                    key={text}
+                    className="flex items-center gap-2 border border-gray-100 rounded-md py-1.5 px-2 sm:px-3 hover:bg-gray-50 transition text-sm"
+                  >
+                    <Icon className="text-gray-600 w-4 h-4 flex-shrink-0" />{" "}
+                    {text}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* STATUS */}
+            <div className="bg-white border border-gray-100 rounded-lg p-3 sm:p-4 shadow-sm w-full">
+              <h4 className="font-semibold text-gray-800 mb-2 text-sm">
+                Status
+              </h4>
+              <select
+                className="border border-gray-200 rounded-md px-2 sm:px-3 py-1.5 w-full text-sm mb-2 focus:ring-2 focus:ring-indigo-500 outline-none"
+                value={selectedStatus || selectedCall.status || "PENDING"}
+                onChange={(e) => setSelectedStatus(e.target.value)}
+              >
+                {STATUS_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+
+              <button
+                onClick={() => {
+                  // Handle status update
+                  console.log("Update status to:", selectedStatus);
+                }}
+                disabled={selectedStatus === selectedCall.status}
+                className={`w-full py-1.5 rounded-md text-sm transition focus:outline-none focus:ring-2 ${
+                  selectedStatus === selectedCall.status
+                    ? "bg-gray-400 cursor-not-allowed text-white"
+                    : "bg-gray-900 text-white hover:bg-gray-800 focus:ring-gray-400"
+                }`}
+              >
+                Update
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -561,7 +677,8 @@ export default function AdminCalls() {
   ) : null;
 
   const listView = (
-    <div className="p-4 sm:p-6 lg:p-8">
+    <div className="p-4 sm:p-6 lg:p-8 font-inter relative">
+      {callsLoading && <LoadingSpinner message="Loading calls..." />}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 sm:mb-6 space-y-2 sm:space-y-0">
         <h1 className="flex items-center text-xl sm:text-2xl font-semibold text-gray-800">
           <FiPhoneCall className="mr-2 text-blue-600" />
@@ -659,10 +776,10 @@ export default function AdminCalls() {
                 return (
                   <tr
                     key={call.id}
-                    className="hover:bg-gray-50 text-xs cursor-pointer"
+                    className="hover:bg-gray-50 text-sm cursor-pointer"
                     onClick={() => handleCallClick(call)}
                   >
-                    <td className="py-2 px-4">
+                    <td className="py-3 px-4">
                       <span
                         className={`px-2 py-1 rounded-full text-xs font-medium ${getPriorityBadgeClass(
                           call.priority || "LOW"
@@ -671,9 +788,9 @@ export default function AdminCalls() {
                         {formatStatusLabel(call.priority || "LOW")}
                       </span>
                     </td>
-                    <td className="py-2 px-4">
+                    <td className="py-3 px-4">
                       <div>
-                        <div className="font-medium text-blue-600 hover:underline break-all">
+                        <div className="font-medium text-blue-600 hover:underline break-all text-sm">
                           {call.subject}
                         </div>
                         <div className="text-gray-500 text-xs break-all">
@@ -681,17 +798,17 @@ export default function AdminCalls() {
                         </div>
                       </div>
                     </td>
-                    <td className="py-2 px-4">
+                    <td className="py-3 px-4">
                       <div>
-                        <div className="font-medium text-gray-800 text-xs leading-tight">
+                        <div className="font-medium text-gray-800 text-sm leading-tight">
                           {call.related_to || "--"}
                         </div>
-                        <div className="text-gray-500 text-[11px]">
+                        <div className="text-gray-500 text-xs">
                           {call.related_type || "--"}
                         </div>
                       </div>
                     </td>
-                    <td className="py-2 px-4 text-gray-800 font-medium text-xs">
+                    <td className="py-3 px-4 text-gray-800 font-medium text-sm">
                       {call.due_date 
                         ? (typeof call.due_date === 'string' 
                             ? new Date(call.due_date).toLocaleDateString('en-US', {
@@ -702,10 +819,10 @@ export default function AdminCalls() {
                             : call.due_date)
                         : "--"}
                     </td>
-                    <td className="py-2 px-4 text-gray-800 font-medium text-xs">
+                    <td className="py-3 px-4 text-gray-800 font-medium text-sm">
                       {call.assigned_to || "--"}
                     </td>
-                    <td className="py-2 px-4">
+                    <td className="py-3 px-4">
                       <span
                         className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusBadgeClass(
                           call.status || "PENDING"
@@ -929,7 +1046,8 @@ export default function AdminCalls() {
 
   return (
     <>
-      {selectedCall ? detailView : listView}
+      {listView}
+      {detailView}
       {formModal}
       {confirmationModal}
     </>

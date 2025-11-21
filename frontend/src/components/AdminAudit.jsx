@@ -3,6 +3,7 @@ import { FiEye, FiDownload, FiSearch } from "react-icons/fi";
 import api from "../api";
 import toast, { Toaster } from "react-hot-toast";
 import PaginationControls from "./PaginationControls.jsx";
+import LoadingSpinner from "./LoadingSpinner.jsx";
 
 const ITEMS_PER_PAGE = 10;
 
@@ -174,22 +175,23 @@ export default function AdminAudit() {
   };
 
   const getTagColor = (type) => {
-    switch (type) {
+    const normalized = (type || "").toUpperCase();
+    switch (normalized) {
       case "CREATE":
-        return "bg-green-100 text-green-700 border-green-300";
+        return "bg-green-100 text-green-700";
+      case "UPDATE":
       case "EDIT":
-        return "bg-blue-100 text-blue-700 border-blue-300";
-      case "warning":
-        return "bg-yellow-100 text-yellow-700 border-yellow-300";
+        return "bg-blue-100 text-blue-700";
       case "DELETE":
-        return "bg-red-100 text-red-700 border-red-300";
+        return "bg-red-100 text-red-700";
       default:
-        return "bg-gray-100 text-gray-700 border-gray-300";
+        return "bg-gray-100 text-gray-700";
     }
   };
 
   return (
-    <div className="p-4 sm:p-6">
+    <div className="p-4 sm:p-6 lg:p-8 font-inter relative">
+      {logs === null && <LoadingSpinner message="Loading audit logs..." />}
       <Toaster
         toastOptions={{
           duration: 1000,
@@ -242,18 +244,18 @@ export default function AdminAudit() {
         <table className="w-full min-w-[600px] border border-gray-200 rounded-lg bg-white shadow-sm text-sm">
           <thead className="bg-gray-100 text-left text-gray-600 text-sm tracking-wide font-semibold">
             <tr>
-              <th className="px-6 py-3 whitespace-nowrap">Timestamp</th>
-              <th className="px-6 py-3 whitespace-nowrap">User</th>
-              <th className="px-6 py-3 whitespace-nowrap">Action</th>
-              <th className="px-6 py-3 whitespace-nowrap">Resource</th>
-              <th className="px-6 py-3 whitespace-nowrap">Details</th>
+              <th className="py-3 px-4">Timestamp</th>
+              <th className="py-3 px-4">User</th>
+              <th className="py-3 px-4">Action</th>
+              <th className="py-3 px-4">Resource</th>
+              <th className="py-3 px-4">Details</th>
             </tr>
           </thead>
           <tbody>
             {Array.isArray(filteredLogs) && filteredLogs.length > 0 ? (
               paginatedLogs.map((log, i) => (
-                <tr key={i} className="hover:bg-gray-50 text-xs">
-                  <td className="px-6 py-3 text-gray-700 whitespace-nowrap">
+                <tr key={i} className="hover:bg-gray-50 text-sm">
+                  <td className="py-3 px-4 text-gray-700 whitespace-nowrap">
                     {new Date(log.timestamp)
                       .toLocaleString("en-US", {
                         month: "numeric",
@@ -265,25 +267,25 @@ export default function AdminAudit() {
                       })
                       .replace(",", "")}
                   </td>
-                  <td className="px-6 py-3 text-gray-700">{log.name}</td>
-                  <td className="px-6 py-3">
+                  <td className="py-3 px-4 text-gray-700">{log.name}</td>
+                  <td className="py-3 px-4">
                     <span
-                      className={`px-2 py-1 border text-xs font-semibold rounded-md ${getTagColor(
+                      className={`px-2 py-1 rounded-full text-xs font-medium whitespace-nowrap ${getTagColor(
                         log.action
                       )}`}
                     >
                       {log.action}
                     </span>
                   </td>
-                  <td className="px-6 py-3 text-gray-700">
+                  <td className="py-3 px-4 text-gray-700">
                     {log.entity_type}: {log.entity_id}
                   </td>
-                  <td className="px-6 py-3 text-gray-700">{log.description}</td>
+                  <td className="py-3 px-4 text-gray-700">{log.description}</td>
                 </tr>
               ))
             ) : (
               <tr>
-                <td className="px-6 py-3 text-gray-500 text-center" colSpan={5}>
+                <td className="py-3 px-4 text-sm text-gray-500 text-center" colSpan={5}>
                   No activities to show.
                 </td>
               </tr>

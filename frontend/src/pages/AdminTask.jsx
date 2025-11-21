@@ -16,6 +16,7 @@ import PaginationControls from "../components/PaginationControls.jsx";
 import api from "../api";
 import { toast } from "react-toastify";
 import useFetchUser from "../hooks/useFetchUser";
+import LoadingSpinner from "../components/LoadingSpinner.jsx";
 
 const BOARD_COLUMNS = ["To Do", "In Progress", "Review", "Completed"];
 const LIST_PAGE_SIZE = 10;
@@ -725,7 +726,8 @@ export default function AdminTask() {
   ) : null;
 
   return (
-    <div className="p-8 min-h-screen">
+    <div className="p-4 sm:p-6 lg:p-8 min-h-screen font-inter relative">
+      {loading && <LoadingSpinner message="Loading tasks..." />}
       {/* Header */}
       <div className="flex justify-between items-start mb-6">
         <div>
@@ -913,22 +915,22 @@ export default function AdminTask() {
             <table className="min-w-full text-sm">
               <thead className="bg-gray-100 text-gray-600 text-left">
                 <tr>
-                  <th className="px-6 py-3 whitespace-nowrap font-medium">
+                  <th className="py-3 px-4 font-medium">
                     Task
                   </th>
-                  <th className="px-6 py-3 whitespace-nowrap font-medium">
+                  <th className="py-3 px-4 font-medium">
                     Status
                   </th>
-                  <th className="px-6 py-3 whitespace-nowrap font-medium">
+                  <th className="py-3 px-4 font-medium">
                     Priority
                   </th>
-                  <th className="px-6 py-3 whitespace-nowrap font-medium">
+                  <th className="py-3 px-4 font-medium">
                     Assigned To
                   </th>
-                  <th className="px-6 py-3 whitespace-nowrap font-medium">
+                  <th className="py-3 px-4 font-medium">
                     Date Assigned
                   </th>
-                  <th className="px-6 py-3 whitespace-nowrap font-medium">
+                  <th className="py-3 px-4 font-medium">
                     Actions
                   </th>
                 </tr>
@@ -938,13 +940,13 @@ export default function AdminTask() {
                 displayTasks.map((task) => (
                   <tr
                     key={task.id}
-                    className="hover:bg-gray-50 transition-colors text-xs cursor-pointer"
+                    className="hover:bg-gray-50 transition-colors text-sm cursor-pointer"
                     onClick={() => handleOpenModal(task, true)}
                   >
-                    <td className="px-6 py-3 text-gray-700 whitespace-nowrap font-medium">
+                    <td className="py-3 px-4 text-gray-700 whitespace-nowrap font-medium">
                       {task.title}
                     </td>
-                    <td className="px-6 py-3 whitespace-nowrap">
+                    <td className="py-3 px-4 whitespace-nowrap">
                       <span
                         className={`px-2 py-1 rounded-full text-xs font-medium whitespace-nowrap ${getStatusBadgeClass(
                           task.status || "To Do"
@@ -953,7 +955,7 @@ export default function AdminTask() {
                         {task.status || "To Do"}
                       </span>
                     </td>
-                    <td className="px-6 py-3 whitespace-nowrap">
+                    <td className="py-3 px-4 whitespace-nowrap">
                       <span
                         className={`px-2 py-1 rounded-full text-xs font-medium whitespace-nowrap ${getPriorityBadgeClass(
                           task.priority || "Low"
@@ -962,11 +964,11 @@ export default function AdminTask() {
                         {task.priority || "Low"}
                       </span>
                     </td>
-                    <td className="px-6 py-3 text-gray-700 whitespace-nowrap">
+                    <td className="py-3 px-4 text-gray-700 whitespace-nowrap">
                       {task.assignedToName || "Unassigned"}
                     </td>
                     <td
-                      className={`px-6 py-3 text-gray-700 whitespace-nowrap ${
+                      className={`py-3 px-4 text-gray-700 whitespace-nowrap ${
                         isTaskOverdue(task) ? "text-red-600 font-medium" : ""
                       }`}
                     >
@@ -974,7 +976,7 @@ export default function AdminTask() {
                         ? formatDateDisplay(task.dateAssigned)
                         : "—"}
                     </td>
-                    <td className="px-6 py-3 whitespace-nowrap">
+                    <td className="py-3 px-4 whitespace-nowrap">
                       <div className="flex items-center gap-3" onClick={(e) => e.stopPropagation()}>
                         <button
                           type="button"
@@ -997,7 +999,7 @@ export default function AdminTask() {
               ) : (
                 <tr>
                   <td
-                    className="px-6 py-3 text-center text-sm text-gray-500"
+                    className="py-3 px-4 text-center text-sm text-gray-500"
                     colSpan={6}
                   >
                     No tasks found.

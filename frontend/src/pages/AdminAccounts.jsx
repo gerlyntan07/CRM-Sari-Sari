@@ -12,10 +12,12 @@ import {
   FiUserX,
   FiX,
 } from "react-icons/fi";
-import { HiArrowLeft } from "react-icons/hi";
+import { HiX } from "react-icons/hi";
+import { FiMail, FiCalendar } from "react-icons/fi";
 import api from "../api.js";
 import { toast } from "react-toastify";
 import PaginationControls from "../components/PaginationControls.jsx";
+import LoadingSpinner from "../components/LoadingSpinner.jsx";
 
 const STATUS_OPTIONS = [
   { value: "CUSTOMER", label: "Customer" },
@@ -109,6 +111,8 @@ export default function AdminAccounts() {
   const [confirmModalData, setConfirmModalData] = useState(null);
   const [confirmProcessing, setConfirmProcessing] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
+  const [activeTab, setActiveTab] = useState("Overview");
+  const [selectedStatus, setSelectedStatus] = useState("");
 
   const fetchAccounts = useCallback(
     async (preserveSelectedId = null) => {
@@ -326,9 +330,19 @@ export default function AdminAccounts() {
   const handleNextPage = () =>
     setCurrentPage((prev) => Math.min(prev + 1, totalPages));
 
-  const handleAccountClick = (acc) => setSelectedAccount(acc);
+  const handleAccountClick = (acc) => {
+    setSelectedAccount(acc);
+    setActiveTab("Overview");
+    setSelectedStatus(acc?.status || "PROSPECT");
+  };
 
   const handleBackToList = () => setSelectedAccount(null);
+
+  const handleAccountModalBackdropClick = (e) => {
+    if (e.target.id === "accountModalBackdrop" && !confirmProcessing) {
+      handleBackToList();
+    }
+  };
 
   const closeModal = () => {
     setShowModal(false);
@@ -372,6 +386,8 @@ export default function AdminAccounts() {
   };
 
   const handleEditClick = (account) => {
+    // Close the account details modal
+    setSelectedAccount(null);
     setFormData({
       name: account.name || "",
       website: account.website || "",
@@ -589,28 +605,41 @@ export default function AdminAccounts() {
     : "";
 
   const detailView = selectedAccount ? (
-    <div className="p-4 sm:p-6 lg:p-8 font-inter">
-      <button
-        onClick={handleBackToList}
-        className="inline-flex items-center text-sm sm:text-base text-gray-500 hover:text-gray-700 transition mb-4 sm:mb-6 cursor-pointer"
+    <div
+      id="accountModalBackdrop"
+      onClick={handleAccountModalBackdropClick}
+      className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4"
+    >
+      <div 
+        className="bg-white rounded-xl shadow-xl w-full max-w-6xl max-h-[92vh] overflow-y-auto hide-scrollbar animate-scale-in p-4 sm:p-6 md:p-8 font-inter relative"
+        onClick={(e) => e.stopPropagation()}
       >
-        <HiArrowLeft className="mr-1 w-4 h-4 sm:w-5 sm:h-5" /> Back
-      </button>
+        {/* Close Button */}
+        <div className="flex justify-end w-full">
+          <button
+            onClick={handleBackToList}
+            className="text-gray-500 hover:text-gray-700 transition mb-5 cursor-pointer"
+          >
+            <HiX size={30} />
+          </button>
+        </div>
 
-      <div className="bg-white border border-gray-200 rounded-lg p-4 sm:p-6 shadow-sm space-y-6 overflow-hidden">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <h1 className="text-xl sm:text-2xl font-semibold text-gray-800 flex items-center gap-2">
-            {selectedAccount.name}
+        {/* Header */}
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-4 gap-2 sm:gap-4">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+            <h1 className="text-xl sm:text-2xl font-semibold text-gray-800">
+              {selectedAccount.name}
+            </h1>
             <span
-              className={`inline-block text-xs px-2 py-0.5 rounded ${detailStatusBadge}`}
+              className={`text-xs sm:text-sm font-medium px-2 sm:px-3 py-1 rounded-full whitespace-nowrap ${detailStatusBadge}`}
             >
               {formatStatusLabel(selectedAccount.status)}
             </span>
-          </h1>
+          </div>
 
           <div className="flex flex-col sm:flex-row sm:space-x-3 space-y-2 sm:space-y-0">
             <button
-              className="inline-flex items-center justify-center w-full sm:w-auto bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 disabled:opacity-70"
+              className="inline-flex items-center justify-center w-full sm:w-auto bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 disabled:opacity-70 transition text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
               onClick={() => handleEditClick(selectedAccount)}
               disabled={
                 confirmModalData?.action?.type === "update" &&
@@ -621,7 +650,7 @@ export default function AdminAccounts() {
               Edit
             </button>
             <button
-              className="inline-flex items-center justify-center w-full sm:w-auto bg-red-500 text-white px-4 py-2 rounded-md hover:bg-red-600 disabled:opacity-70"
+              className="inline-flex items-center justify-center w-full sm:w-auto px-4 py-2 rounded-md text-sm bg-red-500 text-white hover:bg-red-600 transition focus:outline-none focus:ring-2 focus:ring-red-400"
               onClick={() => handleDelete(selectedAccount)}
               disabled={Boolean(selectedAccountDeleteDisabled)}
             >
@@ -636,73 +665,162 @@ export default function AdminAccounts() {
             </button>
           </div>
         </div>
+        <div className="border-b border-gray-200 mb-6"></div>
 
-        <div className="overflow-x-auto">
-          <h2 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4 text-gray-800">
-            Account Details
-          </h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm text-gray-700">
-            <DetailRow
-              label="Website"
-              value={
-                selectedAccount.website ? (
-                  <a
-                    href={selectedAccount.website}
-                    className="text-blue-600 hover:underline break-all"
-                    target="_blank"
-                    rel="noopener noreferrer"
+        {/* TABS */}
+        <div className="flex w-full bg-[#6A727D] text-white mt-1 overflow-x-auto mb-6">
+          {["Overview", "Notes"].map((tab) => (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className={`flex-1 min-w-[90px] px-4 py-2.5 text-xs sm:text-sm font-medium text-center transition-all duration-200 border-b-2
+        ${activeTab === tab
+                  ? "bg-paper-white text-[#6A727D] border-white"
+                  : "text-white hover:bg-[#5c636d]"
+                }`}
+            >
+              {tab}
+            </button>
+          ))}
+        </div>
+
+        {/* TAB CONTENT */}
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 items-start">
+          <div className="lg:col-span-3">
+            {activeTab === "Overview" && (
+              <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6 md:p-8 border border-gray-200">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-4 sm:gap-6 text-sm text-gray-700">
+                  <div>
+                    <p className="font-semibold">Website:</p>
+                    <p>
+                      {selectedAccount.website ? (
+                        <a
+                          href={selectedAccount.website}
+                          className="text-blue-600 hover:underline break-all"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          {selectedAccount.website}
+                        </a>
+                      ) : (
+                        "N/A"
+                      )}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="font-semibold">Industry:</p>
+                    <p>{selectedAccount.industry || "N/A"}</p>
+                  </div>
+                  <div>
+                    <p className="font-semibold">Territory:</p>
+                    <p>{selectedAccount.territory?.name || "N/A"}</p>
+                  </div>
+                  <div>
+                    <p className="font-semibold">Phone Number:</p>
+                    <p>{selectedAccount.phone_number || "N/A"}</p>
+                  </div>
+                  <div>
+                    <p className="font-semibold">Billing Address:</p>
+                    <p>{selectedAccount.billing_address || "N/A"}</p>
+                  </div>
+                  <div>
+                    <p className="font-semibold">Shipping Address:</p>
+                    <p>{selectedAccount.shipping_address || "N/A"}</p>
+                  </div>
+                  <div>
+                    <p className="font-semibold">Assigned To:</p>
+                    <p>
+                      {selectedAccount.assigned_accs
+                        ? `${selectedAccount.assigned_accs.first_name} ${selectedAccount.assigned_accs.last_name}`
+                        : "Unassigned"}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="font-semibold">Created By:</p>
+                    <p>
+                      {selectedAccount.acc_creator
+                        ? `${selectedAccount.acc_creator.first_name} ${selectedAccount.acc_creator.last_name}`
+                        : "N/A"}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="font-semibold">Created At:</p>
+                    <p>{formattedDateTime(selectedAccount.created_at) || "N/A"}</p>
+                  </div>
+                  <div>
+                    <p className="font-semibold">Last Updated:</p>
+                    <p>{formattedDateTime(selectedAccount.updated_at) || "N/A"}</p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {activeTab === "Notes" && (
+              <div className="bg-white p-4 sm:p-6 rounded-xl border border-gray-200 shadow-sm">
+                <h3 className="font-semibold text-gray-800 mb-2">Notes:</h3>
+                <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">
+                  No notes available.
+                </p>
+              </div>
+            )}
+          </div>
+
+          <div className="flex flex-col gap-4">
+            {/* QUICK ACTIONS */}
+            <div className="bg-white border border-gray-100 rounded-lg p-3 sm:p-4 shadow-sm">
+              <h4 className="font-semibold text-gray-800 mb-2 text-sm">
+                Quick Actions
+              </h4>
+
+              <div className="flex flex-col gap-2 w-full">
+                {[
+                  { icon: FiPhone, text: "Schedule Call" },
+                  { icon: FiMail, text: "Send E-mail" },
+                  { icon: FiCalendar, text: "Book Meeting" },
+                ].map(({ icon: Icon, text }) => (
+                  <button
+                    key={text}
+                    className="flex items-center gap-2 border border-gray-100 rounded-md py-1.5 px-2 sm:px-3 hover:bg-gray-50 transition text-sm"
                   >
-                    {selectedAccount.website}
-                  </a>
-                ) : (
-                  "--"
-                )
-              }
-            />
-            <DetailRow
-              label="Industry"
-              value={selectedAccount.industry || "--"}
-            />
-            <DetailRow
-              label="Territory"
-              value={selectedAccount.territory?.name || "--"}
-            />
-            <DetailRow
-              label="Phone Number"
-              value={selectedAccount.phone_number || "--"}
-            />
-            <DetailRow
-              label="Billing Address"
-              value={selectedAccount.billing_address || "--"}
-            />
-            <DetailRow
-              label="Shipping Address"
-              value={selectedAccount.shipping_address || "--"}
-            />
-            <DetailRow
-              label="Assigned To"
-              value={
-                selectedAccount.assigned_accs
-                  ? `${selectedAccount.assigned_accs.first_name} ${selectedAccount.assigned_accs.last_name}`
-                  : "Unassigned"
-              }
-            />
-            <DetailRow
-              label="Created By"
-              value={
-                selectedAccount.acc_creator
-                  ? `${selectedAccount.acc_creator.first_name} ${selectedAccount.acc_creator.last_name}`
-                  : "--"
-              }
-            />
-            <DetailRow
-              label="Created At"
-              value={formattedDateTime(selectedAccount.created_at) || "--"}
-            />
-            <DetailRow
-              label="Last Updated"
-              value={formattedDateTime(selectedAccount.updated_at) || "--"}
-            />
+                    <Icon className="text-gray-600 w-4 h-4 flex-shrink-0" />{" "}
+                    {text}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* STATUS */}
+            <div className="bg-white border border-gray-100 rounded-lg p-3 sm:p-4 shadow-sm w-full">
+              <h4 className="font-semibold text-gray-800 mb-2 text-sm">
+                Status
+              </h4>
+              <select
+                className="border border-gray-200 rounded-md px-2 sm:px-3 py-1.5 w-full text-sm mb-2 focus:ring-2 focus:ring-indigo-500 outline-none"
+                value={selectedStatus || selectedAccount.status || "PROSPECT"}
+                onChange={(e) => setSelectedStatus(e.target.value)}
+              >
+                {STATUS_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+
+              <button
+                onClick={() => {
+                  // Handle status update
+                  console.log("Update status to:", selectedStatus);
+                }}
+                disabled={selectedStatus === selectedAccount.status}
+                className={`w-full py-1.5 rounded-md text-sm transition focus:outline-none focus:ring-2 ${
+                  selectedStatus === selectedAccount.status
+                    ? "bg-gray-400 cursor-not-allowed text-white"
+                    : "bg-gray-900 text-white hover:bg-gray-800 focus:ring-gray-400"
+                }`}
+              >
+                Update
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -710,7 +828,8 @@ export default function AdminAccounts() {
   ) : null;
 
   const listView = (
-    <div className="p-4 sm:p-6 lg:p-8">
+    <div className="p-4 sm:p-6 lg:p-8 font-inter relative">
+      {accountsLoading && <LoadingSpinner message="Loading accounts..." />}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 sm:mb-6 space-y-2 sm:space-y-0">
         <h1 className="flex items-center text-xl sm:text-2xl font-semibold text-gray-800">
           <FiUsers className="mr-2 text-blue-600" />
@@ -788,7 +907,7 @@ export default function AdminAccounts() {
                   >
                     <td className="py-3 px-4">
                       <div>
-                        <div className="font-medium text-blue-600 hover:underline break-all">
+                        <div className="font-medium text-blue-600 hover:underline break-all text-sm">
                           {acc.name}
                         </div>
                         <div className="text-gray-500 text-xs break-all">
@@ -805,10 +924,10 @@ export default function AdminAccounts() {
                         {formatStatusLabel(acc.status)}
                       </span>
                     </td>
-                    <td className="py-3 px-4">{acc.industry || "--"}</td>
-                    <td className="py-3 px-4">{acc.territory?.name || "--"}</td>
+                    <td className="py-3 px-4 text-sm">{acc.industry || "--"}</td>
+                    <td className="py-3 px-4 text-sm">{acc.territory?.name || "--"}</td>
                     <td className="py-3 px-4">
-                      <div className="flex items-center space-x-2">
+                      <div className="flex items-center space-x-2 text-sm">
                         <FiPhone className="text-gray-500" />
                         <span>{acc.phone_number || "--"}</span>
                       </div>
@@ -998,7 +1117,8 @@ export default function AdminAccounts() {
 
   return (
     <>
-      {selectedAccount ? detailView : listView}
+      {listView}
+      {detailView}
       {formModal}
       {confirmationModal}
     </>

@@ -4,6 +4,7 @@ import { FiPhone, FiMail, FiCalendar, FiEdit2, FiTrash2, FiFileText } from "reac
 
 const AdminMeetingInfomation = ({ meeting, onClose, onEdit, onDelete }) => {
   const [activeTab, setActiveTab] = useState("Overview");
+  const [selectedStatus, setSelectedStatus] = useState(meeting?.status || "PENDING");
 
   if (!meeting) return null;
 
@@ -36,7 +37,7 @@ const AdminMeetingInfomation = ({ meeting, onClose, onEdit, onDelete }) => {
     <>
       <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
         {/* MODAL */}
-        <div className="bg-white rounded-xl shadow-xl w-full max-w-6xl max-h-[92vh] overflow-y-auto animate-scale-in p-4 sm:p-6 md:p-8 font-inter relative">
+        <div className="bg-white rounded-xl shadow-xl w-full max-w-6xl max-h-[92vh] overflow-y-auto hide-scrollbar animate-scale-in p-4 sm:p-6 md:p-8 font-inter relative">
           {/* Close Button */}
           <div className="flex justify-end w-full">
             <button
@@ -48,7 +49,7 @@ const AdminMeetingInfomation = ({ meeting, onClose, onEdit, onDelete }) => {
           </div>
 
           {/* Header */}
-          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-6 sm:mb-8 gap-2 sm:gap-4">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-4 gap-2 sm:gap-4">
             <div className="flex flex-wrap items-center gap-2 sm:gap-3">
               <h1 className="text-xl sm:text-2xl font-semibold">
                 {meeting.activity || "Meeting"}
@@ -89,6 +90,7 @@ const AdminMeetingInfomation = ({ meeting, onClose, onEdit, onDelete }) => {
               </button>
             </div>
           </div>
+          <div className="border-b border-gray-200 mb-6"></div>
 
           {/* TABS */}
           <div className="flex w-full bg-[#6A727D] text-white mt-1 overflow-x-auto mb-6">
@@ -266,6 +268,38 @@ const AdminMeetingInfomation = ({ meeting, onClose, onEdit, onDelete }) => {
                     </button>
                   ))}
                 </div>
+              </div>
+
+              {/* STATUS */}
+              <div className="bg-white border border-gray-100 rounded-lg p-3 sm:p-4 shadow-sm w-full">
+                <h4 className="font-semibold text-gray-800 mb-2 text-sm">
+                  Status
+                </h4>
+                <select
+                  className="border border-gray-200 rounded-md px-2 sm:px-3 py-1.5 w-full text-sm mb-2 focus:ring-2 focus:ring-indigo-500 outline-none"
+                  value={selectedStatus || meeting.status || "PENDING"}
+                  onChange={(e) => setSelectedStatus(e.target.value)}
+                >
+                  <option value="PENDING">Pending</option>
+                  <option value="COMPLETED">Completed</option>
+                  <option value="CANCELLED">Cancelled</option>
+                  <option value="IN PROGRESS">In Progress</option>
+                </select>
+
+                <button
+                  onClick={() => {
+                    // Handle status update
+                    console.log("Update status to:", selectedStatus);
+                  }}
+                  disabled={selectedStatus === meeting.status}
+                  className={`w-full py-1.5 rounded-md text-sm transition focus:outline-none focus:ring-2 ${
+                    selectedStatus === meeting.status
+                      ? "bg-gray-400 cursor-not-allowed text-white"
+                      : "bg-gray-900 text-white hover:bg-gray-800 focus:ring-gray-400"
+                  }`}
+                >
+                  Update
+                </button>
               </div>
             </div>
           </div>

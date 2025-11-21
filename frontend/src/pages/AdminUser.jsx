@@ -19,6 +19,7 @@ import LoadingSpinner from "../components/LoadingSpinner.jsx";
 
 const ROLE_OPTIONS = [
   { value: "CEO", label: "CEO" },
+  { value: "Admin", label: "Admin" },
   { value: "Group Manager", label: "Group Manager" },
   { value: "Manager", label: "Manager" },
   { value: "Marketing", label: "Marketing" },
@@ -54,7 +55,6 @@ const normalizeRoleValue = (role) => {
 
 const resolveRoleValue = (role) => {
   const normalized = normalizeRoleValue(role);
-  if (normalized === "ADMIN") return "CEO";
   const option = ROLE_OPTIONS.find(
     (opt) => normalizeRoleValue(opt.value) === normalized
   );
@@ -63,7 +63,6 @@ const resolveRoleValue = (role) => {
 
 const formatRoleLabel = (role) => {
   const normalized = normalizeRoleValue(role);
-  if (normalized === "ADMIN") return "CEO";
   const match = ROLE_OPTIONS.find(
     (option) => normalizeRoleValue(option.value) === normalized
   );

@@ -12,6 +12,7 @@ import {
 } from "react-icons/fi";
 import { HiX } from "react-icons/hi";
 import { toast } from "react-toastify";
+import api from "../api.js";
 import PaginationControls from "../components/PaginationControls.jsx";
 import LoadingSpinner from "../components/LoadingSpinner.jsx";
 
@@ -37,7 +38,18 @@ const INITIAL_FORM_STATE = {
   notes: "",
 };
 
-const normalizeStatus = (status) => (status ? status.toString() : "");
+const normalizeStatus = (status) => {
+  if (!status) return "Draft";
+  const statusStr = status.toString().trim();
+  // Map to exact values in STATUS_OPTIONS
+  const statusMap = {
+    "draft": "Draft",
+    "presented": "Presented",
+    "accepted": "Accepted",
+    "rejected": "Rejected",
+  };
+  return statusMap[statusStr.toLowerCase()] || statusStr;
+};
 
 const formatStatusLabel = (status) => {
   if (!status) return "--";
@@ -127,114 +139,76 @@ export default function AdminQuotes() {
   const [activeTab, setActiveTab] = useState("Overview");
   const [selectedStatus, setSelectedStatus] = useState("Draft");
 
-  // Mock data for demonstration
-  const [mockQuotes, setMockQuotes] = useState([
-    {
-      id: 1,
-      quote_id: "Q-2025-001",
-      deal_name: "Website Revamp Project",
-      account: { id: 1, name: "Innovate Co." },
-      contact: { id: 1, first_name: "John", last_name: "Doe" },
-      total_amount: 125000,
-      presented_date: "2025-10-01",
-      validity_date: "2025-10-15",
-      expiry_date: "2025-10-10",
-      status: "Presented",
-      assigned_to: { id: 1, first_name: "Joshua", last_name: "Vergara" },
-      created_by: { id: 2, first_name: "Jane", last_name: "Doe" },
-      notes:
-        "Client requested initial pricing breakdown and additional feature estimation. Follow-up scheduled next week.",
-      created_at: "2025-09-15T10:00:00",
-      updated_at: "2025-10-01T14:30:00",
-    },
-    {
-      id: 2,
-      quote_id: "Q-2025-002",
-      deal_name: "E-commerce Integration",
-      account: { id: 2, name: "Tech Solutions Inc." },
-      contact: { id: 2, first_name: "Maria", last_name: "Santos" },
-      total_amount: 250000,
-      presented_date: "2025-09-20",
-      validity_date: "2025-10-05",
-      expiry_date: "2025-10-05",
-      status: "Accepted",
-      assigned_to: { id: 1, first_name: "Joshua", last_name: "Vergara" },
-      created_by: { id: 2, first_name: "Jane", last_name: "Doe" },
-      notes: "Client approved the proposal. Proceeding with contract signing.",
-      created_at: "2025-09-10T10:00:00",
-      updated_at: "2025-09-25T14:30:00",
-    },
-    {
-      id: 3,
-      quote_id: "Q-2025-003",
-      deal_name: "Mobile App Development",
-      account: { id: 3, name: "Startup Hub" },
-      contact: { id: 3, first_name: "Pedro", last_name: "Cruz" },
-      total_amount: 500000,
-      presented_date: "2025-08-15",
-      validity_date: "2025-09-01",
-      expiry_date: "2025-09-01",
-      status: "Rejected",
-      assigned_to: { id: 3, first_name: "Maria", last_name: "Garcia" },
-      created_by: { id: 2, first_name: "Jane", last_name: "Doe" },
-      notes: "Client declined due to budget constraints.",
-      created_at: "2025-08-01T10:00:00",
-      updated_at: "2025-09-02T14:30:00",
-    },
-  ]);
-
   const fetchQuotes = useCallback(
     async (preserveSelectedId = null) => {
       setQuotesLoading(true);
-      // Simulate API delay
-      await new Promise((resolve) => setTimeout(resolve, 300));
+      try {
+        const res = await api.get(`/quotes/admin/fetch-all`);
+        const data = Array.isArray(res.data) ? res.data : [];
+        const sortedData = [...data].sort((a, b) => {
+          const aDate = a?.created_at || a?.updated_at || 0;
+          const bDate = b?.created_at || b?.updated_at || 0;
+          return new Date(bDate) - new Date(aDate);
+        });
+        setQuotes(sortedData);
 
-      const sortedData = [...mockQuotes].sort((a, b) => {
-        const aDate = a?.created_at || a?.updated_at || 0;
-        const bDate = b?.created_at || b?.updated_at || 0;
-        return new Date(bDate) - new Date(aDate);
-      });
-      setQuotes(sortedData);
-
-      if (preserveSelectedId) {
-        const updatedSelection = sortedData.find(
-          (q) => q.id === preserveSelectedId
-        );
-        setSelectedQuote(updatedSelection || null);
+        if (preserveSelectedId) {
+          const updatedSelection = sortedData.find(
+            (q) => q.id === preserveSelectedId
+          );
+          setSelectedQuote(updatedSelection || null);
+        }
+      } catch (err) {
+        console.error(err);
+        setQuotes([]);
+        if (err.response?.status === 403) {
+          toast.error(
+            "Permission denied. Only CEO, Admin, or Group Manager can access this page."
+          );
+        } else {
+          toast.error("Failed to fetch quotes. Please try again later.");
+        }
+      } finally {
+        setQuotesLoading(false);
       }
-      setQuotesLoading(false);
     },
-    [mockQuotes]
+    []
   );
 
   const fetchAccounts = useCallback(async () => {
-    // Mock accounts data
-    const mockAccounts = [
-      { id: 1, name: "Innovate Co." },
-      { id: 2, name: "Tech Solutions Inc." },
-      { id: 3, name: "Startup Hub" },
-    ];
-    setAccounts(mockAccounts);
+    try {
+      const res = await api.get(`/accounts/admin/fetch-all`);
+      setAccounts(Array.isArray(res.data) ? res.data : []);
+    } catch (err) {
+      console.error(err);
+      if (err.response?.status === 403) {
+        toast.warn("Unable to load accounts (permission denied).");
+      }
+    }
   }, []);
 
   const fetchContacts = useCallback(async () => {
-    // Mock contacts data
-    const mockContacts = [
-      { id: 1, first_name: "John", last_name: "Doe" },
-      { id: 2, first_name: "Maria", last_name: "Santos" },
-      { id: 3, first_name: "Pedro", last_name: "Cruz" },
-    ];
-    setContacts(mockContacts);
+    try {
+      const res = await api.get(`/contacts/admin/fetch-all`);
+      setContacts(Array.isArray(res.data) ? res.data : []);
+    } catch (err) {
+      console.error(err);
+      if (err.response?.status === 403) {
+        toast.warn("Unable to load contacts (permission denied).");
+      }
+    }
   }, []);
 
   const fetchUsers = useCallback(async () => {
-    // Mock users data
-    const mockUsers = [
-      { id: 1, first_name: "Joshua", last_name: "Vergara", role: "Sales Manager" },
-      { id: 2, first_name: "Jane", last_name: "Doe", role: "Sales Rep" },
-      { id: 3, first_name: "Maria", last_name: "Garcia", role: "Sales Rep" },
-    ];
-    setUsers(mockUsers);
+    try {
+      const res = await api.get(`/users/all`);
+      setUsers(Array.isArray(res.data) ? res.data : []);
+    } catch (err) {
+      console.error(err);
+      if (err.response?.status === 403) {
+        toast.warn("Unable to load users for assignment (permission denied).");
+      }
+    }
   }, []);
 
   useEffect(() => {
@@ -256,8 +230,10 @@ export default function AdminQuotes() {
         q.contact?.first_name,
         q.contact?.last_name,
         q.total_amount?.toString(),
-        q.assigned_to?.first_name,
-        q.assigned_to?.last_name,
+        q.assigned_user?.first_name,
+        q.assigned_user?.last_name,
+        q.creator?.first_name,
+        q.creator?.last_name,
         q.status,
         q.notes,
         formattedDateTime(q.created_at),
@@ -357,22 +333,65 @@ export default function AdminQuotes() {
     setShowModal(true);
   };
 
+  const formatDateForInput = (date) => {
+    if (!date) return "";
+    // If date is already in YYYY-MM-DD format, return it
+    if (typeof date === "string" && date.match(/^\d{4}-\d{2}-\d{2}$/)) {
+      return date;
+    }
+    // Otherwise, convert to YYYY-MM-DD format
+    try {
+      const dateObj = new Date(date);
+      if (isNaN(dateObj.getTime())) return "";
+      const year = dateObj.getFullYear();
+      const month = String(dateObj.getMonth() + 1).padStart(2, "0");
+      const day = String(dateObj.getDate()).padStart(2, "0");
+      return `${year}-${month}-${day}`;
+    } catch (e) {
+      return "";
+    }
+  };
+
   const handleEditClick = (quote) => {
     if (!quote) return;
     // Close the quote details modal
     setSelectedQuote(null);
-    setFormData({
+    
+    // Get created_by_id - use creator relationship if available, otherwise use created_by field
+    let createdById = "";
+    if (quote.creator?.id) {
+      createdById = String(quote.creator.id);
+    } else if (quote.created_by) {
+      createdById = String(quote.created_by);
+    }
+    
+    // Get assigned_to - use assigned_user relationship if available, otherwise use assigned_to field
+    let assignedToId = "";
+    if (quote.assigned_user?.id) {
+      assignedToId = String(quote.assigned_user.id);
+    } else if (quote.assigned_to) {
+      assignedToId = String(quote.assigned_to);
+    }
+    
+    const newFormData = {
       deal_name: quote.deal_name || "",
-      created_by_id: quote.created_by?.id ? String(quote.created_by.id) : "",
+      created_by_id: createdById,
       contact_id: quote.contact?.id ? String(quote.contact.id) : "",
       amount: quote.amount?.toString() || "",
       total_amount: quote.total_amount?.toString() || "",
-      presented_date: quote.presented_date || "",
-      validity_date: quote.validity_date || "",
+      presented_date: formatDateForInput(quote.presented_date),
+      validity_date: formatDateForInput(quote.validity_date),
       status: normalizeStatus(quote.status) || "Draft",
-      assigned_to: quote.assigned_to?.id ? String(quote.assigned_to.id) : "",
+      assigned_to: assignedToId,
       notes: quote.notes || "",
-    });
+    };
+    
+    // Debug logging
+    console.log("Edit Quote - Quote data:", quote);
+    console.log("Edit Quote - Form data:", newFormData);
+    console.log("Edit Quote - Available users:", users.map(u => ({ id: String(u.id), name: `${u.first_name} ${u.last_name}` })));
+    
+    setFormData(newFormData);
     setIsEditing(true);
     setCurrentQuoteId(quote.id);
     setShowModal(true);
@@ -419,10 +438,15 @@ export default function AdminQuotes() {
       return;
     }
 
+    // Get account_id from contact if contact is selected
+    const selectedContact = contacts.find(c => c.id === Number(formData.contact_id));
+    const account_id = selectedContact?.account_id || null;
+
     const payload = {
       deal_name: formData.deal_name.trim(),
       created_by_id: Number(formData.created_by_id),
       contact_id: formData.contact_id ? Number(formData.contact_id) : null,
+      account_id: account_id,
       amount: formData.amount ? Number(formData.amount) : null,
       total_amount: Number(formData.total_amount),
       presented_date: formData.presented_date || null,
@@ -471,41 +495,24 @@ export default function AdminQuotes() {
 
     setConfirmProcessing(true);
 
-    // Simulate API delay
-    await new Promise((resolve) => setTimeout(resolve, 500));
-
     try {
       if (type === "create") {
         setIsSubmitting(true);
-        // Find created by, contact data
-        const createdBy = users.find((u) => u.id === payload.created_by_id);
-        const contact = payload.contact_id
-          ? contacts.find((c) => c.id === payload.contact_id)
-          : null;
-        const assignedUser = payload.assigned_to
-          ? users.find((u) => u.id === payload.assigned_to)
-          : null;
-
-        // Create new quote
-        const newQuote = {
-          id: Math.max(...mockQuotes.map((q) => q.id), 0) + 1,
-          quote_id: `Q-2025-${String(Math.max(...mockQuotes.map((q) => q.id), 0) + 1).padStart(3, "0")}`,
+        const createPayload = {
           deal_name: payload.deal_name,
-          account: mockQuotes[0]?.account || { id: 1, name: "Unknown" }, // Keep account for backward compatibility
-          contact: contact || null,
-          amount: payload.amount,
+          contact_id: payload.contact_id || null,
+          account_id: payload.account_id || null,
+          amount: payload.amount || null,
           total_amount: payload.total_amount,
-          presented_date: payload.presented_date,
-          validity_date: payload.validity_date,
-          status: payload.status,
-          assigned_to: assignedUser || null,
-          created_by: createdBy || users[0],
-          notes: payload.notes,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
+          presented_date: payload.presented_date || null,
+          validity_date: payload.validity_date || null,
+          status: payload.status || "Draft",
+          assigned_to: payload.assigned_to || null,
+          created_by_id: payload.created_by_id,
+          notes: payload.notes || null,
         };
 
-        setMockQuotes((prev) => [...prev, newQuote]);
+        await api.post(`/quotes/admin`, createPayload);
         toast.success(`Quote "${name}" created successfully.`);
 
         const preserveId = selectedQuote?.id || null;
@@ -517,37 +524,24 @@ export default function AdminQuotes() {
         }
         setIsSubmitting(true);
 
-        // Find created by, contact data
-        const createdBy = users.find((u) => u.id === payload.created_by_id);
-        const contact = payload.contact_id
-          ? contacts.find((c) => c.id === payload.contact_id)
-          : null;
-        const assignedUser = payload.assigned_to
-          ? users.find((u) => u.id === payload.assigned_to)
-          : null;
+        // Get account_id from contact if contact is selected
+        const selectedContact = contacts.find(c => c.id === payload.contact_id);
+        const account_id = selectedContact?.account_id || payload.account_id || null;
 
-        // Update quote
-        setMockQuotes((prev) =>
-          prev.map((q) =>
-            q.id === targetId
-              ? {
-                  ...q,
-                  deal_name: payload.deal_name,
-                  contact: contact || null,
-                  amount: payload.amount,
-                  total_amount: payload.total_amount,
-                  presented_date: payload.presented_date,
-                  validity_date: payload.validity_date,
-                  status: payload.status,
-                  assigned_to: assignedUser || null,
-                  created_by: createdBy || q.created_by,
-                  notes: payload.notes,
-                  updated_at: new Date().toISOString(),
-                }
-              : q
-          )
-        );
+        const updatePayload = {
+          deal_name: payload.deal_name,
+          contact_id: payload.contact_id || null,
+          account_id: account_id,
+          amount: payload.amount || null,
+          total_amount: payload.total_amount,
+          presented_date: payload.presented_date || null,
+          validity_date: payload.validity_date || null,
+          status: payload.status || "Draft",
+          assigned_to: payload.assigned_to || null,
+          notes: payload.notes || null,
+        };
 
+        await api.put(`/quotes/admin/${targetId}`, updatePayload);
         toast.success(`Quote "${name}" updated successfully.`);
 
         const preserveId =
@@ -566,9 +560,7 @@ export default function AdminQuotes() {
         const currentSelectedId = selectedQuote?.id;
         setDeletingId(targetId);
 
-        // Delete quote
-        setMockQuotes((prev) => prev.filter((q) => q.id !== targetId));
-
+        await api.delete(`/quotes/admin/${targetId}`);
         toast.success(`Quote "${name}" deleted successfully.`);
 
         const preserveId =
@@ -765,8 +757,8 @@ export default function AdminQuotes() {
                   <div>
                     <p className="font-semibold">Created By:</p>
                     <p>
-                      {selectedQuote.created_by
-                        ? `${selectedQuote.created_by.first_name} ${selectedQuote.created_by.last_name}`
+                      {selectedQuote.creator
+                        ? `${selectedQuote.creator.first_name} ${selectedQuote.creator.last_name}`
                         : "N/A"}
                     </p>
                   </div>
@@ -785,8 +777,8 @@ export default function AdminQuotes() {
                   <div>
                     <p className="font-semibold">Assigned To:</p>
                     <p>
-                      {selectedQuote.assigned_to
-                        ? `${selectedQuote.assigned_to.first_name} ${selectedQuote.assigned_to.last_name}`
+                      {selectedQuote.assigned_user
+                        ? `${selectedQuote.assigned_user.first_name} ${selectedQuote.assigned_user.last_name}`
                         : "Unassigned"}
                     </p>
                   </div>
@@ -846,9 +838,15 @@ export default function AdminQuotes() {
               </select>
 
               <button
-                onClick={() => {
-                  // Handle status update
-                  console.log("Update status to:", selectedStatus);
+                onClick={async () => {
+                  try {
+                    await api.patch(`/quotes/admin/${selectedQuote.id}/status?status=${encodeURIComponent(selectedStatus)}`);
+                    toast.success(`Quote status updated to ${selectedStatus}`);
+                    await fetchQuotes(selectedQuote.id);
+                  } catch (err) {
+                    console.error(err);
+                    toast.error("Failed to update quote status. Please try again.");
+                  }
                 }}
                 disabled={selectedStatus === selectedQuote.status}
                 className={`w-full py-1.5 rounded-md text-sm transition focus:outline-none focus:ring-2 ${
@@ -871,7 +869,7 @@ export default function AdminQuotes() {
       {quotesLoading && <LoadingSpinner message="Loading quotes..." />}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 sm:mb-6 space-y-2 sm:space-y-0">
         <h2 className="flex items-center text-xl sm:text-2xl font-semibold text-gray-800">
-          <FiFileText className="mr-2 text-blue-600" /> Quotes Management
+          <FiFileText className="mr-2 text-blue-600" /> Quotes
         </h2>
 
         <button
@@ -978,14 +976,14 @@ export default function AdminQuotes() {
                     </td>
                     <td className="py-3 px-4 align-top">
                       <div>
-                        {quote.assigned_to
-                          ? `${quote.assigned_to.first_name} ${quote.assigned_to.last_name}`
+                        {quote.assigned_user
+                          ? `${quote.assigned_user.first_name} ${quote.assigned_user.last_name}`
                           : "Unassigned"}
                       </div>
                     </td>
                     <td className="py-3 px-4 align-top">
                       <div className="text-gray-500 text-xs">
-                        {formatDate(quote.expiry_date) || "--"}
+                        {formatDate(quote.validity_date) || "--"}
                       </div>
                     </td>
                   </tr>
@@ -1239,6 +1237,11 @@ function SelectField({
   disabled = false,
   className = "",
 }) {
+  // Ensure value is a string and matches one of the option values
+  const stringValue = value !== null && value !== undefined ? String(value) : "";
+  const hasValidValue = options.some(opt => String(opt.value) === stringValue);
+  const displayValue = hasValidValue ? stringValue : "";
+  
   return (
     <div className={className}>
       <label className="block text-gray-700 font-medium mb-1 text-sm">
@@ -1246,14 +1249,14 @@ function SelectField({
       </label>
       <select
         name={name}
-        value={value ?? ""}
+        value={displayValue}
         onChange={onChange}
         required={required}
         disabled={disabled}
         className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-400 outline-none disabled:bg-gray-100"
       >
         {options.map((option) => (
-          <option key={option.value ?? option.label} value={option.value}>
+          <option key={option.value ?? option.label} value={String(option.value ?? "")}>
             {option.label}
           </option>
         ))}

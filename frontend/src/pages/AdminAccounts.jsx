@@ -930,7 +930,7 @@ export default function AdminAccounts() {
         <table className="w-full min-w-[500px] border border-gray-200 rounded-lg bg-white shadow-sm text-sm">
           <thead className="bg-gray-100 text-left text-gray-600 text-sm tracking-wide font-semibold">
             <tr>
-              <th className="py-3 px-4">Account</th>
+              <th className="py-3 px-4 truncate">Account</th>
               <th className="py-3 px-4">Status</th>
               <th className="py-3 px-4">Industry</th>
               <th className="py-3 px-4">Territory</th>

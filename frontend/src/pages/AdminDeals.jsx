@@ -442,7 +442,7 @@ export default function AdminDeals() {
                 </button>
             </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-6">
+            <div className="grid grid-cols-2 p-2 sm:grid-cols-3 gap-4 mb-6 w-full break-words overflow-hidden">
                 {metricCards.map((metric) => (
                     <MetricCard key={metric.title} {...metric} />
                 ))}
@@ -494,7 +494,7 @@ export default function AdminDeals() {
                 <table className="w-full min-w-[500px] border border-gray-200 rounded-lg bg-white shadow-sm text-sm">
                     <thead className="bg-gray-100 text-left text-gray-600 text-sm tracking-wide font-semibold">
                         <tr>
-                            <th className="py-3 px-4">Deal Name</th>
+                            <th className="py-3 px-4 truncate">Deal Name</th>
                             <th className="py-3 px-4">Account</th>
                             <th className="py-3 px-4">Contact</th>
                             <th className="py-3 px-4">Stage</th>

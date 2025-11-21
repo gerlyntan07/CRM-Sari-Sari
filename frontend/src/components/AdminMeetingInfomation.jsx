@@ -94,7 +94,7 @@ const AdminMeetingInfomation = ({ meeting, onClose, onEdit, onDelete }) => {
 
           {/* TABS */}
           <div className="flex w-full bg-[#6A727D] text-white mt-1 overflow-x-auto mb-6">
-            {["Overview", "Notes", "Related Activities"].map((tab) => (
+            {["Overview", "Notes", "Activities"].map((tab) => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
@@ -177,73 +177,67 @@ const AdminMeetingInfomation = ({ meeting, onClose, onEdit, onDelete }) => {
                 </div>
               )}
 
-              {activeTab === "Notes" && (
-                <div className="bg-white p-4 sm:p-6 rounded-xl border border-gray-200 shadow-sm">
-                  <h3 className="font-semibold text-gray-800 mb-2">Notes:</h3>
-                  <p className="text-sm text-gray-700 leading-relaxed">
-                    {meeting.description || "No notes available."}
-                  </p>
+                    {/* ------- Notes ------ */}
+            {activeTab === "Notes" && (
+              <div className="mt-4 w-full">
+                <div className="flex flex-wrap items-center justify-between mb-4 gap-2">
+                  <h3 className="text-lg font-semibold text-gray-800 break-words">Meeting Note</h3>
                 </div>
-              )}
 
-              {activeTab === "Related Activities" && (
-                <div className="bg-white p-4 sm:p-6 rounded-xl border border-gray-200 shadow-sm">
-                  <h3 className="font-semibold text-gray-800 mb-4 sm:mb-6">
-                    Related Activities
-                  </h3>
-
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8 text-sm">
-                    {/* Tasks */}
+                <div className="bg-white border border-gray-100 rounded-lg p-4 shadow-sm break-words">
+                  <div className="flex items-start justify-between">
                     <div>
-                      <h4 className="font-semibold mb-2">Task (0)</h4>
-                      <div className="space-y-1 text-gray-700">
-                        <p className="text-xs text-gray-500">
-                          No tasks available
-                        </p>
-                      </div>
-                      <a
-                        href="#"
-                        className="text-blue-600 hover:underline text-xs font-medium mt-2 inline-block"
-                      >
-                        View All Tasks
-                      </a>
-                    </div>
-
-                    {/* Notes */}
-                    <div>
-                      <h4 className="font-semibold mb-2">Notes (0)</h4>
-                      <div className="space-y-1 text-gray-700">
-                        <p className="text-xs text-gray-500">
-                          No notes available
-                        </p>
-                      </div>
-                      <a
-                        href="#"
-                        className="text-blue-600 hover:underline text-xs font-medium mt-2 inline-block"
-                      >
-                        View All Notes
-                      </a>
-                    </div>
-
-                    {/* Meetings */}
-                    <div>
-                      <h4 className="font-semibold mb-2">Meetings (0)</h4>
-                      <div className="space-y-1 text-gray-700">
-                        <p className="text-xs text-gray-500">
-                          No meetings available
-                        </p>
-                      </div>
-                      <a
-                        href="#"
-                        className="text-blue-600 hover:underline text-xs font-medium mt-2 inline-block"
-                      >
-                        View All Meetings
-                      </a>
+                      <p className="text-sm font-medium text-gray-800 break-words">
+                        Note
+                      </p>
                     </div>
                   </div>
+                  <div className="mt-3 text-sm text-gray-700 whitespace-pre-wrap break-words">
+                    {meeting.notes || "No notes available."}
+                  </div>
                 </div>
-              )}
-            </div>
+              </div>
+            )}
+
+
+              {/* ACTIVITIES */}
+                          {activeTab === "Activities" && (
+                            <div className="mt-4 space-y-4 w-full">
+                              <h3 className="text-lg font-semibold text-gray-800 break-words">Recent Activities</h3>
+              
+                              {[{
+                                icon: FiPhone,
+                                title: "Schedule Call",
+                                desc: "Discuss implementation timeline and pricing",
+                                user: "Lester James",
+                                date: "December 12, 2025 at 8:00 AM",
+                              }, {
+                                icon: FiCalendar,
+                                title: "Meeting regarding Enterprise Software License",
+                                desc: "Discuss implementation timeline and pricing",
+                                user: "Lester James",
+                                date: "December 12, 2025 at 8:00 AM",
+                              }].map((act, idx) => (
+                                <div key={idx} className="flex flex-col sm:flex-row justify-between items-start border border-gray-200 rounded-lg p-4 shadow-sm bg-white w-full break-words">
+                                  <div className="flex gap-4 mb-2 sm:mb-0 flex-1 min-w-0">
+                                    <div className="text-gray-600 mt-1">
+                                      <act.icon size={24} />
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                      <h4 className="font-medium text-gray-900 break-words">{act.title}</h4>
+                                      <p className="text-sm text-gray-500 break-words">{act.desc}</p>
+                                      <div className="flex items-center gap-2 mt-2">
+                                        <div className="w-7 h-7 rounded-full bg-gray-200 shrink-0"></div>
+                                        <p className="text-sm text-gray-700 break-words">{act.user}</p>
+                                      </div>
+                                    </div>
+                                  </div>
+                                  <p className="text-sm text-gray-500 break-words">{act.date}</p>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
 
             <div className="flex flex-col gap-4">
               {/* QUICK ACTIONS */}

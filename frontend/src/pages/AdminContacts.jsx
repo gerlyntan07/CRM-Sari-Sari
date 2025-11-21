@@ -807,12 +807,15 @@ export default function AdminContacts() {
           <FiUsers className="mr-2 text-blue-600" /> Contacts Management
         </h2>
 
-        <button
-          onClick={handleOpenAddModal}
-          className="flex items-center bg-black text-white px-3 sm:px-4 py-2 rounded-md hover:bg-gray-800 text-sm sm:text-base"
-        >
-          <FiPlus className="mr-2" /> Add Contact
-        </button>
+        <div className="w-full flex justify-end">
+  <button
+    onClick={handleOpenAddModal}
+    className="flex items-center bg-black text-white px-3 sm:px-4 py-2 rounded-md hover:bg-gray-800 text-sm sm:text-base"
+  >
+    <FiPlus className="mr-2" /> Add Contact
+  </button>
+</div>
+
       </div>
 
       <div className="bg-white rounded-xl p-4 shadow-sm mb-6 flex flex-col lg:flex-row items-center justify-between gap-3 w-full">

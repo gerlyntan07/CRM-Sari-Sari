@@ -6,12 +6,16 @@ import {
   FiTrash2,
   FiUserPlus,
   FiX,
+  FiPhone,
+  FiMail,
+  FiCalendar,
 } from "react-icons/fi";
-import { HiArrowLeft } from "react-icons/hi";
+import { HiX } from "react-icons/hi";
 import { toast } from "react-toastify";
 import api from "../api";
 import useFetchUser from "../hooks/useFetchUser";
 import PaginationControls from "../components/PaginationControls.jsx";
+import LoadingSpinner from "../components/LoadingSpinner.jsx";
 
 const ROLE_OPTIONS = [
   { value: "CEO", label: "CEO" },
@@ -136,6 +140,8 @@ export default function AdminUser() {
   const [confirmModalData, setConfirmModalData] = useState(null);
   const [confirmProcessing, setConfirmProcessing] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
+  const [activeTab, setActiveTab] = useState("Overview");
+  const [selectedStatus, setSelectedStatus] = useState("");
 
   const normalizedUserRole = normalizeRoleValue(currentUser?.role);
   const isAuthorized = ["ADMIN", "CEO"].includes(normalizedUserRole);
@@ -269,18 +275,6 @@ export default function AdminUser() {
   const handleNextPage = () =>
     setCurrentPage((prev) => Math.min(prev + 1, totalPages));
 
-  if (userLoading) {
-    return (
-      <div className="p-4 sm:p-6 lg:p-8 font-inter">
-        <p className="text-sm text-gray-500">Loading user information...</p>
-      </div>
-    );
-  }
-
-  if (!shouldShowContent) {
-    return null;
-  }
-
   const handleOpenCreate = () => {
     setFormData(INITIAL_FORM_STATE);
     setIsEditing(false);
@@ -290,6 +284,14 @@ export default function AdminUser() {
 
   const handleRowClick = (user) => {
     setSelectedUser(user);
+    setActiveTab("Overview");
+    setSelectedStatus(user?.is_active ? "Active" : "Inactive");
+  };
+
+  const handleUserModalBackdropClick = (e) => {
+    if (e.target.id === "userModalBackdrop" && !confirmProcessing) {
+      handleBackToList();
+    }
   };
 
   const handleBackToList = () => {
@@ -332,6 +334,8 @@ export default function AdminUser() {
     setIsEditing(true);
     setCurrentUserId(user.id);
     setShowFormModal(true);
+    // Close the user details modal
+    setSelectedUser(null);
   };
 
   const handleDeleteClick = (user) => {
@@ -504,7 +508,8 @@ export default function AdminUser() {
   };
 
   const listView = (
-    <div className="p-4 sm:p-6 lg:p-8 font-inter">
+    <div className="p-4 sm:p-6 lg:p-8 font-inter relative">
+      {(loading || userLoading || !shouldShowContent) && <LoadingSpinner />}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
         <h1 className="flex items-center text-xl sm:text-2xl font-semibold text-gray-800">
           <FiShield className="mr-2 text-blue-600" />
@@ -513,7 +518,7 @@ export default function AdminUser() {
         <button
           type="button"
           onClick={handleOpenCreate}
-          className="flex items-center bg-black text-white px-4 py-2 rounded-lg hover:bg-gray-800 text-sm sm:text-base"
+          className="flex items-center bg-black text-white px-3 sm:px-4 py-2 rounded-md hover:bg-gray-800 text-sm sm:text-base"
         >
           <FiUserPlus className="mr-2" /> Add User
         </button>
@@ -586,12 +591,12 @@ export default function AdminUser() {
                       className="py-3 px-4 cursor-pointer"
                       onClick={() => handleRowClick(user)}
                     >
-                      <div className="font-medium text-blue-600 hover:underline">
+                      <div className="font-medium text-blue-600 hover:underline text-sm">
                         {user.first_name} {user.last_name}
                       </div>
                     </td>
                     <td
-                      className="py-3 px-4 cursor-pointer"
+                      className="py-3 px-4 cursor-pointer text-sm"
                       onClick={() => handleRowClick(user)}
                     >
                       {user.email}
@@ -622,48 +627,58 @@ export default function AdminUser() {
   );
 
   const detailView = selectedUser ? (
-    <div className="p-4 sm:p-6 lg:p-8 font-inter">
-      <button
-        onClick={handleBackToList}
-        className="inline-flex items-center text-sm sm:text-base text-gray-500 hover:text-gray-700 transition mb-4 sm:mb-6 cursor-pointer"
-      >
-        <HiArrowLeft className="mr-2 w-4 h-4 sm:w-5 sm:h-5" />
-        Back
-      </button>
-      <div className="bg-white border border-gray-200 rounded-lg p-4 sm:p-6 shadow-sm">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-4 mb-4 sm:mb-0">
-            {selectedUser.profile_picture ? (
-              <img
-                src={selectedUser.profile_picture}
-                alt={`${selectedUser.first_name} ${selectedUser.last_name}`}
-                className="w-16 h-16 sm:w-20 sm:h-20 rounded-full object-cover border border-gray-200 shadow-sm"
-              />
-            ) : (
-              <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-gray-200 text-gray-700 flex items-center justify-center text-xl sm:text-2xl font-semibold border border-gray-200 shadow-sm">
-                {getUserInitials(
-                  selectedUser.first_name,
-                  selectedUser.last_name
-                )}
-              </div>
-            )}
-            <div>
-              <div className="flex items-center flex-wrap gap-2">
-                <h2 className="text-xl sm:text-2xl font-semibold text-gray-800">
+    <div
+      id="userModalBackdrop"
+      onClick={handleUserModalBackdropClick}
+      className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4"
+    >
+      <div className="bg-white rounded-xl shadow-xl w-full max-w-6xl max-h-[92vh] overflow-y-auto hide-scrollbar animate-scale-in p-4 sm:p-6 md:p-8 font-inter relative">
+        {/* Close Button */}
+        <div className="flex justify-end w-full">
+          <button
+            onClick={handleBackToList}
+            className="text-gray-500 hover:text-gray-700 transition mb-5 cursor-pointer"
+          >
+            <HiX size={30} />
+          </button>
+        </div>
+
+        {/* Header */}
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-4 gap-2 sm:gap-4">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+            <div className="flex items-center gap-3">
+              {selectedUser.profile_picture ? (
+                <img
+                  src={selectedUser.profile_picture}
+                  alt={`${selectedUser.first_name} ${selectedUser.last_name}`}
+                  className="w-12 h-12 sm:w-16 sm:h-16 rounded-full object-cover border border-gray-200 shadow-sm"
+                />
+              ) : (
+                <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-full bg-gray-200 text-gray-700 flex items-center justify-center text-lg sm:text-xl font-semibold border border-gray-200 shadow-sm">
+                  {getUserInitials(
+                    selectedUser.first_name,
+                    selectedUser.last_name
+                  )}
+                </div>
+              )}
+              <div>
+                <h1 className="text-xl sm:text-2xl font-semibold text-gray-800">
                   {selectedUser.first_name} {selectedUser.last_name}
-                </h2>
-                {renderRoleBadge(selectedUser.role, { size: "md" })}
+                </h1>
+                <p className="text-sm text-gray-500 break-all">
+                  {selectedUser.email}
+                </p>
               </div>
-              <p className="text-sm text-gray-500 break-all mt-1">
-                {selectedUser.email}
-              </p>
             </div>
+            {renderRoleBadge(selectedUser.role, { size: "md" })}
           </div>
+
           <div className="flex flex-col sm:flex-row sm:space-x-3 space-y-2 sm:space-y-0">
             <button
               type="button"
-              className="inline-flex items-center justify-center w-full sm:w-auto bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 transition text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+              className="inline-flex items-center justify-center w-full sm:w-auto bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 disabled:opacity-70 transition text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
               onClick={() => handleEditClick(selectedUser)}
+              disabled={confirmProcessing}
             >
               <FiEdit2 className="mr-2" />
               Edit
@@ -672,95 +687,186 @@ export default function AdminUser() {
               type="button"
               className="inline-flex items-center justify-center w-full sm:w-auto px-4 py-2 rounded-md text-sm bg-red-500 text-white hover:bg-red-600 transition focus:outline-none focus:ring-2 focus:ring-red-400"
               onClick={() => handleDeleteClick(selectedUser)}
+              disabled={confirmProcessing}
             >
               <FiTrash2 className="mr-2" />
               Delete
             </button>
           </div>
         </div>
-        <div className="mt-6 border-t.border-gray-200 pt-6">
-          <h3 className="text-lg sm:text-xl font-semibold text-gray-800 mb-4">
-            User Details
-          </h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-gray-700">
-            <DetailRow label="Email" value={selectedUser.email} />
-            <DetailRow
-              label="Role"
-              value={renderRoleBadge(selectedUser.role, { size: "sm" })}
-            />
-            <DetailRow
-              label="Status"
-              value={selectedUser.is_active ? "Active" : "Inactive"}
-            />
-            <DetailRow
-              label="Auth Provider"
-              value={
-                selectedUser.auth_provider
-                  ? selectedUser.auth_provider
-                      .toString()
-                      .replace(/\b\w/g, (char) => char.toUpperCase())
-                  : "--"
-              }
-            />
-            <DetailRow
-              label="Phone Number"
-              value={selectedUser.phone_number || "--"}
-            />
-            <DetailRow
-              label="Company"
-              value={selectedUser.company?.company_name || "--"}
-            />
-            <DetailRow
-              label="Company Number"
-              value={selectedUser.company?.company_number || "--"}
-            />
-            <DetailRow
-              label="Related to Company ID"
-              value={
-                selectedUser.related_to_company !== null &&
-                selectedUser.related_to_company !== undefined
-                  ? selectedUser.related_to_company
-                  : "--"
-              }
-            />
-            <DetailRow
-              label="Related to CEO ID"
-              value={
-                selectedUser.related_to_CEO !== null &&
-                selectedUser.related_to_CEO !== undefined
-                  ? selectedUser.related_to_CEO
-                  : "--"
-              }
-            />
-            <DetailRow
-              label="Created At"
-              value={formatDateTime(selectedUser.created_at)}
-            />
-            <DetailRow
-              label="Last Login"
-              value={
-                selectedUser.last_login
-                  ? formatDateTime(selectedUser.last_login)
-                  : "Never"
-              }
-            />
-            <DetailRow
-              label="Profile Picture"
-              value={
-                selectedUser.profile_picture ? (
-                  <a
-                    href={selectedUser.profile_picture}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-blue-600 hover:underline break-all"
+        <div className="border-b border-gray-200 mb-6"></div>
+
+        {/* TABS */}
+        <div className="flex w-full bg-[#6A727D] text-white mt-1 overflow-x-auto mb-6">
+          {["Overview", "Notes"].map((tab) => (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className={`flex-1 min-w-[90px] px-4 py-2.5 text-xs sm:text-sm font-medium text-center transition-all duration-200 border-b-2
+        ${activeTab === tab
+                  ? "bg-paper-white text-[#6A727D] border-white"
+                  : "text-white hover:bg-[#5c636d]"
+                }`}
+            >
+              {tab}
+            </button>
+          ))}
+        </div>
+
+        {/* TAB CONTENT */}
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 items-start">
+          <div className="lg:col-span-3">
+            {activeTab === "Overview" && (
+              <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6 md:p-8 border border-gray-200">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-4 sm:gap-6 text-sm text-gray-700">
+                  <div>
+                    <p className="font-semibold">Email:</p>
+                    <p>{selectedUser.email || "N/A"}</p>
+                  </div>
+                  <div>
+                    <p className="font-semibold">Role:</p>
+                    <p>{renderRoleBadge(selectedUser.role, { size: "sm" })}</p>
+                  </div>
+                  <div>
+                    <p className="font-semibold">Status:</p>
+                    <p>{selectedUser.is_active ? "Active" : "Inactive"}</p>
+                  </div>
+                  <div>
+                    <p className="font-semibold">Auth Provider:</p>
+                    <p>
+                      {selectedUser.auth_provider
+                        ? selectedUser.auth_provider
+                            .toString()
+                            .replace(/\b\w/g, (char) => char.toUpperCase())
+                        : "N/A"}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="font-semibold">Phone Number:</p>
+                    <p>{selectedUser.phone_number || "N/A"}</p>
+                  </div>
+                  <div>
+                    <p className="font-semibold">Company:</p>
+                    <p>{selectedUser.company?.company_name || "N/A"}</p>
+                  </div>
+                  <div>
+                    <p className="font-semibold">Company Number:</p>
+                    <p>{selectedUser.company?.company_number || "N/A"}</p>
+                  </div>
+                  <div>
+                    <p className="font-semibold">Related to Company ID:</p>
+                    <p>
+                      {selectedUser.related_to_company !== null &&
+                      selectedUser.related_to_company !== undefined
+                        ? selectedUser.related_to_company
+                        : "N/A"}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="font-semibold">Related to CEO ID:</p>
+                    <p>
+                      {selectedUser.related_to_CEO !== null &&
+                      selectedUser.related_to_CEO !== undefined
+                        ? selectedUser.related_to_CEO
+                        : "N/A"}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="font-semibold">Created At:</p>
+                    <p>{formatDateTime(selectedUser.created_at) || "N/A"}</p>
+                  </div>
+                  <div>
+                    <p className="font-semibold">Last Login:</p>
+                    <p>
+                      {selectedUser.last_login
+                        ? formatDateTime(selectedUser.last_login)
+                        : "Never"}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="font-semibold">Profile Picture:</p>
+                    <p>
+                      {selectedUser.profile_picture ? (
+                        <a
+                          href={selectedUser.profile_picture}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-blue-600 hover:underline break-all"
+                        >
+                          View image
+                        </a>
+                      ) : (
+                        "N/A"
+                      )}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {activeTab === "Notes" && (
+              <div className="bg-white p-4 sm:p-6 rounded-xl border border-gray-200 shadow-sm">
+                <h3 className="font-semibold text-gray-800 mb-2">Notes:</h3>
+                <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">
+                  No notes available.
+                </p>
+              </div>
+            )}
+          </div>
+
+          <div className="flex flex-col gap-4">
+            {/* QUICK ACTIONS */}
+            <div className="bg-white border border-gray-100 rounded-lg p-3 sm:p-4 shadow-sm">
+              <h4 className="font-semibold text-gray-800 mb-2 text-sm">
+                Quick Actions
+              </h4>
+
+              <div className="flex flex-col gap-2 w-full">
+                {[
+                  { icon: FiPhone, text: "Schedule Call" },
+                  { icon: FiMail, text: "Send E-mail" },
+                  { icon: FiCalendar, text: "Book Meeting" },
+                ].map(({ icon: Icon, text }) => (
+                  <button
+                    key={text}
+                    className="flex items-center gap-2 border border-gray-100 rounded-md py-1.5 px-2 sm:px-3 hover:bg-gray-50 transition text-sm"
                   >
-                    View image
-                  </a>
-                ) : (
-                  "--"
-                )
-              }
-            />
+                    <Icon className="text-gray-600 w-4 h-4 flex-shrink-0" />{" "}
+                    {text}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* STATUS */}
+            <div className="bg-white border border-gray-100 rounded-lg p-3 sm:p-4 shadow-sm w-full">
+              <h4 className="font-semibold text-gray-800 mb-2 text-sm">
+                Status
+              </h4>
+              <select
+                className="border border-gray-200 rounded-md px-2 sm:px-3 py-1.5 w-full text-sm mb-2 focus:ring-2 focus:ring-indigo-500 outline-none"
+                value={selectedStatus || (selectedUser.is_active ? "Active" : "Inactive")}
+                onChange={(e) => setSelectedStatus(e.target.value)}
+              >
+                <option value="Active">Active</option>
+                <option value="Inactive">Inactive</option>
+              </select>
+
+              <button
+                onClick={() => {
+                  // Handle status update
+                  console.log("Update status to:", selectedStatus);
+                }}
+                disabled={selectedStatus === (selectedUser.is_active ? "Active" : "Inactive")}
+                className={`w-full py-1.5 rounded-md text-sm transition focus:outline-none focus:ring-2 ${
+                  selectedStatus === (selectedUser.is_active ? "Active" : "Inactive")
+                    ? "bg-gray-400 cursor-not-allowed text-white"
+                    : "bg-gray-900 text-white hover:bg-gray-800 focus:ring-gray-400"
+                }`}
+              >
+                Update
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -769,7 +875,8 @@ export default function AdminUser() {
 
   return (
     <>
-      {selectedUser ? detailView : listView}
+      {listView}
+      {detailView}
       <UserFormModal
         open={showFormModal}
         isEditing={isEditing}

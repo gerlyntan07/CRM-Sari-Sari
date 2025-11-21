@@ -12,6 +12,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import api from "../api";
 import { toast } from "react-toastify";
 import PaginationControls from "../components/PaginationControls.jsx";
+import LoadingSpinner from "../components/LoadingSpinner.jsx";
 
 const INITIAL_TERRITORY_STATE = {
   name: "",
@@ -42,6 +43,7 @@ export default function AdminTerritory() {
   const [selectedTerritory, setSelectedTerritory] = useState(null);
   const [showFormModal, setShowFormModal] = useState(false);
   const [territoryList, setTerritoryList] = useState([]);
+  const [territoryLoading, setTerritoryLoading] = useState(false);
   const [users, setUsers] = useState([]);
   const [territoryData, setTerritoryData] = useState(INITIAL_TERRITORY_STATE);
   const [isEditing, setIsEditing] = useState(false);
@@ -139,6 +141,7 @@ export default function AdminTerritory() {
   };
 
   const fetchTerritories = async () => {
+    setTerritoryLoading(true);
     try {
       const response = await api.get("/territories/fetch");
       const data = Array.isArray(response.data) ? response.data : [];
@@ -147,6 +150,8 @@ export default function AdminTerritory() {
     } catch (error) {
       console.error("Error fetching territories:", error);
       return [];
+    } finally {
+      setTerritoryLoading(false);
     }
   };
 
@@ -488,7 +493,8 @@ export default function AdminTerritory() {
 
   return (
     <>
-      <div className="p-6 min-h-screen">
+      <div className="p-4 sm:p-6 lg:p-8 min-h-screen font-inter relative">
+        {territoryLoading && <LoadingSpinner message="Loading territories..." />}
         {/* Top Bar */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-0 mb-7">
           {/* Title */}
@@ -638,16 +644,16 @@ export default function AdminTerritory() {
               <table className="min-w-full text-sm">
                 <thead className="bg-gray-100 text-gray-600 text-left">
                   <tr>
-                    <th className="px-6 py-3 whitespace-nowrap font-medium">
+                    <th className="py-3 px-4 font-medium">
                       Territory
                     </th>
-                    <th className="px-6 py-3 whitespace-nowrap font-medium">
+                    <th className="py-3 px-4 font-medium">
                       Assigned To
                     </th>
-                    <th className="px-6 py-3 whitespace-nowrap font-medium">
+                    <th className="py-3 px-4 font-medium">
                       Status
                     </th>
-                    <th className="px-6 py-3 whitespace-nowrap font-medium">
+                    <th className="py-3 px-4 font-medium">
                       Created
                     </th>
                   </tr>
@@ -657,21 +663,21 @@ export default function AdminTerritory() {
                     paginatedTerritories.map((territory) => (
                       <tr
                         key={territory.id}
-                        className="hover:bg-gray-50 transition-colors text-xs cursor-pointer"
+                        className="hover:bg-gray-50 transition-colors text-sm cursor-pointer"
                         onClick={() => {
                           setSelectedTerritory(territory);
                           navigate(`/admin/territory/${territory.id}`);
                         }}
                       >
-                        <td className="px-6 py-3 text-gray-700 whitespace-nowrap font-medium">
+                        <td className="py-3 px-4 text-gray-700 whitespace-nowrap font-medium">
                           {territory.name}
                         </td>
-                        <td className="px-6 py-3 text-gray-700 whitespace-nowrap">
+                        <td className="py-3 px-4 text-gray-700 whitespace-nowrap">
                           {territory.managed_by
                             ? `${territory.managed_by.first_name} ${territory.managed_by.last_name}`
                             : "Unassigned"}
                         </td>
-                        <td className="px-6 py-3 whitespace-nowrap">
+                        <td className="py-3 px-4 whitespace-nowrap">
                           <span
                             className={`px-2 py-1 rounded-full text-xs font-medium whitespace-nowrap ${getStatusBadgeClass(
                               territory.status || "Inactive"
@@ -680,7 +686,7 @@ export default function AdminTerritory() {
                             {territory.status || "—"}
                           </span>
                         </td>
-                        <td className="px-6 py-3 text-gray-700 whitespace-nowrap">
+                        <td className="py-3 px-4 text-gray-700 whitespace-nowrap">
                           {territory.created_at
                             ? new Date(territory.created_at).toLocaleDateString(
                                 "en-US"
@@ -693,7 +699,7 @@ export default function AdminTerritory() {
                     <tr>
                       <td
                         colSpan={4}
-                        className="px-6 py-4 text-center text-gray-500 text-xs"
+                        className="py-3 px-4 text-center text-sm text-gray-500"
                       >
                         No territories found.
                       </td>

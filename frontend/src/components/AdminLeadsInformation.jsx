@@ -192,7 +192,7 @@ export default function AdminLeadsInformation({ lead: leadProp, onBack, fetchLea
           </div>
 
           {/* Header */}
-          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-6 sm:mb-8 gap-2 sm:gap-4">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-4 gap-2 sm:gap-4">
             <div className="flex flex-wrap items-center gap-2 sm:gap-3">
               <h1 className="text-xl sm:text-2xl font-semibold">
                 {lead.first_name} {lead.last_name}
@@ -249,6 +249,7 @@ export default function AdminLeadsInformation({ lead: leadProp, onBack, fetchLea
               </button>
             </div>
           </div>
+          <div className="border-b border-gray-200 mb-6"></div>
 
           {/* TABS */}
           <div className="flex w-full bg-[#6A727D] text-white mt-1 overflow-x-auto mb-6">

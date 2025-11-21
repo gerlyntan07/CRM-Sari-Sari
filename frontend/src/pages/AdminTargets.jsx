@@ -18,6 +18,7 @@ import { HiX } from "react-icons/hi";
 import { toast } from "react-toastify";
 import PaginationControls from "../components/PaginationControls.jsx";
 import LoadingSpinner from "../components/LoadingSpinner.jsx";
+import api from "../api";
 
 const STATUS_OPTIONS = [
   { value: "ACTIVE", label: "Active" },
@@ -89,108 +90,42 @@ export default function AdminTargets() {
   const [activeTab, setActiveTab] = useState("Overview");
   const [selectedStatus, setSelectedStatus] = useState("");
 
-  // Mock data for demonstration
-  const [mockTargets, setMockTargets] = useState([
-    {
-      id: 1,
-      user: {
-        id: 1,
-        first_name: "Jane",
-        last_name: "Sales",
-        role: "Sales Rep",
-      },
-      period: "2025-10",
-      target_amount: 100000,
-      achieved: 80000,
-      status: "ACTIVE",
-      created_at: "2025-09-15T10:00:00",
-      updated_at: "2025-10-01T14:30:00",
-    },
-    {
-      id: 2,
-      user: {
-        id: 2,
-        first_name: "John",
-        last_name: "Doe",
-        role: "Sales Manager",
-      },
-      period: "2025-10",
-      target_amount: 150000,
-      achieved: 120000,
-      status: "ACTIVE",
-      created_at: "2025-09-15T10:00:00",
-      updated_at: "2025-10-01T14:30:00",
-    },
-    {
-      id: 3,
-      user: {
-        id: 3,
-        first_name: "Maria",
-        last_name: "Santos",
-        role: "Sales Rep",
-      },
-      period: "2025-09",
-      target_amount: 75000,
-      achieved: 45000,
-      status: "INACTIVE",
-      created_at: "2025-08-15T10:00:00",
-      updated_at: "2025-09-30T14:30:00",
-    },
-  ]);
-
   const fetchTargets = useCallback(
     async (preserveSelectedId = null) => {
       setTargetsLoading(true);
-      // Simulate API delay
-      await new Promise((resolve) => setTimeout(resolve, 300));
-      
-      const sortedData = [...mockTargets].sort((a, b) => {
-        const aDate = a?.created_at || a?.updated_at || 0;
-        const bDate = b?.created_at || b?.updated_at || 0;
-        return new Date(bDate) - new Date(aDate);
-      });
-      setTargets(sortedData);
+      try {
+        const res = await api.get(`/targets/admin/fetch-all`);
+        const sortedData = res.data.sort((a, b) => {
+          const aDate = a?.created_at || a?.updated_at || 0;
+          const bDate = b?.created_at || b?.updated_at || 0;
+          return new Date(bDate) - new Date(aDate);
+        });
+        setTargets(sortedData);
 
-      if (preserveSelectedId) {
-        const updatedSelection = sortedData.find(
-          (t) => t.id === preserveSelectedId
-        );
-        setSelectedTarget(updatedSelection || null);
+        if (preserveSelectedId) {
+          const updatedSelection = sortedData.find(
+            (t) => t.id === preserveSelectedId
+          );
+          setSelectedTarget(updatedSelection || null);
+        }
+      } catch (err) {
+        console.error(`Error fetching targets: ${err}`);
+        toast.error("Failed to load targets. Please try again.");
+      } finally {
+        setTargetsLoading(false);
       }
-      setTargetsLoading(false);
     },
-    [mockTargets]
+    []
   );
 
   const fetchUsers = useCallback(async () => {
-    // Mock users data
-    const mockUsers = [
-      {
-        id: 1,
-        first_name: "Jane",
-        last_name: "Sales",
-        role: "Sales Rep",
-      },
-      {
-        id: 2,
-        first_name: "John",
-        last_name: "Doe",
-        role: "Sales Manager",
-      },
-      {
-        id: 3,
-        first_name: "Maria",
-        last_name: "Santos",
-        role: "Sales Rep",
-      },
-      {
-        id: 4,
-        first_name: "Pedro",
-        last_name: "Cruz",
-        role: "Sales Rep",
-      },
-    ];
-    setUsers(mockUsers);
+    try {
+      const res = await api.get(`/targets/admin/get-users`);
+      setUsers(res.data);
+    } catch (err) {
+      console.error(`Error fetching users: ${err}`);
+      toast.error("Failed to load users. Please try again.");
+    }
   }, []);
 
   useEffect(() => {
@@ -431,22 +366,7 @@ export default function AdminTargets() {
     try {
       if (type === "create") {
         setIsSubmitting(true);
-        // Find user data
-        const user = users.find((u) => u.id === payload.user_id);
-        
-        // Create new target
-        const newTarget = {
-          id: Math.max(...mockTargets.map((t) => t.id), 0) + 1,
-          user: user || { id: payload.user_id, first_name: "Unknown", last_name: "", role: "" },
-          period: payload.period,
-          target_amount: payload.target_amount,
-          achieved: payload.achieved || 0,
-          status: payload.status,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        };
-
-        setMockTargets((prev) => [...prev, newTarget]);
+        await api.post('/targets/admin/create', payload);
         toast.success(`Target for "${name}" created successfully.`);
 
         const preserveId = selectedTarget?.id || null;
@@ -457,27 +377,7 @@ export default function AdminTargets() {
           throw new Error("Missing target identifier for update.");
         }
         setIsSubmitting(true);
-        
-        // Find user data
-        const user = users.find((u) => u.id === payload.user_id);
-        
-        // Update target
-        setMockTargets((prev) =>
-          prev.map((t) =>
-            t.id === targetId
-              ? {
-                  ...t,
-                  user: user || t.user,
-                  period: payload.period,
-                  target_amount: payload.target_amount,
-                  achieved: payload.achieved || 0,
-                  status: payload.status,
-                  updated_at: new Date().toISOString(),
-                }
-              : t
-          )
-        );
-
+        await api.put(`/targets/admin/${targetId}`, payload);
         toast.success(`Target for "${name}" updated successfully.`);
 
         const preserveId =
@@ -495,10 +395,7 @@ export default function AdminTargets() {
         }
         const currentSelectedId = selectedTarget?.id;
         setDeletingId(targetId);
-        
-        // Delete target
-        setMockTargets((prev) => prev.filter((t) => t.id !== targetId));
-
+        await api.delete(`/targets/admin/${targetId}`);
         toast.success(`Target for "${name}" deleted successfully.`);
 
         const preserveId =
@@ -830,9 +727,18 @@ export default function AdminTargets() {
               </select>
 
               <button
-                onClick={() => {
-                  // Handle status update
-                  console.log("Update status to:", selectedStatus);
+                onClick={async () => {
+                  if (selectedStatus === selectedTarget.status) return;
+                  try {
+                    await api.put(`/targets/admin/${selectedTarget.id}`, {
+                      status: selectedStatus,
+                    });
+                    toast.success("Status updated successfully.");
+                    await fetchTargets(selectedTarget.id);
+                  } catch (err) {
+                    console.error(err);
+                    toast.error(err.response?.data?.detail || "Failed to update status.");
+                  }
                 }}
                 disabled={selectedStatus === selectedTarget.status}
                 className={`w-full py-1.5 rounded-md text-sm transition focus:outline-none focus:ring-2 ${

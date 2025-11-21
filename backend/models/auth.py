@@ -60,3 +60,6 @@ class User(Base):
     calls_created = relationship("Call", back_populates="call_creator", foreign_keys="[Call.created_by]", cascade="all, delete-orphan")
     calls_assigned = relationship("Call", back_populates="call_assign_to", foreign_keys="[Call.assigned_to]", cascade="all, delete-orphan")
 
+    assigned_quotes = relationship("Quote", back_populates="assigned_user", foreign_keys="[Quote.assigned_to]", cascade="all, delete-orphan")
+    created_quotes = relationship("Quote", back_populates="creator", foreign_keys="[Quote.created_by]", cascade="all, delete-orphan")
+

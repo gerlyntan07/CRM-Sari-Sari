@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState, useRef } from "react";
 import {
   FiUser,
   FiPlus,
@@ -56,13 +56,25 @@ export default function AdminTerritory() {
   const [confirmProcessing, setConfirmProcessing] = useState(false);
   const [deletingId, setDeletingId] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
+  const justUpdatedRef = useRef(false);
 
   useEffect(() => {
-    if (id && territoryList.length > 0) {
+    // Don't open popup if we just updated (prevents reopening after update)
+    if (justUpdatedRef.current) {
+      justUpdatedRef.current = false;
+      return;
+    }
+    
+    // Only open popup if we're not currently editing or updating
+    if (id && territoryList.length > 0 && !isEditing && !showFormModal && !isSubmitting) {
       const found = territoryList.find((t) => t.id === parseInt(id));
       if (found) setSelectedTerritory(found);
     }
-  }, [id, territoryList]);
+    // If id is cleared and we're not editing, ensure popup is closed
+    if (!id && !isEditing && !showFormModal) {
+      setSelectedTerritory(null);
+    }
+  }, [id, territoryList, isEditing, showFormModal, isSubmitting]);
 
   const filteredTerritories = useMemo(() => {
     const normalizedQuery = searchQuery.trim().toLowerCase();
@@ -380,8 +392,16 @@ export default function AdminTerritory() {
         toast.success(`Territory "${name}" updated successfully.`);
         const updatedTerritory = response.data;
 
+        // Set flag to prevent popup from reopening
+        justUpdatedRef.current = true;
+        
         handleCloseFormModal(false);
         setSelectedTerritory(null);
+        
+        // Navigate away from detail route FIRST to prevent useEffect from reopening popup
+        if (id) {
+          navigate("/admin/territory");
+        }
 
         setTerritoryList((prevList) => {
           if (!Array.isArray(prevList)) return prevList;

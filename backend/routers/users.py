@@ -13,21 +13,29 @@ router = APIRouter(
     tags=["Users"]
 )
 
-# ✅ GET all users (CEO/Admin can see subordinates from same company)
+# ✅ GET all users with Sales role only (CEO/Admin/Manager can see subordinates from same company)
 @router.get("/sales/read", response_model=List[UserResponse])
 def get_sales(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    # CEO → see all users related to their company
-    # Admin → see all users under same company
-    # Others → only themselves
-    if current_user.role.upper() in ["CEO", "Admin", "Manager", "Group Manager"]:
+    # CEO/Admin/Manager/Group Manager → see all Sales users related to their company
+    # Others → only themselves if they have Sales role
+    allowed_roles = {"CEO", "ADMIN", "MANAGER", "GROUP MANAGER"}
+    current_user_role_upper = (current_user.role or "").upper()
+    
+    if current_user_role_upper in allowed_roles:
+        # Get only Sales users from same company
         users = db.query(User).filter(
             User.related_to_company == current_user.related_to_company
-        ).filter(User.role == "Sales").all()
+        ).filter(User.role == "Sales").filter(User.is_active == True).all()
     else:
-        users = db.query(User).filter(User.id == current_user.id).all()
+        # For non-admin users, only return themselves if they have Sales role
+        users = db.query(User).filter(
+            User.id == current_user.id,
+            User.role == "Sales",
+            User.is_active == True
+        ).all()
 
     return users
 
@@ -171,6 +179,8 @@ def update_user(
         user.role = user_data.role
     if user_data.password:
         user.hashed_password = hash_password(user_data.password)
+    if user_data.is_active is not None:
+        user.is_active = user_data.is_active
 
     if not user.profile_picture:
         user.profile_picture = get_default_avatar(user.first_name)

@@ -141,6 +141,7 @@ export default function AdminUser() {
   const [currentPage, setCurrentPage] = useState(1);
   const [activeTab, setActiveTab] = useState("Overview");
   const [selectedStatus, setSelectedStatus] = useState("");
+  const [updatingStatus, setUpdatingStatus] = useState(false);
 
   const normalizedUserRole = normalizeRoleValue(currentUser?.role);
   const isAuthorized = ["ADMIN", "CEO"].includes(normalizedUserRole);
@@ -218,7 +219,8 @@ export default function AdminUser() {
     const normalizedFilter = normalizeRoleValue(roleFilter);
     return sortUsers(
       users.filter((user) => {
-        if (user?.is_active === false) return false;
+        // Show all users (both active and inactive) - don't filter out inactive users
+        if (!user) return false;
         const matchesSearch =
           normalizedQuery === "" ||
           [
@@ -476,10 +478,17 @@ export default function AdminUser() {
           throw new Error("Missing user identifier for deletion.");
         }
         await api.delete(`/users/deleteuser/${targetId}`);
-        await fetchUsers();
-        setSelectedUser((prevSelected) =>
-          prevSelected && prevSelected.id === targetId ? null : prevSelected
+        // Update user in the array to mark as inactive (don't remove from list)
+        setUsers((prev) =>
+          prev.map((user) =>
+            user.id === targetId ? { ...user, is_active: false } : user
+          )
         );
+        // Close the modal if the deleted user is currently selected
+        if (selectedUser && selectedUser.id === targetId) {
+          setSelectedUser(null);
+          setSelectedStatus("");
+        }
         toast.success(`User "${name}" deactivated successfully.`);
       }
     } catch (error) {
@@ -504,6 +513,46 @@ export default function AdminUser() {
   const handleCancelConfirm = () => {
     if (confirmProcessing) return;
     setConfirmModalData(null);
+  };
+
+  const handleStatusUpdate = async () => {
+    if (!selectedUser || !selectedStatus) return;
+    
+    // Don't update if status hasn't changed
+    const currentStatus = selectedUser.is_active ? "Active" : "Inactive";
+    if (selectedStatus === currentStatus) return;
+
+    const newIsActive = selectedStatus === "Active";
+    
+    setUpdatingStatus(true);
+    try {
+      const res = await api.put(`/users/updateuser/${selectedUser.id}`, {
+        is_active: newIsActive,
+      });
+      
+      const updatedUser = res.data;
+      
+      // Update the users list state (keep user in list even if inactive)
+      setUsers((prev) =>
+        prev.map((user) =>
+          user.id === updatedUser.id ? updatedUser : user
+        )
+      );
+      
+      // Close the modal after status update
+      setSelectedUser(null);
+      setSelectedStatus("");
+      
+      toast.success(`User status updated to ${selectedStatus}`);
+    } catch (error) {
+      console.error("Failed to update user status:", error);
+      const message =
+        error.response?.data?.detail ||
+        "Failed to update user status. Please try again.";
+      toast.error(message);
+    } finally {
+      setUpdatingStatus(false);
+    }
   };
 
   const listView = (
@@ -556,6 +605,7 @@ export default function AdminUser() {
               <th className="py-3 px-4">Fullname</th>
               <th className="py-3 px-4">Email</th>
               <th className="py-3 px-4">Role</th>
+              <th className="py-3 px-4">Status</th>
             </tr>
           </thead>
           <tbody>
@@ -572,7 +622,7 @@ export default function AdminUser() {
               <tr>
                 <td
                   className="py-4 px-4 text-center text-sm text-gray-400"
-                  colSpan={3}
+                  colSpan={4}
                 >
                   No users found.
                 </td>
@@ -584,6 +634,8 @@ export default function AdminUser() {
                     key={user.id}
                     className={`hover:bg-gray-50 transition-colors ${
                       user.highlight ? "bg-green-50" : ""
+                    } ${
+                      !user.is_active ? "opacity-60 bg-gray-50" : ""
                     }`}
                   >
                     <td
@@ -605,6 +657,20 @@ export default function AdminUser() {
                       onClick={() => handleRowClick(user)}
                     >
                       {renderRoleBadge(user.role)}
+                    </td>
+                    <td
+                      className="py-3 px-4 cursor-pointer"
+                      onClick={() => handleRowClick(user)}
+                    >
+                      <span
+                        className={`px-2 py-1 text-xs font-semibold rounded-md ${
+                          user.is_active
+                            ? "bg-green-100 text-green-700"
+                            : "bg-red-100 text-red-700"
+                        }`}
+                      >
+                        {user.is_active ? "Active" : "Inactive"}
+                      </span>
                     </td>
                   </tr>
                 );
@@ -821,18 +887,19 @@ export default function AdminUser() {
               </select>
 
               <button
-                onClick={() => {
-                  // Handle status update
-                  console.log("Update status to:", selectedStatus);
-                }}
-                disabled={selectedStatus === (selectedUser.is_active ? "Active" : "Inactive")}
+                onClick={handleStatusUpdate}
+                disabled={
+                  updatingStatus ||
+                  selectedStatus === (selectedUser.is_active ? "Active" : "Inactive")
+                }
                 className={`w-full py-1.5 rounded-md text-sm transition focus:outline-none focus:ring-2 ${
+                  updatingStatus ||
                   selectedStatus === (selectedUser.is_active ? "Active" : "Inactive")
                     ? "bg-gray-400 cursor-not-allowed text-white"
                     : "bg-gray-900 text-white hover:bg-gray-800 focus:ring-gray-400"
                 }`}
               >
-                Update
+                {updatingStatus ? "Updating..." : "Update"}
               </button>
             </div>
           </div>

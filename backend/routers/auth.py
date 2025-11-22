@@ -41,6 +41,10 @@ def get_me(request: Request, db: Session = Depends(get_db)):
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     
+    # Check if user is active
+    if not user.is_active:
+        raise HTTPException(status_code=403, detail="Your account has been deactivated. Please contact your administrator.")
+    
     return user
 
 
@@ -105,6 +109,10 @@ def login(user: UserLogin, response: Response, db: Session = Depends(get_db)):
     if not verify_password(user.password, db_user.hashed_password):
         raise HTTPException(status_code=400, detail="Invalid credentials")
     
+    # Check if user is active
+    if not db_user.is_active:
+        raise HTTPException(status_code=403, detail="Your account has been deactivated. Please contact your administrator.")
+    
     db_user.last_login = datetime.now(timezone.utc)
     db.commit()
     db.refresh(db_user)
@@ -159,6 +167,10 @@ def google_login(token: dict, response: Response, db: Session = Depends(get_db))
         db.add(db_user)
         db.commit()
         db.refresh(db_user)
+    
+    # Check if user is active
+    if not db_user.is_active:
+        raise HTTPException(status_code=403, detail="Your account has been deactivated. Please contact your administrator.")
 
     token = create_access_token({"sub": str(db_user.id)})
 

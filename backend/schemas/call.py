@@ -15,11 +15,15 @@ class CallBase(BaseModel):
     assigned_to_id: Optional[int] = None
     related_type: Optional[str] = None
     related_to: Optional[str] = None
+    related_to_id: Optional[int] = None
     priority: Optional[str] = "LOW"
     status: Optional[str] = "PENDING"
 
 class CallCreate(CallBase):
     pass
+
+class CallUpdate(BaseModel):
+    status: Optional[str] = None
 
 class CallResponse(CallBase):
     id: int

@@ -103,11 +103,15 @@ export default function AdminCalls() {
   const [searchQuery, setSearchQuery] = useState("");
   const [users, setUsers] = useState([]);
   const [contacts, setContacts] = useState([]);
+  const [accounts, setAccounts] = useState([]);
+  const [leads, setLeads] = useState([]);
+  const [deals, setDeals] = useState([]);
   const [confirmModalData, setConfirmModalData] = useState(null);
   const [confirmProcessing, setConfirmProcessing] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [activeTab, setActiveTab] = useState("Overview");
   const [selectedStatus, setSelectedStatus] = useState("");
+  const [updatingStatus, setUpdatingStatus] = useState(false);
 
   const total = calls.length;
   const pending = useMemo(
@@ -192,6 +196,42 @@ export default function AdminCalls() {
     }
   };
 
+  const fetchAccounts = async () => {
+    try {
+      const res = await api.get(`/accounts/admin/fetch-all`);
+      setAccounts(Array.isArray(res.data) ? res.data : []);
+    } catch (err) {
+      console.error(err);
+      if (err.response?.status === 403) {
+        toast.warn("Unable to load accounts (permission denied).");
+      }
+    }
+  };
+
+  const fetchLeads = async () => {
+    try {
+      const res = await api.get(`/leads/admin/getLeads`);
+      setLeads(Array.isArray(res.data) ? res.data : []);
+    } catch (err) {
+      console.error(err);
+      if (err.response?.status === 403) {
+        toast.warn("Unable to load leads (permission denied).");
+      }
+    }
+  };
+
+  const fetchDeals = async () => {
+    try {
+      const res = await api.get(`/deals/admin/fetch-all`);
+      setDeals(Array.isArray(res.data) ? res.data : []);
+    } catch (err) {
+      console.error(err);
+      if (err.response?.status === 403) {
+        toast.warn("Unable to load deals (permission denied).");
+      }
+    }
+  };
+
   const fetchCalls = async () => {
     setCallsLoading(true);
     try {
@@ -220,6 +260,9 @@ export default function AdminCalls() {
   useEffect(() => {
     fetchUsers();
     fetchContacts();
+    fetchAccounts();
+    fetchLeads();
+    fetchDeals();
     fetchCalls();
   }, []);
 
@@ -313,7 +356,50 @@ export default function AdminCalls() {
   const handleCallClick = (call) => {
     setSelectedCall(call);
     setActiveTab("Overview");
-    setSelectedStatus(call?.status || "PENDING");
+    setSelectedStatus(normalizeStatus(call?.status) || "PENDING");
+  };
+
+  const handleStatusUpdate = async () => {
+    if (!selectedCall || !selectedStatus) return;
+
+    const normalizedNewStatus = normalizeStatus(selectedStatus);
+    const normalizedCurrentStatus = normalizeStatus(selectedCall.status);
+
+    // Don't update if status hasn't changed
+    if (normalizedNewStatus === normalizedCurrentStatus) {
+      return;
+    }
+
+    setUpdatingStatus(true);
+    try {
+      const response = await api.put(`/calls/${selectedCall.id}`, {
+        status: normalizedNewStatus,
+      });
+      
+      toast.success(`Call status updated to ${formatStatusLabel(normalizedNewStatus)}`);
+      
+      // Update calls list in real-time without reloading
+      setCalls((prevCalls) => {
+        return prevCalls.map((call) => {
+          if (call.id === selectedCall.id) {
+            return {
+              ...call,
+              status: response.data.status || normalizedNewStatus,
+            };
+          }
+          return call;
+        });
+      });
+      
+      // Close the popup after successful update
+      setSelectedCall(null);
+    } catch (err) {
+      console.error(err);
+      const message = err.response?.data?.detail || "Failed to update call status. Please try again.";
+      toast.error(message);
+    } finally {
+      setUpdatingStatus(false);
+    }
   };
 
   const handleBackToList = () => setSelectedCall(null);
@@ -348,6 +434,42 @@ export default function AdminCalls() {
       .replace(",", "");
   };
 
+  // Get Related To options based on Related Type for dropdown
+  const getRelatedToOptions = () => {
+    if (!formData.related_type) return [];
+    
+    switch (formData.related_type) {
+      case "Account":
+        return accounts.map((account) => ({
+          value: String(account.id),
+          label: account.name || "Unnamed Account",
+        }));
+      case "Contact":
+        return contacts.map((contact) => {
+          const fullName = `${contact.first_name || ""} ${contact.last_name || ""}`.trim();
+          return {
+            value: String(contact.id),
+            label: fullName || "Unnamed Contact",
+          };
+        });
+      case "Lead":
+        return leads.map((lead) => {
+          const fullName = `${lead.first_name || ""} ${lead.last_name || ""}`.trim();
+          return {
+            value: String(lead.id),
+            label: fullName || "Unnamed Lead",
+          };
+        });
+      case "Deal":
+        return deals.map((deal) => ({
+          value: String(deal.id),
+          label: deal.name || "Unnamed Deal",
+        }));
+      default:
+        return [];
+    }
+  };
+
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => {
@@ -356,12 +478,100 @@ export default function AdminCalls() {
         [name]: value,
       };
       
-      // Auto-fill phone number when primary contact is selected
+      // Auto-fill phone number only when primary contact is selected
+      // DON'T auto-set Related Type - let user select manually
       if (name === "primary_contact" && value) {
         const selectedContact = contacts.find((c) => String(c.id) === value);
         if (selectedContact) {
+          // Auto-fill phone number only
           updated.phone_number = selectedContact.work_phone || selectedContact.mobile_phone_1 || "";
+          
+          // If Related Type is already selected, auto-select connected Related To in dropdown
+          if (updated.related_type) {
+            if (updated.related_type === "Contact") {
+              // Auto-select the primary contact in Related To dropdown
+              updated.related_to = String(selectedContact.id);
+            } else if (updated.related_type === "Account" && selectedContact.account_id) {
+              // Auto-select the contact's account in Related To dropdown
+              updated.related_to = String(selectedContact.account_id);
+            } else if (updated.related_type === "Lead") {
+              // Find lead connected to contact (by matching email or name)
+              const contactEmail = selectedContact.email?.toLowerCase();
+              const contactName = `${selectedContact.first_name || ""} ${selectedContact.last_name || ""}`.trim().toLowerCase();
+              
+              const connectedLead = leads.find((lead) => {
+                const leadEmail = lead.email?.toLowerCase();
+                const leadName = `${lead.first_name || ""} ${lead.last_name || ""}`.trim().toLowerCase();
+                return (leadEmail && leadEmail === contactEmail) || (leadName && leadName === contactName);
+              });
+              
+              if (connectedLead) {
+                updated.related_to = String(connectedLead.id);
+              } else {
+                updated.related_to = ""; // Clear if no lead found
+              }
+            } else if (updated.related_type === "Deal") {
+              // Find deal connected to contact's account
+              if (selectedContact.account_id) {
+                const connectedDeal = deals.find((deal) => deal.account_id === selectedContact.account_id);
+                if (connectedDeal) {
+                  updated.related_to = String(connectedDeal.id);
+                } else {
+                  updated.related_to = ""; // Clear if no deal found
+                }
+              } else {
+                updated.related_to = ""; // Clear if no account
+              }
+            }
+          }
         }
+      }
+      
+      // When Related Type is changed, auto-select connected item if Primary Contact exists
+      if (name === "related_type") {
+        // Clear Related To when changing Related Type
+        updated.related_to = "";
+        
+        // If Primary Contact exists, auto-select connected item
+        if (updated.primary_contact) {
+          const selectedContact = contacts.find((c) => String(c.id) === updated.primary_contact);
+          if (selectedContact) {
+            if (value === "Contact") {
+              // Auto-select the primary contact
+              updated.related_to = String(selectedContact.id);
+            } else if (value === "Account" && selectedContact.account_id) {
+              // Auto-select the contact's account
+              updated.related_to = String(selectedContact.account_id);
+            } else if (value === "Lead") {
+              // Find and auto-select connected lead
+              const contactEmail = selectedContact.email?.toLowerCase();
+              const contactName = `${selectedContact.first_name || ""} ${selectedContact.last_name || ""}`.trim().toLowerCase();
+              
+              const connectedLead = leads.find((lead) => {
+                const leadEmail = lead.email?.toLowerCase();
+                const leadName = `${lead.first_name || ""} ${lead.last_name || ""}`.trim().toLowerCase();
+                return (leadEmail && leadEmail === contactEmail) || (leadName && leadName === contactName);
+              });
+              
+              if (connectedLead) {
+                updated.related_to = String(connectedLead.id);
+              }
+            } else if (value === "Deal") {
+              // Find and auto-select connected deal
+              if (selectedContact.account_id) {
+                const connectedDeal = deals.find((deal) => deal.account_id === selectedContact.account_id);
+                if (connectedDeal) {
+                  updated.related_to = String(connectedDeal.id);
+                }
+              }
+            }
+          }
+        }
+      }
+      
+      // If primary contact is cleared, optionally clear related fields
+      if (name === "primary_contact" && !value) {
+        // Don't auto-clear related_type and related_to to allow manual entry
       }
       
       return updated;
@@ -431,6 +641,25 @@ export default function AdminCalls() {
       : null;
     const contactPhone = selectedContact?.work_phone || selectedContact?.mobile_phone_1 || null;
 
+    // Get Related To text based on selected ID and Related Type
+    let relatedToText = null;
+    if (formData.related_type && formData.related_to) {
+      const relatedToId = Number(formData.related_to);
+      if (formData.related_type === "Account") {
+        const account = accounts.find((a) => a.id === relatedToId);
+        relatedToText = account?.name || null;
+      } else if (formData.related_type === "Contact") {
+        const contact = contacts.find((c) => c.id === relatedToId);
+        relatedToText = contact ? `${contact.first_name || ""} ${contact.last_name || ""}`.trim() : null;
+      } else if (formData.related_type === "Lead") {
+        const lead = leads.find((l) => l.id === relatedToId);
+        relatedToText = lead ? `${lead.first_name || ""} ${lead.last_name || ""}`.trim() : null;
+      } else if (formData.related_type === "Deal") {
+        const deal = deals.find((d) => d.id === relatedToId);
+        relatedToText = deal?.name || null;
+      }
+    }
+
     const payload = {
       subject: trimmedSubject,
       primary_contact: primaryContactName,
@@ -443,7 +672,8 @@ export default function AdminCalls() {
       assigned_to: assignedToName,
       assigned_to_id: formData.assigned_to ? Number(formData.assigned_to) : null,
       related_type: formData.related_type || null,
-      related_to: formData.related_to?.trim() || null,
+      related_to: relatedToText,
+      related_to_id: formData.related_to ? Number(formData.related_to) : null,
       priority: formData.priority || "LOW",
       status: "PENDING",
     };
@@ -620,7 +850,7 @@ export default function AdminCalls() {
                     </div>
                   </div>
                   <div className="mt-3 text-sm text-gray-700 whitespace-pre-wrap break-words">
-                    {calls.notes || "No notes available."}
+                    {selectedCall.notes?.trim() || "No notes available."}
                   </div>
                 </div>
               </div>
@@ -707,18 +937,19 @@ export default function AdminCalls() {
               </select>
 
               <button
-                onClick={() => {
-                  // Handle status update
-                  console.log("Update status to:", selectedStatus);
-                }}
-                disabled={selectedStatus === selectedCall.status}
+                onClick={handleStatusUpdate}
+                disabled={
+                  updatingStatus || 
+                  normalizeStatus(selectedStatus) === normalizeStatus(selectedCall.status)
+                }
                 className={`w-full py-1.5 rounded-md text-sm transition focus:outline-none focus:ring-2 ${
-                  selectedStatus === selectedCall.status
+                  updatingStatus || 
+                  normalizeStatus(selectedStatus) === normalizeStatus(selectedCall.status)
                     ? "bg-gray-400 cursor-not-allowed text-white"
                     : "bg-gray-900 text-white hover:bg-gray-800 focus:ring-gray-400"
                 }`}
               >
-                Update
+                {updatingStatus ? "Updating..." : "Update"}
               </button>
             </div>
           </div>
@@ -1033,18 +1264,22 @@ export default function AdminCalls() {
                 { value: "Deal", label: "Deal" },
                 { value: "Lead", label: "Lead" },
                 { value: "Contact", label: "Contact" },
+                { value: "Account", label: "Account" },
               ]}
               disabled={isSubmitting}
             />
           </div>
           <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4">
-            <InputField
+            <SelectField
               label="Related To"
               name="related_to"
               value={formData.related_to}
               onChange={handleInputChange}
-              placeholder="Enter name"
-              disabled={isSubmitting}
+              options={[
+                { value: "", label: formData.related_type ? `Select ${formData.related_type}` : "Select Related Type first" },
+                ...getRelatedToOptions(),
+              ]}
+              disabled={isSubmitting || !formData.related_type}
             />
             <SelectField
               label="Priority"

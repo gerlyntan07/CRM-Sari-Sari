@@ -570,9 +570,21 @@ export default function AdminAccounts() {
       
       toast.success(`Account status updated to ${formatStatusLabel(normalizedNewStatus)}`);
       
-      // Refresh the account data to get the updated status
-      const preserveId = selectedAccount.id;
-      await fetchAccounts(preserveId);
+      // Update accounts list in real-time without reloading
+      setAccounts((prevAccounts) => {
+        return prevAccounts.map((account) => {
+          if (account.id === selectedAccount.id) {
+            return {
+              ...account,
+              status: normalizedNewStatus,
+            };
+          }
+          return account;
+        });
+      });
+      
+      // Close the details view popup
+      setSelectedAccount(null);
     } catch (err) {
       console.error(err);
       const message = err.response?.data?.detail || "Failed to update account status. Please try again.";

@@ -22,6 +22,25 @@ import LoadingSpinner from "../components/LoadingSpinner.jsx";
 
 const ITEMS_PER_PAGE = 10;
 
+const STATUS_OPTIONS = [
+  { value: "CUSTOMER", label: "Customer" },
+  { value: "PROSPECT", label: "Prospect" },
+  { value: "PARTNER", label: "Partner" },
+  { value: "ACTIVE", label: "Active" },
+  { value: "INACTIVE", label: "Inactive" },
+  { value: "FORMER", label: "Former" },
+];
+
+const normalizeStatus = (status) => (status ? status.toUpperCase() : "");
+
+const formatStatusLabel = (status) => {
+  if (!status) return "--";
+  return status
+    .toString()
+    .toLowerCase()
+    .replace(/\b\w/g, (char) => char.toUpperCase());
+};
+
 const INITIAL_FORM_STATE = {
   first_name: "",
   last_name: "",
@@ -34,6 +53,7 @@ const INITIAL_FORM_STATE = {
   mobile_phone_2: "",
   notes: "",
   assigned_to: "",
+  status: "",
 };
 
 const getContactFullName = (contact) =>
@@ -108,6 +128,8 @@ export default function AdminContacts() {
   const [deletingId, setDeletingId] = useState(null);
   const [activeTab, setActiveTab] = useState("Overview");
   const [currentPage, setCurrentPage] = useState(1);
+  const [selectedStatus, setSelectedStatus] = useState("");
+  const [updatingStatus, setUpdatingStatus] = useState(false);
 
   const fetchContacts = useCallback(
     async (preserveSelectedId = null) => {
@@ -183,6 +205,38 @@ export default function AdminContacts() {
     fetchAccounts();
     fetchUsers();
   }, [fetchContacts, fetchAccounts, fetchUsers]);
+
+  // Sync selectedStatus with selectedContact account status
+  useEffect(() => {
+    if (selectedContact?.account?.status) {
+      setSelectedStatus(normalizeStatus(selectedContact.account.status) || "PROSPECT");
+    } else {
+      setSelectedStatus("PROSPECT");
+    }
+  }, [selectedContact]);
+
+  // Sync formData status when account_id changes in edit form
+  useEffect(() => {
+    if (isEditing && formData.account_id && accounts.length > 0) {
+      const selectedAccount = accounts.find(
+        (acc) => String(acc.id) === formData.account_id
+      );
+      if (selectedAccount?.status) {
+        const accountStatus = normalizeStatus(selectedAccount.status) || "PROSPECT";
+        setFormData((prev) => {
+          // Only update if status is empty or different to avoid unnecessary updates
+          if (!prev.status || normalizeStatus(prev.status) !== accountStatus) {
+            return {
+              ...prev,
+              status: accountStatus,
+            };
+          }
+          return prev;
+        });
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [formData.account_id, isEditing]);
 
   const accountOptions = useMemo(() => {
     const map = new Map();
@@ -324,6 +378,7 @@ export default function AdminContacts() {
       mobile_phone_2: contact.mobile_phone_2 || "",
       notes: contact.notes || "",
       assigned_to: contact.assigned_to ? String(contact.assigned_to) : "",
+      status: normalizeStatus(contact.account?.status) || "PROSPECT",
     });
     setIsEditing(true);
     setCurrentContactId(contact.id);
@@ -387,6 +442,13 @@ export default function AdminContacts() {
     const actionType = isEditing && currentContactId ? "update" : "create";
     const contactName = `${trimmedFirstName} ${trimmedLastName}`.trim();
 
+    // Get the original contact to check if status changed
+    const originalContact = isEditing ? contacts.find(c => c.id === currentContactId) : null;
+    const originalAccountStatus = originalContact?.account?.status;
+    const newStatus = formData.status ? normalizeStatus(formData.status) : null;
+    const statusChanged = isEditing && originalContact?.account?.id && 
+      newStatus && normalizeStatus(originalAccountStatus) !== newStatus;
+
     setConfirmModalData({
       title: actionType === "create" ? "Confirm New Contact" : "Confirm Update",
       message:
@@ -412,6 +474,8 @@ export default function AdminContacts() {
         targetId: currentContactId || null,
         name: contactName,
       },
+      accountStatusUpdate: statusChanged ? newStatus : null,
+      accountId: isEditing && originalContact?.account?.id ? originalContact.account.id : (payload.account_id || null),
     });
   };
 
@@ -440,6 +504,20 @@ export default function AdminContacts() {
         }
         setIsSubmitting(true);
         await api.put(`/contacts/admin/${targetId}`, payload);
+        
+        // Update account status if it was changed in the form
+        if (confirmModalData.accountStatusUpdate && confirmModalData.accountId) {
+          try {
+            await api.put(`/accounts/admin/${confirmModalData.accountId}`, {
+              status: normalizeStatus(confirmModalData.accountStatusUpdate),
+            });
+            toast.success(`Account status updated to ${formatStatusLabel(confirmModalData.accountStatusUpdate)}`);
+          } catch (err) {
+            console.error("Failed to update account status:", err);
+            toast.warn("Contact updated but failed to update account status.");
+          }
+        }
+        
         toast.success(`Contact "${name}" updated successfully.`);
         const preserveId =
           selectedContact?.id && selectedContact.id === targetId
@@ -498,6 +576,52 @@ export default function AdminContacts() {
   const handleContactClick = (contact) => {
     setSelectedContact(contact);
     setActiveTab("Overview");
+  };
+
+  const handleStatusUpdate = async () => {
+    if (!selectedContact?.account?.id || !selectedStatus) return;
+
+    const normalizedNewStatus = normalizeStatus(selectedStatus);
+    const normalizedCurrentStatus = normalizeStatus(selectedContact?.account?.status);
+
+    // Don't update if status hasn't changed
+    if (normalizedNewStatus === normalizedCurrentStatus) {
+      return;
+    }
+
+    setUpdatingStatus(true);
+    try {
+      await api.put(`/accounts/admin/${selectedContact.account.id}`, {
+        status: normalizedNewStatus,
+      });
+      
+      toast.success(`Account status updated to ${formatStatusLabel(normalizedNewStatus)}`);
+      
+      // Update contacts list in real-time without reloading
+      setContacts((prevContacts) => {
+        return prevContacts.map((contact) => {
+          if (contact.account_id === selectedContact.account.id) {
+            return {
+              ...contact,
+              account: {
+                ...contact.account,
+                status: normalizedNewStatus,
+              },
+            };
+          }
+          return contact;
+        });
+      });
+      
+      // Close the details view popup
+      setSelectedContact(null);
+    } catch (err) {
+      console.error(err);
+      const message = err.response?.data?.detail || "Failed to update account status. Please try again.";
+      toast.error(message);
+    } finally {
+      setUpdatingStatus(false);
+    }
   };
 
   const handleBackToList = () => setSelectedContact(null);
@@ -769,28 +893,35 @@ export default function AdminContacts() {
               </h4>
               <select
                 className="border border-gray-200 rounded-md px-2 sm:px-3 py-1.5 w-full text-sm mb-2 focus:ring-2 focus:ring-indigo-500 outline-none"
-                value={selectedContact?.account?.status || "PROSPECT"}
-                onChange={(e) => {
-                  // Handle status update
-                  console.log("Update status to:", e.target.value);
-                }}
+                value={selectedStatus || normalizeStatus(selectedContact?.account?.status) || "PROSPECT"}
+                onChange={(e) => setSelectedStatus(e.target.value)}
+                disabled={updatingStatus || !selectedContact?.account?.id}
               >
-                <option value="CUSTOMER">Customer</option>
-                <option value="PROSPECT">Prospect</option>
-                <option value="PARTNER">Partner</option>
-                <option value="ACTIVE">Active</option>
-                <option value="INACTIVE">Inactive</option>
-                <option value="FORMER">Former</option>
+                {STATUS_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
               </select>
 
               <button
-                onClick={() => {
-                  // Handle status update
-                  console.log("Update status");
-                }}
-                className="w-full py-1.5 rounded-md text-sm transition focus:outline-none focus:ring-2 bg-gray-900 text-white hover:bg-gray-800 focus:ring-gray-400"
+                onClick={handleStatusUpdate}
+                disabled={
+                  updatingStatus ||
+                  !selectedStatus ||
+                  !selectedContact?.account?.id ||
+                  normalizeStatus(selectedStatus) === normalizeStatus(selectedContact?.account?.status)
+                }
+                className={`w-full py-1.5 rounded-md text-sm transition focus:outline-none focus:ring-2 ${
+                  updatingStatus ||
+                  !selectedStatus ||
+                  !selectedContact?.account?.id ||
+                  normalizeStatus(selectedStatus) === normalizeStatus(selectedContact?.account?.status)
+                    ? "bg-gray-400 cursor-not-allowed text-white"
+                    : "bg-gray-900 text-white hover:bg-gray-800 focus:ring-gray-400"
+                }`}
               >
-                Update
+                {updatingStatus ? "Updating..." : "Update"}
               </button>
             </div>
           </div>
@@ -1034,20 +1165,53 @@ export default function AdminContacts() {
             required
             disabled={isSubmitting || accounts.length === 0}
           />
-          <SelectField
-            label="Assign To"
-            name="assigned_to"
-            value={formData.assigned_to}
-            onChange={handleInputChange}
-            options={[
-              { value: "", label: "Unassigned" },
-              ...users.map((user) => ({
-                value: String(user.id),
-                label: `${user.first_name} ${user.last_name} (${user.role})`,
-              })),
-            ]}
-            disabled={isSubmitting || users.length === 0}
-          />
+          {isEditing && formData.account_id ? (
+            <SelectField
+              label="Status"
+              name="status"
+              value={formData.status || normalizeStatus(
+                accounts.find((acc) => String(acc.id) === formData.account_id)
+                  ?.status || ""
+              ) || "PROSPECT"}
+              onChange={handleInputChange}
+              options={STATUS_OPTIONS.map((option) => ({
+                value: option.value,
+                label: option.label,
+              }))}
+              disabled={isSubmitting || !formData.account_id}
+            />
+          ) : (
+            <SelectField
+              label="Assigned To"
+              name="assigned_to"
+              value={formData.assigned_to}
+              onChange={handleInputChange}
+              options={[
+                { value: "", label: "Select assignee" },
+                ...users.map((user) => ({
+                  value: String(user.id),
+                  label: `${user.first_name} ${user.last_name} (${user.role})`,
+                })),
+              ]}
+              disabled={isSubmitting || users.length === 0}
+            />
+          )}
+          {isEditing && (
+            <SelectField
+              label="Assigned To"
+              name="assigned_to"
+              value={formData.assigned_to}
+              onChange={handleInputChange}
+              options={[
+                { value: "", label: "Select assignee" },
+                ...users.map((user) => ({
+                  value: String(user.id),
+                  label: `${user.first_name} ${user.last_name} (${user.role})`,
+                })),
+              ]}
+              disabled={isSubmitting || users.length === 0}
+            />
+          )}
           <InputField
             label="Title"
             name="title"

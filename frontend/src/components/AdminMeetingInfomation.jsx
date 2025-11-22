@@ -2,9 +2,10 @@ import React, { useState } from "react";
 import { HiX } from "react-icons/hi";
 import { FiPhone, FiMail, FiCalendar, FiEdit2, FiTrash2, FiFileText } from "react-icons/fi";
 
-const AdminMeetingInfomation = ({ meeting, onClose, onEdit, onDelete }) => {
+const AdminMeetingInfomation = ({ meeting, onClose, onEdit, onDelete, onStatusUpdate }) => {
   const [activeTab, setActiveTab] = useState("Overview");
   const [selectedStatus, setSelectedStatus] = useState(meeting?.status || "PENDING");
+  const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
 
   if (!meeting) return null;
 
@@ -146,10 +147,6 @@ const AdminMeetingInfomation = ({ meeting, onClose, onEdit, onDelete }) => {
                       </p>
                     </div>
                     <div>
-                      <p className="font-semibold">Agenda:</p>
-                      <p>{meeting.description || "N/A"}</p>
-                    </div>
-                    <div>
                       <p className="font-semibold">Due Date:</p>
                       <p>{meeting.dueDate || "N/A"}</p>
                     </div>
@@ -193,7 +190,7 @@ const AdminMeetingInfomation = ({ meeting, onClose, onEdit, onDelete }) => {
                     </div>
                   </div>
                   <div className="mt-3 text-sm text-gray-700 whitespace-pre-wrap break-words">
-                    {meeting.notes || "No notes available."}
+                    {meeting.description || meeting.agenda || "No notes available."}
                   </div>
                 </div>
               </div>
@@ -281,18 +278,27 @@ const AdminMeetingInfomation = ({ meeting, onClose, onEdit, onDelete }) => {
                 </select>
 
                 <button
-                  onClick={() => {
-                    // Handle status update
-                    console.log("Update status to:", selectedStatus);
+                  onClick={async () => {
+                    if (!onStatusUpdate || !meeting?.id) return;
+                    if (selectedStatus === meeting.status) return;
+
+                    setIsUpdatingStatus(true);
+                    try {
+                      await onStatusUpdate(meeting.id, selectedStatus);
+                    } catch (err) {
+                      console.error("Failed to update status:", err);
+                    } finally {
+                      setIsUpdatingStatus(false);
+                    }
                   }}
-                  disabled={selectedStatus === meeting.status}
+                  disabled={selectedStatus === meeting.status || isUpdatingStatus}
                   className={`w-full py-1.5 rounded-md text-sm transition focus:outline-none focus:ring-2 ${
-                    selectedStatus === meeting.status
+                    selectedStatus === meeting.status || isUpdatingStatus
                       ? "bg-gray-400 cursor-not-allowed text-white"
                       : "bg-gray-900 text-white hover:bg-gray-800 focus:ring-gray-400"
                   }`}
                 >
-                  Update
+                  {isUpdatingStatus ? "Updating..." : "Update"}
                 </button>
               </div>
             </div>

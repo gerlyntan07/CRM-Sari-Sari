@@ -79,6 +79,10 @@ const AdminMeeting = () => {
   const [meetings, setMeetings] = useState([]);
   const [meetingsLoading, setMeetingsLoading] = useState(false);
   const [users, setUsers] = useState([]);
+  const [accounts, setAccounts] = useState([]);
+  const [contacts, setContacts] = useState([]);
+  const [leads, setLeads] = useState([]);
+  const [deals, setDeals] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("Filter by Status");
   const [priorityFilter, setPriorityFilter] = useState("Filter by Priority");
@@ -127,9 +131,65 @@ const AdminMeeting = () => {
     }
   };
 
+  // Fetch accounts for related to dropdown
+  const fetchAccounts = async () => {
+    try {
+      const res = await api.get(`/accounts/admin/fetch-all`);
+      setAccounts(Array.isArray(res.data) ? res.data : []);
+    } catch (err) {
+      console.error(err);
+      if (err.response?.status === 403) {
+        toast.warn("Unable to load accounts (permission denied).");
+      }
+    }
+  };
+
+  // Fetch contacts for related to dropdown
+  const fetchContacts = async () => {
+    try {
+      const res = await api.get(`/contacts/admin/fetch-all`);
+      setContacts(Array.isArray(res.data) ? res.data : []);
+    } catch (err) {
+      console.error(err);
+      if (err.response?.status === 403) {
+        toast.warn("Unable to load contacts (permission denied).");
+      }
+    }
+  };
+
+  // Fetch leads for related to dropdown
+  const fetchLeads = async () => {
+    try {
+      const res = await api.get(`/leads/admin/getLeads`);
+      setLeads(Array.isArray(res.data) ? res.data : []);
+    } catch (err) {
+      console.error(err);
+      if (err.response?.status === 403) {
+        toast.warn("Unable to load leads (permission denied).");
+      }
+    }
+  };
+
+  // Fetch deals for related to dropdown
+  const fetchDeals = async () => {
+    try {
+      const res = await api.get(`/deals/admin/fetch-all`);
+      setDeals(Array.isArray(res.data) ? res.data : []);
+    } catch (err) {
+      console.error(err);
+      if (err.response?.status === 403) {
+        toast.warn("Unable to load deals (permission denied).");
+      }
+    }
+  };
+
   useEffect(() => {
     fetchMeetings();
     fetchUsers();
+    fetchAccounts();
+    fetchContacts();
+    fetchLeads();
+    fetchDeals();
   }, []);
 
   const handleSearch = (event) => setSearchTerm(event.target.value);
@@ -267,6 +327,39 @@ const AdminMeeting = () => {
         name,
       },
     });
+  };
+
+  const handleStatusUpdate = async (meetingId, newStatus) => {
+    if (!meetingId) return;
+
+    try {
+      // Update meeting status via API
+      await api.put(`/meetings/${meetingId}`, {
+        status: newStatus,
+      });
+
+      toast.success(`Meeting status updated to ${formatStatusLabel(newStatus)}`);
+
+      // Update meeting in state without reloading
+      setMeetings((prevMeetings) => {
+        return prevMeetings.map((meeting) => {
+          if (meeting.id === meetingId) {
+            return {
+              ...meeting,
+              status: newStatus,
+            };
+          }
+          return meeting;
+        });
+      });
+
+      // Close the popup
+      setSelectedMeeting(null);
+    } catch (err) {
+      console.error(err);
+      const message = err.response?.data?.detail || "Failed to update meeting status. Please try again.";
+      toast.error(message);
+    }
   };
 
   const handleSubmit = (formDataFromModal) => {
@@ -601,6 +694,10 @@ const AdminMeeting = () => {
           onSubmit={handleSubmit}
           isSubmitting={isSubmitting || confirmProcessing}
           users={users}
+          accounts={accounts}
+          contacts={contacts}
+          leads={leads}
+          deals={deals}
         />
       )}
 
@@ -611,6 +708,7 @@ const AdminMeeting = () => {
           onClose={() => setSelectedMeeting(null)}
           onEdit={handleEditClick}
           onDelete={handleDelete}
+          onStatusUpdate={handleStatusUpdate}
         />
       )}
 

@@ -10,8 +10,8 @@ class MeetingCreate(BaseModel):
     agenda: Optional[str] = None
     due_date: str  # ISO format date string
     assigned_to: Optional[int] = None  # user ID
-    related_type: Optional[str] = None  # Client, Project, Internal, etc.
-    related_to: Optional[str] = None  # name or ID of related entity
+    related_type: Optional[str] = None  # Account, Contact, Lead, Deal
+    related_to: Optional[int] = None  # ID of related entity
     priority: Optional[str] = "Low"
     status: Optional[str] = "PENDING"
 
@@ -24,7 +24,7 @@ class MeetingUpdate(BaseModel):
     due_date: Optional[str] = None
     assigned_to: Optional[int] = None
     related_type: Optional[str] = None
-    related_to: Optional[str] = None
+    related_to: Optional[int] = None  # ID of related entity
     priority: Optional[str] = None
     status: Optional[str] = None
 

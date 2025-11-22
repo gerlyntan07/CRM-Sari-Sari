@@ -36,7 +36,7 @@ export default function SalesPanel() {
         ${sidebarOpen ? "translate-x-0" : "-translate-x-full"} lg:translate-x-0`}
       >
         {/* Logo */}
-        <div className="bg-[#fbbf24] text-gray-900 font-bold text-xl px-6 py-4 tracking-wide flex justify-between items-center">
+        <div className="bg-[#fbbf24] text-gray-900 font-bold text-xl px-6 py-4.5 tracking-wide flex justify-between items-center">
           <span>Sales CRM</span>
           {/* Close button for mobile */}
           <button

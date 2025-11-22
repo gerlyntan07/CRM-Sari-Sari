@@ -84,12 +84,12 @@ export default function AdminDealsInformation({
         <div className="flex flex-col gap-2 sm:gap-4 mb-4">
           <div className="flex flex-wrap items-start justify-between gap-2 sm:gap-3">
             <div className="flex flex-col gap-1">
-              <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-                <h1 className="text-xl sm:text-2xl font-semibold break-words">{selectedDeal.name}</h1>
-                <span className="inline-block bg-yellow-100 text-yellow-700 text-sm font-medium px-3 py-1 rounded-full break-words">
-                  {selectedDeal.stage}
-                </span>
-              </div>
+              <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3">
+          <h1 className="text-lg sm:text-2xl font-semibold break-words">{selectedDeal.name}</h1>
+          <span className="text-xs sm:text-sm inline-block bg-yellow-100 text-yellow-700 font-medium px-1.5 py-0.5 sm:px-3 sm:py-1 rounded-full break-words">
+            {selectedDeal.stage}
+          </span>
+        </div>
               <p className="text-gray-500 text-sm break-words">Created on {formattedDateTime(selectedDeal.created_at)}</p>
             </div>
             <div className="flex flex-col items-end gap-2">

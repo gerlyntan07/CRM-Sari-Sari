@@ -6,8 +6,9 @@ import {
   FiCalendar,
   FiSearch,
   FiEdit2,
-  FiTrash2,
+  FiTrash2
 } from "react-icons/fi";
+import { LuMapPin } from "react-icons/lu";
 import { useNavigate, useParams } from "react-router-dom";
 import api from "../api";
 import { toast } from "react-toastify";
@@ -499,7 +500,7 @@ export default function AdminTerritory() {
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-0 mb-7">
           {/* Title */}
           <h2 className="flex items-center text-2xl font-semibold text-gray-800">
-            <FiUser className="mr-2 text-blue-600" /> Territory
+            <LuMapPin className="mr-2 text-blue-600" /> Territory
           </h2>
 
           {/* Action Buttons */}

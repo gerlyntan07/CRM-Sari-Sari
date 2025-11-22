@@ -1,32 +1,45 @@
 import React, { useState, useEffect, useMemo } from 'react';
 
 import { 
-  FiSearch, FiUsers, FiDollarSign, FiClock, FiArrowUpRight, FiArrowDownRight, FiUser, FiCalendar, FiCheckCircle, FiFileText, FiPhone, FiList, FiBookmark, FiEdit, FiArrowRight 
+  FiSearch, FiUsers, FiDollarSign, FiUserPlus, FiClock, FiBriefcase, FiTarget, FiArrowUpRight, FiArrowDownRight,
+  FiUser, FiCalendar, FiCheckCircle, FiFileText, FiPhone, FiList, FiBookmark, FiEdit, FiArrowRight, FiPhoneCall, FiClipboard,
 } from "react-icons/fi";
-
+import { LuMapPin } from "react-icons/lu";
 import { HiOutlineOfficeBuilding } from "react-icons/hi";
 import { FaHandshakeAngle } from "react-icons/fa6";
+import { useNavigate } from 'react-router-dom';
 
 // --- Icon Components using React Icons ---
 
 export const IconSearch = (props) => <FiSearch {...props} />;
-export const IconUsers = (props) => <FiUsers {...props} />;
 export const IconDollarSign = (props) => <FiDollarSign {...props} />;
 export const IconBuilding = (props) => <HiOutlineOfficeBuilding {...props} />;
-export const IconTableCells = (props) => <FiList {...props} />; // optional replacement
+export const IconTableCells = (props) => <FiList {...props} />; 
 export const IconClock = (props) => <FiClock {...props} />;
 export const IconTrendUp = (props) => <FiArrowUpRight {...props} />;
 export const IconTrendDown = (props) => <FiArrowDownRight {...props} />;
-export const IconUser = (props) => <FiUser {...props} />;
 export const IconCalendar = (props) => <FiCalendar {...props} />;
-export const IconCircleCheck = (props) => <FiCheckCircle {...props} />;
-export const IconFileLines = (props) => <FiFileText {...props} />;
 export const IconPhone = (props) => <FiPhone {...props} />;
 export const IconList = (props) => <FiList {...props} />;
 export const IconBookmark = (props) => <FiBookmark {...props} />;
 export const IconPenToSquare = (props) => <FiEdit {...props} />;
 export const IconArrowRight = (props) => <FiArrowRight {...props} />;
 export const IconHand = (props) => <FaHandshakeAngle {...props}/>;
+
+export const IconUsers = (props) => <FiUsers {...props} />;
+export const IconUser = (props) => <FiUser {...props} />;
+export const IconFiUserPlus = (props) => <FiUserPlus {...props}/>;
+export const IconFiBriefcase = (props) => <FiBriefcase {...props}/>;
+export const IconFiFileText = (props) => <FiFileText {...props} />;
+export const IconFiTarget = (props) => <FiTarget {...props} />;
+export const IconFiCircleCheck = (props) => <FiCheckCircle {...props} />;
+export const IconFiCalendar = (props) => <FiCalendar {...props} />;
+export const IconFiPhoneCall = (props) => <FiPhoneCall {...props} />;
+export const IconLuMapPin = (props) => <LuMapPin {...props} />;
+export const IconFiClipboard = (props) => <FiClipboard {...props} />;
+
+
+
 
 
 // --- Constants and Mock Data ---
@@ -152,54 +165,73 @@ const getPriorityClasses = (priority) => {
     }
 };
 
-
-// --- Components ---
-
 const TopBar = () => {
-  // Mock action icons as seen in the image - updated with Inline SVG Components
+  const navigate = useNavigate(); 
+
   const actionIcons = [
-    { icon: IconBuilding, label: "New Account" },
-    { icon: IconUsers, label: "New Contact" },
-    { icon: IconUser, label: "New Deals" },
-    { icon: IconHand, label: "New leads" },
-    { icon: IconCalendar, label: "New Meeting" },
-    { icon: IconCircleCheck, label: "New Task" },
-    { icon: IconFileLines, label: "New Qoutes" },
-    { icon: IconPhone, label: "Log Calls " },
+    { icon: IconUsers, label: "New Account" },
+    { icon: IconUser, label: "New Contact" },
+    { icon: IconFiUserPlus, label: "New Leads" },
+    { icon: IconFiBriefcase, label: "New Deals" },
+    { icon: IconFiFileText, label: "New Quotes" },
+    { icon: IconFiTarget, label: "New Target" },
+    { icon: IconFiCircleCheck, label: "New Task" },
+    { icon: IconFiCalendar, label: "New Meeting" },
+    { icon: IconFiPhoneCall, label: "New Call" },
+    { icon: IconFiClipboard, label: "Audit" },
+    { icon: IconLuMapPin, label: "New Territory" },
   ];
-    
+
   return (
-    <div className="bg-white rounded-xl shadow-lg p-3 sm:p-4 flex flex-col md:flex-row items-center space-y-3 md:space-y-0 md:space-x-4">
+    <div className="bg-white rounded-xl shadow-lg p-3 sm:p-4 flex flex-col items-start space-y-4 w-full">
       
-      {/* Large Search Bar - Updated Icon */}
-      <div className="flex items-center border border-gray-300 rounded-lg px-4 py-2 flex-grow max-w-full sm:max-w-md focus-within:ring-2 focus-within:ring-blue-500 transition duration-150 w-full">
-        {/* Replaced FaMagnifyingGlass with IconSearch */}
-        <IconSearch size={20} className="text-gray-400 mr-3 flex-shrink-0" />
-        <input
-          type="text"
-          placeholder="Search Leads, Deals, or Accounts..."
-          className="focus:outline-none text-base w-full"
-        />
+      {/* Large Search Bar */}
+      <div className="w-full flex justify-center">
+        <div className="flex items-center border border-gray-300 rounded-lg lg:mt-3 px-4 py-2 w-full max-w-md md:max-w-lg lg:max-w-2xl focus-within:ring-2 focus-within:ring-blue-500 transition duration-150">
+          <IconSearch size={20} className="text-gray-400 mr-3 flex-shrink-0" />
+          <input
+            type="text"
+            placeholder="Search Leads, Deals, or Accounts..."
+            className="focus:outline-none text-base w-full"
+          />
+        </div>
       </div>
 
       {/* Action Icons */}
-      <div className="flex space-x-2 sm:space-x-4 justify-around w-full md:w-auto flex-shrink-0">
-        {actionIcons.map((item, index) => (
-          // Wrapped button in a relative container with group class for the tooltip
-          <div key={index} className="relative group">
-            <button 
-              className="p-2 text-gray-500 hover:text-gray-900 transition duration-150 rounded-full hover:bg-gray-100 focus:outline-none"
-              aria-label={item.label} 
-              onClick={() => console.log(`Clicked Action Icon: ${item.label}`)}
-            >
-              <item.icon size={20} />
-            </button>
-            {/* Tooltip implementation */}
-            <span className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-1 bg-gray-700 text-white text-xs font-medium rounded-lg whitespace-nowrap opacity-0 invisible group-hover:opacity-100 group-hover:visible transition duration-200 pointer-events-none z-20 shadow-md">
-              {item.label}
-            </span>
-          </div>
-        ))}
+      <div className="w-full overflow-x-auto scroll-smooth hide-scrollbar flex justify-center">
+        <div className="flex flex-nowrap space-x-3 sm:space-x-4 px-2 sm:px-0">
+          {actionIcons.map((item, index) => (
+            <div key={index} className="relative flex-shrink-0 group">
+              <button
+                className="p-3 text-gray-500 hover:text-gray-900 transition duration-150 rounded-full hover:bg-gray-100 focus:outline-none cursor-pointer"
+                aria-label={item.label}
+                onClick={() => {
+                  switch(item.label) {
+                    case "New Account": navigate("/admin/accounts"); break;
+                    case "New Contact": navigate("/admin/contacts"); break;
+                    case "New Leads": navigate("/admin/leads"); break;
+                    case "New Deals": navigate("/admin/deals"); break;
+                    case "New Quotes": navigate("/admin/quotes"); break;
+                    case "New Target": navigate("/admin/targets"); break;
+                    case "New Task": navigate("/admin/tasks"); break;
+                    case "New Meeting": navigate("/admin/meetings"); break;
+                    case "New Call": navigate("/admin/calls"); break;
+                    case "Audit": navigate("/admin/audit"); break;
+                    case "New Territory": navigate("/admin/territory"); break;
+                    default: console.log(`Clicked ${item.label}`);
+                  }
+                }}
+              >
+                <item.icon size={24} className="lg:scale-95" />
+              </button>
+
+              {/* Tooltip */}
+              <span className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-1 bg-gray-700 text-white text-xs font-medium rounded-lg whitespace-nowrap opacity-0 invisible group-hover:opacity-100 group-hover:visible transition duration-200 pointer-events-none z-20 shadow-md">
+                {item.label}
+              </span>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );
@@ -249,7 +281,7 @@ const RecentLogsCard = () => (
 
 const MetricCard = ({ icon: Icon, title, value, color, bgColor }) => (
   <div 
-    className="flex items-center p-4 bg-white rounded-xl shadow-lg transition duration-300 hover:shadow-xl hover:ring-2 hover:ring-blue-500 cursor-pointer"
+    className="flex items-center p-4 bg-white rounded-xl shadow-lg cursor-pointer"
     onClick={() => console.log(`Clicked metric card: ${title}`)}
   >
     <div className={`p-3 rounded-full ${bgColor} ${color} mr-4`}>
@@ -292,7 +324,7 @@ const RevenueChart = () => {
             );
           })}
 
-          {/* Area Chart Path */}
+    {/* Area Chart Path */}
           <g transform="translate(50, 10)">
             <path
               d={chartPoints}

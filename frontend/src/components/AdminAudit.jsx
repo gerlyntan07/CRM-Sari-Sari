@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { FiEye, FiDownload, FiSearch } from "react-icons/fi";
+import { FiEye, FiDownload, FiSearch, FiClipboard } from "react-icons/fi";
 import api from "../api";
 import toast, { Toaster } from "react-hot-toast";
 import PaginationControls from "./PaginationControls.jsx";
@@ -200,7 +200,7 @@ export default function AdminAudit() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-5 space-y-3 sm:space-y-0">
         <div className="flex items-center space-x-2">
-          <FiEye className="text-blue-600" size={20} />
+          <FiClipboard className="text-blue-600" size={20} />
           <h2 className="text-2xl sm:text-xl font-semibold text-gray-700">
             Audit Logs
           </h2>

@@ -113,6 +113,7 @@ export default function AdminAccounts() {
   const [currentPage, setCurrentPage] = useState(1);
   const [activeTab, setActiveTab] = useState("Overview");
   const [selectedStatus, setSelectedStatus] = useState("");
+  const [updatingStatus, setUpdatingStatus] = useState(false);
 
   const fetchAccounts = useCallback(
     async (preserveSelectedId = null) => {
@@ -179,6 +180,13 @@ export default function AdminAccounts() {
     fetchUsers();
     fetchTerritories();
   }, [fetchAccounts, fetchUsers, fetchTerritories]);
+
+  // Sync selectedStatus with selectedAccount status
+  useEffect(() => {
+    if (selectedAccount) {
+      setSelectedStatus(normalizeStatus(selectedAccount.status) || "PROSPECT");
+    }
+  }, [selectedAccount]);
 
   const total = accounts.length;
   const customers = useMemo(
@@ -333,7 +341,7 @@ export default function AdminAccounts() {
   const handleAccountClick = (acc) => {
     setSelectedAccount(acc);
     setActiveTab("Overview");
-    setSelectedStatus(acc?.status || "PROSPECT");
+    setSelectedStatus(normalizeStatus(acc?.status) || "PROSPECT");
   };
 
   const handleBackToList = () => setSelectedAccount(null);
@@ -441,19 +449,35 @@ export default function AdminAccounts() {
     setConfirmProcessing(true);
 
     try {
+      // ============================================================================
+      // COMMENTED OUT: Create Account Functionality
+      // ============================================================================
+      // This create account functionality has been temporarily commented out.
+      // Reason: Add account functionality in admin panel is currently disabled.
+      // 
+      // Para sa mga kasama: Ni-comment ko muna 'yung create account functionality.
+      // Paki-uncomment lang kapag kailangan na ulit.
+      // ============================================================================
+      // if (type === "create") {
+      //   setIsSubmitting(true);
+      //   const response = await api.post(`/accounts/admin`, payload);
+      //   toast.success(`Account "${name}" created successfully.`);
+      // 
+      //   const preserveId = selectedAccount?.id || null;
+      //   closeModal();
+      //   await fetchAccounts(preserveId);
+      // 
+      //   // After fetching, highlight the newly created account in detail view if requested later.
+      //   if (!selectedAccount && response.data?.id) {
+      //     // no-op: leave list view without auto-select
+      //   }
+      // } else 
       if (type === "create") {
-        setIsSubmitting(true);
-        const response = await api.post(`/accounts/admin`, payload);
-        toast.success(`Account "${name}" created successfully.`);
-
-        const preserveId = selectedAccount?.id || null;
-        closeModal();
-        await fetchAccounts(preserveId);
-
-        // After fetching, highlight the newly created account in detail view if requested later.
-        if (!selectedAccount && response.data?.id) {
-          // no-op: leave list view without auto-select
-        }
+        toast.error("Add account functionality is currently disabled.");
+        setConfirmProcessing(false);
+        setConfirmModalData(null);
+        setIsSubmitting(false);
+        return;
       } else if (type === "update") {
         if (!targetId) {
           throw new Error("Missing account identifier for update.");
@@ -527,6 +551,37 @@ export default function AdminAccounts() {
     setConfirmModalData(null);
   };
 
+  const handleStatusUpdate = async () => {
+    if (!selectedAccount || !selectedStatus) return;
+
+    const normalizedNewStatus = normalizeStatus(selectedStatus);
+    const normalizedCurrentStatus = normalizeStatus(selectedAccount.status);
+
+    // Don't update if status hasn't changed
+    if (normalizedNewStatus === normalizedCurrentStatus) {
+      return;
+    }
+
+    setUpdatingStatus(true);
+    try {
+      await api.put(`/accounts/admin/${selectedAccount.id}`, {
+        status: normalizedNewStatus,
+      });
+      
+      toast.success(`Account status updated to ${formatStatusLabel(normalizedNewStatus)}`);
+      
+      // Refresh the account data to get the updated status
+      const preserveId = selectedAccount.id;
+      await fetchAccounts(preserveId);
+    } catch (err) {
+      console.error(err);
+      const message = err.response?.data?.detail || "Failed to update account status. Please try again.";
+      toast.error(message);
+    } finally {
+      setUpdatingStatus(false);
+    }
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
 
@@ -551,6 +606,20 @@ export default function AdminAccounts() {
     };
 
     const actionType = isEditing && currentAccountId ? "update" : "create";
+
+    // ============================================================================
+    // COMMENTED OUT: Create Account Confirmation
+    // ============================================================================
+    // If trying to create (not edit), show error message instead
+    // Reason: Add account functionality in admin panel is currently disabled.
+    // 
+    // Para sa mga kasama: Ni-comment ko muna 'yung create account confirmation.
+    // Paki-uncomment lang kapag kailangan na ulit.
+    // ============================================================================
+    if (actionType === "create") {
+      toast.error("Add account functionality is currently disabled.");
+      return;
+    }
 
     setConfirmModalData({
       title: actionType === "create" ? "Confirm New Account" : "Confirm Update",
@@ -847,7 +916,7 @@ export default function AdminAccounts() {
               </h4>
               <select
                 className="border border-gray-200 rounded-md px-2 sm:px-3 py-1.5 w-full text-sm mb-2 focus:ring-2 focus:ring-indigo-500 outline-none"
-                value={selectedStatus || selectedAccount.status || "PROSPECT"}
+                value={selectedStatus || normalizeStatus(selectedAccount?.status) || "PROSPECT"}
                 onChange={(e) => setSelectedStatus(e.target.value)}
               >
                 {STATUS_OPTIONS.map((option) => (
@@ -858,17 +927,21 @@ export default function AdminAccounts() {
               </select>
 
               <button
-                onClick={() => {
-                  // Handle status update
-                  console.log("Update status to:", selectedStatus);
-                }}
-                disabled={selectedStatus === selectedAccount.status}
-                className={`w-full py-1.5 rounded-md text-sm transition focus:outline-none focus:ring-2 ${selectedStatus === selectedAccount.status
+                onClick={handleStatusUpdate}
+                disabled={
+                  updatingStatus ||
+                  !selectedStatus ||
+                  normalizeStatus(selectedStatus) === normalizeStatus(selectedAccount?.status)
+                }
+                className={`w-full py-1.5 rounded-md text-sm transition focus:outline-none focus:ring-2 ${
+                  updatingStatus ||
+                  !selectedStatus ||
+                  normalizeStatus(selectedStatus) === normalizeStatus(selectedAccount?.status)
                     ? "bg-gray-400 cursor-not-allowed text-white"
                     : "bg-gray-900 text-white hover:bg-gray-800 focus:ring-gray-400"
-                  }`}
+                }`}
               >
-                Update
+                {updatingStatus ? "Updating..." : "Update"}
               </button>
             </div>
           </div>
@@ -886,12 +959,21 @@ export default function AdminAccounts() {
           Accounts Management
         </h2>
 
-        <button
+        {/* ============================================================================
+            COMMENTED OUT: Add Account Button
+            ============================================================================
+            This button has been temporarily commented out.
+            Reason: Add account functionality in admin panel is currently disabled.
+            
+            Para sa mga kasama: Ni-comment ko muna 'yung Add Account button.
+            Paki-uncomment lang kapag kailangan na ulit.
+            ============================================================================ */}
+        {/* <button
           onClick={handleOpenAddModal}
           className="flex items-center bg-black text-white px-3 sm:px-4 py-2 rounded-md hover:bg-gray-800 text-sm sm:text-base ml-auto sm:ml-0 cursor-pointer"
         >
           <FiPlus className="mr-2" /> Add Account
-        </button>
+        </button> */}
       </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 mb-6">
@@ -1097,12 +1179,12 @@ export default function AdminAccounts() {
             disabled={isSubmitting}
           />
           <SelectField
-            label="Assign To"
+            label="Assigned To"
             name="assigned_to"
             value={formData.assigned_to}
             onChange={handleInputChange}
             options={[
-              { value: "", label: "Unassigned" },
+              { value: "", label: "Select assignee" },
               ...users.map((user) => ({
                 value: String(user.id),
                 label: `${user.first_name} ${user.last_name} (${user.role})`,

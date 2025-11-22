@@ -565,8 +565,8 @@ const AdminMeeting = () => {
   const total = meetings.length;
   const pending = meetings.filter((m) => m.status === "PENDING").length;
   const inProgress = meetings.filter((m) => m.status === "IN PROGRESS").length;
-  const done = meetings.filter((m) => m.status === "DONE").length;
-  const highPriority = meetings.filter((m) => m.priority === "HIGH").length;
+  const done = meetings.filter((m) => m.status === "DONE" || m.status === "COMPLETED").length;
+  const highPriority = meetings.filter((m) => normalizeStatus(m.priority) === "HIGH").length;
 
   const metricCards = [
     {

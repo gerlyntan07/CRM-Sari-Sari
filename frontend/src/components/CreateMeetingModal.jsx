@@ -9,6 +9,10 @@ const CreateMeetingModal = ({
   onSubmit,
   isSubmitting = false,
   users = [],
+  accounts = [],
+  contacts = [],
+  leads = [],
+  deals = [],
 }) => {
   // Use external formData if provided, otherwise use internal state
   const [internalFormData, setInternalFormData] = useState({
@@ -27,12 +31,46 @@ const CreateMeetingModal = ({
   const formData =
     externalFormData !== undefined ? externalFormData : internalFormData;
   const setFormData = setExternalFormData || setInternalFormData;
-  const relatedTypeOptions = ["Client", "Project", "Internal"];
-  const relatedToOptions = {
-    Client: ["TechCorp Solutions", "Alpha Solutions"],
-    Project: ["Project Falcon", "Q3 Budget Review"],
-    Internal: ["Finance Department", "HR Department"],
+  const relatedTypeOptions = ["Account", "Contact", "Lead", "Deal"];
+  
+  // Build relatedTo options based on selected relatedType
+  const getRelatedToOptions = () => {
+    if (!formData.relatedType) return [];
+    
+    switch (formData.relatedType) {
+      case "Account":
+        return accounts
+          .filter((account) => account.name && account.name.trim())
+          .map((account) => ({
+            value: account.name,
+            label: account.name,
+          }));
+      case "Contact":
+        return contacts
+          .map((contact) => {
+            const fullName = `${contact.first_name || ""} ${contact.last_name || ""}`.trim();
+            return { value: fullName, label: fullName };
+          })
+          .filter((item) => item.value); // Filter out empty names
+      case "Lead":
+        return leads
+          .map((lead) => {
+            const fullName = `${lead.first_name || ""} ${lead.last_name || ""}`.trim();
+            return { value: fullName, label: fullName };
+          })
+          .filter((item) => item.value); // Filter out empty names
+      case "Deal":
+        return deals
+          .filter((deal) => deal.name && deal.name.trim())
+          .map((deal) => ({
+            value: deal.name,
+            label: deal.name,
+          }));
+      default:
+        return [];
+    }
   };
+  
   const priorityOptions = ["High", "Medium", "Low"];
 
   const handleInputChange = (e) => {
@@ -177,12 +215,7 @@ const CreateMeetingModal = ({
             onChange={handleInputChange}
             options={[
               { value: "", label: "Select related item" },
-              ...(formData.relatedType && relatedToOptions[formData.relatedType]
-                ? relatedToOptions[formData.relatedType].map((option) => ({
-                    value: option,
-                    label: option,
-                  }))
-                : []),
+              ...getRelatedToOptions(),
             ]}
             disabled={!formData.relatedType || isSubmitting}
           />

@@ -734,7 +734,9 @@ export default function AdminTargets() {
                       status: selectedStatus,
                     });
                     toast.success("Status updated successfully.");
-                    await fetchTargets(selectedTarget.id);
+                    // Close popup and update targets list in real-time
+                    setSelectedTarget(null);
+                    await fetchTargets();
                   } catch (err) {
                     console.error(err);
                     toast.error(err.response?.data?.detail || "Failed to update status.");

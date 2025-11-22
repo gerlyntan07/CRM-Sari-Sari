@@ -842,7 +842,9 @@ export default function AdminQuotes() {
                   try {
                     await api.patch(`/quotes/admin/${selectedQuote.id}/status?status=${encodeURIComponent(selectedStatus)}`);
                     toast.success(`Quote status updated to ${selectedStatus}`);
-                    await fetchQuotes(selectedQuote.id);
+                    // Close popup and update quotes list in real-time
+                    setSelectedQuote(null);
+                    await fetchQuotes();
                   } catch (err) {
                     console.error(err);
                     toast.error("Failed to update quote status. Please try again.");
@@ -1124,12 +1126,12 @@ export default function AdminQuotes() {
             disabled={isSubmitting}
           />
           <SelectField
-            label="Assign To"
+            label="Assigned To"
             name="assigned_to"
             value={formData.assigned_to}
             onChange={handleInputChange}
             options={[
-              { value: "", label: "Unassigned" },
+              { value: "", label: "Select assignee" },
               ...users.map((user) => ({
                 value: String(user.id),
                 label: `${user.first_name} ${user.last_name} (${user.role})`,

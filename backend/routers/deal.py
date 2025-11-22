@@ -20,7 +20,20 @@ def create_deal(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
     request: Request = None
-):                    
+):
+    # Validate amount - Numeric(10, 2) means max value is 99,999,999.99
+    if data.amount is not None:
+        if data.amount > 99999999.99:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Deal amount cannot exceed 99,999,999.99"
+            )
+        if data.amount < 0:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Deal amount cannot be negative"
+            )
+                    
     new_deal = Deal(
         name=data.name,
         account_id=data.account_id,

@@ -506,7 +506,7 @@ export default function AdminTerritory() {
           <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto sm:ml-auto">
             <button
               onClick={handleOpenCreateModal}
-              className="flex items-center justify-center bg-black text-white px-4 py-2 rounded-md hover:bg-gray-800 cursor-pointer w-full sm:w-auto gap-2"
+             className="flex items-center bg-black text-white px-3 sm:px-4 py-2 rounded-md hover:bg-gray-800 text-sm sm:text-base self-end sm:self-auto cursor-pointer"
             >
               <FiPlus /> Create Territory
             </button>

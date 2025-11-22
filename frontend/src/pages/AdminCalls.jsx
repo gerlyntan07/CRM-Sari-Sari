@@ -738,7 +738,7 @@ export default function AdminCalls() {
 
         <button
           onClick={handleOpenAddModal}
-          className="flex items-center bg-black text-white px-3 sm:px-4 py-2 rounded-md hover:bg-gray-800 text-sm sm:text-base ml-auto sm:ml-0"
+          className="flex items-center bg-black text-white px-3 sm:px-4 py-2 rounded-md hover:bg-gray-800 text-sm sm:text-base ml-auto sm:ml-0 cursor-pointer"
         >
           <FiPlus className="mr-2" /> Add Call
         </button>

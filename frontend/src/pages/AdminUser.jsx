@@ -517,7 +517,7 @@ export default function AdminUser() {
         <button
           type="button"
           onClick={handleOpenCreate}
-          className="flex items-center bg-black text-white px-3 sm:px-4 py-2 rounded-md hover:bg-gray-800 text-sm sm:text-base"
+             className="flex items-center bg-black text-white px-3 sm:px-4 py-2 rounded-md hover:bg-gray-800 text-sm sm:text-base self-end sm:self-auto cursor-pointer"
         >
           <FiUserPlus className="mr-2" /> Add User
         </button>
@@ -697,13 +697,13 @@ export default function AdminUser() {
 
         {/* TABS */}
         <div className="flex w-full bg-[#6A727D] text-white mt-1 overflow-x-auto mb-6">
-          {["Overview", "Notes"].map((tab) => (
+          {["Overview"].map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
               className={`flex-1 min-w-[90px] px-4 py-2.5 text-xs sm:text-sm font-medium text-center transition-all duration-200 border-b-2
         ${activeTab === tab
-                  ? "bg-paper-white text-[#6A727D] border-white"
+                  ? "bg-[#5c636d] text-white border-white"
                   : "text-white hover:bg-[#5c636d]"
                 }`}
             >
@@ -802,41 +802,10 @@ export default function AdminUser() {
                 </div>
               </div>
             )}
-
-            {activeTab === "Notes" && (
-              <div className="bg-white p-4 sm:p-6 rounded-xl border border-gray-200 shadow-sm">
-                <h3 className="font-semibold text-gray-800 mb-2">Notes:</h3>
-                <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">
-                  No notes available.
-                </p>
-              </div>
-            )}
           </div>
 
           <div className="flex flex-col gap-4">
             {/* QUICK ACTIONS */}
-            <div className="bg-white border border-gray-100 rounded-lg p-3 sm:p-4 shadow-sm">
-              <h4 className="font-semibold text-gray-800 mb-2 text-sm">
-                Quick Actions
-              </h4>
-
-              <div className="flex flex-col gap-2 w-full">
-                {[
-                  { icon: FiPhone, text: "Schedule Call" },
-                  { icon: FiMail, text: "Send E-mail" },
-                  { icon: FiCalendar, text: "Book Meeting" },
-                ].map(({ icon: Icon, text }) => (
-                  <button
-                    key={text}
-                    className="flex items-center gap-2 border border-gray-100 rounded-md py-1.5 px-2 sm:px-3 hover:bg-gray-50 transition text-sm"
-                  >
-                    <Icon className="text-gray-600 w-4 h-4 flex-shrink-0" />{" "}
-                    {text}
-                  </button>
-                ))}
-              </div>
-            </div>
-
             {/* STATUS */}
             <div className="bg-white border border-gray-100 rounded-lg p-3 sm:p-4 shadow-sm w-full">
               <h4 className="font-semibold text-gray-800 mb-2 text-sm">

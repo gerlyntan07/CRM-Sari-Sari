@@ -874,7 +874,7 @@ export default function AdminQuotes() {
 
         <button
           onClick={handleOpenAddModal}
-          className="flex items-center bg-black text-white px-3 sm:px-4 py-2 rounded-md hover:bg-gray-800 text-sm sm:text-base"
+          className="flex items-center bg-black text-white px-3 sm:px-4 py-2 rounded-md hover:bg-gray-800 text-sm sm:text-base self-end sm:self-auto cursor-pointer"
         >
           <FiPlus className="mr-2" /> Add Quote
         </button>

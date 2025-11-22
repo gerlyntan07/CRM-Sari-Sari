@@ -881,14 +881,14 @@ export default function AdminAccounts() {
     <div className="p-4 sm:p-6 lg:p-8 font-inter relative">
       {accountsLoading && <LoadingSpinner message="Loading accounts..." />}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 sm:mb-6 space-y-2 sm:space-y-0">
-        <h1 className="flex items-center text-xl sm:text-2xl font-semibold text-gray-800">
+        <h2 className="flex items-center text-xl sm:text-2xl font-semibold text-gray-800">
           <FiUsers className="mr-2 text-blue-600" />
           Accounts Management
-        </h1>
+        </h2>
 
         <button
           onClick={handleOpenAddModal}
-          className="flex items-center bg-black text-white px-3 sm:px-4 py-2 rounded-md hover:bg-gray-800 text-sm sm:text-base ml-auto sm:ml-0"
+          className="flex items-center bg-black text-white px-3 sm:px-4 py-2 rounded-md hover:bg-gray-800 text-sm sm:text-base ml-auto sm:ml-0 cursor-pointer"
         >
           <FiPlus className="mr-2" /> Add Account
         </button>

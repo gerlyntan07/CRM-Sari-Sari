@@ -729,7 +729,7 @@ export default function AdminTask() {
     <div className="p-4 sm:p-6 lg:p-8 min-h-screen font-inter relative">
       {loading && <LoadingSpinner message="Loading tasks..." />}
       {/* Header */}
-      <div className="flex justify-between items-start mb-6">
+      <div className="flex justify-between items-start mb-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
             <FiActivity className="text-blue-600" /> Tasks Board
@@ -738,7 +738,7 @@ export default function AdminTask() {
         <button
           type="button"
           onClick={() => handleOpenModal()}
-          className="flex items-center bg-black text-white px-4 py-2 rounded-md hover:bg-gray-800 gap-1"
+          className="flex items-center bg-black text-white px-3 sm:px-4 py-2 rounded-md hover:bg-gray-800 text-sm sm:text-base self-end sm:self-auto mt-8 lg:mt-0 cursor-pointer"
         >
           <FiPlus /> Create Task
         </button>

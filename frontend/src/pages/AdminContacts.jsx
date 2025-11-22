@@ -800,23 +800,20 @@ export default function AdminContacts() {
   ) : null;
 
   const listView = (
-    <div className="p-4 sm:p-6 lg:p-8 font-inter relative">
+     <div className="p-4 sm:p-6 lg:p-8 font-inter relative">
       {contactsLoading && <LoadingSpinner message="Loading contacts..." />}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 sm:mb-6 space-y-2 sm:space-y-0">
-        <h2 className="flex items-center text-xl sm:text-2xl font-semibold text-gray-800">
-          <FiUsers className="mr-2 text-blue-600" /> Contacts Management
-        </h2>
+   <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 sm:mb-6 space-y-2 sm:space-y-0 w-full">
+  <h2 className="flex items-center text-xl sm:text-2xl font-semibold text-gray-800">
+    <FiUsers className="mr-2 text-blue-600" /> Contacts Management
+  </h2>
 
-        <div className="w-full flex justify-end">
   <button
     onClick={handleOpenAddModal}
-    className="flex items-center bg-black text-white px-3 sm:px-4 py-2 rounded-md hover:bg-gray-800 text-sm sm:text-base"
+    className="flex items-center bg-black text-white px-3 sm:px-4 py-2 rounded-md hover:bg-gray-800 text-sm sm:text-base self-end sm:self-auto cursor-pointer"
   >
     <FiPlus className="mr-2" /> Add Contact
   </button>
 </div>
-
-      </div>
 
       <div className="bg-white rounded-xl p-4 shadow-sm mb-6 flex flex-col lg:flex-row items-center justify-between gap-3 w-full">
         <div className="flex items-center border border-gray-300 rounded-lg px-4 h-11 w-full lg:w-3/4 focus-within:ring-2 focus-within:ring-indigo-500 transition">

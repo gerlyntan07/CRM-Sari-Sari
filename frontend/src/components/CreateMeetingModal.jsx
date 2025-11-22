@@ -42,28 +42,28 @@ const CreateMeetingModal = ({
         return accounts
           .filter((account) => account.name && account.name.trim())
           .map((account) => ({
-            value: account.name,
+            value: String(account.id),
             label: account.name,
           }));
       case "Contact":
         return contacts
           .map((contact) => {
             const fullName = `${contact.first_name || ""} ${contact.last_name || ""}`.trim();
-            return { value: fullName, label: fullName };
+            return { value: String(contact.id), label: fullName };
           })
-          .filter((item) => item.value); // Filter out empty names
+          .filter((item) => item.label); // Filter out empty names
       case "Lead":
         return leads
           .map((lead) => {
             const fullName = `${lead.first_name || ""} ${lead.last_name || ""}`.trim();
-            return { value: fullName, label: fullName };
+            return { value: String(lead.id), label: fullName };
           })
-          .filter((item) => item.value); // Filter out empty names
+          .filter((item) => item.label); // Filter out empty names
       case "Deal":
         return deals
           .filter((deal) => deal.name && deal.name.trim())
           .map((deal) => ({
-            value: deal.name,
+            value: String(deal.id),
             label: deal.name,
           }));
       default:
@@ -191,7 +191,7 @@ const CreateMeetingModal = ({
                 label: `${user.first_name} ${user.last_name}`,
               })),
             ]}
-            required
+            required={!isEditing}
             disabled={isSubmitting || users.length === 0}
           />
           <SelectField

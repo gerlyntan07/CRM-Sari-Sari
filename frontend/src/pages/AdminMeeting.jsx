@@ -288,6 +288,37 @@ const AdminMeeting = () => {
       assignedToId = user?.id ? String(user.id) : "";
     }
 
+    // Find related entity ID from relatedTo name
+    let relatedToId = "";
+    let relatedType = meeting.relatedType || "";
+    
+    if (meeting.relatedType && meeting.relatedTo) {
+      const relatedToName = meeting.relatedTo;
+      
+      if (relatedType === "Account") {
+        const account = accounts.find((acc) => acc.name === relatedToName);
+        relatedToId = account?.id ? String(account.id) : "";
+      } else if (relatedType === "Contact") {
+        const contact = contacts.find(
+          (c) => `${c.first_name || ""} ${c.last_name || ""}`.trim() === relatedToName
+        );
+        relatedToId = contact?.id ? String(contact.id) : "";
+      } else if (relatedType === "Lead") {
+        const lead = leads.find(
+          (l) => `${l.first_name || ""} ${l.last_name || ""}`.trim() === relatedToName
+        );
+        relatedToId = lead?.id ? String(lead.id) : "";
+      } else if (relatedType === "Deal") {
+        const deal = deals.find((d) => d.name === relatedToName);
+        relatedToId = deal?.id ? String(deal.id) : "";
+      }
+      
+      // If we couldn't find the entity, reset relatedType to avoid errors
+      if (!relatedToId) {
+        relatedType = "";
+      }
+    }
+
     setFormData({
       meetingTitle: meeting.activity || "",
       location: meeting.location || "",
@@ -296,8 +327,8 @@ const AdminMeeting = () => {
       agenda: meeting.description || "",
       dueDate: meeting.dueDate || "",
       assignedTo: assignedToId,
-      relatedType: meeting.relatedType || "",
-      relatedTo: meeting.relatedTo || "",
+      relatedType: relatedType,
+      relatedTo: relatedToId,
       priority: meeting.priority || "Low",
     });
     setIsEditing(true);
@@ -375,14 +406,38 @@ const AdminMeeting = () => {
     }
 
     // Convert duration to integer
-    const duration = formDataFromModal.duration
-      ? parseInt(formDataFromModal.duration, 10)
-      : null;
+    let duration = null;
+    if (formDataFromModal.duration && formDataFromModal.duration.trim()) {
+      const parsed = parseInt(formDataFromModal.duration, 10);
+      // Only set if it's a valid number (not NaN)
+      if (!isNaN(parsed) && parsed > 0) {
+        duration = parsed;
+      }
+    }
 
     // Convert assignedTo to integer (user ID)
-    const assignedToId = formDataFromModal.assignedTo
-      ? parseInt(formDataFromModal.assignedTo, 10)
-      : null;
+    // Allow empty string to be converted to null (for clearing assignment)
+    let assignedToId = null;
+    if (formDataFromModal.assignedTo && formDataFromModal.assignedTo.trim()) {
+      const parsed = parseInt(formDataFromModal.assignedTo, 10);
+      // Only set if it's a valid number (not NaN)
+      if (!isNaN(parsed)) {
+        assignedToId = parsed;
+      }
+    }
+
+    // Convert relatedTo to integer (entity ID)
+    let relatedToId = null;
+    if (formDataFromModal.relatedTo && formDataFromModal.relatedTo.trim()) {
+      const parsed = parseInt(formDataFromModal.relatedTo, 10);
+      // Only set if it's a valid number (not NaN)
+      if (!isNaN(parsed)) {
+        relatedToId = parsed;
+      }
+    }
+    
+    // If relatedType is provided but relatedTo is null, set relatedType to null too
+    const finalRelatedType = (formDataFromModal.relatedType && relatedToId) ? formDataFromModal.relatedType : null;
 
     const payload = {
       subject: trimmedTitle,
@@ -392,10 +447,11 @@ const AdminMeeting = () => {
       agenda: formDataFromModal.agenda?.trim() || null,
       due_date: formDataFromModal.dueDate,
       assigned_to: assignedToId,
-      related_type: formDataFromModal.relatedType || null,
-      related_to: formDataFromModal.relatedTo || null,
+      related_type: finalRelatedType,
+      related_to: relatedToId,
       priority: formDataFromModal.priority || "Low",
-      status: "PENDING",
+      // Only set status for create, not for update (preserve existing status)
+      ...(isEditing && currentMeetingId ? {} : { status: "PENDING" }),
     };
 
     const actionType = isEditing && currentMeetingId ? "update" : "create";
@@ -471,13 +527,26 @@ const AdminMeeting = () => {
       }
     } catch (err) {
       console.error(err);
+      console.error("Error details:", err.response?.data);
+      console.error("Payload sent:", payload);
       const defaultMessage =
         type === "create"
           ? "Failed to create meeting. Please review the details and try again."
           : type === "update"
           ? "Failed to update meeting. Please review the details and try again."
           : "Failed to delete meeting. Please try again.";
-      const message = err.response?.data?.detail || defaultMessage;
+      
+      // Better error message handling for validation errors
+      let message = defaultMessage;
+      if (err.response?.data?.detail) {
+        if (Array.isArray(err.response.data.detail)) {
+          // Pydantic validation errors come as an array
+          const errors = err.response.data.detail.map(e => `${e.loc?.join('.')}: ${e.msg}`).join(', ');
+          message = `Validation error: ${errors}`;
+        } else {
+          message = err.response.data.detail;
+        }
+      }
       toast.error(message);
     } finally {
       if (type === "create" || type === "update") {

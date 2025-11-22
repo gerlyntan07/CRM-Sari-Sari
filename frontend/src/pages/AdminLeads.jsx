@@ -109,6 +109,7 @@ export default function AdminLeads() {
     website: '',
     countryCode: '+63',
     phone_number: '',
+    combinedPhoneNumbers: '',
     billing_address: '',
     shipping_address: '',
     industry: '',
@@ -135,7 +136,7 @@ export default function AdminLeads() {
     name: 'Converted from Lead',
     account_id: null,
     primary_contact_id: null,
-    stage: 'Prospecting',
+    stage: 'PROSPECTING',
     probability: 10,
     amount: 0.0,
     currency: 'PHP',
@@ -187,6 +188,80 @@ export default function AdminLeads() {
       setSelectedLead(null);
     }
   }, [leadID, leads, showModal, isEditing]);
+
+  // Populate convert data when leadToConvert changes
+  useEffect(() => {
+    if (leadToConvert) {
+      // Parse phone number from work_phone (format: "+63 9123456789")
+      const parsePhone = (phone) => {
+        if (!phone) return { code: "+63", number: "" };
+        const match = phone.match(/^(\+\d+)\s(.+)$/);
+        if (match) {
+          return { code: match[1], number: match[2] };
+        }
+        // If no space, try to extract code from start
+        if (phone.startsWith("+")) {
+          const codeMatch = phone.match(/^(\+\d{1,3})/);
+          if (codeMatch) {
+            return { code: codeMatch[1], number: phone.substring(codeMatch[1].length).trim() };
+          }
+        }
+        return { code: "+63", number: phone };
+      };
+
+      const workPhone = parsePhone(leadToConvert.work_phone);
+      
+      // Combine all three phone numbers from lead into one string for account
+      const phoneNumbers = [];
+      if (leadToConvert.work_phone) phoneNumbers.push(`Work: ${leadToConvert.work_phone}`);
+      if (leadToConvert.mobile_phone_1) phoneNumbers.push(`Mobile 1: ${leadToConvert.mobile_phone_1}`);
+      if (leadToConvert.mobile_phone_2) phoneNumbers.push(`Mobile 2: ${leadToConvert.mobile_phone_2}`);
+      const combinedPhoneNumbers = phoneNumbers.length > 0 ? phoneNumbers.join(' | ') : '';
+
+      setConvertAccountData({
+        name: leadToConvert.company_name || "",
+        website: '',
+        countryCode: workPhone.code,
+        phone_number: workPhone.number, // This will be the primary number for the input field
+        combinedPhoneNumbers: combinedPhoneNumbers, // Store combined numbers separately
+        billing_address: leadToConvert.address || '',
+        shipping_address: leadToConvert.address || '',
+        industry: '',
+        status: 'Prospect',
+        territory_id: leadToConvert.assigned_to?.territory?.id || null,
+        assigned_to: leadToConvert.assigned_to?.id || null,
+        created_by: leadToConvert.creator?.id || null,
+      });
+
+      setConvertContactData({
+        last_name: leadToConvert.last_name || "",
+        first_name: leadToConvert.first_name || "",
+        account_id: null,
+        title: leadToConvert.title || "",
+        department: leadToConvert.department || "",
+        email: leadToConvert.email || "",
+        work_phone: leadToConvert.work_phone || "",
+        mobile_phone_1: leadToConvert.mobile_phone_1 || "",
+        mobile_phone_2: leadToConvert.mobile_phone_2 || "",
+        notes: leadToConvert.notes || '',
+        assigned_to: leadToConvert.assigned_to?.id || null,
+        created_by: leadToConvert.creator?.id || null,
+      });
+
+      setConvertDealData({
+        name: 'Converted from Lead',
+        account_id: null,
+        primary_contact_id: null,
+        stage: 'PROSPECTING',
+        probability: 10,
+        amount: 0.0,
+        currency: 'PHP',
+        description: 'Initial deal from lead conversion.',
+        assigned_to: leadToConvert.assigned_to?.id || null,
+        created_by: leadToConvert.creator?.id || null,
+      });
+    }
+  }, [leadToConvert]);
 
 
   const handleSearch = (event) => setSearchTerm(event.target.value);
@@ -471,8 +546,14 @@ export default function AdminLeads() {
           throw new Error("Missing lead identifier for update.");
         }
         setIsSubmitting(true);
-        await api.put(`/leads/${targetId}`, payload);
+        const res = await api.put(`/leads/${targetId}`, payload);
         toast.success(`Lead "${name}" updated successfully.`);
+        
+        // Update selectedLead if it's the one being edited
+        if (selectedLead && selectedLead.id === targetId) {
+          setSelectedLead(null);
+        }
+        
         closeModal();
         await fetchLeads();
       } else if (type === "delete") {
@@ -1010,6 +1091,7 @@ export default function AdminLeads() {
           lead={selectedLead}
           onBack={handleBackToList}
           fetchLeads={fetchLeads}
+          setSelectedLead={setSelectedLead}
           onEdit={handleEditClick}
           onDelete={handleDelete}
           onConvert={(lead) => {

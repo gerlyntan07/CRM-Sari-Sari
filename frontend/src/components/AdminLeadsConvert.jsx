@@ -12,17 +12,20 @@ const COUNTRY_CODES = allCountries.map(country => ({
   name: country.countryCode
 }));
 // --- Form Field Component ---
-const FormField = ({ label, value, name, placeholder, readOnly, onChange, className = "" }) => (
+const FormField = ({ label, value, name, placeholder, readOnly, onChange, className = "", type = "text", min, max, step }) => (
 
   <div className={`flex flex-col ${className}`}>
     <label className="text-xs text-gray-700 mb-1">{label}</label>
     <input
-      type="text"
+      type={type}
       name={name}
       value={value}
       onChange={onChange}
       readOnly={readOnly || false}
       placeholder={placeholder}
+      min={min}
+      max={max}
+      step={step}
       className="w-full border border-gray-300 p-2 rounded-lg text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none bg-gray-50"
     />
   </div>
@@ -141,7 +144,18 @@ const DealStep = ({ data, handleDealChange }) => (
 
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
       <div className="flex">
-        <FormField label="Deal Amount" name="amount" onChange={handleDealChange} value={data.amount} className="flex-grow" />
+        <FormField 
+          label="Deal Amount" 
+          name="amount" 
+          onChange={handleDealChange} 
+          value={data.amount} 
+          className="flex-grow"
+          placeholder="0.00"
+          type="number"
+          min="0"
+          max="99999999.99"
+          step="0.01"
+        />
         <div className="flex flex-col justify-end ml-1">
           <span className="text-sm font-medium text-gray-600 border border-gray-300 bg-gray-100 p-2 rounded-r-lg h-10 flex items-center">
             PHP
@@ -194,6 +208,24 @@ export default function AdminLeadsConvert({ setSelectedLead, fetchLeads, isOpen,
 
   const handleDealChange = (e) => {
     const { name, value } = e.target;
+    
+    // Validate amount field - max value is 99,999,999.99 (Numeric(10, 2))
+    if (name === 'amount') {
+      const numValue = parseFloat(value);
+      if (isNaN(numValue) && value !== '') {
+        // Invalid number, don't update
+        return;
+      }
+      if (numValue > 99999999.99) {
+        toast.error('Amount cannot exceed 99,999,999.99');
+        return;
+      }
+      if (numValue < 0) {
+        toast.error('Amount cannot be negative');
+        return;
+      }
+    }
+    
     setDealData((prev) => ({ ...prev, [name]: value }));
   }
 
@@ -214,11 +246,33 @@ export default function AdminLeadsConvert({ setSelectedLead, fetchLeads, isOpen,
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    // Validate amount before submitting
+    const amount = parseFloat(dealData.amount);
+    if (!isNaN(amount) && amount > 99999999.99) {
+      toast.error('Deal amount cannot exceed 99,999,999.99. Please enter a valid amount.');
+      return;
+    }
+    if (!isNaN(amount) && amount < 0) {
+      toast.error('Deal amount cannot be negative. Please enter a valid amount.');
+      return;
+    }
+
     try {
+      // Use combined phone numbers if available, otherwise use the single phone number
+      let finalPhoneNumber = accountData.combinedPhoneNumbers || null;
+      
+      // If no combined numbers, use the single phone number with country code
+      if (!finalPhoneNumber && accountData.phone_number) {
+        finalPhoneNumber = `${accountData.countryCode} ${accountData.phone_number}`.trim();
+      }
+
       const finalAccountData = {
         ...accountData,
-        phone_number: `${accountData.countryCode} ${accountData.phone_number}`
+        phone_number: finalPhoneNumber
       }
+      
+      // Remove the temporary combinedPhoneNumbers field before sending
+      delete finalAccountData.combinedPhoneNumbers;
       const res = await api.post(`/accounts/convertedLead`, finalAccountData);
       const accInsertId = res.data.id;
 
@@ -248,11 +302,23 @@ export default function AdminLeadsConvert({ setSelectedLead, fetchLeads, isOpen,
         }
       };
 
+      // Ensure amount is a valid number or null
+      const dealAmount = dealData.amount && dealData.amount !== '' 
+        ? parseFloat(dealData.amount) 
+        : 0.0;
+      
+      // Final validation before sending
+      if (dealAmount > 99999999.99) {
+        toast.error('Deal amount cannot exceed 99,999,999.99. Please enter a valid amount.');
+        return;
+      }
+
       const finalDealData = {
         ...dealData,
         account_id: accInsertId,
         primary_contact_id: contactInsertId,
         probability: handleProbability(),
+        amount: dealAmount
       }
       const res2 = await api.post(`/deals/convertedLead`, finalDealData);
 
@@ -270,6 +336,8 @@ export default function AdminLeadsConvert({ setSelectedLead, fetchLeads, isOpen,
       onClose();
     } catch (error) {
       console.error("Error during conversion:", error);
+      const errorMessage = error.response?.data?.detail || error.message || "Failed to convert lead. Please try again.";
+      toast.error(errorMessage);
     }
   }
 

@@ -20,6 +20,24 @@ class LeadBase(BaseModel):
 class LeadStatusUpdate(BaseModel):
     status: str
 
+class LeadUpdate(BaseModel):
+    """Payload for updating a lead (all fields optional)."""
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
+    company_name: Optional[str] = None
+    title: Optional[str] = None
+    department: Optional[str] = None
+    email: Optional[EmailStr] = None
+    work_phone: Optional[str] = None
+    mobile_phone_1: Optional[str] = None
+    mobile_phone_2: Optional[str] = None
+    address: Optional[str] = None
+    notes: Optional[str] = None
+    source: Optional[str] = None
+    status: Optional[str] = None
+    territory_id: Optional[int] = None
+    lead_owner: Optional[int] = None
+
 class LeadCreate(LeadBase):
     status: str
     territory_id: Optional[int]

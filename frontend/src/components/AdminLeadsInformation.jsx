@@ -15,7 +15,7 @@ function Detail({ label, value }) {
   );
 }
 
-export default function AdminLeadsInformation({ lead: leadProp, onBack, fetchLeads, onEdit, onDelete, onConvert }) {
+export default function AdminLeadsInformation({ lead: leadProp, onBack, fetchLeads, onEdit, onDelete, onConvert, setSelectedLead }) {
   const navigate = useNavigate();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const { leadID } = useParams();
@@ -142,9 +142,31 @@ export default function AdminLeadsInformation({ lead: leadProp, onBack, fetchLea
       const res = await api.put(`/leads/${lead.id}/update/status`, { status: selectedStatus })
       console.log(res.data)
       toast.success('Lead status updated successfully')
-      fetchLead();
+      
+      // Update the lead state with new status
+      const updatedLead = {
+        ...lead,
+        status: res.data.status
+      };
+      setLead(updatedLead);
+      
+      // Update the parent's selectedLead if setSelectedLead is provided
+      if (setSelectedLead) {
+        setSelectedLead(updatedLead);
+      }
+      
+      // Update the parent's leads list in real-time
+      if (fetchLeads) {
+        fetchLeads();
+      }
+      
+      // Close the popup
+      if (onBack) {
+        onBack();
+      }
     } catch (err) {
       console.error(err)
+      toast.error('Failed to update lead status')
     }
   }
 

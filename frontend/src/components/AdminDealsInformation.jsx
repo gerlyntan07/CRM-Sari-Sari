@@ -10,58 +10,22 @@ export default function AdminDealsInformation({
   setActiveTab,
   onEdit,
   onDelete,
+  onStatusUpdate,
 }) {
 
-  const [showNoteModal, setShowNoteModal] = useState(false);
-  const [noteName, setNoteName] = useState("");
-  const [noteContent, setNoteContent] = useState("");
-
-  const [notes, setNotes] = useState([
-    {
-      id: 1,
-      name: "Mary Jane",
-      time: "22/10/2024 12:18 PM",
-      content:
-        "Please review the contract and confirm signatures. We'll follow up with the legal team on Monday.",
-    },
-    {
-      id: 2,
-      name: "Jacob Jones",
-      time: "20/10/2024 09:45 AM",
-      content:
-        "Client requested a revised quote with extended payment terms (60 days). Prepare a draft.",
-    },
-  ]);
   if (!show || !selectedDeal) return null;
 
-  function formatTimestamp(date = new Date()) {
-    const pad = (n) => String(n).padStart(2, "0");
-    const day = pad(date.getDate());
-    const month = pad(date.getMonth() + 1);
-    const year = date.getFullYear();
-    let hours = date.getHours();
-    const minutes = pad(date.getMinutes());
-    const ampm = hours >= 12 ? "PM" : "AM";
-    const hour12 = hours % 12 === 0 ? 12 : hours % 12;
-    return `${day}/${month}/${year} ${pad(hour12)}:${minutes} ${ampm}`;
-  }
-
-  function handleSaveNote(e) {
-    e.preventDefault();
-    if (!noteName.trim() || !noteContent.trim()) return;
-
-    const newNote = {
-      id: Date.now(),
-      name: noteName.trim(),
-      content: noteContent.trim(),
-      time: formatTimestamp(new Date()),
+  const getStageBadgeClasses = (stage) => {
+    const stageColors = {
+      "PROSPECTING": "bg-blue-100 text-blue-700",
+      "QUALIFICATION": "bg-yellow-100 text-yellow-700",
+      "PROPOSAL": "bg-orange-100 text-orange-700",
+      "NEGOTIATION": "bg-purple-100 text-purple-700",
+      "CLOSED_WON": "bg-green-100 text-green-700",
+      "CLOSED_LOST": "bg-red-100 text-red-700",
     };
-
-    setNotes((prev) => [...prev, newNote]);
-    setNoteName("");
-    setNoteContent("");
-    setShowNoteModal(false);
-  }
+    return stageColors[stage] || "bg-gray-100 text-gray-700";
+  };
 
   function formattedDateTime(datetime) {
     if (!datetime) return "";
@@ -86,7 +50,7 @@ export default function AdminDealsInformation({
             <div className="flex flex-col gap-1">
               <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3">
           <h1 className="text-lg sm:text-2xl font-semibold break-words">{selectedDeal.name}</h1>
-          <span className="text-xs sm:text-sm inline-block bg-yellow-100 text-yellow-700 font-medium px-1.5 py-0.5 sm:px-3 sm:py-1 rounded-full break-words">
+          <span className={`text-xs sm:text-sm inline-block font-medium px-1.5 py-0.5 sm:px-3 sm:py-1 rounded-full break-words ${getStageBadgeClasses(selectedDeal.stage)}`}>
             {selectedDeal.stage}
           </span>
         </div>
@@ -183,19 +147,49 @@ export default function AdminDealsInformation({
                   <div className="mt-4 py-3 w-full">
                     <div className="relative flex flex-col w-full">
                       <div className="absolute top-0 left-0 right-0 flex items-center justify-between w-full">
-                        {["green", "green", "orange", "gray", "gray"].map((color, i) => (
-                          <React.Fragment key={i}>
-                            <div
-                              className={`relative z-10 w-6 h-6 rounded-full border-2 ${color === "green"
-                                  ? "bg-green-500 border-green-500"
-                                  : color === "orange"
-                                    ? "bg-orange-400 border-orange-400"
-                                    : "bg-gray-300 border-gray-300"
-                                }`}
-                            />
-                            {i < 4 && <div className="flex-grow h-1 bg-gray-200 mx-1 min-w-0"></div>}
-                          </React.Fragment>
-                        ))}
+                        {(() => {
+                          const currentStage = selectedDeal.stage;
+                          
+                          // Map stages to circle indices: 0=Prospecting, 1=Qualification, 2=Proposal, 3=Negotiation, 4=Closed
+                          const getStageIndex = (stage) => {
+                            if (stage === "PROSPECTING") return 0;
+                            if (stage === "QUALIFICATION") return 1;
+                            if (stage === "PROPOSAL") return 2;
+                            if (stage === "NEGOTIATION") return 3;
+                            if (stage === "CLOSED_WON" || stage === "CLOSED_LOST") return 4;
+                            return -1;
+                          };
+                          
+                          const currentIndex = getStageIndex(currentStage);
+                          
+                          // Map to 5 circles: Prospecting, Qualification, Proposal, Negotiation, Closed
+                          const circleStates = [0, 1, 2, 3, 4].map((i) => {
+                            if (currentIndex === i) {
+                              // Current stage is orange
+                              return "orange";
+                            } else if (currentIndex > i) {
+                              // Past stages are green
+                              return "green";
+                            } else {
+                              // Future stages are gray
+                              return "gray";
+                            }
+                          });
+
+                          return circleStates.map((color, i) => (
+                            <React.Fragment key={i}>
+                              <div
+                                className={`relative z-10 w-6 h-6 rounded-full border-2 ${color === "green"
+                                    ? "bg-green-500 border-green-500"
+                                    : color === "orange"
+                                      ? "bg-orange-400 border-orange-400"
+                                      : "bg-gray-300 border-gray-300"
+                                  }`}
+                              />
+                              {i < 4 && <div className="flex-grow h-1 bg-gray-200 mx-1 min-w-0"></div>}
+                            </React.Fragment>
+                          ));
+                        })()}
                       </div>
 
                       <div className="flex justify-between mt-8 gap-2 text-[9px] lg:text-[9px] sm:text-xs text-gray-600 w-full">
@@ -237,29 +231,19 @@ export default function AdminDealsInformation({
             {activeTab === "Notes" && (
               <div className="mt-4 w-full">
                 <div className="flex flex-wrap items-center justify-between mb-4 gap-2">
-                  <h3 className="text-lg font-semibold text-gray-800 break-words">Deals Note</h3>
-                  <button
-                    onClick={() => setShowNoteModal(true)}
-                    className="bg-gray-900 text-white text-sm px-4 py-2 rounded-md hover:bg-gray-800 transition"
-                  >
-                    Add Note
-                  </button>
+                  <h3 className="text-lg font-semibold text-gray-800 break-words">Deal Note</h3>
                 </div>
 
-                <div className="space-y-4 w-full">
-                  {notes.map((n) => (
-                    <div key={n.id} className="bg-white border border-gray-100 rounded-lg p-4 shadow-sm break-words">
-                      <div className="flex items-start justify-between">
-                        <div>
-                          <p className="text-sm font-medium text-gray-800 break-words">{n.name}</p>
-                          <p className="text-xs text-gray-500 mt-1 break-words">{n.time}</p>
-                        </div>
-                      </div>
-                      <div className="mt-3 text-sm text-gray-700 break-words">{n.content}</div>
+                <div className="bg-white border border-gray-100 rounded-lg p-4 shadow-sm break-words">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-gray-800 break-words">
+                        Note
+                      </p>
                     </div>
-                  ))}
-                  <div className="bg-white border border-dashed border-gray-200 rounded-lg p-6 text-center text-sm text-gray-400 break-words">
-                    No more notes
+                  </div>
+                  <div className="mt-3 text-sm text-gray-700 whitespace-pre-wrap break-words">
+                    {selectedDeal.description || "No notes available."}
                   </div>
                 </div>
               </div>
@@ -333,78 +317,10 @@ export default function AdminDealsInformation({
 
           {/* RIGHT COLUMN */}
           <div className="w-full lg:w-auto">
-            <AdminDealsQuickAction selectedDeal={selectedDeal} />
+            <AdminDealsQuickAction selectedDeal={selectedDeal} onStatusUpdate={onStatusUpdate} onClose={onClose} />
           </div>
         </div>
 
-        {/* ADD NOTE MODAL */}
-        {showNoteModal && (
-          <div
-            className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4"
-            onClick={() => setShowNoteModal(false)}
-          >
-            <div
-              className="bg-white w-full max-w-full sm:max-w-md rounded-2xl shadow-lg p-4 sm:p-6 md:p-8 relative border border-gray-200 overflow-y-auto max-h-[90vh] hide-scrollbar"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <button
-                onClick={() => setShowNoteModal(false)}
-                className="absolute top-4 right-4 text-gray-500 hover:text-black transition"
-              >
-                <FiX size={22} />
-              </button>
-
-              <h2 className="text-xl sm:text-2xl font-semibold text-gray-800 mb-4 sm:mb-6">
-                Add Note
-              </h2>
-
-              <form onSubmit={handleSaveNote} className="space-y-4">
-                <div className="flex flex-col">
-                  <label className="text-sm text-gray-700 font-medium mb-1 break-words">
-                    Name
-                  </label>
-                  <input
-                    type="text"
-                    value={noteName}
-                    onChange={(e) => setNoteName(e.target.value)}
-                    className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-blue-400 outline-none w-full"
-                    placeholder="Your name"
-                  />
-                </div>
-                <div className="flex flex-col">
-                  <label className="text-sm text-gray-700 font-medium mb-1 break-words">
-                    Note
-                  </label>
-                  <textarea
-                    value={noteContent}
-                    onChange={(e) => setNoteContent(e.target.value)}
-                    className="border border-gray-300 rounded-md px-3 py-2 text-sm h-28 resize-y focus:ring-2 focus:ring-blue-400 outline-none w-full"
-                    placeholder="Write your note here..."
-                  />
-                </div>
-                <div className="flex justify-end gap-3 flex-wrap mt-6">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setShowNoteModal(false);
-                      setNoteName("");
-                      setNoteContent("");
-                    }}
-                    className="px-4 py-2 rounded-md border border-gray-200 text-sm hover:bg-gray-50 transition"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    className="px-4 py-2 rounded-md bg-gray-900 text-white text-sm hover:bg-gray-800 transition"
-                  >
-                    Save
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );

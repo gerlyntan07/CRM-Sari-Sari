@@ -38,21 +38,21 @@ export default function AdminDeals() {
     const [confirmProcessing, setConfirmProcessing] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
     const [currentDealId, setCurrentDealId] = useState(null);
+    const [accounts, setAccounts] = useState([]);
+    const [contacts, setContacts] = useState([]);
+    const [users, setUsers] = useState([]);
 
     const [dealForm, setDealForm] = useState({
         id: null,
         name: "",
-        account: "",
-        contact: "",
-        stage: "Proposal Stage",
-        value: "",
-        closeDate: "",
-        owner: "",
-        status: "Proposal",
-        progress: 0,
+        account_id: "",
+        primary_contact_id: "",
+        stage: "PROPOSAL",
+        amount: "",
+        close_date: "",
+        assigned_to: "",
+        currency: "PHP",
         description: "",
-        phone: "",
-        email: "",
     });
 
 
@@ -64,6 +64,30 @@ export default function AdminDeals() {
         "Negotiation Stage": "NEGOTIATION",
         "Closed Won Stage": "CLOSED_WON",
         "Closed Lost Stage": "CLOSED_LOST",
+    };
+
+    const formatStageName = (stage) => {
+        const stageNames = {
+            "PROSPECTING": "Prospecting",
+            "QUALIFICATION": "Qualification",
+            "PROPOSAL": "Proposal",
+            "NEGOTIATION": "Negotiation",
+            "CLOSED_WON": "Closed Won",
+            "CLOSED_LOST": "Closed Lost",
+        };
+        return stageNames[stage] || stage || "--";
+    };
+
+    const getStageBadgeClasses = (stage) => {
+        const stageColors = {
+            "PROSPECTING": "bg-blue-100 text-blue-700",
+            "QUALIFICATION": "bg-yellow-100 text-yellow-700",
+            "PROPOSAL": "bg-orange-100 text-orange-700",
+            "NEGOTIATION": "bg-purple-100 text-purple-700",
+            "CLOSED_WON": "bg-green-100 text-green-700",
+            "CLOSED_LOST": "bg-red-100 text-red-700",
+        };
+        return stageColors[stage] || "bg-gray-100 text-gray-700";
     };
 
     const filteredDeals = useMemo(() => {
@@ -93,12 +117,13 @@ export default function AdminDeals() {
             const matchesStage =
                 normalizedStageFilter === "Filter by Stage" ||
                 normalizedStageFilter === "" ||
-                deal.stage === stageMap[normalizedStageFilter];
+                deal.stage === stageMap[normalizedStageFilter] ||
+                deal.stage === normalizedStageFilter;
 
             const matchesOwner =
                 normalizedOwnerFilter === "Filter by Owner" ||
                 normalizedOwnerFilter === "" ||
-                `${deal.assigned_deals?.first_name} ${deal.assigned_deals?.last_name}`.toLowerCase() ===
+                `${deal.assigned_deals?.first_name || ""} ${deal.assigned_deals?.last_name || ""}`.trim().toLowerCase() ===
                 normalizedOwnerFilter.toLowerCase();
 
             return matchesSearch && matchesStage && matchesOwner;
@@ -140,17 +165,14 @@ export default function AdminDeals() {
         setDealForm({
             id: null,
             name: "",
-            account: "",
-            contact: "",
-            stage: "Proposal Stage",
-            value: "",
-            closeDate: "",
-            owner: "",
-            status: "Proposal",
-            progress: 0,
+            account_id: "",
+            primary_contact_id: "",
+            stage: "PROPOSAL",
+            amount: "",
+            close_date: "",
+            assigned_to: "",
+            currency: "PHP",
             description: "",
-            phone: "",
-            email: "",
         });
         setIsEditing(false);
         setCurrentDealId(null);
@@ -161,12 +183,19 @@ export default function AdminDeals() {
         setDealsLoading(true);
         try {
             const res = await api.get(`/deals/admin/fetch-all`);
-            setDeals(res.data)
+            const data = Array.isArray(res.data) ? res.data : [];
+            // Sort by created_at descending (most recent first)
+            const sorted = [...data].sort((a, b) => {
+                const aDate = a?.created_at ? new Date(a.created_at).getTime() : 0;
+                const bDate = b?.created_at ? new Date(b.created_at).getTime() : 0;
+                return bDate - aDate;
+            });
+            setDeals(sorted);
         } catch (err) {
             if (err.response && err.response.status === 403) {
                 toast.error("Permission denied. Only CEO, Admin, or Group Manager can access this page.");
             } else {
-                toast.error("Failed to fetch accounts. Please try again later.");
+                toast.error("Failed to fetch deals. Please try again later.");
             }
             console.error(err);
         } finally {
@@ -174,8 +203,47 @@ export default function AdminDeals() {
         }
     }
 
+    const fetchAccounts = async () => {
+        try {
+            const res = await api.get(`/accounts/admin/fetch-all`);
+            setAccounts(Array.isArray(res.data) ? res.data : []);
+        } catch (err) {
+            console.error(err);
+            if (err.response?.status === 403) {
+                toast.warn("Unable to load accounts (permission denied).");
+            }
+        }
+    };
+
+    const fetchContacts = async () => {
+        try {
+            const res = await api.get(`/contacts/admin/fetch-all`);
+            setContacts(Array.isArray(res.data) ? res.data : []);
+        } catch (err) {
+            console.error(err);
+            if (err.response?.status === 403) {
+                toast.warn("Unable to load contacts (permission denied).");
+            }
+        }
+    };
+
+    const fetchUsers = async () => {
+        try {
+            const res = await api.get(`/users/all`);
+            setUsers(Array.isArray(res.data) ? res.data : []);
+        } catch (err) {
+            console.error(err);
+            if (err.response?.status === 403) {
+                toast.warn("Unable to load users (permission denied).");
+            }
+        }
+    };
+
     useEffect(() => {
         fetchDeals();
+        fetchAccounts();
+        fetchContacts();
+        fetchUsers();
     }, [])
 
     const openEditDealModal = (deal) => {
@@ -183,21 +251,14 @@ export default function AdminDeals() {
         setDealForm({
             id: deal.id || null,
             name: deal.name || "",
-            account: deal.account?.name || "",
-            contact: deal.contact?.first_name && deal.contact?.last_name 
-                ? `${deal.contact.first_name} ${deal.contact.last_name}` 
-                : deal.contact?.first_name || "",
-            stage: deal.stage || "Proposal Stage",
-            value: deal.amount?.toString() || "",
-            closeDate: deal.close_date || "",
-            owner: deal.assigned_deals?.first_name && deal.assigned_deals?.last_name
-                ? `${deal.assigned_deals.first_name} ${deal.assigned_deals.last_name}`
-                : deal.assigned_deals?.first_name || "",
-            status: deal.status || "Proposal",
-            progress: deal.progress || 0,
+            account_id: deal.account_id?.toString() || "",
+            primary_contact_id: deal.primary_contact_id?.toString() || "",
+            stage: deal.stage || "PROPOSAL",
+            amount: deal.amount?.toString() || "",
+            close_date: deal.close_date ? new Date(deal.close_date).toISOString().split('T')[0] : "",
+            assigned_to: deal.assigned_to?.toString() || "",
+            currency: deal.currency || "PHP",
             description: deal.description || "",
-            phone: deal.contact?.work_phone || "",
-            email: deal.contact?.email || "",
         });
         setIsEditing(true);
         setCurrentDealId(deal.id);
@@ -213,6 +274,35 @@ export default function AdminDeals() {
     const closeDetailsModal = () => {
         setSelectedDeal(null);
         setActiveTab("Overview");
+    };
+
+    const handleStatusUpdate = async (keepModalClosed = false) => {
+        try {
+            // Fetch the updated deal data
+            const res = await api.get(`/deals/admin/fetch-all`);
+            const data = Array.isArray(res.data) ? res.data : [];
+            // Sort by created_at descending (most recent first)
+            const sorted = [...data].sort((a, b) => {
+                const aDate = a?.created_at ? new Date(a.created_at).getTime() : 0;
+                const bDate = b?.created_at ? new Date(b.created_at).getTime() : 0;
+                return bDate - aDate;
+            });
+            
+            // Update the deals list with sorted data
+            setDeals(sorted);
+            
+            // Only update selectedDeal if modal should stay open (not when closing)
+            if (!keepModalClosed && selectedDeal && selectedDeal.id) {
+                const updatedDeal = sorted.find(d => d.id === selectedDeal.id);
+                if (updatedDeal) {
+                    setSelectedDeal({ ...updatedDeal });
+                }
+            }
+        } catch (err) {
+            console.error("Failed to refresh deal data:", err);
+            // Still try to refresh the deals list
+            await fetchDeals();
+        }
     };
 
     const handleInputChange = (key, value) => {
@@ -291,9 +381,19 @@ export default function AdminDeals() {
         try {
             if (type === "create") {
                 setIsSubmitting(true);
-                // TODO: Replace with actual API call
-                // await api.post(`/deals/create`, formData);
-                setDeals([...(deals ?? []), { ...formData, id: (deals?.length ?? 0) + 1 }]);
+                // Prepare payload
+                const payload = {
+                    name: formData.name.trim(),
+                    account_id: parseInt(formData.account_id),
+                    primary_contact_id: formData.primary_contact_id ? parseInt(formData.primary_contact_id) : null,
+                    stage: formData.stage,
+                    amount: formData.amount ? parseFloat(formData.amount) : null,
+                    currency: formData.currency || "PHP",
+                    close_date: formData.close_date || null,
+                    description: formData.description || null,
+                    assigned_to: formData.assigned_to ? parseInt(formData.assigned_to) : null,
+                };
+                await api.post(`/deals/admin/create`, payload);
                 toast.success(`Deal "${name}" created successfully.`);
                 setShowDealModal(false);
                 await fetchDeals();
@@ -302,11 +402,22 @@ export default function AdminDeals() {
                     throw new Error("Missing deal identifier for update.");
                 }
                 setIsSubmitting(true);
-                // TODO: Replace with actual API call
-                // await api.put(`/deals/${targetId}`, formData);
-                setDeals((prev) =>
-                    prev.map((d) => (d.id === targetId ? { ...formData, id: targetId } : d))
-                );
+                // Prepare payload - only include fields that are provided
+                const payload = {};
+                if (formData.name !== undefined) payload.name = formData.name.trim();
+                if (formData.account_id !== undefined && formData.account_id !== "") payload.account_id = parseInt(formData.account_id);
+                if (formData.primary_contact_id !== undefined) {
+                    payload.primary_contact_id = formData.primary_contact_id ? parseInt(formData.primary_contact_id) : null;
+                }
+                if (formData.stage !== undefined) payload.stage = formData.stage;
+                if (formData.amount !== undefined && formData.amount !== "") payload.amount = parseFloat(formData.amount);
+                if (formData.currency !== undefined) payload.currency = formData.currency;
+                if (formData.close_date !== undefined) payload.close_date = formData.close_date || null;
+                if (formData.description !== undefined) payload.description = formData.description || null;
+                if (formData.assigned_to !== undefined) {
+                    payload.assigned_to = formData.assigned_to ? parseInt(formData.assigned_to) : null;
+                }
+                await api.put(`/deals/admin/${targetId}`, payload);
                 toast.success(`Deal "${name}" updated successfully.`);
                 setShowDealModal(false);
                 await fetchDeals();
@@ -314,9 +425,7 @@ export default function AdminDeals() {
                 if (!targetId) {
                     throw new Error("Missing deal identifier for deletion.");
                 }
-                // TODO: Replace with actual API call
-                // await api.delete(`/deals/${targetId}`);
-                setDeals((prev) => prev.filter((d) => d.id !== targetId));
+                await api.delete(`/deals/admin/${targetId}`);
                 toast.success(`Deal "${name}" deleted successfully.`);
                 if (selectedDeal?.id === targetId) {
                     setSelectedDeal(null);
@@ -352,17 +461,14 @@ export default function AdminDeals() {
         setDealForm({
             id: null,
             name: "",
-            account: "",
-            contact: "",
-            stage: "Proposal Stage",
-            value: "",
-            closeDate: "",
-            owner: "",
-            status: "Proposal",
-            progress: 0,
+            account_id: "",
+            primary_contact_id: "",
+            stage: "PROPOSAL",
+            amount: "",
+            close_date: "",
+            assigned_to: "",
+            currency: "PHP",
             description: "",
-            phone: "",
-            email: "",
         });
         setIsEditing(false);
         setCurrentDealId(null);
@@ -533,8 +639,8 @@ export default function AdminDeals() {
                                             : deal.contact?.first_name || deal.contact?.last_name || "--"}
                                     </td>
                                     <td className="py-3 px-4">
-                                        <span className="px-2 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-700">
-                                            {deal.stage || "--"}
+                                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStageBadgeClasses(deal.stage)}`}>
+                                            {formatStageName(deal.stage)}
                                         </span>
                                     </td>
                                     <td className="py-3 px-4 text-gray-800 font-medium text-sm">
@@ -582,6 +688,9 @@ export default function AdminDeals() {
                     isEditing={isEditing}
                     onSubmit={handleDealSubmit}
                     isSubmitting={isSubmitting || confirmProcessing}
+                    accounts={accounts}
+                    contacts={contacts}
+                    users={users}
                 />
             )}
 
@@ -595,6 +704,7 @@ export default function AdminDeals() {
                     setActiveTab={setActiveTab}
                     onEdit={openEditDealModal}
                     onDelete={handleDeleteDeal}
+                    onStatusUpdate={handleStatusUpdate}
                 />
             )}
 
@@ -707,6 +817,9 @@ function CreateDealModal({
     isEditing = false,
     onSubmit,
     isSubmitting = false,
+    accounts = [],
+    contacts = [],
+    users = [],
 }) {
     const handleSubmit = (e) => {
         e.preventDefault();
@@ -758,25 +871,27 @@ function CreateDealModal({
                     />
                     <SelectField
                         label="Account"
-                        name="account"
-                        value={externalFormData.account || ""}
-                        onChange={(e) => setExternalFormData({ ...externalFormData, account: e.target.value })}
+                        name="account_id"
+                        value={externalFormData.account_id || ""}
+                        onChange={(e) => setExternalFormData({ ...externalFormData, account_id: e.target.value })}
                         options={[
                             { value: "", label: "Select Account" },
-                            { value: "Gertan Corp.", label: "Gertan Corp." },
-                            { value: "ABC Company", label: "ABC Company" },
+                            ...accounts.map(acc => ({ value: acc.id.toString(), label: acc.name }))
                         ]}
+                        required
                         disabled={isSubmitting}
                     />
                     <SelectField
                         label="Primary Contact"
-                        name="contact"
-                        value={externalFormData.contact || ""}
-                        onChange={(e) => setExternalFormData({ ...externalFormData, contact: e.target.value })}
+                        name="primary_contact_id"
+                        value={externalFormData.primary_contact_id || ""}
+                        onChange={(e) => setExternalFormData({ ...externalFormData, primary_contact_id: e.target.value })}
                         options={[
-                            { value: "", label: "Select Contact" },
-                            { value: "Joshua M.", label: "Joshua M." },
-                            { value: "Marcus Lee", label: "Marcus Lee" },
+                            { value: "", label: "Select Contact (Optional)" },
+                            ...contacts.map(contact => ({ 
+                                value: contact.id.toString(), 
+                                label: `${contact.first_name} ${contact.last_name}`.trim() || contact.email
+                            }))
                         ]}
                         disabled={isSubmitting}
                     />
@@ -786,45 +901,58 @@ function CreateDealModal({
                         value={externalFormData.stage}
                         onChange={(e) => setExternalFormData({ ...externalFormData, stage: e.target.value })}
                         options={[
-                            { value: "Proposal Stage", label: "Proposal Stage" },
-                            { value: "Negotiation Stage", label: "Negotiation Stage" },
-                            { value: "Closed Won", label: "Closed Won" },
-                            { value: "Closed Lost", label: "Closed Lost" },
+                            { value: "PROSPECTING", label: "Prospecting" },
+                            { value: "QUALIFICATION", label: "Qualification" },
+                            { value: "PROPOSAL", label: "Proposal" },
+                            { value: "NEGOTIATION", label: "Negotiation" },
+                            { value: "CLOSED_WON", label: "Closed Won" },
+                            { value: "CLOSED_LOST", label: "Closed Lost" },
                         ]}
                         disabled={isSubmitting}
                     />
                     <InputField
                         label="Amount"
-                        name="value"
+                        name="amount"
                         type="number"
-                        value={externalFormData.value}
-                        onChange={(e) => setExternalFormData({ ...externalFormData, value: e.target.value })}
+                        step="0.01"
+                        value={externalFormData.amount}
+                        onChange={(e) => setExternalFormData({ ...externalFormData, amount: e.target.value })}
                         placeholder="₱0"
                         disabled={isSubmitting}
                     />
                     <SelectField
                         label="Currency"
                         name="currency"
-                        value={externalFormData.currency || ""}
+                        value={externalFormData.currency || "PHP"}
                         onChange={(e) => setExternalFormData({ ...externalFormData, currency: e.target.value })}
                         options={[
-                            { value: "", label: "Select Currency" },
                             { value: "PHP", label: "PHP" },
                             { value: "USD", label: "USD" },
                         ]}
                         disabled={isSubmitting}
                     />
+                    <InputField
+                        label="Close Date"
+                        name="close_date"
+                        type="date"
+                        value={externalFormData.close_date || ""}
+                        onChange={(e) => setExternalFormData({ ...externalFormData, close_date: e.target.value })}
+                        disabled={isSubmitting}
+                    />
                     <SelectField
                         label="Assign To"
-                        name="owner"
-                        value={externalFormData.owner}
-                        onChange={(e) => setExternalFormData({ ...externalFormData, owner: e.target.value })}
+                        name="assigned_to"
+                        value={externalFormData.assigned_to || ""}
+                        onChange={(e) => setExternalFormData({ ...externalFormData, assigned_to: e.target.value })}
                         options={[
-                            { value: "", label: "Assign To" },
-                            { value: "Dinosaur Roar", label: "Dinosaur Roar" },
-                            { value: "Marcus Lee", label: "Marcus Lee" },
+                            { value: "", label: "Assign To (Optional)" },
+                            ...users.map(user => ({ 
+                                value: user.id.toString(), 
+                                label: `${user.first_name} ${user.last_name}`.trim() || user.email
+                            }))
                         ]}
                         disabled={isSubmitting}
+                        className="md:col-span-2"
                     />
                     <TextareaField
                         label="Description"

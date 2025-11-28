@@ -1,9 +1,11 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { FiX, FiPhone, FiMail, FiCalendar, FiFileText, FiEdit2, FiTrash2 } from "react-icons/fi";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import AdminDealsQuickAction from "../components/AdminDealsQuickAction";
+import api from "../api";
 
 export default function AdminDealsInformation({
-  selectedDeal,
+  selectedDeal: selectedDealProp,
   show,
   onClose,
   activeTab,
@@ -12,8 +14,66 @@ export default function AdminDealsInformation({
   onDelete,
   onStatusUpdate,
 }) {
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const dealIdFromQuery = searchParams.get('id');
+  const [selectedDeal, setSelectedDeal] = useState(selectedDealProp || null);
+  const [localActiveTab, setLocalActiveTab] = useState(activeTab || "Overview");
+  
+  // Use local tab state if no activeTab prop is provided
+  const currentTab = activeTab !== undefined ? activeTab : localActiveTab;
 
-  if (!show || !selectedDeal) return null;
+  // Fetch deal if accessed via route with query param
+  useEffect(() => {
+    const fetchDealFromRoute = async () => {
+      if (dealIdFromQuery && !selectedDealProp) {
+        try {
+          console.log('Fetching deal from route, ID:', dealIdFromQuery);
+          // Fetch all deals to get the one we need with relationships
+          const response = await api.get(`/deals/admin/fetch-all`);
+          const deals = response.data || [];
+          console.log('All deals fetched:', deals.length);
+          const deal = deals.find(d => d.id === parseInt(dealIdFromQuery));
+          console.log('Found deal:', deal);
+          if (deal) {
+            console.log('Deal data structure:', {
+              id: deal.id,
+              name: deal.name,
+              amount: deal.amount,
+              stage: deal.stage,
+              account: deal.account,
+              contact: deal.contact,
+              assigned_deals: deal.assigned_deals,
+              deal_creator: deal.deal_creator,
+              allKeys: Object.keys(deal)
+            });
+            // Ensure amount is a number
+            const dealWithFormattedAmount = {
+              ...deal,
+              amount: typeof deal.amount === 'number' ? deal.amount : parseFloat(deal.amount || 0),
+              probability: deal.probability || 0
+            };
+            setSelectedDeal(dealWithFormattedAmount);
+          } else {
+            console.warn('Deal not found with ID:', dealIdFromQuery);
+          }
+        } catch (error) {
+          console.error('Error fetching deal:', error);
+        }
+      }
+    };
+
+    fetchDealFromRoute();
+  }, [dealIdFromQuery, selectedDealProp]);
+
+  // Show modal if accessed via route or if show prop is true
+  const shouldShow = show || (dealIdFromQuery && selectedDeal);
+
+  // Don't render if no deal and not accessed via route
+  if (!selectedDeal && !dealIdFromQuery) return null;
+  
+  // If accessed via route but deal not found yet, show nothing (will show once loaded)
+  if (dealIdFromQuery && !selectedDeal) return null;
 
   const getStageBadgeClasses = (stage) => {
     const stageColors = {
@@ -59,10 +119,17 @@ export default function AdminDealsInformation({
             <div className="flex flex-col items-end gap-2">
               <div className="flex items-center gap-2 sm:gap-3">
                 <h2 className="text-xl sm:text-2xl font-bold text-gray-900 break-words">
-                  ₱ {selectedDeal.amount.toLocaleString()}
+                  ₱ {selectedDeal.amount ? selectedDeal.amount.toLocaleString() : '0'}
                 </h2>
                 <button
-                  onClick={onClose}
+                  onClick={() => {
+                    if (onClose) {
+                      onClose();
+                    } else {
+                      // Navigate back if accessed via route
+                      navigate(-1);
+                    }
+                  }}
                   className="text-gray-500 hover:text-gray-700"
                 >
                   <FiX size={20} />
@@ -111,9 +178,15 @@ export default function AdminDealsInformation({
           {["Overview", "Notes", "Activities"].map((tab) => (
             <button
               key={tab}
-              onClick={() => setActiveTab(tab)}
+              onClick={() => {
+                if (setActiveTab) {
+                  setActiveTab(tab);
+                } else {
+                  setLocalActiveTab(tab);
+                }
+              }}
               className={`flex-1 min-w-[90px] px-4 py-2.5 text-xs sm:text-sm font-medium text-center transition-all duration-200 border-b-2
-                ${activeTab === tab
+                ${currentTab === tab
                   ? "bg-paper-white text-[#6A727D] border-white"
                   : "text-white hover:bg-[#5c636d]"
                 }`}
@@ -129,7 +202,7 @@ export default function AdminDealsInformation({
           <div className="lg:col-span-3 space-y-6">
 
             {/* OVERVIEW */}
-            {activeTab === "Overview" && (
+            {currentTab === "Overview" && (
               <div className="grid md:grid-cols-2 gap-4 sm:gap-6 w-full">
                 {/* Deal Info */}
                 <div className="bg-white border border-gray-100 rounded-lg p-4 sm:p-5 shadow-sm pb-20 break-words">
@@ -228,7 +301,7 @@ export default function AdminDealsInformation({
             )}
 
              {/* NOTES */}
-            {activeTab === "Notes" && (
+            {currentTab === "Notes" && (
               <div className="mt-4 w-full">
                 <div className="flex flex-wrap items-center justify-between mb-4 gap-2">
                   <h3 className="text-lg font-semibold text-gray-800 break-words">Deal Note</h3>
@@ -250,7 +323,7 @@ export default function AdminDealsInformation({
             )}
 
             {/* ACTIVITIES */}
-            {activeTab === "Activities" && (
+            {currentTab === "Activities" && (
               <div className="mt-4 space-y-4 w-full">
                 <h3 className="text-lg font-semibold text-gray-800 break-words">Recent Activities</h3>
 
@@ -288,7 +361,7 @@ export default function AdminDealsInformation({
             )}
 
             {/* EDIT */}
-            {activeTab === "Edit" && (
+            {currentTab === "Edit" && (
               <div className="mt-4 space-y-4 w-full">
                 <h3 className="text-lg font-semibold text-gray-800 break-words">Edit Deal</h3>
                 <div className="bg-white border border-gray-100 rounded-lg p-4 sm:p-5 shadow-sm w-full">

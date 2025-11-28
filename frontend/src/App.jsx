@@ -26,6 +26,7 @@ import AdminAudit from "./components/AdminAudit";
 import AdminTargets from "./pages/AdminTargets";
 import AdminQuotes from "./pages/AdminQuotes";
 import AdminUser from "./pages/AdminUser";
+import AdminManageAccount from "./pages/AdminManageAccount";
 import AdminDeals from "./pages/AdminDeals";
 import AdminDealsInformation from "./components/AdminDealsInformation";
 import AdminDealsQuickAction from "./components/AdminDealsQuickAction";
@@ -140,6 +141,7 @@ function App() {
           <Route path="targets" element={<AdminTargets />} />
           <Route path="quotes" element={<AdminQuotes />} />
           <Route path="users" element={<AdminUser />} />
+          <Route path="manage-account" element={<AdminManageAccount />} />
           <Route path="deals" element={<AdminDeals />} />
           <Route path="deals/info" element={<AdminDealsInformation />} />
           <Route path="deals/quickaction" element={<AdminDealsQuickAction />} />

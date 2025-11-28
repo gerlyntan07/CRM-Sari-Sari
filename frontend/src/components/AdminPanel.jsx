@@ -218,6 +218,12 @@ export default function AdminPanel() {
                 >
                   <FiUsers /> Users
                 </NavLink>
+                <NavLink
+                  to="/admin/manage-account"
+                  className={({ isActive }) => (isActive ? activeLink : normalLink)}
+                >
+                  <FiUser /> Manage Account
+                </NavLink>
               </div>
             )}
           </div>

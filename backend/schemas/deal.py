@@ -49,6 +49,28 @@ class ContactBase(BaseModel):
         orm_mode = True
 
 
+class DealCreate(BaseModel):
+    name: str
+    account_id: int
+    primary_contact_id: Optional[int] = None
+    stage: str
+    amount: Optional[float] = None
+    currency: Optional[str] = 'PHP'
+    close_date: Optional[datetime] = None
+    description: Optional[str] = None
+    assigned_to: Optional[int] = None
+
+class DealUpdate(BaseModel):
+    name: Optional[str] = None
+    account_id: Optional[int] = None
+    primary_contact_id: Optional[int] = None
+    stage: Optional[str] = None
+    amount: Optional[float] = None
+    currency: Optional[str] = None
+    close_date: Optional[datetime] = None
+    description: Optional[str] = None
+    assigned_to: Optional[int] = None
+
 class DealResponse(DealBase):
     id: int
     deal_id: Optional[str] = None

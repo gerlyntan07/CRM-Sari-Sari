@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { FiBell, FiUser } from "react-icons/fi";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import useAuth from '../hooks/useAuth.js';
 import useFetchUser from "../hooks/useFetchUser.js";
 
@@ -8,6 +8,7 @@ export default function AdminHeader({ toggleSidebar }) {
   const [open, setOpen] = useState(false);
   const dropdownRef = useRef(null);
   const location = useLocation();
+  const navigate = useNavigate();
   const { logout } = useAuth();
   const { user, fetchUser } = useFetchUser();
 
@@ -118,7 +119,13 @@ export default function AdminHeader({ toggleSidebar }) {
                   Invite Your Team
                 </button>
 
-                <button className="block w-full text-sm text-gray-700 hover:bg-gray-50 py-1 rounded text-left">
+                <button 
+                  onClick={() => {
+                    navigate("/admin/manage-account");
+                    setOpen(false);
+                  }}
+                  className="block w-full text-sm text-gray-700 hover:bg-gray-50 py-1 rounded text-left"
+                >
                   Manage Your Account
                 </button>
 

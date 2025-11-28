@@ -149,7 +149,9 @@ function App() {
             <Route path=":id" element={<AdminTerritory />} />
           </Route>
           <Route path="calls" element={<AdminCalls />} />
+          <Route path="calls/info" element={<AdminCalls />} />
           <Route path="meetings" element={<AdminMeeting />} />
+          <Route path="meetings/info" element={<AdminMeeting />} />
           <Route path="leads/convert" element={<AdminLeadsConvert />} />
         </Route>
 

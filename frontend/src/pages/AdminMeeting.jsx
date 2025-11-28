@@ -9,6 +9,7 @@ import {
   FiStar,
 } from "react-icons/fi";
 import { toast } from "react-toastify";
+import { useSearchParams, useNavigate, useLocation } from "react-router-dom";
 import api from "../api";
 import CreateMeetingModal from "../components/CreateMeetingModal";
 import AdminMeetingInfomation from "../components/AdminMeetingInfomation";
@@ -72,6 +73,12 @@ const INITIAL_FORM_STATE = {
 };
 
 const AdminMeeting = () => {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const [searchParams] = useSearchParams();
+  const meetingIdFromQuery = searchParams.get('id');
+  const isInfoRoute = location.pathname === '/admin/meetings/info';
+
   useEffect(() => {
     document.title = "Meetings | Sari-Sari CRM";
   }, []);
@@ -98,6 +105,23 @@ const AdminMeeting = () => {
 
   // Fetch meetings from backend
   const fetchMeetings = async () => {
+    // Check if we have data from sessionStorage (instant access from dashboard)
+    if (meetingIdFromQuery && isInfoRoute) {
+      const storedData = sessionStorage.getItem('meetingDetailData');
+      if (storedData) {
+        try {
+          const meetingData = JSON.parse(storedData);
+          if (meetingData.id === parseInt(meetingIdFromQuery)) {
+            setSelectedMeeting(meetingData);
+            sessionStorage.removeItem('meetingDetailData'); // Clean up
+            return; // Don't fetch all meetings, use stored data
+          }
+        } catch (e) {
+          console.error('Error parsing stored meeting data:', e);
+        }
+      }
+    }
+    
     setMeetingsLoading(true);
     try {
       const res = await api.get(`/meetings/admin/fetch-all`);
@@ -109,6 +133,14 @@ const AdminMeeting = () => {
         return bDate - aDate;
       });
       setMeetings(sorted);
+      
+      // If there's a meeting ID in query params, find and select it
+      if (meetingIdFromQuery && !selectedMeeting) {
+        const meeting = sorted.find(m => m.id === parseInt(meetingIdFromQuery));
+        if (meeting) {
+          setSelectedMeeting(meeting);
+        }
+      }
     } catch (err) {
       console.error(err);
       toast.error("Failed to load meetings.");
@@ -606,9 +638,29 @@ const AdminMeeting = () => {
     },
   ];
 
+  // If accessed via /info route, only show detail modal (no loading, no list)
+  if (isInfoRoute && meetingIdFromQuery) {
+    if (!selectedMeeting) {
+      // Still loading, return null (no loading spinner)
+      return null;
+    }
+    return (
+      <AdminMeetingInfomation
+        meeting={selectedMeeting}
+        onClose={() => {
+          setSelectedMeeting(null);
+          navigate('/admin/dashboard');
+        }}
+        onEdit={handleEditClick}
+        onDelete={handleDelete}
+        onStatusUpdate={handleStatusUpdate}
+      />
+    );
+  }
+
   return (
     <div className="p-4 sm:p-6 lg:p-8 font-inter relative">
-      {meetingsLoading && <LoadingSpinner message="Loading meetings..." />}
+      {meetingsLoading && !meetingIdFromQuery && <LoadingSpinner message="Loading meetings..." />}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 sm:mb-6 space-y-2 sm:space-y-0">
         <h1 className="flex items-center text-xl sm:text-2xl font-semibold text-gray-800">
           <FiCalendar className="mr-2 text-blue-600" />
@@ -774,7 +826,13 @@ const AdminMeeting = () => {
       {selectedMeeting && (
         <AdminMeetingInfomation
           meeting={selectedMeeting}
-          onClose={() => setSelectedMeeting(null)}
+          onClose={() => {
+            setSelectedMeeting(null);
+            // If accessed from dashboard via query param, navigate back
+            if (meetingIdFromQuery) {
+              navigate('/admin/dashboard');
+            }
+          }}
           onEdit={handleEditClick}
           onDelete={handleDelete}
           onStatusUpdate={handleStatusUpdate}

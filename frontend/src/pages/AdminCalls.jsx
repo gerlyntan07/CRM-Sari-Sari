@@ -15,6 +15,7 @@ import {
 } from "react-icons/fi";
 import { HiX } from "react-icons/hi";
 import { toast } from "react-toastify";
+import { useSearchParams, useNavigate, useLocation } from "react-router-dom";
 import api from "../api";
 import PaginationControls from "../components/PaginationControls.jsx";
 import LoadingSpinner from "../components/LoadingSpinner.jsx";
@@ -87,6 +88,12 @@ const getPriorityBadgeClass = (priority) => {
 const ITEMS_PER_PAGE = 10;
 
 export default function AdminCalls() {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const [searchParams] = useSearchParams();
+  const callIdFromQuery = searchParams.get('id');
+  const isInfoRoute = location.pathname === '/admin/calls/info';
+
   useEffect(() => {
     document.title = "Calls | Sari-Sari CRM";
   }, []);
@@ -233,6 +240,23 @@ export default function AdminCalls() {
   };
 
   const fetchCalls = async () => {
+    // Check if we have data from sessionStorage (instant access from dashboard)
+    if (callIdFromQuery && isInfoRoute) {
+      const storedData = sessionStorage.getItem('callDetailData');
+      if (storedData) {
+        try {
+          const callData = JSON.parse(storedData);
+          if (callData.id === parseInt(callIdFromQuery)) {
+            setSelectedCall(callData);
+            sessionStorage.removeItem('callDetailData'); // Clean up
+            return; // Don't fetch all calls, use stored data
+          }
+        } catch (e) {
+          console.error('Error parsing stored call data:', e);
+        }
+      }
+    }
+    
     setCallsLoading(true);
     try {
       const res = await api.get(`/calls/admin/fetch-all`);
@@ -244,6 +268,14 @@ export default function AdminCalls() {
         return bDate - aDate;
       });
       setCalls(sorted);
+      
+      // If there's a call ID in query params, find and select it
+      if (callIdFromQuery && !selectedCall) {
+        const call = sorted.find(c => c.id === parseInt(callIdFromQuery));
+        if (call) {
+          setSelectedCall(call);
+        }
+      }
     } catch (err) {
       console.error(err);
       setCalls([]);
@@ -402,7 +434,13 @@ export default function AdminCalls() {
     }
   };
 
-  const handleBackToList = () => setSelectedCall(null);
+  const handleBackToList = () => {
+    setSelectedCall(null);
+    // If accessed from dashboard via query param, navigate back
+    if (callIdFromQuery) {
+      navigate('/admin/dashboard');
+    }
+  };
 
   const handleCallModalBackdropClick = (e) => {
     if (e.target.id === "callModalBackdrop" && !confirmProcessing) {
@@ -960,7 +998,7 @@ export default function AdminCalls() {
 
   const listView = (
     <div className="p-4 sm:p-6 lg:p-8 font-inter relative">
-      {callsLoading && <LoadingSpinner message="Loading calls..." />}
+      {callsLoading && !callIdFromQuery && <LoadingSpinner message="Loading calls..." />}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 sm:mb-6 space-y-2 sm:space-y-0">
         <h1 className="flex items-center text-xl sm:text-2xl font-semibold text-gray-800">
           <FiPhoneCall className="mr-2 text-blue-600" />
@@ -1044,7 +1082,7 @@ export default function AdminCalls() {
             </tr>
           </thead>
           <tbody>
-            {callsLoading ? (
+            {callsLoading && !callIdFromQuery ? (
               <tr>
                 <td
                   className="py-4 px-4 text-center text-sm text-gray-500"
@@ -1329,6 +1367,15 @@ export default function AdminCalls() {
       loading={confirmProcessing}
     />
   ) : null;
+
+  // If accessed via /info route, only show detail modal (no loading, no list)
+  if (isInfoRoute && callIdFromQuery) {
+    if (!selectedCall) {
+      // Still loading, return null (no loading spinner)
+      return null;
+    }
+    return detailView;
+  }
 
   return (
     <>

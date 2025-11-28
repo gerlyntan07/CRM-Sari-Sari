@@ -206,7 +206,14 @@ export default function AdminLeadsInformation({ lead: leadProp, onBack, fetchLea
           {/* Close Button */}
           <div className="flex justify-end w-full">
             <button
-              onClick={onBack}
+              onClick={() => {
+                if (onBack) {
+                  onBack();
+                } else {
+                  // Navigate back to previous page (dashboard or leads page)
+                  navigate(-1);
+                }
+              }}
               className="text-gray-500 hover:text-gray-700 transition mb-5 cursor-pointer"
             >
               <HiX size={30} />

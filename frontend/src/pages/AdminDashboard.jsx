@@ -121,17 +121,17 @@ const TopBar = ({ searchQuery, onSearchChange, searchResults, onSearchResultClic
   const searchRef = useRef(null);
 
   const actionIcons = [
-    { icon: IconUsers, label: "New Account" },
-    { icon: IconUser, label: "New Contact" },
-    { icon: IconFiUserPlus, label: "New Leads" },
-    { icon: IconFiBriefcase, label: "New Deals" },
-    { icon: IconFiFileText, label: "New Quotes" },
-    { icon: IconFiTarget, label: "New Target" },
-    { icon: IconFiCircleCheck, label: "New Task" },
-    { icon: IconFiCalendar, label: "New Meeting" },
-    { icon: IconFiPhoneCall, label: "New Call" },
+    { icon: IconUsers, label: "Account" },
+    { icon: IconUser, label: "Contact" },
+    { icon: IconFiUserPlus, label: "Leads" },
+    { icon: IconFiBriefcase, label: "Deals" },
+    { icon: IconFiFileText, label: "Quotes" },
+    { icon: IconFiTarget, label: "Target" },
+    { icon: IconFiCircleCheck, label: "Task" },
+    { icon: IconFiCalendar, label: "Meeting" },
+    { icon: IconFiPhoneCall, label: "Call" },
     { icon: IconFiClipboard, label: "Audit" },
-    { icon: IconLuMapPin, label: "New Territory" },
+    { icon: IconLuMapPin, label: "Territory" },
   ];
 
   // Close search results when clicking outside
@@ -212,8 +212,9 @@ const TopBar = ({ searchQuery, onSearchChange, searchResults, onSearchResultClic
       </div>
 
       {/* Action Icons */}
-      <div className="w-full overflow-x-auto scroll-smooth hide-scrollbar flex justify-center">
-        <div className="flex flex-nowrap space-x-3 sm:space-x-4 px-2 sm:px-0">
+      {/*   <div className="w-full overflow-x-auto scroll-smooth hide-scrollbar flex justify-center"> */}
+ <div className="w-full overflow-x-auto lg:overflow-x-hidden scroll-smooth flex justify-center">
+  <div className="flex flex-nowrap space-x-3 sm:space-x-4 px-2 sm:px-0">
           {actionIcons.map((item, index) => (
             <div key={index} className="relative flex-shrink-0 group">
               <button
@@ -221,17 +222,17 @@ const TopBar = ({ searchQuery, onSearchChange, searchResults, onSearchResultClic
                 aria-label={item.label}
                 onClick={() => {
                   switch(item.label) {
-                    case "New Account": navigate("/admin/accounts"); break;
-                    case "New Contact": navigate("/admin/contacts"); break;
-                    case "New Leads": navigate("/admin/leads"); break;
-                    case "New Deals": navigate("/admin/deals"); break;
-                    case "New Quotes": navigate("/admin/quotes"); break;
-                    case "New Target": navigate("/admin/targets"); break;
-                    case "New Task": navigate("/admin/tasks"); break;
-                    case "New Meeting": navigate("/admin/meetings"); break;
-                    case "New Call": navigate("/admin/calls"); break;
+                    case "Account": navigate("/admin/accounts"); break;
+                    case "Contact": navigate("/admin/contacts"); break;
+                    case "Leads": navigate("/admin/leads"); break;
+                    case "Deals": navigate("/admin/deals"); break;
+                    case "Quotes": navigate("/admin/quotes"); break;
+                    case "Target": navigate("/admin/targets"); break;
+                    case "Task": navigate("/admin/tasks"); break;
+                    case "Meeting": navigate("/admin/meetings"); break;
+                    case "Call": navigate("/admin/calls"); break;
                     case "Audit": navigate("/admin/audit"); break;
-                    case "New Territory": navigate("/admin/territory"); break;
+                    case "Territory": navigate("/admin/territory"); break;
                     default: console.log(`Clicked ${item.label}`);
                   }
                 }}

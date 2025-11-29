@@ -24,20 +24,18 @@ export default function PaginationControls({
 
   return (
     <div
-      className={`flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 ${className}`}
-    >
-      <div className="text-sm text-gray-600 font-medium">
+      className={`flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 ${className}`}>
+      <div className="text-sm text-gray-600 font-medium text-center sm:text-left w-full sm:w-auto">
         Showing {totalItems === 0 ? 0 : startItem}-{endItem} of {totalItems}{" "}
         {label}
       </div>
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-3 justify-center sm:justify-end w-full sm:w-auto">
         <button
           type="button"
           onClick={onPrev}
           disabled={disabledPrev}
-          className={`${baseButtonClasses} ${
-            disabledPrev ? disabledClasses : activeClasses
-          }`}
+          className={`${baseButtonClasses} ${disabledPrev ? disabledClasses : activeClasses
+            }`}
         >
           <FiChevronLeft className="text-base" />
           Prev
@@ -50,14 +48,14 @@ export default function PaginationControls({
           type="button"
           onClick={onNext}
           disabled={disabledNext}
-          className={`${baseButtonClasses} ${
-            disabledNext ? disabledClasses : activeClasses
-          }`}
+          className={`${baseButtonClasses} ${disabledNext ? disabledClasses : activeClasses
+            }`}
         >
           Next
           <FiChevronRight className="text-base" />
         </button>
       </div>
     </div>
+
   );
 }

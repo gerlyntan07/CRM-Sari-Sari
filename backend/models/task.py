@@ -3,7 +3,6 @@ from sqlalchemy.orm import relationship
 import enum
 from database import Base
 
-
 class TaskStatus(str, enum.Enum):
     NOT_STARTED = "Not started"
     IN_PROGRESS = "In progress"
@@ -32,7 +31,6 @@ class Task(Base):
     assigned_to = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
-
     account = relationship("Account", back_populates="tasks")
     contact = relationship("Contact", back_populates="tasks")
     lead = relationship("Lead", back_populates="tasks")

@@ -9,12 +9,62 @@ export default function TaskModal({
   setFormData,
   formData,
   isEditing = false,
-  viewMode = false,
+  viewMode = false,  
 }) {
   const [salesList, setSalesList] = useState([]);
+  const [relatedTo, setRelatedTo] = useState("");
+  const [relatedOptions, setRelatedOptions] = useState([]);
+  const [leadsList, setLeadsList] = useState([]);
+  const [accountsList, setAccountsList] = useState([]);
+  const [contactsList, setContactsList] = useState([]);
+  const [dealsList, setDealsList] = useState([]);
+
+  const fetchRelatedTables = async () => {
+    try {
+      const res1 = await api.get("/leads/admin/getLeads");
+      console.log("Leads fetched:", res1.data);
+      setLeadsList(res1.data);
+
+      const res2 = await api.get("/accounts/admin/fetch-all");
+      console.log("Accounts fetched:", res2.data);
+      setAccountsList(res2.data);
+
+      const res3 = await api.get("/contacts/admin/fetch-all");
+      console.log("contacts fetched:", res3.data);
+      setContactsList(res3.data);
+
+      const res4 = await api.get("/deals/admin/fetch-all");
+      console.log("deals fetched:", res4.data);
+      setDealsList(res4.data);
+    } catch (error) {
+      console.error("Error fetching related tables:", error);
+    }
+  }
+
+  const handleRelatedToChange = (e) => {
+    setRelatedTo(e.target.value);    
+    switch (e.target.value) {
+      case "Lead":
+        setRelatedOptions(leadsList);
+        break;
+      case "Account":
+        setRelatedOptions(accountsList);
+        break;
+      case "Contact":
+        setRelatedOptions(contactsList);
+        break;
+      case "Deal":
+        setRelatedOptions(dealsList);
+        break;
+      default:
+        setRelatedOptions([]);
+    }
+
+    console.log("Related To changed to:", e.target.value);
+  };
 
   useEffect(() => {
-    if (isOpen) fetchSales();
+    if (isOpen) fetchSales(); fetchRelatedTables();
   }, [isOpen]);
 
   const fetchSales = async () => {
@@ -33,7 +83,7 @@ export default function TaskModal({
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    onSave?.(formData); // modal does not close immediately; update handled in AdminTask
+    onSave?.(formData, relatedTo); // modal does not close immediately; update handled in AdminTask
   };
 
   const modalTitle = viewMode ? "Task Details" : isEditing ? "Edit Task" : "Create Task";
@@ -65,7 +115,7 @@ export default function TaskModal({
               leaveTo="opacity-0 scale-95"
             >
               <Dialog.Panel className="w-full max-w-full sm:max-w-3xl text-left align-middle transform transition-all">
-                <div className="bg-white w-full rounded-2xl shadow-lg p-4 sm:p-6 md:p-8 relative border border-gray-200 overflow-y-auto max-h-[90vh] flex flex-col hide-scrollbar">
+                <div className="bg-white w-full min-w-sm md:min-w-lg rounded-2xl shadow-lg p-4 sm:p-6 md:p-8 relative border border-gray-200 overflow-y-auto max-h-[90vh] flex flex-col hide-scrollbar">
                   <button
                     onClick={onClose}
                     aria-label="Close modal"
@@ -115,25 +165,45 @@ export default function TaskModal({
                           viewMode ? "bg-gray-50 cursor-not-allowed" : ""
                         }`}
                       />
-                    </div>
+                    </div>                    
 
                     <div>
                       <label className="block text-gray-700 font-medium mb-1 text-sm">
                         Type
                       </label>
+                      <select                        
+                        onChange={handleRelatedToChange}
+                        disabled={viewMode}
+                        className={`w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-400 outline-none ${
+                          viewMode ? "bg-gray-50 cursor-not-allowed" : ""
+                        }`}
+                        required
+                      >
+                        <option value="">- -</option>
+                        <option>Account</option>
+                        <option>Contact</option>
+                        <option>Lead</option>
+                        <option>Deal</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-gray-700 font-medium mb-1 text-sm">
+                        Related To
+                      </label>
                       <select
-                        name="type"
-                        value={formData.type}
+                        name="relatedTo"
+                        value={formData.relatedTo}
                         onChange={handleChange}
                         disabled={viewMode}
                         className={`w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-400 outline-none ${
                           viewMode ? "bg-gray-50 cursor-not-allowed" : ""
                         }`}
                       >
-                        <option>Call</option>
-                        <option>Meeting</option>
-                        <option>Email</option>
-                        <option>Follow-up</option>
+                        <option value="">- -</option>
+                        {relatedOptions.map((option) => (
+                          <option value={option.id} key={option.id}>{relatedTo === 'Account' ? option.name : relatedTo === 'Contact' ? `${option.first_name} ${option.last_name}` : relatedTo === 'Lead' ? option.title : option.name}</option>
+                        ))}
                       </select>
                     </div>
 
@@ -150,30 +220,12 @@ export default function TaskModal({
                           viewMode ? "bg-gray-50 cursor-not-allowed" : ""
                         }`}
                       >
+                        <option value="">- -</option>
                         <option>Low</option>
                         <option>Medium</option>
                         <option>High</option>
                       </select>
-                    </div>
-
-                    <div>
-                      <label className="block text-gray-700 font-medium mb-1 text-sm">
-                        Status
-                      </label>
-                      <select
-                        name="status"
-                        value={formData.status}
-                        onChange={handleChange}
-                        disabled={viewMode}
-                        className={`w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-400 outline-none ${
-                          viewMode ? "bg-gray-50 cursor-not-allowed" : ""
-                        }`}
-                      >
-                        <option>To Do</option>
-                        <option>In Progress</option>
-                        <option>Completed</option>
-                      </select>
-                    </div>
+                    </div>                    
 
                     <div>
                       <label className="block text-gray-700 font-medium mb-1 text-sm">
@@ -212,44 +264,28 @@ export default function TaskModal({
                           </option>
                         ))}
                       </select>
-                    </div>
+                    </div>     
 
                     <div>
                       <label className="block text-gray-700 font-medium mb-1 text-sm">
-                        Related To
+                        Status
                       </label>
                       <select
-                        name="relatedTo"
-                        value={formData.relatedTo}
+                        name="status"
+                        value={formData.status}
                         onChange={handleChange}
                         disabled={viewMode}
                         className={`w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-400 outline-none ${
                           viewMode ? "bg-gray-50 cursor-not-allowed" : ""
                         }`}
                       >
-                        <option value="">Select type</option>
-                        <option>Lead</option>
-                        <option>Opportunity</option>
-                        <option>Customer</option>
+                        <option value="">- -</option>
+                        <option>Not started</option>
+                        <option>In progress</option>
+                        <option>Completed</option>
+                        <option>Deferred</option>
                       </select>
-                    </div>
-
-                    <div className="md:col-span-2">
-                      <label className="block text-gray-700 font-medium mb-1 text-sm">
-                        Notes
-                      </label>
-                      <textarea
-                        name="notes"
-                        value={formData.notes}
-                        onChange={handleChange}
-                        disabled={viewMode}
-                        placeholder="Additional notes..."
-                        rows={3}
-                        className={`w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-400 outline-none ${
-                          viewMode ? "bg-gray-50 cursor-not-allowed" : ""
-                        }`}
-                      />
-                    </div>
+                    </div>               
 
                     {!viewMode && (
                       <div className="flex flex-col sm:flex-row justify-end sm:justify-end space-y-2 sm:space-y-0 sm:space-x-2 col-span-1 md:col-span-2 mt-4 w-full">

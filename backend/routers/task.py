@@ -37,43 +37,53 @@ def task_to_response(task: Task) -> dict:
 
 # ✅ CREATE task (now async for WebSocket broadcasting)
 @router.post("/createtask", response_model=TaskResponse, status_code=status.HTTP_201_CREATED)
-async def create_task(payload: TaskCreate, db: Session = Depends(get_db)):
+async def create_task(payload: TaskCreate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     # Validate assigned user
     assigned_user = None
-    if payload.assigned_to:
-        assigned_user = db.query(User).filter(User.id == payload.assigned_to).first()
+    if payload.assignedTo:
+        assigned_user = db.query(User).filter(User.id == payload.assignedTo).first()
         if not assigned_user:
-            raise HTTPException(status_code=404, detail="Assigned user not found")
+            raise HTTPException(status_code=404, detail="Assigned user not found")            
 
-    db_task = Task(
-        title=payload.title,
-        description=payload.description,
-        type=payload.type,
-        priority=payload.priority or "Medium",
-        status=payload.status or "To Do",
-        due_date=payload.due_date,
-        date_assigned=datetime.now(),
-        assigned_to=payload.assigned_to,
-        related_to=payload.related_to,
-        notes=payload.notes,
-    )
+    task_data = {
+        "title": payload.title,
+        "description": payload.description,
+        "priority": payload.priority.value or "Medium",
+        "status": payload.status.value or "Not started",
+        "due_date": payload.dueDate,
+        "created_by": current_user.id,
+        "assigned_to": payload.assignedTo
+    }
+
+    # Related-to logic
+    if payload.type == "Account":
+        task_data["related_to_account"] = payload.relatedTo
+    elif payload.type == "Contact":
+        task_data["related_to_contact"] = payload.relatedTo
+    elif payload.type == "Lead":
+        task_data["related_to_lead"] = payload.relatedTo
+    elif payload.type == "Deal":
+        task_data["related_to_deal"] = payload.relatedTo
+
+    # Create task
+    db_task = Task(**task_data)
 
     db.add(db_task)
     db.commit()
     db.refresh(db_task)
 
     # ✅ Broadcast to all connected WebSocket clients
-    if payload.assigned_to:
-        await broadcast_notification({
-            "event": "new_task",
-            "task_id": db_task.id,
-            "title": db_task.title,
-            "priority": db_task.priority,
-            "assigned_to": payload.assigned_to,
-            "created_at": db_task.created_at.isoformat(),
-        })
+    # if payload.assignedTo:
+    #     await broadcast_notification({
+    #         "event": "new_task",
+    #         "task_id": db_task.id,
+    #         "title": db_task.title,
+    #         "priority": db_task.priority,
+    #         "assigned_to": payload.assignedTo,
+    #         "created_at": db_task.created_at.isoformat(),
+    #     })
 
-    return task_to_response(db_task)
+    return db_task
 
 
 # ✅ GET all tasks

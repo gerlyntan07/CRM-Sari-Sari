@@ -276,14 +276,12 @@ export default function AdminTask() {
   const [formData, setFormData] = useState({
     title: "",
     description: "",
-    type: "Call",
-    priority: "Low",
-    status: "To Do",
+    type: "",
+    relatedTo: 0,
+    priority: "",
+    status: "",
     dueDate: "",
     assignedTo: "",
-    relatedTo: "",
-    notes: "",
-    isPersonal: false,
   });
 
   useEffect(() => {
@@ -308,95 +306,93 @@ export default function AdminTask() {
   };
 
   // Backend API functions - kept for future use
-  const fetchTasks = async () => {
-    try {
-      setLoading(true);
-      const res = await api.get("/tasks/all");
-      const formatted = (Array.isArray(res.data) ? res.data : []).map(
-        (task) => ({
-          id: task.id,
-          title: task.title,
-          description: task.description,
-          type: task.type,
-          priority: task.priority,
-          status: task.status,
-          dueDate: task.dueDate || task.due_date || null,
-          dateAssigned: task.dateAssigned || task.date_assigned || null,
-          assignedToId: task.assignedToId ?? task.assigned_to ?? null,
-          assignedToName:
-            task.assignedToName ||
-            task.assignedTo ||
-            (task.assigned_to ? String(task.assigned_to) : "Unassigned"),
-          createdAt: task.createdAt || null,
-          createdById: task.createdById ?? null,
-          createdBy: task.createdBy ?? null,
-          relatedTo: task.relatedTo || "",
-          notes: task.notes || "",
-          isPersonal: Boolean(task.isPersonal),
-        })
-      );
+  // const fetchTasks = async () => {
+  //   try {
+  //     setLoading(true);
+  //     const res = await api.get("/tasks/all");
+  //     const formatted = (Array.isArray(res.data) ? res.data : []).map(
+  //       (task) => ({
+  //         id: task.id,
+  //         title: task.title,
+  //         description: task.description,
+  //         type: task.type,
+  //         priority: task.priority,
+  //         status: task.status,
+  //         dueDate: task.dueDate || task.due_date || null,
+  //         dateAssigned: task.dateAssigned || task.date_assigned || null,
+  //         assignedToId: task.assignedToId ?? task.assigned_to ?? null,
+  //         assignedToName:
+  //           task.assignedToName ||
+  //           task.assignedTo ||
+  //           (task.assigned_to ? String(task.assigned_to) : "Unassigned"),
+  //         createdAt: task.createdAt || null,
+  //         createdById: task.createdById ?? null,
+  //         createdBy: task.createdBy ?? null,
+  //         relatedTo: task.relatedTo || "",
+  //         notes: task.notes || "",
+  //         isPersonal: Boolean(task.isPersonal),
+  //       })
+  //     );
 
-      formatted.sort((a, b) => {
-        const aDate = a.createdAt ? new Date(a.createdAt) : 0;
-        const bDate = b.createdAt ? new Date(b.createdAt) : 0;
-        return bDate - aDate;
-      });
-      setTasks(formatted);
-      if (view === "list") {
-        setCurrentPage(1);
-      }
-    } catch (error) {
-      console.error("Failed to load tasks:", error);
-      toast.error("Failed to load tasks. Please try again.");
-    } finally {
-      setLoading(false);
-    }
-  };
+  //     formatted.sort((a, b) => {
+  //       const aDate = a.createdAt ? new Date(a.createdAt) : 0;
+  //       const bDate = b.createdAt ? new Date(b.createdAt) : 0;
+  //       return bDate - aDate;
+  //     });
+  //     setTasks(formatted);
+  //     if (view === "list") {
+  //       setCurrentPage(1);
+  //     }
+  //   } catch (error) {
+  //     console.error("Failed to load tasks:", error);
+  //     toast.error("Failed to load tasks. Please try again.");
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // };
 
-  const fetchUsers = async () => {
-    try {
-      const res = await api.get("/users/all");
-      setUsers(Array.isArray(res.data) ? res.data : []);
-    } catch (error) {
-      console.error("Failed to fetch users:", error);
-      toast.error("Failed to fetch users. Please refresh and try again.");
-    }
-  };
+  // const fetchUsers = async () => {
+  //   try {
+  //     const res = await api.get("/users/all");
+  //     setUsers(Array.isArray(res.data) ? res.data : []);
+  //   } catch (error) {
+  //     console.error("Failed to fetch users:", error);
+  //     toast.error("Failed to fetch users. Please refresh and try again.");
+  //   }
+  // };
 
   const resetForm = () => {
     setFormData({
       title: "",
-      description: "",
-      type: "Call",
-      priority: "Low",
-      status: "To Do",
-      dueDate: "",
-      assignedTo: currentUser ? String(currentUser.id) : "",
-      relatedTo: "",
-      notes: "",
-      isPersonal: false,
+    description: "",
+    type: "",
+    relatedTo: 0,
+    priority: "",
+    status: "",
+    dueDate: "",
+    assignedTo: "",
     });
   };
 
   const handleOpenModal = (task = null, isViewOnly = false) => {
     setSelectedTask(task);
     setViewMode(isViewOnly);
-    if (task) {
-      setFormData({
-        title: task.title || "",
-        description: task.description || "",
-        type: task.type || "Call",
-        priority: task.priority || "Low",
-        status: task.status || "To Do",
-        dueDate: toDateTimeInputValue(task.dueDate),
-        assignedTo: task.assignedToId ? String(task.assignedToId) : "",
-        relatedTo: task.relatedTo || "",
-        notes: task.notes || "",
-        isPersonal: Boolean(task.isPersonal),
-      });
-    } else {
-      resetForm();
-    }
+    // if (task) {
+    //   setFormData({
+    //     title: task.title || "",
+    //     description: task.description || "",
+    //     type: task.type || "Call",
+    //     priority: task.priority || "Low",
+    //     status: task.status || "To Do",
+    //     dueDate: toDateTimeInputValue(task.dueDate),
+    //     assignedTo: task.assignedToId ? String(task.assignedToId) : "",
+    //     relatedTo: task.relatedTo || "",
+    //     notes: task.notes || "",
+    //     isPersonal: Boolean(task.isPersonal),
+    //   });
+    // } else {
+    //   resetForm();
+    // }
     setShowModal(true);
   };
 
@@ -407,25 +403,24 @@ export default function AdminTask() {
     resetForm();
   };
 
-  const handleSaveTask = (newTask) => {
-    setFormData(newTask);
-    const isEditing = Boolean(selectedTask?.id);
-    const actionType = isEditing ? "update" : "create";
-    const taskTitle = newTask.title?.trim() || "this task";
-    setConfirmModalData({
-      title: isEditing ? "Confirm Update" : "Confirm New Task",
-      message: isEditing
-        ? `Save changes to "${taskTitle}"?`
-        : `Create task "${taskTitle}"?`,
-      confirmLabel: isEditing ? "Update Task" : "Create Task",
-      cancelLabel: "Cancel",
-      variant: "primary",
-      action: {
-        type: actionType,
-        payload: newTask,
-        targetId: selectedTask?.id ?? null,
-      },
-    });
+  const handleSaveTask = async(newTask, relatedTo) => {
+    setFormData(newTask);    
+    const newFormData = { 
+      ...newTask, 
+      type: relatedTo,
+      assignedTo: parseInt(newTask.assignedTo),
+      relatedTo: parseInt(newTask.relatedTo),
+    };
+    console.log('nd', newFormData);
+
+    try{
+      const res = await api.post(`/tasks/createtask`, newFormData);
+      toast.success("Task saved successfully.");
+      console.log('Task saved', res);
+      setShowModal(false);
+    } catch (error) {
+      console.error("Failed to save task:", error);
+    }
   };
 
   const handleDeleteTask = (task) => {

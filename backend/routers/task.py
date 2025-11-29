@@ -2,11 +2,11 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List
 from datetime import datetime
-
+from sqlalchemy import or_
 from database import get_db
 from models.task import Task, TaskStatus, TaskPriority
 from models.auth import User
-from schemas.task import TaskCreate, TaskUpdate, TaskResponse
+from schemas.task import TaskCreate, TaskUpdate, TaskResponse, TaskFetch
 from .auth_utils import get_current_user
 from routers.ws_notification import broadcast_notification  # WebSocket broadcaster
 
@@ -113,10 +113,18 @@ async def create_task(
 # -----------------------------------------
 # GET ALL TASKS
 # -----------------------------------------
-@router.get("/all", response_model=List[TaskResponse])
-def get_all_tasks(db: Session = Depends(get_db)):
-    tasks = db.query(Task).order_by(Task.created_at.desc()).all()
-    return [task_to_response(t) for t in tasks]
+@router.get("/all", response_model=List[TaskFetch])
+def get_all_tasks(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    company_users = (
+        db.query(User.id)
+        .filter(User.related_to_company == current_user.related_to_company)
+    )
+
+    if current_user.role in ['CEO', 'Admin', 'Group Manager']:
+        tasks = db.query(Task).filter(or_(Task.created_by.in_(company_users),Task.assigned_to.in_(company_users))).all()
+    elif current_user.role in ['Manager', 'Sales']:
+        tasks = db.query(Task).filter(or_(Task.created_by == current_user.id,Task.assigned_to == current_user.id)).all()
+    return tasks
 
 
 # -----------------------------------------

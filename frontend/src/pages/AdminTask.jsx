@@ -11,9 +11,10 @@ import {
   FiTrash2,
   FiUser,
 } from "react-icons/fi";
+// NOTE: Make sure TaskModal, PaginationControls, api, useFetchUser, and LoadingSpinner are correctly imported from their respective paths.
 import TaskModal from "../components/TaskModal";
 import PaginationControls from "../components/PaginationControls.jsx";
-import api from "../api";
+import api from "../api"; // Assuming your Axios instance
 import { toast } from "react-toastify";
 import useFetchUser from "../hooks/useFetchUser";
 import LoadingSpinner from "../components/LoadingSpinner.jsx";
@@ -21,196 +22,7 @@ import LoadingSpinner from "../components/LoadingSpinner.jsx";
 const BOARD_COLUMNS = ["To Do", "In Progress", "Review", "Completed"];
 const LIST_PAGE_SIZE = 10;
 
-// Mock Data
-const MOCK_USERS = [
-  { id: 1, first_name: "John", last_name: "Doe", email: "john.doe@example.com" },
-  { id: 2, first_name: "Jane", last_name: "Smith", email: "jane.smith@example.com" },
-  { id: 3, first_name: "Mike", last_name: "Johnson", email: "mike.johnson@example.com" },
-  { id: 4, first_name: "Sarah", last_name: "Williams", email: "sarah.williams@example.com" },
-];
-
-const MOCK_TASKS = [
-  {
-    id: 1,
-    title: "Follow up with TechStart Inc",
-    description: "Schedule a meeting to discuss the new product proposal",
-    type: "Call",
-    priority: "High",
-    status: "To Do",
-    dueDate: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString(),
-    dateAssigned: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
-    assignedToId: 1,
-    assignedToName: "John Doe",
-    createdAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
-    createdById: 1,
-    createdBy: "Admin User",
-    relatedTo: "TechStart Inc",
-    notes: "Important client, need to follow up soon",
-    isPersonal: false,
-  },
-  {
-    id: 2,
-    title: "Review Q4 Sales Report",
-    description: "Analyze the quarterly sales data and prepare summary",
-    type: "Task",
-    priority: "Medium",
-    status: "In Progress",
-    dueDate: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString(),
-    dateAssigned: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
-    assignedToId: 2,
-    assignedToName: "Jane Smith",
-    createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
-    createdById: 1,
-    createdBy: "Admin User",
-    relatedTo: "Q4 Report",
-    notes: "Due by end of week",
-    isPersonal: false,
-  },
-  {
-    id: 3,
-    title: "Update CRM Database",
-    description: "Sync customer information and update contact details",
-    type: "Task",
-    priority: "Low",
-    status: "Review",
-    dueDate: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
-    dateAssigned: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
-    assignedToId: 3,
-    assignedToName: "Mike Johnson",
-    createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
-    createdById: 1,
-    createdBy: "Admin User",
-    relatedTo: "CRM System",
-    notes: "Overdue task",
-    isPersonal: false,
-  },
-  {
-    id: 4,
-    title: "Client Meeting Preparation",
-    description: "Prepare presentation materials for upcoming client meeting",
-    type: "Meeting",
-    priority: "High",
-    status: "Completed",
-    dueDate: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-    dateAssigned: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString(),
-    assignedToId: 4,
-    assignedToName: "Sarah Williams",
-    createdAt: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString(),
-    createdById: 1,
-    createdBy: "Admin User",
-    relatedTo: "Client ABC",
-    notes: "Completed successfully",
-    isPersonal: false,
-  },
-  {
-    id: 5,
-    title: "Send Proposal to New Client",
-    description: "Draft and send proposal document to potential new client",
-    type: "Email",
-    priority: "Medium",
-    status: "To Do",
-    dueDate: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString(),
-    dateAssigned: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-    assignedToId: 1,
-    assignedToName: "John Doe",
-    createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-    createdById: 1,
-    createdBy: "Admin User",
-    relatedTo: "New Client XYZ",
-    notes: "",
-    isPersonal: false,
-  },
-  {
-    id: 6,
-    title: "Team Standup Meeting",
-    description: "Daily team synchronization meeting",
-    type: "Meeting",
-    priority: "Low",
-    status: "In Progress",
-    dueDate: new Date(Date.now() + 1 * 24 * 60 * 60 * 1000).toISOString(),
-    dateAssigned: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
-    assignedToId: 2,
-    assignedToName: "Jane Smith",
-    createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
-    createdById: 1,
-    createdBy: "Admin User",
-    relatedTo: "Team",
-    notes: "Recurring meeting",
-    isPersonal: false,
-  },
-  {
-    id: 7,
-    title: "Update Marketing Materials",
-    description: "Refresh marketing collateral with new branding",
-    type: "Task",
-    priority: "Medium",
-    status: "Review",
-    dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
-    dateAssigned: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000).toISOString(),
-    assignedToId: 3,
-    assignedToName: "Mike Johnson",
-    createdAt: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000).toISOString(),
-    createdById: 1,
-    createdBy: "Admin User",
-    relatedTo: "Marketing",
-    notes: "Waiting for approval",
-    isPersonal: false,
-  },
-  {
-    id: 8,
-    title: "Customer Feedback Analysis",
-    description: "Review and analyze customer feedback from Q4",
-    type: "Task",
-    priority: "High",
-    status: "Completed",
-    dueDate: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
-    dateAssigned: new Date(Date.now() - 12 * 24 * 60 * 60 * 1000).toISOString(),
-    assignedToId: 4,
-    assignedToName: "Sarah Williams",
-    createdAt: new Date(Date.now() - 12 * 24 * 60 * 60 * 1000).toISOString(),
-    createdById: 1,
-    createdBy: "Admin User",
-    relatedTo: "Customer Feedback",
-    notes: "Analysis complete",
-    isPersonal: false,
-  },
-  {
-    id: 9,
-    title: "Prepare Budget Report",
-    description: "Compile monthly budget report for management review",
-    type: "Task",
-    priority: "High",
-    status: "To Do",
-    dueDate: new Date(Date.now() + 4 * 24 * 60 * 60 * 1000).toISOString(),
-    dateAssigned: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
-    assignedToId: 1,
-    assignedToName: "John Doe",
-    createdAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
-    createdById: 1,
-    createdBy: "Admin User",
-    relatedTo: "Finance",
-    notes: "Urgent",
-    isPersonal: false,
-  },
-  {
-    id: 10,
-    title: "Website Content Update",
-    description: "Update website content with latest product information",
-    type: "Task",
-    priority: "Low",
-    status: "In Progress",
-    dueDate: new Date(Date.now() + 6 * 24 * 60 * 60 * 1000).toISOString(),
-    dateAssigned: new Date(Date.now() - 6 * 24 * 60 * 60 * 1000).toISOString(),
-    assignedToId: 2,
-    assignedToName: "Jane Smith",
-    createdAt: new Date(Date.now() - 6 * 24 * 60 * 60 * 1000).toISOString(),
-    createdById: 1,
-    createdBy: "Admin User",
-    relatedTo: "Website",
-    notes: "In progress",
-    isPersonal: false,
-  },
-];
+// --- Utility Functions ---
 
 const toDateTimeInputValue = (value) => {
   if (!value) return "";
@@ -238,7 +50,9 @@ const buildTaskPayload = (data) => {
   const trimmedNotes = data.notes?.trim() ?? "";
   const trimmedRelated = data.relatedTo?.trim() ?? "";
   const isPersonal = Boolean(data.isPersonal);
-  const assignedToValue = data.assignedTo ? Number(data.assignedTo) : null;
+  // Ensure assignedTo is null if empty string, otherwise parse as number
+  const assignedToValue = data.assignedTo ? Number(data.assignedTo) : null; 
+  
   return {
     title: trimmedTitle,
     description: trimmedDescription,
@@ -251,6 +65,50 @@ const buildTaskPayload = (data) => {
     notes: trimmedNotes,
     is_personal: isPersonal,
     visibility: isPersonal ? "personal" : "shared",
+  };
+};
+
+// --- Task Data Mapping Function ---
+/**
+ * Maps the backend task structure to the frontend's expected Task format.
+ * @param {Object} task - The task object from the backend API.
+ * @returns {Object} The formatted task object for the frontend.
+ */
+const mapBackendTaskToFrontend = (task) => {
+  const assignedToName = task.task_assign_to 
+    ? `${task.task_assign_to.first_name} ${task.task_assign_to.last_name}`
+    : task.assigned_to 
+    ? String(task.assigned_to) 
+    : "Unassigned";
+
+  const createdByName = task.task_creator
+    ? `${task.task_creator.first_name} ${task.task_creator.last_name}`
+    : task.created_by 
+    ? String(task.created_by)
+    : "System";
+
+  // Prioritize due_date if it exists, otherwise use dueDate (if backend provides both)
+  const dueDate = task.due_date || task.dueDate || null; 
+  // Prioritize date_assigned if it exists, otherwise use created_at
+  const dateAssigned = task.date_assigned || task.created_at || null; 
+  
+  return {
+    id: task.id,
+    title: task.title,
+    description: task.description,
+    type: task.type || "Task",
+    priority: task.priority || "Low",
+    status: task.status || "To Do", 
+    dueDate: dueDate,
+    dateAssigned: dateAssigned, 
+    assignedToId: task.assigned_to ?? null,
+    assignedToName: assignedToName,
+    createdAt: task.created_at || null,
+    createdById: task.created_by ?? null,
+    createdBy: createdByName,
+    relatedTo: task.related_to || "",
+    notes: task.notes || "",
+    isPersonal: Boolean(task.is_personal),
   };
 };
 
@@ -276,123 +134,103 @@ export default function AdminTask() {
   const [formData, setFormData] = useState({
     title: "",
     description: "",
-    type: "",
-    relatedTo: 0,
-    priority: "",
-    status: "",
+    type: "Call",
+    relatedTo: "",
+    priority: "Low",
+    status: "To Do",
     dueDate: "",
     assignedTo: "",
+    isPersonal: false,
+    notes: "",
   });
 
-  useEffect(() => {
-    if (!userLoading) {
-      // Use mock data for frontend development
-      // Backend API calls are kept below for future use
-      loadMockData();
-      // fetchUsers();
-      // fetchTasks();
-    }
-  }, [userLoading]);
+  // --- API Fetch Functions ---
 
-  // Load mock data for frontend development
-  const loadMockData = () => {
-    setLoading(true);
-    // Simulate API delay
-    setTimeout(() => {
-      setUsers(MOCK_USERS);
-      setTasks(MOCK_TASKS);
-      setLoading(false);
-    }, 500);
+  const fetchUsers = async () => {
+    try {
+      const res = await api.get("/users/all"); 
+      setUsers(Array.isArray(res.data) ? res.data : []);
+    } catch (error) {
+      console.error("Failed to fetch users:", error);
+      toast.error("Failed to fetch users. Please refresh and try again.");
+    }
   };
 
-  // Backend API functions - kept for future use
-  // const fetchTasks = async () => {
-  //   try {
-  //     setLoading(true);
-  //     const res = await api.get("/tasks/all");
-  //     const formatted = (Array.isArray(res.data) ? res.data : []).map(
-  //       (task) => ({
-  //         id: task.id,
-  //         title: task.title,
-  //         description: task.description,
-  //         type: task.type,
-  //         priority: task.priority,
-  //         status: task.status,
-  //         dueDate: task.dueDate || task.due_date || null,
-  //         dateAssigned: task.dateAssigned || task.date_assigned || null,
-  //         assignedToId: task.assignedToId ?? task.assigned_to ?? null,
-  //         assignedToName:
-  //           task.assignedToName ||
-  //           task.assignedTo ||
-  //           (task.assigned_to ? String(task.assigned_to) : "Unassigned"),
-  //         createdAt: task.createdAt || null,
-  //         createdById: task.createdById ?? null,
-  //         createdBy: task.createdBy ?? null,
-  //         relatedTo: task.relatedTo || "",
-  //         notes: task.notes || "",
-  //         isPersonal: Boolean(task.isPersonal),
-  //       })
-  //     );
+  const fetchTasks = async () => {
+    try {
+      setLoading(true);
+      // Calls your backend endpoint @router.get("/all")
+      const res = await api.get("/tasks/all");
+      console.log(res.data)
+      
+      const rawTasks = Array.isArray(res.data) ? res.data : [];
+      
+      // *** MAPPING STEP: Format backend data for frontend state ***
+      const formattedTasks = rawTasks.map(mapBackendTaskToFrontend);
 
-  //     formatted.sort((a, b) => {
-  //       const aDate = a.createdAt ? new Date(a.createdAt) : 0;
-  //       const bDate = b.createdAt ? new Date(b.createdAt) : 0;
-  //       return bDate - aDate;
-  //     });
-  //     setTasks(formatted);
-  //     if (view === "list") {
-  //       setCurrentPage(1);
-  //     }
-  //   } catch (error) {
-  //     console.error("Failed to load tasks:", error);
-  //     toast.error("Failed to load tasks. Please try again.");
-  //   } finally {
-  //     setLoading(false);
-  //   }
-  // };
+      formattedTasks.sort((a, b) => {
+        const aDate = a.createdAt ? new Date(a.createdAt) : 0;
+        const bDate = b.createdAt ? new Date(b.createdAt) : 0;
+        return bDate - aDate; // Sort by creation date descending
+      });
+      
+      setTasks(formattedTasks);
+      if (view === "list") {
+        setCurrentPage(1);
+      }
+    } catch (error) {
+      console.error("Failed to load tasks:", error);
+      toast.error("Failed to load tasks. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  // const fetchUsers = async () => {
-  //   try {
-  //     const res = await api.get("/users/all");
-  //     setUsers(Array.isArray(res.data) ? res.data : []);
-  //   } catch (error) {
-  //     console.error("Failed to fetch users:", error);
-  //     toast.error("Failed to fetch users. Please refresh and try again.");
-  //   }
-  // };
+
+  useEffect(() => {
+    if (!userLoading && currentUser) {
+      // Use real data fetching
+      fetchUsers();
+      fetchTasks();
+    }
+  }, [userLoading, currentUser]); 
 
   const resetForm = () => {
+    setSelectedTask(null);
     setFormData({
       title: "",
-    description: "",
-    type: "",
-    relatedTo: 0,
-    priority: "",
-    status: "",
-    dueDate: "",
-    assignedTo: "",
+      description: "",
+      type: "Call",
+      relatedTo: "",
+      priority: "Low",
+      status: "To Do",
+      dueDate: "",
+      assignedTo: "",
+      isPersonal: false,
+      notes: "",
     });
   };
 
   const handleOpenModal = (task = null, isViewOnly = false) => {
     setSelectedTask(task);
     setViewMode(isViewOnly);
-    // if (task) {
-    //   setFormData({
-    //     title: task.title || "",
-    //     description: task.description || "",
-    //     type: task.type || "Call",
-    //     priority: task.priority || "Low",
-    //     status: task.status || "To Do",
-    //     dueDate: toDateTimeInputValue(task.dueDate),
-    //     assignedTo: task.assignedToId ? String(task.assignedToId) : "",
-    //     relatedTo: task.relatedTo || "",
-    //     notes: task.notes || "",
-    //     isPersonal: Boolean(task.isPersonal),
-    //   });
-    // } else {
-    //   resetForm();
-    // }
+    
+    if (task) {
+      setFormData({
+        title: task.title || "",
+        description: task.description || "",
+        type: task.type || "Call",
+        priority: task.priority || "Low",
+        status: task.status || "To Do",
+        dueDate: toDateTimeInputValue(task.dueDate),
+        assignedTo: task.assignedToId ? String(task.assignedToId) : "",
+        relatedTo: task.relatedTo || "",
+        notes: task.notes || "",
+        isPersonal: Boolean(task.isPersonal),
+      });
+    } else {
+      resetForm();
+    }
     setShowModal(true);
   };
 
@@ -403,25 +241,30 @@ export default function AdminTask() {
     resetForm();
   };
 
-  const handleSaveTask = async(newTask, relatedTo) => {
-    setFormData(newTask);    
-    const newFormData = { 
-      ...newTask, 
-      type: relatedTo,
-      assignedTo: parseInt(newTask.assignedTo),
-      relatedTo: parseInt(newTask.relatedTo),
-    };
-    console.log('nd', newFormData);
+  const handleSaveTask = async (newTask) => { 
+      // newTask is the raw form data from TaskModal
+      const requestPayload = buildTaskPayload(newTask);
+      
+      try {
+          if (selectedTask && !viewMode) {
+              // Update existing task (Assuming PUT endpoint is /tasks/{id})
+              await api.put(`/tasks/${selectedTask.id}`, requestPayload);
+              toast.success(`Task "${selectedTask.title}" updated successfully.`);
+          } else {
+              // Create new task (Assuming POST endpoint is /tasks/createtask)
+              await api.post(`/tasks/createtask`, requestPayload);
+              toast.success("Task created successfully.");
+          }
 
-    try{
-      const res = await api.post(`/tasks/createtask`, newFormData);
-      toast.success("Task saved successfully.");
-      console.log('Task saved', res);
-      setShowModal(false);
-    } catch (error) {
-      console.error("Failed to save task:", error);
-    }
+          setShowModal(false);
+          await fetchTasks(); // Re-fetch tasks to update the list
+      } catch (error) {
+          console.error("Failed to save task:", error);
+          const detail = error.response?.data?.detail || "Failed to save task.";
+          toast.error(detail);
+      }
   };
+
 
   const handleDeleteTask = (task) => {
     if (!task) return;
@@ -452,102 +295,26 @@ export default function AdminTask() {
     }
 
     const { action } = confirmModalData;
-    const { type, payload, targetId, name } = action;
+    const { type, targetId, name } = action;
 
     setConfirmProcessing(true);
 
     try {
-      // Using mock data for frontend development
-      // Backend API calls are kept below for future use
-      
-      if (type === "create") {
-        // Mock create - add to local state
-        const newTask = {
-          id: Date.now(), // Generate temporary ID
-          title: payload.title || "",
-          description: payload.description || "",
-          type: payload.type || "Call",
-          priority: payload.priority || "Low",
-          status: payload.status || "To Do",
-          dueDate: payload.dueDate || null,
-          dateAssigned: new Date().toISOString(),
-          assignedToId: payload.assignedTo ? Number(payload.assignedTo) : null,
-          assignedToName: MOCK_USERS.find(u => String(u.id) === payload.assignedTo) 
-            ? `${MOCK_USERS.find(u => String(u.id) === payload.assignedTo).first_name} ${MOCK_USERS.find(u => String(u.id) === payload.assignedTo).last_name}`
-            : "Unassigned",
-          createdAt: new Date().toISOString(),
-          createdById: currentUser?.id || 1,
-          createdBy: currentUser ? `${currentUser.first_name} ${currentUser.last_name}` : "Admin User",
-          relatedTo: payload.relatedTo || "",
-          notes: payload.notes || "",
-          isPersonal: Boolean(payload.isPersonal),
-        };
-        setTasks(prev => [newTask, ...prev]);
-        toast.success("Task created successfully.");
-        handleCloseModal();
-        
-        // Backend API call (commented for now)
-        // const requestPayload = buildTaskPayload(payload);
-        // await api.post("/tasks/createtask", requestPayload);
-        // await fetchTasks();
-      } else if (type === "update") {
-        if (!targetId) {
-          throw new Error("Missing task identifier for update.");
-        }
-        // Mock update - update in local state
-        setTasks(prev => prev.map(task => {
-          if (task.id === targetId) {
-            return {
-              ...task,
-              title: payload.title || task.title,
-              description: payload.description || task.description,
-              type: payload.type || task.type,
-              priority: payload.priority || task.priority,
-              status: payload.status || task.status,
-              dueDate: payload.dueDate || task.dueDate,
-              assignedToId: payload.assignedTo ? Number(payload.assignedTo) : task.assignedToId,
-              assignedToName: payload.assignedTo 
-                ? (MOCK_USERS.find(u => String(u.id) === payload.assignedTo) 
-                  ? `${MOCK_USERS.find(u => String(u.id) === payload.assignedTo).first_name} ${MOCK_USERS.find(u => String(u.id) === payload.assignedTo).last_name}`
-                  : "Unassigned")
-                : task.assignedToName,
-              relatedTo: payload.relatedTo || task.relatedTo,
-              notes: payload.notes || task.notes,
-              isPersonal: Boolean(payload.isPersonal),
-            };
-          }
-          return task;
-        }));
-        toast.success("Task updated successfully.");
-        handleCloseModal();
-        
-        // Backend API call (commented for now)
-        // const requestPayload = buildTaskPayload(payload);
-        // await api.put(`/tasks/${targetId}`, requestPayload);
-        // await fetchTasks();
-      } else if (type === "delete") {
+      if (type === "delete") {
         if (!targetId) {
           throw new Error("Missing task identifier for deletion.");
         }
-        // Mock delete - remove from local state
-        setTasks(prev => prev.filter(task => task.id !== targetId));
+        // Real Backend API call (Assuming DELETE endpoint is /tasks/{id})
+        await api.delete(`/tasks/${targetId}`);
         toast.success(
           name ? `Task "${name}" deleted successfully.` : "Task deleted."
         );
-        
-        // Backend API call (commented for now)
-        // await api.delete(`/tasks/${targetId}`);
-        // await fetchTasks();
-      }
+        await fetchTasks(); // Re-fetch tasks after successful deletion
+      } 
     } catch (error) {
       console.error("Task action failed:", error);
       const detail =
-        error.response?.data?.detail ||
-        (type === "create"
-          ? "Failed to create task."
-          : type === "update"
-          ? "Failed to update task."
-          : "Failed to delete task.");
+        error.response?.data?.detail || "Failed to delete task.";
       toast.error(detail);
     } finally {
       setConfirmProcessing(false);
@@ -559,7 +326,7 @@ export default function AdminTask() {
     if (confirmProcessing) return;
     setConfirmModalData(null);
   };
-
+  
   const filteredTasks = useMemo(() => {
     const normalized = search.trim().toLowerCase();
     const sortedTasks = [...tasks].sort((a, b) => {
@@ -662,7 +429,6 @@ export default function AdminTask() {
     task.status !== "Completed";
 
   const getTaskCardColor = (task) => {
-    // Use status-based colors matching list view badges
     switch (task.status) {
       case "To Do":
         return "bg-blue-50 hover:bg-blue-100 border-blue-200";
@@ -722,7 +488,7 @@ export default function AdminTask() {
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 min-h-screen font-inter relative">
-      {loading && <LoadingSpinner message="Loading tasks..." />}
+      {(loading || userLoading) && <LoadingSpinner message="Loading tasks..." />}
       {/* Header */}
       <div className="flex justify-between items-start mb-4">
         <div>
@@ -808,10 +574,17 @@ export default function AdminTask() {
         </button>
       </div>
 
-      {loading && <p className="text-gray-500">Loading tasks...</p>}
+      {/* Status Indicators */}
+      {(loading || userLoading) && <p className="text-gray-500">Loading tasks...</p>}
+      
+      {!loading && !userLoading && filteredTasks.length === 0 && (
+          <p className="text-center text-gray-500 mt-10 p-4 bg-white shadow rounded-lg">
+            No tasks found matching current filters.
+          </p>
+      )}
 
       {/* Board View */}
-      {!loading && view === "board" && (
+      {!loading && !userLoading && filteredTasks.length > 0 && view === "board" && (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 rounded-md">
           {BOARD_COLUMNS.map((column) => {
             const columnTasks = displayTasks.filter(
@@ -823,8 +596,8 @@ export default function AdminTask() {
                 key={column}
                 className="bg-white p-4 shadow border border-gray-200 flex flex-col relative"
               >
-                {/* Top horizontal line */}
-                <div className="absolute top-0 left-0 w-full h-5 bg-secondary rounded-t-md" />
+                {/* Top horizontal line: Assuming 'bg-secondary' is defined in your CSS */}
+                <div className="absolute top-0 left-0 w-full h-5 bg-secondary rounded-t-md" /> 
 
                 <div className="flex items-center justify-between mb-3 pt-7">
                   <h3 className="font-medium text-gray-900">{column}</h3>
@@ -904,7 +677,7 @@ export default function AdminTask() {
       )}
 
       {/* List View */}
-      {!loading && view === "list" && (
+      {!loading && !userLoading && filteredTasks.length > 0 && view === "list" && (
         <div className="bg-white rounded-md shadow-sm overflow-hidden">
           <div className="overflow-x-auto">
             <table className="min-w-full text-sm">
@@ -1008,7 +781,7 @@ export default function AdminTask() {
       )}
 
       {/* Pagination for List View only */}
-      {!loading && view === "list" && (
+      {!loading && !userLoading && view === "list" && (
         <PaginationControls
           className="mt-6"
           totalItems={filteredTasks.length}
@@ -1044,6 +817,8 @@ export default function AdminTask() {
     </div>
   );
 }
+
+// --- Helper UI Components ---
 
 function MetricCard({
   icon: Icon,
@@ -1095,7 +870,7 @@ function ConfirmationModal({
   const confirmClasses =
     variant === "danger"
       ? "bg-red-500 hover:bg-red-600 border border-red-400"
-      : "bg-tertiary hover:bg-secondary border border-tertiary";
+      : "bg-tertiary hover:bg-secondary border border-tertiary"; // Assuming 'bg-tertiary' and 'bg-secondary' are defined in your CSS
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-[60]">

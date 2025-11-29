@@ -22,19 +22,15 @@ export default function TaskModal({
   const fetchRelatedTables = async () => {
     try {
       const res1 = await api.get("/leads/admin/getLeads");
-      console.log("Leads fetched:", res1.data);
       setLeadsList(res1.data);
 
       const res2 = await api.get("/accounts/admin/fetch-all");
-      console.log("Accounts fetched:", res2.data);
       setAccountsList(res2.data);
 
       const res3 = await api.get("/contacts/admin/fetch-all");
-      console.log("contacts fetched:", res3.data);
       setContactsList(res3.data);
 
       const res4 = await api.get("/deals/admin/fetch-all");
-      console.log("deals fetched:", res4.data);
       setDealsList(res4.data);
     } catch (error) {
       console.error("Error fetching related tables:", error);
@@ -59,8 +55,6 @@ export default function TaskModal({
       default:
         setRelatedOptions([]);
     }
-
-    console.log("Related To changed to:", e.target.value);
   };
 
   useEffect(() => {

@@ -131,6 +131,10 @@ export default function AdminManageAccount() {
       setIsEditing(false);
       setProfilePicture(null); // Reset uploaded picture state
       // profilePicturePreview will be updated by useEffect when currentUser changes
+      
+      // Dispatch custom event to notify AdminHeader to refresh user data
+      window.dispatchEvent(new CustomEvent('userProfileUpdated'));
+      
       toast.success("Account information updated successfully!");
     } catch (error) {
       console.error("Error updating account:", error);
@@ -151,8 +155,8 @@ export default function AdminManageAccount() {
       return;
     }
 
-    if (passwordData.newPassword.length < 6) {
-      toast.warn("Password must be at least 6 characters long.");
+    if (passwordData.newPassword.length < 8) {
+      toast.warn("Password must be at least 8 characters long.");
       return;
     }
 
@@ -168,11 +172,16 @@ export default function AdminManageAccount() {
       };
 
       await api.put("/users/me", payload);
+      await fetchUser(); // Refresh user data after password change
       setPasswordData({
         currentPassword: "",
         newPassword: "",
         confirmPassword: "",
       });
+      
+      // Dispatch custom event to notify AdminHeader to refresh user data
+      window.dispatchEvent(new CustomEvent('userProfileUpdated'));
+      
       setChangingPassword(false);
       toast.success("Password changed successfully!");
     } catch (error) {
@@ -406,13 +415,13 @@ export default function AdminManageAccount() {
               <div className="relative">
                 <FiLock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
                 <input
-                  type={showNewPassword ? "text" : "password"}
+                  type="text"
                   value={passwordData.newPassword}
                   onChange={(e) => handlePasswordChange("newPassword", e.target.value)}
-                  placeholder="Enter new password (min. 6 characters)"
+                  placeholder="Enter new password (min. 8 characters)"
                   className="w-full pl-10 pr-10 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
                   required
-                  minLength={6}
+                  minLength={8}
                 />
                 <button
                   type="button"
@@ -431,13 +440,13 @@ export default function AdminManageAccount() {
               <div className="relative">
                 <FiLock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
                 <input
-                  type={showConfirmPassword ? "text" : "password"}
+                  type="text"
                   value={passwordData.confirmPassword}
                   onChange={(e) => handlePasswordChange("confirmPassword", e.target.value)}
                   placeholder="Confirm new password"
                   className="w-full pl-10 pr-10 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
                   required
-                  minLength={6}
+                  minLength={8}
                 />
                 <button
                   type="button"

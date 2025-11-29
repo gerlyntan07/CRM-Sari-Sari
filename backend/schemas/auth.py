@@ -15,7 +15,7 @@ class UserBase(BaseModel):
 # ✅ For creating a new user
 class UserCreate(UserBase):
     company_id: Optional[int] = None  # ✅ make optional
-    password: constr(min_length=6)
+    password: constr(min_length=8)
 
 
 class UserUpdate(BaseModel):
@@ -23,8 +23,17 @@ class UserUpdate(BaseModel):
     last_name: Optional[str] = None
     email: Optional[EmailStr] = None
     role: Optional[str] = None
-    password: Optional[constr(min_length=6)] = None
+    password: Optional[constr(min_length=8)] = None
     is_active: Optional[bool] = None
+
+
+# ✅ For users to update their own profile
+class UserMeUpdate(BaseModel):
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
+    phone_number: Optional[str] = None
+    profile_picture: Optional[str] = None
+    password: Optional[constr(min_length=8)] = None
 
 
 # ✅ For login

@@ -31,6 +31,19 @@ export default function AdminHeader({ toggleSidebar }) {
     fetchUser();
   }, []);
 
+  // Listen for profile update events to refresh user data
+  useEffect(() => {
+    const handleProfileUpdate = () => {
+      fetchUser();
+    };
+
+    window.addEventListener('userProfileUpdated', handleProfileUpdate);
+    
+    return () => {
+      window.removeEventListener('userProfileUpdated', handleProfileUpdate);
+    };
+  }, [fetchUser]);
+
   const currentTitle = routeTitles[location.pathname] || "Admin Panel";
 
   // Close dropdown if clicked outside

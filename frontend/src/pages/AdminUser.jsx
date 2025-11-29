@@ -384,8 +384,8 @@ export default function AdminUser() {
       return;
     }
 
-    if (trimmedPassword && trimmedPassword.length < 6) {
-      toast.warn("Password should be at least 6 characters long.");
+    if (trimmedPassword && trimmedPassword.length < 8) {
+      toast.warn("Password should be at least 8 characters long.");
       return;
     }
 
@@ -1058,7 +1058,7 @@ function UserFormModal({
               </p>
             ) : (
               <p className="text-xs text-gray-500 mt-1">
-                Password must be at least 6 characters long.
+                Password must be at least 8 characters long.
               </p>
             )}
           </div>

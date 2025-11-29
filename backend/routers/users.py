@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status, Request
 from sqlalchemy.orm import Session
 from typing import List
 from database import get_db
-from schemas.auth import UserCreate, UserUpdate, UserResponse
+from schemas.auth import UserCreate, UserUpdate, UserResponse, UserMeUpdate
 from .auth_utils import get_current_user, hash_password,get_default_avatar
 from models.auth import User
 from .logs_utils import serialize_instance, create_audit_log
@@ -246,3 +246,65 @@ def delete_user(
     )
 
     return {"detail": f"✅ User '{user.first_name} {user.last_name}' deactivated successfully."}
+
+
+# ✅ UPDATE current user's own profile
+@router.put("/me", response_model=UserResponse)
+def update_current_user(
+    user_data: UserMeUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    request: Request = None,
+):
+    """
+    Allow users to update their own profile information and change password.
+    Users can update: first_name, last_name, phone_number, profile_picture, and password.
+    """
+    # Query the user from the current session to ensure it's attached to this session
+    user = db.query(User).filter(User.id == current_user.id).first()
+    
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    old_data = serialize_instance(user)
+    
+    # Update first_name if provided
+    if user_data.first_name is not None:
+        user.first_name = user_data.first_name.strip()
+    
+    # Update last_name if provided
+    if user_data.last_name is not None:
+        user.last_name = user_data.last_name.strip()
+    
+    # Update phone_number if provided
+    if user_data.phone_number is not None:
+        user.phone_number = user_data.phone_number.strip() if user_data.phone_number.strip() else None
+    
+    # Update profile_picture if provided
+    if user_data.profile_picture is not None:
+        user.profile_picture = user_data.profile_picture
+    
+    # Update password if provided
+    if user_data.password:
+        user.hashed_password = hash_password(user_data.password)
+    
+    # Ensure profile picture exists (set default if not)
+    if not user.profile_picture:
+        user.profile_picture = get_default_avatar(user.first_name)
+    
+    db.commit()
+    db.refresh(user)
+    
+    # Create audit log for the update
+    create_audit_log(
+        db=db,
+        current_user=current_user,
+        instance=user,
+        action="UPDATE",
+        request=request,
+        old_data=old_data,
+        new_data=serialize_instance(user),
+        custom_message=f"updated own profile information",
+    )
+    
+    return user

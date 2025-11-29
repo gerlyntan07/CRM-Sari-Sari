@@ -71,6 +71,8 @@ origins = [
     "http://localhost:5173",  # local dev
     "*",  # allow all in production; adjust later for security
     "http://crm-sari-sari-env.eba-pdpixtqe.ap-southeast-1.elasticbeanstalk.com",
+    "https://crm.sari-sari.com",
+    "http://crm.sari-sari.com/",
 ]
 app.add_middleware(
     CORSMiddleware,

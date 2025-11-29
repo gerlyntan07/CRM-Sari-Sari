@@ -8,48 +8,68 @@ from models.task import Task, TaskStatus, TaskPriority
 from models.auth import User
 from schemas.task import TaskCreate, TaskUpdate, TaskResponse
 from .auth_utils import get_current_user
-from routers.ws_notification import broadcast_notification  # 👈 Import WebSocket broadcaster
+from routers.ws_notification import broadcast_notification  # WebSocket broadcaster
 
 router = APIRouter(prefix="/tasks", tags=["Tasks"])
 
 
-# ✅ Helper: convert DB Task → API-friendly JSON
+# -----------------------------------------
+# Helper: Convert DB Task → Response Format
+# -----------------------------------------
 def task_to_response(task: Task) -> dict:
+    # Assigned user name
     assigned_name = None
-    if task.assigned_user:
-        assigned_name = f"{task.assigned_user.first_name} {task.assigned_user.last_name}"
+    if task.task_assign_to:
+        assigned_name = f"{task.task_assign_to.first_name} {task.task_assign_to.last_name}"
+
+    # Determine relatedTo (based on which foreign key is filled)
+    related_to = (
+        task.related_to_account or
+        task.related_to_contact or
+        task.related_to_lead or
+        task.related_to_deal
+    )
 
     return {
         "id": task.id,
         "title": task.title,
         "description": task.description,
-        "type": task.type,
-        "priority": task.priority.value if isinstance(task.priority, TaskPriority) else task.priority,
-        "status": task.status.value if isinstance(task.status, TaskStatus) else task.status,
+        "type": None,  # Your model has no 'type' column
+        "priority": task.priority.value if hasattr(task.priority, "value") else task.priority,
+        "status": task.status.value if hasattr(task.status, "value") else task.status,
         "dueDate": task.due_date.isoformat() if task.due_date else None,
-        "dateAssigned": task.date_assigned.isoformat() if task.date_assigned else None,
-        "assignedTo": assigned_name,
-        "relatedTo": task.related_to,
-        "notes": task.notes,
+        "dateAssigned": task.created_at.isoformat() if task.created_at else None,
+        "assignedTo": task.assigned_to,        # ID
+        "assignedToName": assigned_name,       # Human readable
+        "relatedTo": related_to,
+        "notes": None,  # Model has no notes column
         "createdAt": task.created_at.isoformat() if task.created_at else None,
     }
 
 
-# ✅ CREATE task (now async for WebSocket broadcasting)
+
+# -----------------------------------------
+# CREATE TASK + SEND NOTIFICATION
+# -----------------------------------------
 @router.post("/createtask", response_model=TaskResponse, status_code=status.HTTP_201_CREATED)
-async def create_task(payload: TaskCreate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+async def create_task(
+    payload: TaskCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
     # Validate assigned user
     assigned_user = None
     if payload.assignedTo:
         assigned_user = db.query(User).filter(User.id == payload.assignedTo).first()
         if not assigned_user:
-            raise HTTPException(status_code=404, detail="Assigned user not found")            
+            raise HTTPException(status_code=404, detail="Assigned user not found")
 
+    # Build task data
     task_data = {
         "title": payload.title,
         "description": payload.description,
-        "priority": payload.priority.value or "Medium",
-        "status": payload.status.value or "Not started",
+        "priority": payload.priority.value if hasattr(payload.priority, "value") else payload.priority,
+        "status": payload.status.value if hasattr(payload.status, "value") else payload.status,
         "due_date": payload.dueDate,
         "created_by": current_user.id,
         "assigned_to": payload.assignedTo
@@ -67,39 +87,48 @@ async def create_task(payload: TaskCreate, db: Session = Depends(get_db), curren
 
     # Create task
     db_task = Task(**task_data)
-
     db.add(db_task)
     db.commit()
     db.refresh(db_task)
 
-    # ✅ Broadcast to all connected WebSocket clients
-    # if payload.assignedTo:
-    #     await broadcast_notification({
-    #         "event": "new_task",
-    #         "task_id": db_task.id,
-    #         "title": db_task.title,
-    #         "priority": db_task.priority,
-    #         "assigned_to": payload.assignedTo,
-    #         "created_at": db_task.created_at.isoformat(),
-    #     })
+    # -----------------------------------------
+    # 🔔 SEND WEBSOCKET NOTIFICATION (FIXED)
+    # -----------------------------------------
+    if payload.assignedTo:
+        await broadcast_notification(
+            {
+                "type": "task_assignment",
+                "taskId": db_task.id,
+                "title": db_task.title,
+                "priority": db_task.priority.value if hasattr(db_task.priority, "value") else db_task.priority,
+                "assignedBy": f"{current_user.first_name} {current_user.last_name}",
+                "createdAt": db_task.created_at.isoformat(),
+            },
+            target_user_id=payload.assignedTo
+        )
 
-    return db_task
+    return task_to_response(db_task)
 
 
-# ✅ GET all tasks
+# -----------------------------------------
+# GET ALL TASKS
+# -----------------------------------------
 @router.get("/all", response_model=List[TaskResponse])
 def get_all_tasks(db: Session = Depends(get_db)):
     tasks = db.query(Task).order_by(Task.created_at.desc()).all()
     return [task_to_response(t) for t in tasks]
 
 
-# ✅ UPDATE task
+# -----------------------------------------
+# UPDATE TASK
+# -----------------------------------------
 @router.put("/{task_id}", response_model=TaskResponse)
 def update_task(task_id: int, payload: TaskUpdate, db: Session = Depends(get_db)):
     task = db.query(Task).filter(Task.id == task_id).first()
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
 
+    # Apply updates
     for field, value in payload.dict(exclude_unset=True).items():
         if hasattr(task, field):
             setattr(task, field, value)
@@ -109,7 +138,9 @@ def update_task(task_id: int, payload: TaskUpdate, db: Session = Depends(get_db)
     return task_to_response(task)
 
 
-# ✅ DELETE task
+# -----------------------------------------
+# DELETE TASK
+# -----------------------------------------
 @router.delete("/{task_id}", status_code=status.HTTP_200_OK)
 def delete_task(task_id: int, db: Session = Depends(get_db)):
     task = db.query(Task).filter(Task.id == task_id).first()
@@ -121,7 +152,9 @@ def delete_task(task_id: int, db: Session = Depends(get_db)):
     return {"message": "Task deleted successfully"}
 
 
-# ✅ Get tasks assigned to the current user
+# -----------------------------------------
+# GET TASKS ASSIGNED TO CURRENT USER
+# -----------------------------------------
 @router.get("/assigned", response_model=List[TaskResponse])
 def get_assigned_tasks(
     db: Session = Depends(get_db),
@@ -131,13 +164,14 @@ def get_assigned_tasks(
     return [task_to_response(t) for t in tasks]
 
 
-# ✅ Return notifications (for loading existing tasks)
+# -----------------------------------------
+# NOTIFICATION LIST (Optional for UI)
+# -----------------------------------------
 @router.get("/notifications")
 def get_task_notifications(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    """Return tasks assigned to the current user (used as notifications)."""
     tasks = (
         db.query(Task)
         .filter(Task.assigned_to == current_user.id)

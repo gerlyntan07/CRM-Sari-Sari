@@ -28,40 +28,49 @@ export default function SalesHeader({ toggleSidebar }) {
     "/sales/quotes": "Quotes",
     "/sales/targets": "Targets",
     "/sales/reports": "Reports",
+    "/sales/tasks": "Tasks",
   };
 
   const currentTitle = routeTitles[location.pathname] || "Sales Panel";
 
-  // ✅ Load user info
+  // Load user
   useEffect(() => {
     fetchUser();
   }, []);
 
-  // ✅ WebSocket connection
+  // WebSocket listener
   useEffect(() => {
     if (!user) return;
 
     const ws = new WebSocket(`ws://localhost:8000/ws/notifications?user_id=${user.id}`);
 
-    ws.onopen = () => console.log("✅ WebSocket connected");
+    ws.onopen = () => console.log("WS Connected");
 
     ws.onmessage = (event) => {
       const newNotif = JSON.parse(event.data);
-      console.log("🔔 New WebSocket Notification:", newNotif);
+      console.log("🔔 New Notification:", newNotif);
 
-      // Normalize notification type and title
+      // Normalize notification message types
       switch (newNotif.type) {
         case "territory_assignment":
           newNotif.title = `You have been assigned to ${newNotif.territoryName}`;
           break;
+
         case "lead_assignment":
         case "lead_assigned":
-          newNotif.type = "lead_assignment"; // normalize
+          newNotif.type = "lead_assignment";
           newNotif.title = `New lead assigned: ${newNotif.leadName || newNotif.company}`;
           break;
+
         case "lead_update":
           newNotif.title = `Lead updated: ${newNotif.leadName || newNotif.company}`;
           break;
+
+        // ⭐ NEW TASK NOTIFICATION
+        case "task_assignment":
+          newNotif.title = `New Task Assigned: ${newNotif.title}`;
+          break;
+
         default:
           newNotif.title = newNotif.title || "New Notification";
       }
@@ -70,11 +79,11 @@ export default function SalesHeader({ toggleSidebar }) {
       setUnreadCount((prev) => prev + 1);
     };
 
-    ws.onclose = () => console.log("❌ WebSocket disconnected");
+    ws.onclose = () => console.log("WS Disconnected");
     return () => ws.close();
   }, [user]);
 
-  // ✅ Close dropdowns when clicking outside
+  // Close dropdowns when clicking outside
   useEffect(() => {
     function handleClickOutside(event) {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
@@ -88,30 +97,29 @@ export default function SalesHeader({ toggleSidebar }) {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // ✅ Handle notification click
+  // Handle clicking a notification
   const handleNotificationClick = (notif) => {
-    console.log("Clicked notification:", notif);
+    console.log("Clicked:", notif);
 
     // Mark as read
     setNotifications((prev) =>
-      prev.map((n) => (n.id === notif.id ? { ...n, read: true } : n))
+      prev.map((n) => (n === notif ? { ...n, read: true } : n))
     );
     setUnreadCount((prev) => (prev > 0 ? prev - 1 : 0));
 
-    // Navigate based on type
+    // Routing
     switch (notif.type) {
+      case "task_assignment":
+        navigate(`/sales/hub/${notif.taskId || notif.task_id || ""}`);
+        break;
+
       case "territory_assignment":
         navigate("/sales/overview");
         break;
 
       case "lead_assignment":
-      case "lead_assigned":
       case "lead_update":
-        if (notif.leadId || notif.lead_id) {
-          navigate(`/sales/leads/${notif.leadId || notif.lead_id}`);
-        } else {
-          navigate("/sales/leads");
-        }
+        navigate(`/sales/leads/${notif.leadId || notif.lead_id || ""}`);
         break;
 
       default:
@@ -169,9 +177,9 @@ export default function SalesHeader({ toggleSidebar }) {
 
               <div className="max-h-80 overflow-y-auto">
                 {notifications.length > 0 ? (
-                  notifications.map((n) => (
+                  notifications.map((n, idx) => (
                     <div
-                      key={n.id || Math.random()}
+                      key={idx}
                       onClick={() => handleNotificationClick(n)}
                       className={`p-4 border-b hover:bg-gray-50 cursor-pointer transition ${
                         n.read ? "bg-gray-50" : "bg-white"
@@ -181,23 +189,30 @@ export default function SalesHeader({ toggleSidebar }) {
                         <span
                           className={`text-[10px] px-2 py-1 rounded-full font-semibold uppercase
                             ${
-                              n.type === "territory_assignment"
-                                ? "bg-blue-100 text-blue-700"
+                              n.type === "task_assignment"
+                                ? "bg-purple-100 text-purple-700"
                                 : n.type === "lead_assignment" || n.type === "lead_update"
                                 ? "bg-green-100 text-green-700"
+                                : n.type === "territory_assignment"
+                                ? "bg-blue-100 text-blue-700"
                                 : "bg-gray-100 text-gray-700"
                             }`}
                         >
-                          {n.type === "territory_assignment"
-                            ? "Territory"
+                          {n.type === "task_assignment"
+                            ? "Task"
                             : n.type === "lead_assignment"
                             ? "Lead"
-                            : "Update"}
+                            : n.type === "lead_update"
+                            ? "Lead Update"
+                            : "Info"}
                         </span>
                         {!n.read && <span className="w-2 h-2 rounded-full bg-red-500" />}
                       </div>
+
                       <div className="flex flex-col">
-                        <span className="font-medium text-gray-800 text-sm">{n.title}</span>
+                        <span className="font-medium text-gray-800 text-sm">
+                          {n.title}
+                        </span>
                         <span className="text-xs text-gray-600 mt-0.5">
                           {n.assignedBy ? `Assigned by ${n.assignedBy}` : "System"}
                         </span>

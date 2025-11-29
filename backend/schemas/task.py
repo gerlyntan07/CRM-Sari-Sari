@@ -1,33 +1,67 @@
 from pydantic import BaseModel
-from typing import Optional
+from typing import Optional, Union
 from datetime import datetime
-from enum import Enum
 from models.task import TaskStatus, TaskPriority
+
+
+# ------------------------------
+# BASE
+# ------------------------------
 class TaskBase(BaseModel):
     title: str
     description: Optional[str] = None
     type: Optional[str] = None
-    priority: Optional[TaskPriority]
-    status: Optional[TaskStatus]
+
+    priority: Optional[TaskPriority] = None
+    status: Optional[TaskStatus] = None
+
     dueDate: Optional[datetime] = None
     dateAssigned: Optional[datetime] = None
-    assignedTo: Optional[str] = None   # full name string from response
-    relatedTo: Optional[str] = None
+
+    # IDs must be INT, not string
+    assignedTo: Optional[int] = None      # <-- FIXED
+    relatedTo: Optional[int] = None       # <-- FIXED
+
     notes: Optional[str] = None
 
-class TaskCreate(TaskBase):
-    assignedTo: int
-    description: Optional[str] = None
-    dueDate: datetime
-    priority: TaskPriority
-    relatedTo: int
-    status: TaskStatus
+
+# ------------------------------
+# CREATE
+# ------------------------------
+class TaskCreate(BaseModel):
     title: str
+    description: Optional[str] = None
     type: str
 
-class TaskUpdate(TaskBase):
-    pass
+    priority: TaskPriority
+    status: TaskStatus
 
+    dueDate: datetime
+    assignedTo: Optional[int] = None      # <-- FIXED
+    relatedTo: Optional[int] = None       # <-- FIXED
+
+
+# ------------------------------
+# UPDATE
+# ------------------------------
+class TaskUpdate(BaseModel):
+    title: Optional[str] = None
+    description: Optional[str] = None
+    type: Optional[str] = None
+
+    priority: Optional[TaskPriority] = None
+    status: Optional[TaskStatus] = None
+
+    dueDate: Optional[datetime] = None
+    assignedTo: Optional[int] = None      # <-- FIXED
+    relatedTo: Optional[int] = None       # <-- FIXED
+
+    notes: Optional[str] = None
+
+
+# ------------------------------
+# RESPONSE
+# ------------------------------
 class TaskResponse(TaskBase):
     id: int
     createdAt: Optional[datetime] = None

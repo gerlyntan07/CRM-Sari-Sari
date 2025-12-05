@@ -55,7 +55,7 @@ def create_deal(
     db.refresh(new_deal)
 
     # Step 2: Generate and save deal_id like D25-00001
-    new_deal.generate_deal_id()
+    new_deal.generate_deal_id(db)
     db.commit()
     db.refresh(new_deal)
 

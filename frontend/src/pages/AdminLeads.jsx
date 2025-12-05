@@ -14,7 +14,6 @@ import {
   FiXCircle,
 } from "react-icons/fi";
 import AdminLeadsInformation from "../components/AdminLeadsInformation";
-import AdminLeadsConvert from "../components/AdminLeadsConvert";
 import PaginationControls from "../components/PaginationControls.jsx";
 import { toast } from "react-toastify";
 import api from "../api";
@@ -1093,34 +1092,9 @@ export default function AdminLeads() {
           fetchLeads={fetchLeads}
           setSelectedLead={setSelectedLead}
           onEdit={handleEditClick}
-          onDelete={handleDelete}
-          onConvert={(lead) => {
-            // Close lead details modal and open convert modal
-            setSelectedLead(null);
-            setLeadToConvert(lead);
-            setConvertModalOpen(true);
-          }}
+          onDelete={handleDelete} 
         />
-      )}
-
-      {/* Convert Lead Modal - Rendered at parent level so it persists */}
-      {convertModalOpen && leadToConvert && (
-        <AdminLeadsConvert
-          isOpen={convertModalOpen}
-          onClose={() => {
-            setConvertModalOpen(false);
-            setLeadToConvert(null);
-          }}
-          lead={leadToConvert}
-          accountData={convertAccountData}
-          contactData={convertContactData}
-          dealData={convertDealData}
-          setAccountData={setConvertAccountData}
-          setContactData={setConvertContactData}
-          setDealData={setConvertDealData}
-          fetchLeads={fetchLeads}
-        />
-      )}
+      )}      
     </div>
   );
 }

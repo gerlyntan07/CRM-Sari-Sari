@@ -5,6 +5,7 @@ from sqlalchemy import (
 from sqlalchemy.orm import relationship
 from database import Base
 from enum import Enum
+from .auth import User
 
 class DealStage(str, Enum):
     PROSPECTING = 'PROSPECTING'
@@ -30,7 +31,6 @@ class Deal(Base):
     __tablename__ = "deals"
 
     id = Column(Integer, primary_key=True, index=True)
-    # Example format: D25-00001
     deal_id = Column(String(20), unique=True, index=True, nullable=True)
     name = Column(String, index=True, nullable=False)
 
@@ -59,13 +59,43 @@ class Deal(Base):
     tasks = relationship("Task", back_populates="deal", cascade="all, delete-orphan")
     calls = relationship("Call", back_populates="deal", cascade="all, delete-orphan")
 
-    def generate_deal_id(self, year_prefix: str = None):
-        """Generates a unique deal ID like D25-00001"""
+    def generate_deal_id(self, db, year_prefix: str = None):
+        """
+        Generates deal ID: DYY-companyID-00001
+        Increment resets per company.
+        """
+        from datetime import datetime
+
         if not self.id:
             raise ValueError("Deal must be committed before generating deal_id (requires ID).")
 
-        from datetime import datetime
+        # Determine year
         year = year_prefix or datetime.now().strftime("%y")
-        formatted_id = f"D{year}-{self.id:05d}"
-        self.deal_id = formatted_id
+
+        # Get company ID of the creator
+        creator = db.query(User).filter(User.id == self.created_by).first()
+        if not creator or not creator.related_to_company:
+            raise ValueError("Creator must belong to a company to generate deal_id.")
+
+        company_id = creator.related_to_company
+
+        # Get last deal for this company
+        last_deal = (
+            db.query(Deal)
+            .join(User, Deal.created_by == User.id)
+            .filter(User.related_to_company == company_id)
+            .filter(Deal.deal_id.like(f"D{year}-{company_id}-%"))
+            .order_by(Deal.deal_id.desc())
+            .first()
+        )
+
+        if last_deal and last_deal.deal_id:
+            last_number = int(last_deal.deal_id.split("-")[-1])
+            next_number = last_number + 1
+        else:
+            next_number = 1
+
+        # Format: D25-3-00001
+        self.deal_id = f"D{year}-{company_id}-{next_number:05d}"
+
         return self.deal_id

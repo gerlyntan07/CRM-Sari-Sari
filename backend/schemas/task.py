@@ -1,7 +1,6 @@
 from pydantic import BaseModel, EmailStr
 from typing import Optional, Union
 from datetime import datetime
-from models.task import TaskStatus, TaskPriority
 
 
 # ------------------------------
@@ -12,8 +11,8 @@ class TaskBase(BaseModel):
     description: Optional[str] = None
     type: Optional[str] = None
 
-    priority: Optional[TaskPriority] = None
-    status: Optional[TaskStatus] = None
+    priority: str
+    status: str
 
     dueDate: Optional[datetime] = None
     dateAssigned: Optional[datetime] = None
@@ -33,8 +32,8 @@ class TaskCreate(BaseModel):
     description: Optional[str] = None
     type: str
 
-    priority: TaskPriority
-    status: TaskStatus
+    priority: str
+    status: str
 
     dueDate: datetime
     assignedTo: Optional[int] = None      # <-- FIXED
@@ -49,8 +48,8 @@ class TaskUpdate(BaseModel):
     description: Optional[str] = None
     type: Optional[str] = None
 
-    priority: Optional[TaskPriority] = None
-    status: Optional[TaskStatus] = None
+    priority: str
+    status: str
 
     dueDate: Optional[datetime] = None
     assignedTo: Optional[int] = None      # <-- FIXED
@@ -103,8 +102,8 @@ class TaskFetch(BaseModel):
     title: str
     description: Optional[str] = None
     type: Optional[str] = None
-    priority: Optional[TaskPriority]
-    status: Optional[TaskStatus]
+    priority: str
+    status: str
     due_date: Optional[datetime] = None
     created_at: Optional[datetime] = None
     task_creator: Optional[UserBase] = None

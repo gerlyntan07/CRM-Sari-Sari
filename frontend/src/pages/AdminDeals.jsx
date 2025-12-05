@@ -600,6 +600,7 @@ export default function AdminDeals() {
                 <table className="w-full min-w-[500px] border border-gray-200 rounded-lg bg-white shadow-sm text-sm">
                     <thead className="bg-gray-100 text-left text-gray-600 text-sm tracking-wide font-semibold">
                         <tr>
+                            <th className="py-3 px-4">Deal ID</th>
                             <th className="py-3 px-4 truncate">Deal Name</th>
                             <th className="py-3 px-4">Account</th>
                             <th className="py-3 px-4">Contact</th>
@@ -620,6 +621,10 @@ export default function AdminDeals() {
                                         setSelectedDeal({ ...deal });
                                     }}
                                 >
+                                    <td className="py-3 px-4 text-gray-800 font-medium text-sm">
+  {deal.deal_id ? deal.deal_id.replace(/D(\d+)-\d+-/, "D$1-") : "--"}
+</td>
+
                                     <td className="py-3 px-4">
                                         <div>
                                             <div className="font-medium text-blue-600 hover:underline break-all text-sm">

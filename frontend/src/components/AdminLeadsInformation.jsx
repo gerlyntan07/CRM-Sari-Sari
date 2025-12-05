@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { HiX } from "react-icons/hi";
 import { FiPhone, FiMail, FiCalendar, FiEdit2, FiTrash2 } from "react-icons/fi";
-import AdminLeadsConvert from "./AdminLeadsConvert";
 import { toast } from 'react-toastify';
 import { useNavigate, useParams } from "react-router-dom";
 import api from "../api";
@@ -15,9 +14,8 @@ function Detail({ label, value }) {
   );
 }
 
-export default function AdminLeadsInformation({ lead: leadProp, onBack, fetchLeads, onEdit, onDelete, onConvert, setSelectedLead }) {
+export default function AdminLeadsInformation({ lead: leadProp, onBack, fetchLeads, onEdit, onDelete, setSelectedLead }) {
   const navigate = useNavigate();
-  const [isModalOpen, setIsModalOpen] = useState(false);
   const { leadID } = useParams();
   const [lead, setLead] = useState(leadProp || null);
   const [activeTab, setActiveTab] = useState("Overview");
@@ -27,7 +25,7 @@ export default function AdminLeadsInformation({ lead: leadProp, onBack, fetchLea
   const [accountData, setAccountData] = useState({
     name: "",
     website: '',
-    countryCode: '+63',
+    countryCode: '',
     phone_number: '',
     billing_address: '',
     shipping_address: '',
@@ -142,24 +140,24 @@ export default function AdminLeadsInformation({ lead: leadProp, onBack, fetchLea
       const res = await api.put(`/leads/${lead.id}/update/status`, { status: selectedStatus })
       console.log(res.data)
       toast.success('Lead status updated successfully')
-      
+
       // Update the lead state with new status
       const updatedLead = {
         ...lead,
         status: res.data.status
       };
       setLead(updatedLead);
-      
+
       // Update the parent's selectedLead if setSelectedLead is provided
       if (setSelectedLead) {
         setSelectedLead(updatedLead);
       }
-      
+
       // Update the parent's leads list in real-time
       if (fetchLeads) {
         fetchLeads();
       }
-      
+
       // Close the popup
       if (onBack) {
         onBack();
@@ -167,6 +165,100 @@ export default function AdminLeadsInformation({ lead: leadProp, onBack, fetchLea
     } catch (err) {
       console.error(err)
       toast.error('Failed to update lead status')
+    }
+  }
+
+  const handleConvert = async (lead) => {
+
+    const newAccount = {
+      ...accountData,
+      assigned_to: lead.assigned_to?.id,
+      billing_address: lead.address,
+      shipping_address: lead.address,
+      created_by: lead.creator?.id,
+      industry: null,
+      name: lead.company_name,
+      phone_number: lead.work_phone,
+      status: 'Prospect',
+      territory_id: lead.assigned_to?.territory?.id,
+      website: ''
+    }
+
+    console.log(`Account data: `, newAccount)
+    console.log(`Contact data: `, contactData)
+    console.log(`Deal data: `, dealData)
+    console.log(`Lead data: `, lead);
+
+    try {
+      const res = await api.post(`/accounts/convertedLead`, newAccount);
+      const accInsertId = res.data.id;
+
+      const newContact = {
+        ...contactData,
+        account_id: accInsertId,
+        assigned_to: lead.assigned_to?.id,
+        created_by: lead.creator?.id,
+        department: lead.department,
+        email: lead.email,
+        first_name: lead.first_name,
+        mobile_phone_1: lead.mobile_phone_1,
+        mobile_phone_2: lead.mobile_phone_2,
+        notes: lead.notes,
+        title: lead.title,
+        work_phone: lead.work_phone,
+      }
+
+      const res1 = await api.post(`/contacts/convertedLead`, newContact);
+      const contactInsertId = res1.data.id;
+
+      const handleProbability = () => {
+        switch (dealData.stage) {
+          case 'PROSPECTING':
+            return 10;
+          case 'QUALIFICATION':
+            return 25;
+          case 'PROPOSAL':
+            return 60;
+          case 'NEGOTIATION':
+            return 80;
+          case 'CLOSED_WON':
+            return 100;
+          case 'CLOSED_LOST':
+            return 0;
+          default:
+            return 0;
+        }
+      };
+
+      const dealAmount = dealData.amount && dealData.amount !== ''
+        ? parseFloat(dealData.amount)
+        : 0.0;
+
+      const newDealData = {
+        ...dealData,
+        account_id: accInsertId,
+        assigned_to: lead.assigned_to?.id,
+        created_by: lead.creator?.id,
+        primary_contact_id: contactInsertId,
+        probability: handleProbability(),
+        stage: 'Prospecting'
+      }
+      const res2 = await api.post(`/deals/convertedLead`, newDealData);
+
+      const res3 = await api.put(`/leads/convert/${lead.id}`);
+
+      if (setSelectedLead) {
+        setSelectedLead(null);        
+      }
+
+      fetchLeads(); // Refresh the leads list after conversion
+      toast.success("Lead converted successfully!");
+      onBack();
+
+    } catch (error) {
+      console.error("Error during conversion:", error);
+      const errorMessage = error.response?.data?.detail || error.message || "Failed to convert lead. Please try again.";
+      toast.error(errorMessage);
     }
   }
 
@@ -238,9 +330,10 @@ export default function AdminLeadsInformation({ lead: leadProp, onBack, fetchLea
                 onClick={() => {
                   if (lead.status === "Qualified") {
                     // Call onConvert to open convert modal in parent and close this modal
-                    if (onConvert) {
-                      onConvert(lead);
-                    }
+                    // if (onConvert) {
+                    //   onConvert(lead);
+                    // }
+                    handleConvert(lead)
                   } else {
                     toast.warn("Cannot convert lead. Only leads with 'Qualified' status can be converted.");
                   }
@@ -476,29 +569,15 @@ export default function AdminLeadsInformation({ lead: leadProp, onBack, fetchLea
                   onClick={updateStatus}
                   disabled={selectedStatus === lead.status}
                   className={`w-full py-1.5 rounded-md text-sm transition focus:outline-none focus:ring-2 ${selectedStatus === lead.status
-                      ? "bg-gray-400 cursor-not-allowed text-white"
-                      : "bg-gray-900 text-white hover:bg-gray-800 focus:ring-gray-400"
+                    ? "bg-gray-400 cursor-not-allowed text-white"
+                    : "bg-gray-900 text-white hover:bg-gray-800 focus:ring-gray-400"
                     }`}
                 >
                   Update
                 </button>
               </div>
             </div>
-          </div>
-
-          {/* Convert Lead Popup */}
-          <AdminLeadsConvert
-            isOpen={isModalOpen}
-            onClose={() => setIsModalOpen(false)}
-            lead={lead}
-            accountData={accountData}
-            contactData={contactData}
-            dealData={dealData}
-            setAccountData={setAccountData}
-            setContactData={setContactData}
-            setDealData={setDealData}
-            fetchLeads={fetchLeads}
-          />
+          </div>        
 
         </div>
       </div>

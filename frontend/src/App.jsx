@@ -34,7 +34,6 @@ import AdminTask from "./pages/AdminTask";
 import AdminTerritory from "./pages/AdminTerritory";
 import AdminCalls from "./pages/AdminCalls";
 import AdminMeeting from "./pages/AdminMeeting";
-import AdminLeadsConvert from "./components/AdminLeadsConvert";
 
 // 🔹 Sales layout + pages
 import SalesPanel from "./components/SalesPanel";
@@ -154,7 +153,6 @@ function App() {
           <Route path="calls/info" element={<AdminCalls />} />
           <Route path="meetings" element={<AdminMeeting />} />
           <Route path="meetings/info" element={<AdminMeeting />} />
-          <Route path="leads/convert" element={<AdminLeadsConvert />} />
         </Route>
 
         {/* ================= Sales Layout ================= */}

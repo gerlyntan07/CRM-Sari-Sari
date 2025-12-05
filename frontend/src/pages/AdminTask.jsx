@@ -59,7 +59,7 @@ const buildTaskPayload = (data) => {
     type: data.type || "Call",
     priority: data.priority || "Low",
     status: data.status || "To Do",
-    due_date: data.dueDate ? data.dueDate : null,
+    dueDate: data.dueDate ? data.dueDate : null,
     assigned_to: assignedToValue,
     related_to: trimmedRelated || null,
     notes: trimmedNotes,
@@ -244,6 +244,7 @@ export default function AdminTask() {
   const handleSaveTask = async (newTask) => { 
       // newTask is the raw form data from TaskModal
       const requestPayload = buildTaskPayload(newTask);
+      console.log(requestPayload)
       
       try {
           if (selectedTask && !viewMode) {
@@ -251,7 +252,7 @@ export default function AdminTask() {
               await api.put(`/tasks/${selectedTask.id}`, requestPayload);
               toast.success(`Task "${selectedTask.title}" updated successfully.`);
           } else {
-              // Create new task (Assuming POST endpoint is /tasks/createtask)
+              // Create new task (Assuming POST endpoint is /tasks/createtask)              
               await api.post(`/tasks/createtask`, requestPayload);
               toast.success("Task created successfully.");
           }

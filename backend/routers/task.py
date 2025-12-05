@@ -9,6 +9,7 @@ from models.auth import User
 from schemas.task import TaskCreate, TaskUpdate, TaskResponse, TaskFetch
 from .auth_utils import get_current_user
 from routers.ws_notification import broadcast_notification  # WebSocket broadcaster
+from models.task import TaskPriority, TaskStatus
 
 router = APIRouter(prefix="/tasks", tags=["Tasks"])
 
@@ -63,13 +64,16 @@ async def create_task(
         assigned_user = db.query(User).filter(User.id == payload.assignedTo).first()
         if not assigned_user:
             raise HTTPException(status_code=404, detail="Assigned user not found")
+    
+    priority_value = TaskPriority(payload.priority).value
+    status_value = TaskStatus(payload.status).value
 
     # Build task data
     task_data = {
         "title": payload.title,
         "description": payload.description,
-        "priority": payload.priority.value if hasattr(payload.priority, "value") else payload.priority,
-        "status": payload.status.value if hasattr(payload.status, "value") else payload.status,
+        "priority": priority_value,
+        "status": status_value,
         "due_date": payload.dueDate,
         "created_by": current_user.id,
         "assigned_to": payload.assignedTo
@@ -100,7 +104,7 @@ async def create_task(
                 "type": "task_assignment",
                 "taskId": db_task.id,
                 "title": db_task.title,
-                "priority": db_task.priority.value if hasattr(db_task.priority, "value") else db_task.priority,
+                "priority": priority_value,
                 "assignedBy": f"{current_user.first_name} {current_user.last_name}",
                 "createdAt": db_task.created_at.isoformat(),
             },

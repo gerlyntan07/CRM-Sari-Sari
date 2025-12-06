@@ -91,8 +91,8 @@ export default function AdminCalls() {
   const navigate = useNavigate();
   const location = useLocation();
   const [searchParams] = useSearchParams();
-  const callIdFromQuery = searchParams.get('id');
-  const isInfoRoute = location.pathname === '/admin/calls/info';
+  const callIdFromQuery = searchParams.get("id");
+  const isInfoRoute = location.pathname === "/admin/calls/info";
 
   useEffect(() => {
     document.title = "Calls | Sari-Sari CRM";
@@ -119,6 +119,23 @@ export default function AdminCalls() {
   const [activeTab, setActiveTab] = useState("Overview");
   const [selectedStatus, setSelectedStatus] = useState("");
   const [updatingStatus, setUpdatingStatus] = useState(false);
+
+  // 👉 NEW: open Add Call modal when coming from Leads (or other pages)
+  useEffect(() => {
+    if (location.state && location.state.openCallModal) {
+      setShowModal(true);
+
+      if (location.state.initialCallData) {
+        setFormData((prev) => ({
+          ...prev,
+          ...location.state.initialCallData,
+        }));
+      }
+
+      // Clear state so back/refresh doesn't reopen the modal
+      navigate(location.pathname, { replace: true });
+    }
+  }, [location, navigate]);
 
   const total = calls.length;
   const pending = useMemo(
@@ -242,21 +259,21 @@ export default function AdminCalls() {
   const fetchCalls = async () => {
     // Check if we have data from sessionStorage (instant access from dashboard)
     if (callIdFromQuery && isInfoRoute) {
-      const storedData = sessionStorage.getItem('callDetailData');
+      const storedData = sessionStorage.getItem("callDetailData");
       if (storedData) {
         try {
           const callData = JSON.parse(storedData);
           if (callData.id === parseInt(callIdFromQuery)) {
             setSelectedCall(callData);
-            sessionStorage.removeItem('callDetailData'); // Clean up
+            sessionStorage.removeItem("callDetailData"); // Clean up
             return; // Don't fetch all calls, use stored data
           }
         } catch (e) {
-          console.error('Error parsing stored call data:', e);
+          console.error("Error parsing stored call data:", e);
         }
       }
     }
-    
+
     setCallsLoading(true);
     try {
       const res = await api.get(`/calls/admin/fetch-all`);
@@ -268,10 +285,10 @@ export default function AdminCalls() {
         return bDate - aDate;
       });
       setCalls(sorted);
-      
+
       // If there's a call ID in query params, find and select it
       if (callIdFromQuery && !selectedCall) {
-        const call = sorted.find(c => c.id === parseInt(callIdFromQuery));
+        const call = sorted.find((c) => c.id === parseInt(callIdFromQuery));
         if (call) {
           setSelectedCall(call);
         }
@@ -280,7 +297,9 @@ export default function AdminCalls() {
       console.error(err);
       setCalls([]);
       if (err.response?.status === 403) {
-        toast.error("Permission denied. Only CEO, Admin, or Group Manager can access this page.");
+        toast.error(
+          "Permission denied. Only CEO, Admin, or Group Manager can access this page."
+        );
       } else {
         toast.error("Failed to fetch calls. Please try again later.");
       }
@@ -306,15 +325,15 @@ export default function AdminCalls() {
 
     return calls.filter((call) => {
       // Format due_date for search
-      const formattedDueDate = call.due_date 
-        ? (typeof call.due_date === 'string' 
-            ? new Date(call.due_date).toLocaleDateString('en-US', {
-                month: '2-digit',
-                day: '2-digit',
-                year: 'numeric'
-              })
-            : call.due_date)
-        : '';
+      const formattedDueDate = call.due_date
+        ? typeof call.due_date === "string"
+          ? new Date(call.due_date).toLocaleDateString("en-US", {
+              month: "2-digit",
+              day: "2-digit",
+              year: "numeric",
+            })
+          : call.due_date
+        : "";
 
       // Search across all visible table fields
       const searchFields = [
@@ -325,15 +344,15 @@ export default function AdminCalls() {
         call?.assigned_to,
         call?.related_to,
         call?.related_type,
-        call?.priority ? formatStatusLabel(call.priority) : '',
-        call?.status ? formatStatusLabel(call.status) : '',
+        call?.priority ? formatStatusLabel(call.priority) : "",
+        call?.status ? formatStatusLabel(call.status) : "",
         formattedDueDate,
       ];
 
       const matchesSearch =
         normalizedQuery === "" ||
         searchFields.some((field) => {
-          if (field === null || field === undefined || field === '') return false;
+          if (field === null || field === undefined || field === "") return false;
           return field.toString().toLowerCase().includes(normalizedQuery);
         });
 
@@ -343,7 +362,8 @@ export default function AdminCalls() {
 
       const matchesUser =
         normalizedUserFilter === "Filter by Users" ||
-        (call.assigned_to && call.assigned_to.toLowerCase() === normalizedUserFilter.toLowerCase());
+        (call.assigned_to &&
+          call.assigned_to.toLowerCase() === normalizedUserFilter.toLowerCase());
 
       const matchesPriority =
         normalizedPriorityFilter === "FILTER BY PRIORITY" ||
@@ -364,10 +384,8 @@ export default function AdminCalls() {
 
   useEffect(() => {
     setCurrentPage((prev) => {
-      const maxPage = Math.max(
-        1,
-        Math.ceil(filteredCalls.length / ITEMS_PER_PAGE) || 1
-      );
+      const maxPage =
+        Math.max(1, Math.ceil(filteredCalls.length / ITEMS_PER_PAGE)) || 1;
       return prev > maxPage ? maxPage : prev;
     });
   }, [filteredCalls.length]);
@@ -381,7 +399,8 @@ export default function AdminCalls() {
     filteredCalls.length === 0 ? 0 : (currentPage - 1) * ITEMS_PER_PAGE + 1;
   const pageEnd = Math.min(currentPage * ITEMS_PER_PAGE, filteredCalls.length);
 
-  const handlePrevPage = () => setCurrentPage((prev) => Math.max(prev - 1, 1));
+  const handlePrevPage = () =>
+    setCurrentPage((prev) => Math.max(prev - 1, 1));
   const handleNextPage = () =>
     setCurrentPage((prev) => Math.min(prev + 1, totalPages));
 
@@ -407,9 +426,11 @@ export default function AdminCalls() {
       const response = await api.put(`/calls/${selectedCall.id}`, {
         status: normalizedNewStatus,
       });
-      
-      toast.success(`Call status updated to ${formatStatusLabel(normalizedNewStatus)}`);
-      
+
+      toast.success(
+        `Call status updated to ${formatStatusLabel(normalizedNewStatus)}`
+      );
+
       // Update calls list in real-time without reloading
       setCalls((prevCalls) => {
         return prevCalls.map((call) => {
@@ -422,12 +443,14 @@ export default function AdminCalls() {
           return call;
         });
       });
-      
+
       // Close the popup after successful update
       setSelectedCall(null);
     } catch (err) {
       console.error(err);
-      const message = err.response?.data?.detail || "Failed to update call status. Please try again.";
+      const message =
+        err.response?.data?.detail ||
+        "Failed to update call status. Please try again.";
       toast.error(message);
     } finally {
       setUpdatingStatus(false);
@@ -438,7 +461,7 @@ export default function AdminCalls() {
     setSelectedCall(null);
     // If accessed from dashboard via query param, navigate back
     if (callIdFromQuery) {
-      navigate('/admin/dashboard');
+      navigate("/admin/dashboard");
     }
   };
 
@@ -475,7 +498,7 @@ export default function AdminCalls() {
   // Get Related To options based on Related Type for dropdown
   const getRelatedToOptions = () => {
     if (!formData.related_type) return [];
-    
+
     switch (formData.related_type) {
       case "Account":
         return accounts.map((account) => ({
@@ -484,7 +507,9 @@ export default function AdminCalls() {
         }));
       case "Contact":
         return contacts.map((contact) => {
-          const fullName = `${contact.first_name || ""} ${contact.last_name || ""}`.trim();
+          const fullName = `${contact.first_name || ""} ${
+            contact.last_name || ""
+          }`.trim();
           return {
             value: String(contact.id),
             label: fullName || "Unnamed Contact",
@@ -492,7 +517,9 @@ export default function AdminCalls() {
         });
       case "Lead":
         return leads.map((lead) => {
-          const fullName = `${lead.first_name || ""} ${lead.last_name || ""}`.trim();
+          const fullName = `${lead.first_name || ""} ${
+            lead.last_name || ""
+          }`.trim();
           return {
             value: String(lead.id),
             label: fullName || "Unnamed Lead",
@@ -515,34 +542,49 @@ export default function AdminCalls() {
         ...prev,
         [name]: value,
       };
-      
+
       // Auto-fill phone number only when primary contact is selected
       // DON'T auto-set Related Type - let user select manually
       if (name === "primary_contact" && value) {
         const selectedContact = contacts.find((c) => String(c.id) === value);
         if (selectedContact) {
           // Auto-fill phone number only
-          updated.phone_number = selectedContact.work_phone || selectedContact.mobile_phone_1 || "";
-          
+          updated.phone_number =
+            selectedContact.work_phone || selectedContact.mobile_phone_1 || "";
+
           // If Related Type is already selected, auto-select connected Related To in dropdown
           if (updated.related_type) {
             if (updated.related_type === "Contact") {
               // Auto-select the primary contact in Related To dropdown
               updated.related_to = String(selectedContact.id);
-            } else if (updated.related_type === "Account" && selectedContact.account_id) {
+            } else if (
+              updated.related_type === "Account" &&
+              selectedContact.account_id
+            ) {
               // Auto-select the contact's account in Related To dropdown
               updated.related_to = String(selectedContact.account_id);
             } else if (updated.related_type === "Lead") {
               // Find lead connected to contact (by matching email or name)
               const contactEmail = selectedContact.email?.toLowerCase();
-              const contactName = `${selectedContact.first_name || ""} ${selectedContact.last_name || ""}`.trim().toLowerCase();
-              
+              const contactName = `${selectedContact.first_name || ""} ${
+                selectedContact.last_name || ""
+              }`
+                .trim()
+                .toLowerCase();
+
               const connectedLead = leads.find((lead) => {
                 const leadEmail = lead.email?.toLowerCase();
-                const leadName = `${lead.first_name || ""} ${lead.last_name || ""}`.trim().toLowerCase();
-                return (leadEmail && leadEmail === contactEmail) || (leadName && leadName === contactName);
+                const leadName = `${lead.first_name || ""} ${
+                  lead.last_name || ""
+                }`
+                  .trim()
+                  .toLowerCase();
+                return (
+                  (leadEmail && leadEmail === contactEmail) ||
+                  (leadName && leadName === contactName)
+                );
               });
-              
+
               if (connectedLead) {
                 updated.related_to = String(connectedLead.id);
               } else {
@@ -551,7 +593,9 @@ export default function AdminCalls() {
             } else if (updated.related_type === "Deal") {
               // Find deal connected to contact's account
               if (selectedContact.account_id) {
-                const connectedDeal = deals.find((deal) => deal.account_id === selectedContact.account_id);
+                const connectedDeal = deals.find(
+                  (deal) => deal.account_id === selectedContact.account_id
+                );
                 if (connectedDeal) {
                   updated.related_to = String(connectedDeal.id);
                 } else {
@@ -564,15 +608,17 @@ export default function AdminCalls() {
           }
         }
       }
-      
+
       // When Related Type is changed, auto-select connected item if Primary Contact exists
       if (name === "related_type") {
         // Clear Related To when changing Related Type
         updated.related_to = "";
-        
+
         // If Primary Contact exists, auto-select connected item
         if (updated.primary_contact) {
-          const selectedContact = contacts.find((c) => String(c.id) === updated.primary_contact);
+          const selectedContact = contacts.find(
+            (c) => String(c.id) === updated.primary_contact
+          );
           if (selectedContact) {
             if (value === "Contact") {
               // Auto-select the primary contact
@@ -583,21 +629,34 @@ export default function AdminCalls() {
             } else if (value === "Lead") {
               // Find and auto-select connected lead
               const contactEmail = selectedContact.email?.toLowerCase();
-              const contactName = `${selectedContact.first_name || ""} ${selectedContact.last_name || ""}`.trim().toLowerCase();
-              
+              const contactName = `${selectedContact.first_name || ""} ${
+                selectedContact.last_name || ""
+              }`
+                .trim()
+                .toLowerCase();
+
               const connectedLead = leads.find((lead) => {
                 const leadEmail = lead.email?.toLowerCase();
-                const leadName = `${lead.first_name || ""} ${lead.last_name || ""}`.trim().toLowerCase();
-                return (leadEmail && leadEmail === contactEmail) || (leadName && leadName === contactName);
+                const leadName = `${lead.first_name || ""} ${
+                  lead.last_name || ""
+                }`
+                  .trim()
+                  .toLowerCase();
+                return (
+                  (leadEmail && leadEmail === contactEmail) ||
+                  (leadName && leadName === contactName)
+                );
               });
-              
+
               if (connectedLead) {
                 updated.related_to = String(connectedLead.id);
               }
             } else if (value === "Deal") {
               // Find and auto-select connected deal
               if (selectedContact.account_id) {
-                const connectedDeal = deals.find((deal) => deal.account_id === selectedContact.account_id);
+                const connectedDeal = deals.find(
+                  (deal) => deal.account_id === selectedContact.account_id
+                );
                 if (connectedDeal) {
                   updated.related_to = String(connectedDeal.id);
                 }
@@ -606,12 +665,12 @@ export default function AdminCalls() {
           }
         }
       }
-      
+
       // If primary contact is cleared, optionally clear related fields
       if (name === "primary_contact" && !value) {
         // Don't auto-clear related_type and related_to to allow manual entry
       }
-      
+
       return updated;
     });
   };
@@ -642,7 +701,8 @@ export default function AdminCalls() {
       }
     } catch (err) {
       console.error(err);
-      const defaultMessage = "Failed to create call. Please review the details and try again.";
+      const defaultMessage =
+        "Failed to create call. Please review the details and try again.";
       toast.error(defaultMessage);
       setIsSubmitting(false);
     } finally {
@@ -668,16 +728,23 @@ export default function AdminCalls() {
       return;
     }
 
-    const selectedUser = users.find((u) => String(u.id) === formData.assigned_to);
+    const selectedUser = users.find(
+      (u) => String(u.id) === formData.assigned_to
+    );
     const assignedToName = selectedUser
       ? `${selectedUser.first_name} ${selectedUser.last_name}`
       : null;
 
-    const selectedContact = contacts.find((c) => String(c.id) === formData.primary_contact);
+    const selectedContact = contacts.find(
+      (c) => String(c.id) === formData.primary_contact
+    );
     const primaryContactName = selectedContact
-      ? `${selectedContact.first_name || ""} ${selectedContact.last_name || ""}`.trim()
+      ? `${selectedContact.first_name || ""} ${
+          selectedContact.last_name || ""
+        }`.trim()
       : null;
-    const contactPhone = selectedContact?.work_phone || selectedContact?.mobile_phone_1 || null;
+    const contactPhone =
+      selectedContact?.work_phone || selectedContact?.mobile_phone_1 || null;
 
     // Get Related To text based on selected ID and Related Type
     let relatedToText = null;
@@ -688,10 +755,14 @@ export default function AdminCalls() {
         relatedToText = account?.name || null;
       } else if (formData.related_type === "Contact") {
         const contact = contacts.find((c) => c.id === relatedToId);
-        relatedToText = contact ? `${contact.first_name || ""} ${contact.last_name || ""}`.trim() : null;
+        relatedToText = contact
+          ? `${contact.first_name || ""} ${contact.last_name || ""}`.trim()
+          : null;
       } else if (formData.related_type === "Lead") {
         const lead = leads.find((l) => l.id === relatedToId);
-        relatedToText = lead ? `${lead.first_name || ""} ${lead.last_name || ""}`.trim() : null;
+        relatedToText = lead
+          ? `${lead.first_name || ""} ${lead.last_name || ""}`.trim()
+          : null;
       } else if (formData.related_type === "Deal") {
         const deal = deals.find((d) => d.id === relatedToId);
         relatedToText = deal?.name || null;
@@ -701,17 +772,24 @@ export default function AdminCalls() {
     const payload = {
       subject: trimmedSubject,
       primary_contact: primaryContactName,
-      primary_contact_id: formData.primary_contact ? Number(formData.primary_contact) : null,
-      phone_number: formData.phone_number?.trim() || contactPhone || null,
+      primary_contact_id: formData.primary_contact
+        ? Number(formData.primary_contact)
+        : null,
+      phone_number:
+        formData.phone_number?.trim() || contactPhone || null,
       call_time: formData.call_time || null,
       call_duration: formData.call_duration || null,
       notes: formData.notes?.trim() || null,
       due_date: formData.due_date || null,
       assigned_to: assignedToName,
-      assigned_to_id: formData.assigned_to ? Number(formData.assigned_to) : null,
+      assigned_to_id: formData.assigned_to
+        ? Number(formData.assigned_to)
+        : null,
       related_type: formData.related_type || null,
       related_to: relatedToText,
-      related_to_id: formData.related_to ? Number(formData.related_to) : null,
+      related_to_id: formData.related_to
+        ? Number(formData.related_to)
+        : null,
       priority: formData.priority || "LOW",
       status: "PENDING",
     };
@@ -784,10 +862,11 @@ export default function AdminCalls() {
               key={tab}
               onClick={() => setActiveTab(tab)}
               className={`flex-1 min-w-[90px] px-4 py-2.5 text-xs sm:text-sm font-medium text-center transition-all duration-200 border-b-2
-        ${activeTab === tab
-                  ? "bg-paper-white text-[#6A727D] border-white"
-                  : "text-white hover:bg-[#5c636d]"
-                }`}
+        ${
+          activeTab === tab
+            ? "bg-paper-white text-[#6A727D] border-white"
+            : "text-white hover:bg-[#5c636d]"
+        }`}
             >
               {tab}
             </button>
@@ -811,32 +890,40 @@ export default function AdminCalls() {
                   <div>
                     <p className="font-semibold">Call Time:</p>
                     <p>
-                      {selectedCall.call_time 
-                        ? (typeof selectedCall.call_time === 'string' 
-                            ? new Date(selectedCall.call_time).toLocaleTimeString('en-US', {
-                                hour: 'numeric',
-                                minute: '2-digit',
-                                hour12: true
-                              })
-                            : selectedCall.call_time)
+                      {selectedCall.call_time
+                        ? typeof selectedCall.call_time === "string"
+                          ? new Date(
+                              selectedCall.call_time
+                            ).toLocaleTimeString("en-US", {
+                              hour: "numeric",
+                              minute: "2-digit",
+                              hour12: true,
+                            })
+                          : selectedCall.call_time
                         : "N/A"}
                     </p>
                   </div>
                   <div>
                     <p className="font-semibold">Call Duration:</p>
-                    <p>{selectedCall.call_duration ? `${selectedCall.call_duration} min` : "N/A"}</p>
+                    <p>
+                      {selectedCall.call_duration
+                        ? `${selectedCall.call_duration} min`
+                        : "N/A"}
+                    </p>
                   </div>
                   <div>
                     <p className="font-semibold">Due Date:</p>
                     <p>
-                      {selectedCall.due_date 
-                        ? (typeof selectedCall.due_date === 'string' 
-                            ? new Date(selectedCall.due_date).toLocaleDateString('en-US', {
-                                month: '2-digit',
-                                day: '2-digit',
-                                year: 'numeric'
-                              })
-                            : selectedCall.due_date)
+                      {selectedCall.due_date
+                        ? typeof selectedCall.due_date === "string"
+                          ? new Date(
+                              selectedCall.due_date
+                            ).toLocaleDateString("en-US", {
+                              month: "2-digit",
+                              day: "2-digit",
+                              year: "numeric",
+                            })
+                          : selectedCall.due_date
                         : "N/A"}
                     </p>
                   </div>
@@ -872,11 +959,13 @@ export default function AdminCalls() {
               </div>
             )}
 
-                 {/* ------- Notes ------ */}
+            {/* ------- Notes ------ */}
             {activeTab === "Notes" && (
               <div className="mt-4 w-full">
                 <div className="flex flex-wrap items-center justify-between mb-4 gap-2">
-                  <h3 className="text-lg font-semibold text-gray-800 break-words">Calls Note</h3>
+                  <h3 className="text-lg font-semibold text-gray-800 break-words">
+                    Calls Note
+                  </h3>
                 </div>
 
                 <div className="bg-white border border-gray-100 rounded-lg p-4 shadow-sm break-words">
@@ -895,43 +984,59 @@ export default function AdminCalls() {
             )}
 
             {/* ACTIVITIES */}
-                        {activeTab === "Activities" && (
-                          <div className="mt-4 space-y-4 w-full">
-                            <h3 className="text-lg font-semibold text-gray-800 break-words">Recent Activities</h3>
-            
-                            {[{
-                              icon: FiPhone,
-                              title: "Schedule Call",
-                              desc: "Discuss implementation timeline and pricing",
-                              user: "Lester James",
-                              date: "December 12, 2025 at 8:00 AM",
-                            }, {
-                              icon: FiCalendar,
-                              title: "Meeting regarding Enterprise Software License",
-                              desc: "Discuss implementation timeline and pricing",
-                              user: "Lester James",
-                              date: "December 12, 2025 at 8:00 AM",
-                            }].map((act, idx) => (
-                              <div key={idx} className="flex flex-col sm:flex-row justify-between items-start border border-gray-200 rounded-lg p-4 shadow-sm bg-white w-full break-words">
-                                <div className="flex gap-4 mb-2 sm:mb-0 flex-1 min-w-0">
-                                  <div className="text-gray-600 mt-1">
-                                    <act.icon size={24} />
-                                  </div>
-                                  <div className="flex-1 min-w-0">
-                                    <h4 className="font-medium text-gray-900 break-words">{act.title}</h4>
-                                    <p className="text-sm text-gray-500 break-words">{act.desc}</p>
-                                    <div className="flex items-center gap-2 mt-2">
-                                      <div className="w-7 h-7 rounded-full bg-gray-200 shrink-0"></div>
-                                      <p className="text-sm text-gray-700 break-words">{act.user}</p>
-                                    </div>
-                                  </div>
-                                </div>
-                                <p className="text-sm text-gray-500 break-words">{act.date}</p>
-                              </div>
-                            ))}
-                          </div>
-                        )}
+            {activeTab === "Activities" && (
+              <div className="mt-4 space-y-4 w-full">
+                <h3 className="text-lg font-semibold text-gray-800 break-words">
+                  Recent Activities
+                </h3>
+
+                {[
+                  {
+                    icon: FiPhone,
+                    title: "Schedule Call",
+                    desc: "Discuss implementation timeline and pricing",
+                    user: "Lester James",
+                    date: "December 12, 2025 at 8:00 AM",
+                  },
+                  {
+                    icon: FiCalendar,
+                    title: "Meeting regarding Enterprise Software License",
+                    desc: "Discuss implementation timeline and pricing",
+                    user: "Lester James",
+                    date: "December 12, 2025 at 8:00 AM",
+                  },
+                ].map((act, idx) => (
+                  <div
+                    key={idx}
+                    className="flex flex-col sm:flex-row justify-between items-start border border-gray-200 rounded-lg p-4 shadow-sm bg-white w-full break-words"
+                  >
+                    <div className="flex gap-4 mb-2 sm:mb-0 flex-1 min-w-0">
+                      <div className="text-gray-600 mt-1">
+                        <act.icon size={24} />
                       </div>
+                      <div className="flex-1 min-w-0">
+                        <h4 className="font-medium text-gray-900 break-words">
+                          {act.title}
+                        </h4>
+                        <p className="text-sm text-gray-500 break-words">
+                          {act.desc}
+                        </p>
+                        <div className="flex items-center gap-2 mt-2">
+                          <div className="w-7 h-7 rounded-full bg-gray-200 shrink-0"></div>
+                          <p className="text-sm text-gray-700 break-words">
+                            {act.user}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                    <p className="text-sm text-gray-500 break-words">
+                      {act.date}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
 
           <div className="flex flex-col gap-4">
             {/* QUICK ACTIONS */}
@@ -977,12 +1082,14 @@ export default function AdminCalls() {
               <button
                 onClick={handleStatusUpdate}
                 disabled={
-                  updatingStatus || 
-                  normalizeStatus(selectedStatus) === normalizeStatus(selectedCall.status)
+                  updatingStatus ||
+                  normalizeStatus(selectedStatus) ===
+                    normalizeStatus(selectedCall.status)
                 }
                 className={`w-full py-1.5 rounded-md text-sm transition focus:outline-none focus:ring-2 ${
-                  updatingStatus || 
-                  normalizeStatus(selectedStatus) === normalizeStatus(selectedCall.status)
+                  updatingStatus ||
+                  normalizeStatus(selectedStatus) ===
+                    normalizeStatus(selectedCall.status)
                     ? "bg-gray-400 cursor-not-allowed text-white"
                     : "bg-gray-900 text-white hover:bg-gray-800 focus:ring-gray-400"
                 }`}
@@ -998,7 +1105,9 @@ export default function AdminCalls() {
 
   const listView = (
     <div className="p-4 sm:p-6 lg:p-8 font-inter relative">
-      {callsLoading && !callIdFromQuery && <LoadingSpinner message="Loading calls..." />}
+      {callsLoading && !callIdFromQuery && (
+        <LoadingSpinner message="Loading calls..." />
+      )}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 sm:mb-6 space-y-2 sm:space-y-0">
         <h1 className="flex items-center text-xl sm:text-2xl font-semibold text-gray-800">
           <FiPhoneCall className="mr-2 text-blue-600" />
@@ -1049,7 +1158,10 @@ export default function AdminCalls() {
           >
             <option value="Filter by Users">Filter by Users</option>
             {users.map((user) => (
-              <option key={user.id} value={`${user.first_name} ${user.last_name}`}>
+              <option
+                key={user.id}
+                value={`${user.first_name} ${user.last_name}`}
+              >
                 {user.first_name} {user.last_name}
               </option>
             ))}
@@ -1129,14 +1241,16 @@ export default function AdminCalls() {
                       </div>
                     </td>
                     <td className="py-3 px-4 text-gray-800 font-medium text-sm">
-                      {call.due_date 
-                        ? (typeof call.due_date === 'string' 
-                            ? new Date(call.due_date).toLocaleDateString('en-US', {
-                                month: '2-digit',
-                                day: '2-digit',
-                                year: 'numeric'
-                              })
-                            : call.due_date)
+                      {call.due_date
+                        ? typeof call.due_date === "string"
+                          ? new Date(
+                              call.due_date
+                            ).toLocaleDateString("en-US", {
+                              month: "2-digit",
+                              day: "2-digit",
+                              year: "numeric",
+                            })
+                          : call.due_date
                         : "--"}
                     </td>
                     <td className="py-3 px-4 text-gray-800 font-medium text-sm">
@@ -1233,7 +1347,10 @@ export default function AdminCalls() {
               { value: "", label: "Select Contact" },
               ...contacts.map((contact) => ({
                 value: String(contact.id),
-                label: `${contact.first_name || ""} ${contact.last_name || ""}`.trim() || "Unnamed Contact",
+                label:
+                  `${contact.first_name || ""} ${
+                    contact.last_name || ""
+                  }`.trim() || "Unnamed Contact",
               })),
             ]}
             disabled={isSubmitting || contacts.length === 0}
@@ -1314,7 +1431,12 @@ export default function AdminCalls() {
               value={formData.related_to}
               onChange={handleInputChange}
               options={[
-                { value: "", label: formData.related_type ? `Select ${formData.related_type}` : "Select Related Type first" },
+                {
+                  value: "",
+                  label: formData.related_type
+                    ? `Select ${formData.related_type}`
+                    : "Select Related Type first",
+                },
                 ...getRelatedToOptions(),
               ]}
               disabled={isSubmitting || !formData.related_type}

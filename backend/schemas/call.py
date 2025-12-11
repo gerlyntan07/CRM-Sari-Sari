@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, EmailStr
 from typing import Optional
 from datetime import datetime
 
@@ -12,18 +12,61 @@ class CallBase(BaseModel):
     related_to_contact: Optional[int] = None
     related_to_lead: Optional[int] = None
     related_to_deal: Optional[int] = None
-    created_by: int
     assigned_to: int
+    notes: str
 
 class CallCreate(CallBase):
-    pass
+    relatedType1: str
+    relatedType2: Optional[str] = None
+    relatedTo1: int
+    relatedTo2: Optional[int] = None
 
+class AssignToBase(BaseModel):
+    id: int
+    first_name: str
+    last_name: str
+    email: EmailStr
+    class Config:
+        from_attributes = True
+
+class ContactBase(BaseModel):
+    id: int
+    first_name: str
+    last_name: str
+    email: EmailStr
+    class Config:
+        from_attributes = True        
+
+class AccountBase(BaseModel):
+    id: int
+    name: str
+    class Config:
+        from_attributes = True
+
+class LeadBase(BaseModel):
+    id: int
+    title: str
+    class Config:
+        from_attributes = True
+
+class DealBase(BaseModel):
+    id: int
+    deal_id: str
+    name: str
+    class Config:
+        from_attributes = True
+    
 class CallResponse(CallBase):
     id: int
     subject: str
+    account: Optional[AccountBase] = None
+    lead: Optional[LeadBase] = None
+    deal: Optional[DealBase] = None
+    contact: Optional[ContactBase] = None
+    call_assign_to: Optional[AssignToBase] = None
     duration_minutes: Optional[int] = None
     created_at: Optional[datetime] = None
-    updated_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None    
 
     class Config:
         from_attributes = True

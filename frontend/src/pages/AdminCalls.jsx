@@ -15,6 +15,7 @@ import {
 import { HiX } from "react-icons/hi";
 import PaginationControls from "../components/PaginationControls.jsx";
 import api from "../api.js";
+import {toast} from 'react-toastify';
 
 // --- Constants (UI Options) ---
 const STATUS_OPTIONS = [
@@ -77,11 +78,34 @@ export default function AdminCalls() {
   const [confirmModalData, setConfirmModalData] = useState(null);
   const [relatedTo1Values, setRelatedTo1Values] = useState(null);
   const [relatedTo2Values, setRelatedTo2Values] = useState(null);
+  const [calls, setCalls] = useState([]);
   const [team, setTeam] = useState(null);
 
-  useEffect(() => {
-    const fetchUsers = async() => {
-      try{
+  const fetchCalls = async () => {
+  try {
+    const res = await api.get("/calls/admin/fetch-all");
+
+    const data = Array.isArray(res.data) ? res.data : [];
+
+    // Safe sort: also prevent mutation using spread
+    const sortedData = [...data].sort((a, b) => {
+      const dateA = a?.created_at ? new Date(a.created_at) : 0;
+      const dateB = b?.created_at ? new Date(b.created_at) : 0;
+      return dateB - dateA; // newest first
+    });
+
+    setCalls(sortedData);
+    console.log(sortedData);
+
+  } catch (err) {
+    console.error("Error fetching calls:", err);
+    toast.error("Failed to load calls");
+  }
+};
+
+  
+  const fetchUsers = async () => {
+      try {
         const res = await api.get(`/users/all`);
         setTeam(res.data);
       } catch (err) {
@@ -89,11 +113,11 @@ export default function AdminCalls() {
       }
     }
 
+  useEffect(() => {    
     fetchUsers();
-  })
+    fetchCalls();
+  }, [])
 
-  // Data Lists
-  const calls = []; // Fetch from API
   const users = [];
 
   // Filter & Pagination State
@@ -109,8 +133,8 @@ export default function AdminCalls() {
     subject: "",
     call_time: "",
     duration_minutes: "",
-    direction: "",
-    status: '',
+    direction: "Outgoing",
+    status: 'Planned',
     notes: '',
     relatedType1: 'Lead',
     relatedType2: 'Contact',
@@ -222,7 +246,34 @@ export default function AdminCalls() {
   }, [formData.relatedType2, formData.relatedTo1]);
 
 
-  const handleSubmit = (e) => { e.preventDefault(); };
+  const handleSubmit = async(e) => { 
+    e.preventDefault();     
+    if (!formData.assigned_to) {
+      toast.error("Please assign the call to a user.");
+      return;
+    }
+
+    const payload = {
+      ...formData,
+      duration_minutes: parseInt(formData.duration_minutes),
+      relatedTo1: parseInt(formData.relatedTo1),
+      relatedTo2: parseInt(formData.relatedTo2),
+      assigned_to: parseInt(formData.assigned_to),
+    }
+
+    try{
+      const res = await api.post(`/calls/create`, payload);
+      fetchCalls();      
+      toast.success("Call created successfully!");      
+    }catch (err) {
+      console.error(err);
+      const errorMsg = err.response?.data?.detail || "Failed to create call.";
+      toast.error(errorMsg);
+    } finally{
+      setShowModal(false);
+    }
+    
+  };
   const handleCallClick = (call) => { setSelectedCall(call); };
   const handleCloseModal = () => { setShowModal(false); };
   const handleConfirmAction = () => { };
@@ -270,14 +321,24 @@ export default function AdminCalls() {
             {activeTab === "Overview" && (
               <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6 md:p-8 border border-gray-200">
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 text-sm text-gray-700">
-                  <DetailRow label="Primary Contact" value={selectedCall.primary_contact} />
-                  <DetailRow label="Phone Number" value={selectedCall.phone_number} />
                   <DetailRow label="Call Time" value={formattedDateTime(selectedCall.call_time)} />
                   <DetailRow label="Duration" value={selectedCall.duration_minutes ? `${selectedCall.duration_minutes} min` : null} />
-                  <DetailRow label="Due Date" value={selectedCall.due_date} />
-                  <DetailRow label="Assigned To" value={selectedCall.assigned_to} />
-                  <DetailRow label="Related Type" value={selectedCall.related_type} />
-                  <DetailRow label="Related To" value={selectedCall.related_to} />
+                  <DetailRow label="Assigned To" value={`${selectedCall.call_assign_to.first_name} ${selectedCall.call_assign_to.last_name}`} />
+                  {/* <DetailRow label="Related Type" value={selectedCall.related_type} />
+                  <DetailRow label="Related To" value={selectedCall.related_to} /> */}
+
+                  {selectedCall.lead && (
+                    <DetailRow label="Lead" value={selectedCall.lead.title} />
+                  )}
+                  {selectedCall.contact && (
+                    <DetailRow label="Contact" value={`${selectedCall.contact.first_name} ${selectedCall.contact.last_name}`} />
+                  )} 
+                  {selectedCall.account && (
+                    <DetailRow label="Account" value={selectedCall.account.name} />
+                  )}
+                  {selectedCall.deal && (
+                    <DetailRow label="Deal" value={selectedCall.deal.name} />
+                  )}
                   <DetailRow label="Created At" value={formattedDateTime(selectedCall.created_at)} />
                 </div>
               </div>
@@ -327,9 +388,9 @@ export default function AdminCalls() {
         <h2 className="text-xl sm:text-2xl font-semibold text-gray-800 mb-4 sm:mb-6 flex items-center justify-center">Add New Call</h2>
 
         <form className="grid grid-cols-1 md:grid-cols-2 w-full gap-4 text-sm" onSubmit={handleSubmit}>
-          <InputField label="Subject" className='md:col-span-2' name='subject' value={formData.subject} onChange={handleInputChange} disabled={isSubmitting} required />          
+          <InputField label="Subject" className='md:col-span-2' name='subject' value={formData.subject} onChange={handleInputChange} disabled={isSubmitting} required />
 
-            <div className="w-full flex flex-col">
+          <div className="w-full flex flex-col">
             <select name="relatedType1" onChange={handleInputChange} value={formData.relatedType1} id="" className="outline-none cursor-pointer mb-1 w-22 text-gray-700">
               <option value="Lead">Lead</option>
               <option value="Account">Account</option>
@@ -341,9 +402,9 @@ export default function AdminCalls() {
                 onChange={handleInputChange}
                 value={formData.relatedTo1}
                 className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-400 outline-none disabled:bg-gray-100"
-              >                
+              >
 
-              <option value="">--</option>
+                <option value="">--</option>
 
                 {/* FIX: Map over the data to create options */}
                 {relatedTo1Values.map((item) => (
@@ -366,47 +427,46 @@ export default function AdminCalls() {
               />
             )}
           </div>
-
-          {formData.relatedType1 === 'Account' && (
+          
             <div className="w-full flex flex-col">
-            <select name="relatedType2" onChange={handleInputChange} value={formData.relatedType2} id="" className="outline-none cursor-pointer mb-1 w-22 text-gray-700">
-              <option value="Contact">Contact</option>
-              <option value="Deal">Deal</option>
-              <option value="Quote">Quote</option>
-            </select>
-
-            {Array.isArray(relatedTo2Values) && relatedTo2Values.length > 0 ? (
-              <select
-                name="relatedTo2"
-                onChange={handleInputChange}
-                value={formData.relatedTo2}
-                className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-400 outline-none disabled:bg-gray-100"
-              >                
-              <option value="">--</option>
-
-                {/* FIX: Map over the data to create options */}
-                {relatedTo2Values.map((item) => (
-                  <option key={item.id} value={item.id}>
-                    {/* Handle naming differences between Leads and Accounts */}
-                    {formData.relatedType2 === 'Contact'
-                      ? `${item.first_name} ${item.last_name}`
-                      : formData.relatedType2 === 'Deal' ? item.name
-                      : item.quote_id
-                    }
-                  </option>
-                ))}
-
+              <select name="relatedType2" onChange={handleInputChange} value={formData.relatedType2} id="" className={`disabled:text-gray-400 text-gray-700 outline-none cursor-pointer mb-1 w-22`}
+                disabled={formData.relatedType1 === 'Lead'}
+              >
+                <option value="Contact">Contact</option>
+                <option value="Deal">Deal</option>
               </select>
-            ) : (
-              <input
-                type="text"
-                value={`No ${formData.relatedType2 || ''} data found`}
-                className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm outline-none bg-gray-100 text-gray-500"
-                disabled
-              />
-            )}
-          </div>
-          )}
+
+              {Array.isArray(relatedTo2Values) && relatedTo2Values.length > 0 ? (
+                <select
+                  name="relatedTo2"
+                  onChange={handleInputChange}
+                  value={formData.relatedTo2}
+                  className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-400 outline-none disabled:bg-gray-100"
+                  disabled={formData.relatedType1 === 'Lead'}
+                >
+                  <option value="">--</option>
+
+                  {/* FIX: Map over the data to create options */}
+                  {relatedTo2Values.map((item) => (
+                    <option key={item.id} value={item.id}>
+                      {/* Handle naming differences between Leads and Accounts */}
+                      {formData.relatedType2 === 'Contact'
+                        ? `${item.first_name} ${item.last_name}`
+                        : item.name                          
+                      }
+                    </option>
+                  ))}
+
+                </select>
+              ) : (
+                <input
+                  type="text"
+                  value={`${formData.relatedType1 === 'Lead' ? ` ` : `No ${formData.relatedType2 || ''} data found`}`}
+                  className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm outline-none bg-gray-100 text-gray-500"
+                  disabled
+                />
+              )}
+            </div>          
 
           <div>
             <label className="block text-gray-700 font-medium mb-1 text-sm">Call Time</label>
@@ -415,46 +475,46 @@ export default function AdminCalls() {
 
           <div className="w-full">
             <label className="block text-gray-700 font-medium mb-1 text-sm">Duration</label>
-            <div className="w-full border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-400 outline-none disabled:bg-gray-100 flex flex-row items-center justify-start">
-              <input type="tel" value={formData.duration} onChange={handleInputChange} name="duration" className="border border-gray-300 rounded-md py-1.5 text-sm focus:ring-2 focus:ring-blue-400 outline-none disabled:bg-gray-100 w-20 mr-3" />
+            <div className="w-full rounded-md text-sm focus:ring-2 focus:ring-blue-400 outline-none disabled:bg-gray-100 flex flex-row items-center justify-start">
+              <input type="tel" value={formData.duration_minutes} onChange={handleInputChange} name="duration_minutes" className="border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-400 outline-none disabled:bg-gray-100 w-20 mr-3" />
               <p>minutes</p>
-            </div>            
-          </div>   
+            </div>
+          </div>
 
           <div className="col-span-2">
-  <label className="block text-gray-700 font-medium mb-1 text-sm">Assign To</label>
-  <select
-    name="assigned_to"
-    onChange={handleInputChange}
-    value={formData.assigned_to || ""}
-    className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-400 outline-none disabled:bg-gray-100"
-  >
-    <option value="">Select User</option>
-    {Array.isArray(team) && team.length > 0 &&
-      team.map((u) => (
-        <option key={u.id} value={u.id}>
-          {u.first_name} {u.last_name}
-        </option>
-      ))
-    }
-  </select>
-</div>
+            <label className="block text-gray-700 font-medium mb-1 text-sm">Assign To</label>
+            <select
+              name="assigned_to"
+              onChange={handleInputChange}
+              value={formData.assigned_to || ""}
+              className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-400 outline-none disabled:bg-gray-100"
+            >
+              <option value="">Select User</option>
+              {Array.isArray(team) && team.length > 0 &&
+                team.map((u) => (
+                  <option key={u.id} value={u.id}>
+                    {u.first_name} {u.last_name}
+                  </option>
+                ))
+              }
+            </select>
+          </div>
 
           <div>
             <label className="block text-gray-700 font-medium mb-1 text-sm">Direction</label>
             <select name="direction" onChange={handleInputChange} value={formData.direction} className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-400 outline-none disabled:bg-gray-100" id="">
-            <option value="">Incoming</option>
-            <option value="">Outgoing</option>
-          </select>
+              <option value="Incoming">Incoming</option>
+              <option value="Outgoing">Outgoing</option>
+            </select>
           </div>
 
           <div>
             <label className="block text-gray-700 font-medium mb-1 text-sm">Status</label>
             <select name="status" onChange={handleInputChange} value={formData.status} className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-400 outline-none disabled:bg-gray-100" id="">
-            <option value="">Planned</option>
-            <option value="">Held</option>
-            <option value="">Not held</option>
-          </select>
+              <option value="Planned">Planned</option>
+              <option value="Held">Held</option>
+              <option value="Not held">Not held</option>
+            </select>
           </div>
 
           <TextAreaField className='col-span-2' label='Notes' value={formData.notes} onChange={handleInputChange} name='notes' />
@@ -495,11 +555,7 @@ export default function AdminCalls() {
             <select defaultValue={userFilter} className="border border-gray-300 rounded-lg px-3 h-11 text-sm bg-white w-full">
               <option value="Filter by Users">Filter by Users</option>
               {users.map(u => <option key={u.id} value={u.name}>{u.name}</option>)}
-            </select>
-            <select defaultValue={priorityFilter} className="border border-gray-300 rounded-lg px-3 h-11 text-sm bg-white w-full">
-              <option value="Filter by Priority">Filter by Priority</option>
-              {PRIORITY_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-            </select>
+            </select>            
           </div>
         </div>
 
@@ -507,27 +563,66 @@ export default function AdminCalls() {
           <table className="w-full min-w-[500px] border border-gray-200 rounded-lg bg-white shadow-sm text-sm">
             <thead className="bg-gray-100 text-left text-gray-600 font-semibold">
               <tr>
-                <th className="py-3 px-4">Priority</th><th className="py-3 px-4">Subject</th><th className="py-3 px-4">Related To</th>
-                <th className="py-3 px-4">Due Date</th><th className="py-3 px-4">Assigned To</th><th className="py-3 px-4">Status</th>
+                <th className="py-3 px-4">Subject</th><th className="py-3 px-4">Related To</th>
+                <th className="py-3 px-4">Call Time</th><th className="py-3 px-4">Assigned To</th><th className="py-3 px-4">Status</th>
               </tr>
             </thead>
             <tbody>
-              {callsLoading ? <tr><td colSpan={6} className="text-center py-4">Loading...</td></tr> :
-                paginatedCalls.length > 0 ? paginatedCalls.map(call => (
-                  <tr key={call.id} onClick={() => handleCallClick(call)} className="hover:bg-gray-50 cursor-pointer border-b border-gray-100">
-                    <td className="py-3 px-4"><span className={`px-2 py-1 rounded-full text-xs font-medium ${getPriorityBadgeClass(call.priority)}`}>{formatStatusLabel(call.priority)}</span></td>
-                    <td className="py-3 px-4 text-blue-600 font-medium">{call.subject}</td>
-                    <td className="py-3 px-4">
-                      <div className="font-medium text-gray-800">{call.related_to || "--"}</div>
-                      <div className="text-gray-500 text-xs">{call.related_type || "--"}</div>
-                    </td>
-                    <td className="py-3 px-4 text-gray-800">{call.due_date || "--"}</td>
-                    <td className="py-3 px-4 text-gray-800">{call.assigned_to || "--"}</td>
-                    <td className="py-3 px-4"><span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusBadgeClass(call.status)}`}>{formatStatusLabel(call.status)}</span></td>
-                  </tr>
-                )) : <tr><td colSpan={6} className="text-center py-4 text-gray-500">No calls found.</td></tr>
-              }
-            </tbody>
+  {callsLoading ? (
+    <tr>
+      <td colSpan={6} className="text-center py-4">Loading...</td>
+    </tr>
+  ) : paginatedCalls.length > 0 ? (
+    paginatedCalls.map(call => (
+      <tr
+        key={call.id}
+        onClick={() => handleCallClick(call)}
+        className="hover:bg-gray-50 cursor-pointer border-b border-gray-100"
+      >        
+        <td className="py-3 px-4 text-blue-600 font-medium">
+          {call.subject || "--"}
+        </td>
+
+        <td className="py-3 px-4">
+          {call.lead && (
+            <p className="font-medium text-blue-500 text-xs">{call.lead.title}</p>
+          )}
+          {call.account && (
+            <p className="font-medium text-blue-500 text-xs">{call.account.name}</p>
+          )}
+          {call.contact && (
+            <p className="font-medium text-blue-500 text-xs">{call.contact.first_name} {call.contact.last_name}</p>
+          )}
+          {call.deal && (
+            <p className="font-medium text-blue-500 text-xs">{call.deal.name}</p>
+          )}          
+        </td>
+
+        <td className="py-3 px-4 text-gray-800">
+          {call.call_time ? new Date(call.call_time).toLocaleString() : "--"}
+        </td>
+
+        <td className="py-3 px-4 text-gray-800">
+  {call?.call_assign_to
+    ? `${call.call_assign_to.first_name} ${call.call_assign_to.last_name}`
+    : "--"}
+</td>
+
+
+        <td className="py-3 px-4">
+          <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusBadgeClass(call.status)}`}>
+            {formatStatusLabel(call.status)}
+          </span>
+        </td>
+      </tr>
+    ))
+  ) : (
+    <tr>
+      <td colSpan={6} className="text-center py-4 text-gray-500">No calls found.</td>
+    </tr>
+  )}
+</tbody>
+
           </table>
         </div>
         <PaginationControls totalItems={filteredCalls.length} pageSize={ITEMS_PER_PAGE} currentPage={currentPage} onPrev={() => { }} onNext={() => { }} label="calls" />
@@ -553,10 +648,6 @@ function MetricCard({ icon: Icon, title, value, color, bgColor }) {
 
 function InputField(props) {
   return <div className={props.className}><label className="block text-gray-700 font-medium mb-1 text-sm">{props.label}</label><input {...props} className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-400 outline-none disabled:bg-gray-100" /></div>;
-}
-
-function SelectField(props) {
-  return <div><label className="block text-gray-700 font-medium mb-1 text-sm">{props.label}</label><select {...props} className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-400 outline-none disabled:bg-gray-100">{props.options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}</select></div>;
 }
 
 function TextAreaField(props) {

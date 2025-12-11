@@ -90,6 +90,21 @@ def admin_get_deals(
 
     return deals
 
+@router.get("/from-acc/{accID}", response_model=list[DealResponse])
+def admin_get_deals(    
+    accID: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):        
+    # Get all users in the same company
+    company_users = db.query(User.id).filter(User.related_to_company == current_user.related_to_company).subquery()
+
+    deals = db.query(Deal).filter(
+        (Deal.created_by.in_(company_users)) | (Deal.assigned_to.in_(company_users))
+    ).filter(Deal.account_id == accID).all()
+
+    return deals
+
 @router.post("/admin/create", response_model=DealResponse, status_code=status.HTTP_201_CREATED)
 def admin_create_deal(
     data: DealCreate,

@@ -349,7 +349,7 @@ export default function AdminLeadsInformation({
           </div>
 
           {/* Header */}
-          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between mt-3 gap-2 p-2 sm:gap-4">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between mt-3 gap-2 p-2 lg:mx-7 sm:gap-4">
             <div className="flex flex-wrap items-center gap-2 sm:gap-3">
               <h1 className="text-xl sm:text-2xl font-semibold">
                 {lead.first_name} {lead.last_name}

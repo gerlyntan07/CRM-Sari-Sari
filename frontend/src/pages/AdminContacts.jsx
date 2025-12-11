@@ -670,7 +670,7 @@ export default function AdminContacts() {
         </div>
 
         {/* Header */}
-        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between mt-4 gap-2 px-2 lg:gap-4">
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between mt-4 gap-2 px-2 lg:gap-4 lg:mx-7">
           <div className="flex flex-wrap items-center gap-2 sm:gap-3">
             <h1 className="text-xl sm:text-2xl font-semibold text-gray-800">
               {getContactFullName(selectedContact) || "Unnamed contact"}

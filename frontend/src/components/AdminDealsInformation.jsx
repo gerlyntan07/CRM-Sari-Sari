@@ -126,7 +126,7 @@ export default function AdminDealsInformation({
   </div>
 </div>
 
-<div className="p-4 lg:p-2">
+<div className="p-4 lg:p-2 lg:mx-7">
   <div className="flex flex-wrap items-start justify-between gap-2 sm:gap-3 mt-3">
     <div className="flex flex-col gap-1">
       <div className="flex flex-col sm:flex-row sm:items-center gap-3 lg:gap-1">

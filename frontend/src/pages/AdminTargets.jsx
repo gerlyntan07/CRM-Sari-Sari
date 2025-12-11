@@ -536,26 +536,26 @@ export default function AdminTargets() {
     >
     <div className="bg-white rounded-xl shadow-xl w-full max-w-6xl max-h-[92vh] overflow-y-auto hide-scrollbar animate-scale-in font-inter relative">
           {/* 🔵 ONLY TOP */}
-      <div className="w-full flex flex-col items-center justify-center rounded-t-xl">
-  <div className="bg-tertiary w-full flex items-center justify-between p-3 lg:p-3 rounded-t-xl">
+<div className="w-full rounded-t-xl">
+  <div className="bg-tertiary w-full relative p-3 lg:p-3 rounded-t-xl">
     <h1 className="lg:text-3xl text-xl text-white font-semibold text-center w-full">
       Target
     </h1>
      {/* Close Button */}
         <div className="flex justify-end w-full">
-          <button
-            onClick={handleBackToList}
-      className="text-gray-500 hover:text-white transition cursor-pointer"
-          >
-            <HiX size={25} />
-          </button>
+           <button
+      onClick={handleBackToList}
+      className="absolute top-1/2 right-3 -translate-y-1/2 text-gray-500 hover:text-white cursor-pointer"
+    >
+      <HiX size={25} />
+    </button>
         </div>
           </div>
           
         {/* Header content */}
   <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-2 mt-3 p-2 sm:gap-4 w-full">
     <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-      <h1 className="text-xl sm:text-2xl font-semibold text-gray-800">
+      <h1 className="text-xl sm:text-2xl font-semibold text-gray-800 lg:ml-7">
               {selectedTarget.user
                 ? `${selectedTarget.user.first_name} ${selectedTarget.user.last_name}`
                 : "Unknown User"}
@@ -570,7 +570,7 @@ export default function AdminTargets() {
             </p>
           </div>
 
-          <div className="flex flex-col sm:flex-row sm:space-x-3 space-y-2 sm:space-y-0">
+          <div className="flex flex-col sm:flex-row sm:space-x-3 space-y-2 sm:space-y-0 lg:mr-7">
             <button
               className="inline-flex items-center justify-center w-full sm:w-auto bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 disabled:opacity-70 transition text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
               onClick={() => handleEditClick(selectedTarget)}
@@ -604,7 +604,6 @@ export default function AdminTargets() {
         <div className="border-b border-gray-200 my-5"></div>
 
         {/* TABS */}
-        <div className="p-3 lg:p-4">
         <div className="flex w-full bg-[#6A727D] text-white mt-1 overflow-x-auto mb-6">
           {["Overview"].map((tab) => (
             <button
@@ -734,7 +733,6 @@ export default function AdminTargets() {
         </div>
       </div>
     </div>
-     </div>
   ) : null;
 
   const listView = (

@@ -214,7 +214,7 @@ const TopBar = ({ searchQuery, onSearchChange, searchResults, onSearchResultClic
       {/* Action Icons */}
       {/*   <div className="w-full overflow-x-auto scroll-smooth hide-scrollbar flex justify-center"> */}
  <div className="w-full overflow-x-auto lg:overflow-x-hidden scroll-smooth flex justify-center">
-  <div className="flex flex-nowrap space-x-3 sm:space-x-4 px-2 sm:px-0">
+  <div className="flex flex-nowrap space-x-3 lg:space-x-4 xl:space-x-3 px-2 sm:px-0">
           {actionIcons.map((item, index) => (
             <div key={index} className="relative flex-shrink-0 group">
               <button

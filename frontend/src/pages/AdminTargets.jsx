@@ -534,21 +534,28 @@ export default function AdminTargets() {
       onClick={handleTargetModalBackdropClick}
       className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4"
     >
-      <div className="bg-white rounded-xl shadow-xl w-full max-w-6xl max-h-[92vh] overflow-y-auto hide-scrollbar animate-scale-in p-4 sm:p-6 md:p-8 font-inter relative">
-        {/* Close Button */}
+    <div className="bg-white rounded-xl shadow-xl w-full max-w-6xl max-h-[92vh] overflow-y-auto hide-scrollbar animate-scale-in font-inter relative">
+          {/* 🔵 ONLY TOP */}
+      <div className="w-full flex flex-col items-center justify-center rounded-t-xl">
+  <div className="bg-tertiary w-full flex items-center justify-between p-3 lg:p-3 rounded-t-xl">
+    <h1 className="lg:text-3xl text-xl text-white font-semibold text-center w-full">
+      Target
+    </h1>
+     {/* Close Button */}
         <div className="flex justify-end w-full">
           <button
             onClick={handleBackToList}
-            className="text-gray-500 hover:text-gray-700 transition mb-5 cursor-pointer"
+      className="text-gray-500 hover:text-white transition cursor-pointer"
           >
-            <HiX size={30} />
+            <HiX size={25} />
           </button>
         </div>
-
-        {/* Header */}
-        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-4 gap-2 sm:gap-4">
-          <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-            <h1 className="text-xl sm:text-2xl font-semibold text-gray-800">
+          </div>
+          
+        {/* Header content */}
+  <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-2 mt-3 p-2 sm:gap-4 w-full">
+    <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+      <h1 className="text-xl sm:text-2xl font-semibold text-gray-800">
               {selectedTarget.user
                 ? `${selectedTarget.user.first_name} ${selectedTarget.user.last_name}`
                 : "Unknown User"}
@@ -592,9 +599,12 @@ export default function AdminTargets() {
             </button>
           </div>
         </div>
-        <div className="border-b border-gray-200 mb-6"></div>
+        </div>
+
+        <div className="border-b border-gray-200 my-5"></div>
 
         {/* TABS */}
+        <div className="p-3 lg:p-4">
         <div className="flex w-full bg-[#6A727D] text-white mt-1 overflow-x-auto mb-6">
           {["Overview"].map((tab) => (
             <button
@@ -724,6 +734,7 @@ export default function AdminTargets() {
         </div>
       </div>
     </div>
+     </div>
   ) : null;
 
   const listView = (
@@ -743,7 +754,7 @@ export default function AdminTargets() {
         </button>
         </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 mb-6 w-full break-words overflow-hidden">
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 mb-6 w-full break-words overflow-hidden lg:overflow-visible">
         {metricCards.map((metric) => (
           <MetricCard key={metric.title} {...metric} />
         ))}

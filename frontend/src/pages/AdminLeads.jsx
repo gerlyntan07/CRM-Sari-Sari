@@ -667,7 +667,7 @@ export default function AdminLeads() {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4 mb-6 w-full break-words overflow-hidden">
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 mb-6 w-full break-words overflow-hidden lg:overflow-visible">
         {metricCards.map((metric) => (
           <MetricCard key={metric.title} {...metric} />
         ))}

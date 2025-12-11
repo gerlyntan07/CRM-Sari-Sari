@@ -102,78 +102,97 @@ export default function AdminDealsInformation({
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[9999] font-inter p-2 sm:p-4 overflow-x-hidden">
-      <div className="bg-white rounded-xl shadow-lg w-full max-w-full sm:max-w-6xl max-h-[90vh] overflow-y-auto hide-scrollbar relative box-border p-4 sm:p-6 md:p-8">
+  <div className="bg-white rounded-xl shadow-lg w-full max-w-full sm:max-w-6xl max-h-[90vh] overflow-y-auto hide-scrollbar relative box-border">
 
-        {/* HEADER */}
-        <div className="flex flex-col gap-2 sm:gap-4 mb-4">
-          <div className="flex flex-wrap items-start justify-between gap-2 sm:gap-3">
-            <div className="flex flex-col gap-1">
-              <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3">
-          <h1 className="text-lg sm:text-2xl font-semibold break-words">{selectedDeal.name}</h1>
-          <span className={`text-xs sm:text-sm inline-block font-medium px-1.5 py-0.5 sm:px-3 sm:py-1 rounded-full break-words ${getStageBadgeClasses(selectedDeal.stage)}`}>
-            {selectedDeal.stage}
-          </span>
-        </div>
-              <p className="text-gray-500 text-sm break-words">Created on {formattedDateTime(selectedDeal.created_at)}</p>
-            </div>
-            <div className="flex flex-col items-end gap-2">
-              <div className="flex items-center gap-2 sm:gap-3">
-                <h2 className="text-xl sm:text-2xl font-bold text-gray-900 break-words">
-                  ₱ {selectedDeal.amount ? selectedDeal.amount.toLocaleString() : '0'}
-                </h2>
-                <button
-                  onClick={() => {
-                    if (onClose) {
-                      onClose();
-                    } else {
-                      // Navigate back if accessed via route
-                      navigate(-1);
-                    }
-                  }}
-                  className="text-gray-500 hover:text-gray-700"
-                >
-                  <FiX size={20} />
-                </button>
-              </div>
-              <div className="w-full sm:w-40 bg-gray-200 rounded-full h-2">
-                <div
-                  className="bg-green-500 h-2 rounded-full"
-                  style={{ width: `${selectedDeal.probability}%` }}
-                />
-              </div>
-              <p className="text-xs text-gray-500 break-words">{selectedDeal.probability}% Complete</p>
-              <div className="flex items-center gap-2 sm:gap-3 mt-3">
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (onEdit) {
-                      onEdit(selectedDeal);
-                    }
-                  }}
-                  className="inline-flex items-center justify-center bg-blue-500 text-white px-3 sm:px-4 py-1.5 sm:py-2 rounded-md hover:bg-blue-600 transition text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
-                >
-                  <FiEdit2 className="mr-1 sm:mr-2" size={16} />
-                  <span className="hidden sm:inline">Edit</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (onDelete) {
-                      onDelete(selectedDeal);
-                    }
-                  }}
-                  className="inline-flex items-center justify-center px-3 sm:px-4 py-1.5 sm:py-2 rounded-md text-sm bg-red-500 text-white hover:bg-red-600 transition focus:outline-none focus:ring-2 focus:ring-red-400"
-                >
-                  <FiTrash2 className="mr-1 sm:mr-2" size={16} />
-                  <span className="hidden sm:inline">Delete</span>
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div className="border-b border-gray-200 mb-6"></div>
+ {/* TOP SECTION*/}
+<div className="bg-tertiary w-full rounded-t-xl p-3 lg:p-3">
+  <div className="flex items-start justify-between w-full">
+    <h1 className="lg:text-3xl text-xl text-white font-semibold text-center w-full">
+    Deal
+   </h1>
+    <div className="flex items-center gap-2 sm:gap-3">
+      <button
+        onClick={() => {
+          if (onClose) {
+            onClose();
+          } else {
+            navigate(-1);
+          }
+        }}
+        className="text-gray-400 hover:text-white mt-1 cursor-pointer">
+        <FiX size={25} />
+      </button>
+    </div>
+  </div>
+</div>
+
+<div className="p-4 lg:p-2">
+  <div className="flex flex-wrap items-start justify-between gap-2 sm:gap-3 mt-3">
+    <div className="flex flex-col gap-1">
+      <div className="flex flex-col sm:flex-row sm:items-center gap-3 lg:gap-1">
+        <h2 className="text-xl lg:text-xl font-semibold text-gray-800 break-words">
+          {selectedDeal.name}
+        </h2>
+
+        <span className={`text-xs sm:text-sm inline-block font-medium px-1.5 py-0.5 sm:px-3 sm:py-1 rounded-full break-words ${getStageBadgeClasses(selectedDeal.stage)}`}>
+          {selectedDeal.stage}
+        </span>
+      </div>
+
+      <p className="text-gray-500 text-sm break-words">
+        Created on {formattedDateTime(selectedDeal.created_at)}
+      </p>
+    </div>
+
+    {/* RIGHT SIDE*/}
+    <div className="flex flex-col items-end gap-2">
+       <h2 className="text-xl sm:text-2xl font-bold text-gray-600 break-words">
+        ₱ {selectedDeal.amount ? selectedDeal.amount.toLocaleString() : '0'}
+      </h2>
+      <div className="w-full sm:w-40 bg-gray-200 rounded-full h-2">
+        <div
+          className="bg-green-500 h-2 rounded-full"
+          style={{ width: `${selectedDeal.probability}%` }}
+        />
+      </div>
+
+      <p className="text-xs text-gray-500 break-words"> {selectedDeal.probability}% Complete </p>
+      <div className="flex items-center gap-2 sm:gap-3 mt-3">
+        <button
+          type="button"
+          onClick={() => {
+            if (onEdit) {
+              onEdit(selectedDeal);
+            }
+          }}
+          className="inline-flex items-center justify-center bg-blue-500 text-white px-3 sm:px-4 py-1.5 sm:py-2 rounded-md hover:bg-blue-600 transition text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+        >
+          <FiEdit2 className="mr-1 sm:mr-2" size={16} />
+          <span className="hidden sm:inline">Edit</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => {
+            if (onDelete) {
+              onDelete(selectedDeal);
+            }
+          }}
+          className="inline-flex items-center justify-center px-3 sm:px-4 py-1.5 sm:py-2 rounded-md text-sm bg-red-500 text-white hover:bg-red-600 transition focus:outline-none focus:ring-2 focus:ring-red-400"
+        >
+          <FiTrash2 className="mr-1 sm:mr-2" size={16} />
+          <span className="hidden sm:inline">Delete</span>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+        <div className="border-b border-gray-200 my-5"></div>
 
         {/* TABS */}
+        <div className="p-6 lg:p-4">
         <div className="flex w-full bg-[#6A727D] text-white mt-1 overflow-x-auto mb-6">
           {["Overview", "Notes", "Activities"].map((tab) => (
             <button
@@ -393,7 +412,7 @@ export default function AdminDealsInformation({
             <AdminDealsQuickAction selectedDeal={selectedDeal} onStatusUpdate={onStatusUpdate} onClose={onClose} />
           </div>
         </div>
-
+             </div>
       </div>
     </div>
   );

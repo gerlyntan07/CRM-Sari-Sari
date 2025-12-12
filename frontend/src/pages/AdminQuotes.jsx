@@ -9,12 +9,15 @@ import {
   FiPhone,
   FiMail,
   FiCalendar,
+  FiCheckSquare
 } from "react-icons/fi";
 import { HiX } from "react-icons/hi";
 import { toast } from "react-toastify";
 import api from "../api.js";
 import PaginationControls from "../components/PaginationControls.jsx";
 import LoadingSpinner from "../components/LoadingSpinner.jsx";
+import { useNavigate } from "react-router-dom";
+
 
 const ITEMS_PER_PAGE = 10;
 
@@ -115,6 +118,8 @@ const formatDate = (date) => {
 };
 
 export default function AdminQuotes() {
+       const navigate = useNavigate();
+  
   useEffect(() => {
     document.title = "Quotes | Sari-Sari CRM";
   }, []);
@@ -805,29 +810,49 @@ export default function AdminQuotes() {
             )}
           </div>
 
-          <div className="flex flex-col gap-4">
-            {/* QUICK ACTIONS */}
-            <div className="bg-white border border-gray-100 rounded-lg p-3 sm:p-4 shadow-sm">
-              <h4 className="font-semibold text-gray-800 mb-2 text-sm">
-                Quick Actions
-              </h4>
-
-              <div className="flex flex-col gap-2 w-full">
-                {[
-                  { icon: FiPhone, text: "Schedule Call" },
-                  { icon: FiMail, text: "Send E-mail" },
-                  { icon: FiCalendar, text: "Book Meeting" },
-                ].map(({ icon: Icon, text }) => (
-                  <button
-                    key={text}
-                    className="flex items-center gap-2 border border-gray-100 rounded-md py-1.5 px-2 sm:px-3 hover:bg-gray-50 transition text-sm"
-                  >
-                    <Icon className="text-gray-600 w-4 h-4 flex-shrink-0" />{" "}
-                    {text}
-                  </button>
-                ))}
-              </div>
-            </div>
+            <div className="flex flex-col gap-4">
+                     {/* QUICK ACTIONS */}
+                     <div className="bg-white border border-gray-100 rounded-lg p-3 sm:p-4 shadow-sm">
+                       <h4 className="font-semibold text-gray-800 mb-2 text-sm">
+                         Quick Actions
+                       </h4>
+                   
+                       <div className="flex flex-col gap-2 w-full">
+                   
+                         {/* --- SCHEDULE CALL BUTTON (updated) --- */}
+                         <button
+                           onClick={() =>
+                             navigate("/admin/calls", {
+                               state: {
+                                 openCallModal: true,      // <-- this triggers your form
+                                 initialCallData: {
+                                   relatedType1: "Quote", // <-- your custom default
+                                 },
+                               },
+                             })
+                           }
+                           className="flex items-center gap-2 border border-gray-100 rounded-md py-1.5 px-2 sm:px-3 hover:bg-gray-50 transition text-sm"
+                         >
+                           <FiPhone className="text-gray-600 w-4 h-4" />
+                           Schedule Call
+                         </button>
+                   
+                         {/* --- OTHER BUTTONS (unchanged) --- */}
+                         <button className="flex items-center gap-2 border border-gray-100 rounded-md py-1.5 px-2 sm:px-3 hover:bg-gray-50 transition text-sm">
+                           <FiMail className="text-gray-600 w-4 h-4" />
+                           Send E-mail
+                         </button>
+                   
+                         <button className="flex items-center gap-2 border border-gray-100 rounded-md py-1.5 px-2 sm:px-3 hover:bg-gray-50 transition text-sm">
+                           <FiCalendar className="text-gray-600 w-4 h-4" />
+                           Book Meeting
+                         </button>
+                           <button className="flex items-center gap-2 border border-gray-100 rounded-md py-1.5 px-2 sm:px-3 hover:bg-gray-50 transition text-sm">
+                            <FiCheckSquare className="text-gray-600 w-4 h-4" />
+                          Tasks
+                         </button>
+                       </div>
+                     </div>
 
             {/* STATUS */}
             <div className="bg-white border border-gray-100 rounded-lg p-3 sm:p-4 shadow-sm w-full">

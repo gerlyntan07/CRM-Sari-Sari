@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { HiX } from "react-icons/hi";
-import { FiPhone, FiMail, FiCalendar, FiEdit2, FiTrash2, FiFileText } from "react-icons/fi";
+import { FiPhone, FiMail, FiCalendar, FiEdit2, FiTrash2, FiFileText, FiCheckSquare } from "react-icons/fi";
 
 const AdminMeetingInfomation = ({ meeting, onClose, onEdit, onDelete, onStatusUpdate }) => {
   const [activeTab, setActiveTab] = useState("Overview");
@@ -251,7 +251,7 @@ const AdminMeetingInfomation = ({ meeting, onClose, onEdit, onDelete, onStatusUp
                     { icon: FiPhone, text: "Schedule Call" },
                     { icon: FiMail, text: "Send E-mail" },
                     { icon: FiCalendar, text: "Book Meeting" },
-                    { icon: FiFileText, text: "Create Quote" },
+                    { icon: FiCheckSquare, text: "Tasks" },
                   ].map(({ icon: Icon, text }) => (
                     <button
                       key={text}

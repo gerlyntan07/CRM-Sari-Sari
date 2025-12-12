@@ -507,11 +507,12 @@ export default function AdminTask() {
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4 mb-6 w-full break-words overflow-hidden">
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4 mb-6 w-full break-words overflow-hidden lg:overflow-visible">
         {METRICS.map((metric) => (
           <MetricCard key={metric.title} {...metric} />
         ))}
       </div>
+      
 
       {/* Filters */}
       <div className="bg-white rounded-xl p-4 shadow-sm mt-6 mb-4 flex flex-col lg:flex-row items-center justify-between gap-3 w-full">

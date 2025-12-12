@@ -1,11 +1,15 @@
 import React, { useState, useEffect } from "react";
-import { FiPhone, FiMail, FiCalendar, FiFileText } from "react-icons/fi";
+import { FiPhone, FiMail, FiCalendar, FiFileText, FiCheckSquare } from "react-icons/fi";
 import api from '../api';
 import { toast } from "react-toastify";
+import { useNavigate } from "react-router-dom";
+
 
 export default function AdminDealsQuickAction({ selectedDeal, onStatusUpdate, onClose }) {
   const [selectedStage, setSelectedStage] = useState(selectedDeal?.stage || "");
   const [isUpdating, setIsUpdating] = useState(false);
+    const navigate = useNavigate();
+  
 
   // Stage options matching the format used in AdminDeals.jsx
   const stageOptions = [
@@ -74,28 +78,49 @@ export default function AdminDealsQuickAction({ selectedDeal, onStatusUpdate, on
   }
 
   return (
-    <div className="space-y-4 font-inter text-[13px] w-full sm:w-[85%] mx-auto">
-      {/* Quick Actions */}
-      <div className="bg-white border border-gray-100 rounded-lg p-3 sm:p-4 shadow-sm w-full">
-        <h4 className="font-semibold text-gray-800 mb-2 text-sm">
-          Quick Actions
-        </h4>
-        <div className="flex flex-col gap-1.5">
-          {[
-            { icon: FiPhone, text: "Schedule Call" },
-            { icon: FiMail, text: "Send E-mail" },
-            { icon: FiCalendar, text: "Book Meeting" },
-            { icon: FiFileText, text: "Create Quote" },
-          ].map(({ icon: Icon, text }) => (
-            <button
-              key={text}
-              className="flex items-center gap-2 border border-gray-100 rounded-md py-1.5 px-2 sm:px-3 hover:bg-gray-50 transition text-sm w-full"
-            >
-              <Icon className="text-gray-600 w-4 h-4 flex-shrink-0" /> {text}
-            </button>
-          ))}
-        </div>
-      </div>
+    <div className="space-y-4 font-inter text-[13px] w-full sm:w-[85%] mx-auto flex flex-col gap-4">
+                    {/* QUICK ACTIONS */}
+                    <div className="bg-white border border-gray-100 rounded-lg p-3 sm:p-4 shadow-sm">
+                      <h4 className="font-semibold text-gray-800 mb-2 text-sm">
+                        Quick Actions
+                      </h4>
+                  
+                      <div className="flex flex-col gap-2 w-full">
+                  
+                        {/* --- SCHEDULE CALL BUTTON (updated) --- */}
+                        <button
+                          onClick={() =>
+                            navigate("/admin/calls", {
+                              state: {
+                                openCallModal: true,      // <-- this triggers your form
+                                initialCallData: {
+                                  relatedType1: "Deal", // <-- your custom default
+                                },
+                              },
+                            })
+                          }
+                          className="flex items-center gap-2 border border-gray-100 rounded-md py-1.5 px-2 sm:px-3 hover:bg-gray-50 transition text-sm"
+                        >
+                          <FiPhone className="text-gray-600 w-4 h-4" />
+                          Schedule Call
+                        </button>
+                  
+                        {/* --- OTHER BUTTONS (unchanged) --- */}
+                        <button className="flex items-center gap-2 border border-gray-100 rounded-md py-1.5 px-2 sm:px-3 hover:bg-gray-50 transition text-sm">
+                          <FiMail className="text-gray-600 w-4 h-4" />
+                          Send E-mail
+                        </button>
+                  
+                        <button className="flex items-center gap-2 border border-gray-100 rounded-md py-1.5 px-2 sm:px-3 hover:bg-gray-50 transition text-sm">
+                          <FiCalendar className="text-gray-600 w-4 h-4" />
+                          Book Meeting
+                        </button>
+                          <button className="flex items-center gap-2 border border-gray-100 rounded-md py-1.5 px-2 sm:px-3 hover:bg-gray-50 transition text-sm">
+                            <FiCheckSquare className="text-gray-600 w-4 h-4" />
+                              Tasks
+                            </button>
+                      </div>
+                    </div>
 
       {/* Promote Deal */}
       <div className="bg-white border border-gray-100 rounded-lg p-3 sm:p-4 shadow-sm w-full">

@@ -11,11 +11,14 @@ import {
   FiPhone,
   FiMail,
   FiCalendar,
+   FiCheckSquare
 } from "react-icons/fi";
 import { HiX } from "react-icons/hi";
 import PaginationControls from "../components/PaginationControls.jsx";
 import api from "../api.js";
 import {toast} from 'react-toastify';
+import { useSearchParams, useNavigate, useLocation } from "react-router-dom";
+
 
 // --- Constants (UI Options) ---
 const STATUS_OPTIONS = [
@@ -80,6 +83,45 @@ export default function AdminCalls() {
   const [relatedTo2Values, setRelatedTo2Values] = useState(null);
   const [calls, setCalls] = useState([]);
   const [team, setTeam] = useState(null);
+
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  // INSERT THE FIXED EFFECT HERE
+useEffect(() => {
+  console.log("LOCATION STATE:", location.state);
+
+  const shouldOpen = location.state?.openCallModal;
+  const incomingId = location.state?.initialCallData?.relatedTo1 || searchParams.get("id");
+
+  if (shouldOpen || incomingId) {
+    console.log("AUTO OPEN CALL FORM");
+
+    setShowModal(true);
+
+    // Inject initial data if provided
+    if (location.state?.initialCallData) {
+      setFormData((prev) => ({
+        ...prev,
+        ...location.state.initialCallData,
+      }));
+    }
+
+    // If call ID came from query / state, apply it
+    if (incomingId) {
+      setFormData((prev) => ({
+        ...prev,
+        relatedTo1: incomingId,
+      }));
+    }
+
+    // Clear URL state so modal does not reopen on refresh
+    navigate(location.pathname, { replace: true, state: {} });
+  }
+}, [location, searchParams, navigate]);
+
+// -------------------------------------------------------
 
   const fetchCalls = async () => {
   try {
@@ -279,6 +321,8 @@ export default function AdminCalls() {
   const handleConfirmAction = () => { };
   const handleStatusUpdate = () => { };
 
+
+
   // Options for "Related To" dropdown (Dynamic Logic needed)
   const getRelatedToOptions = () => [];
 
@@ -358,7 +402,11 @@ export default function AdminCalls() {
             <div className="bg-white border border-gray-100 rounded-lg p-3 sm:p-4 shadow-sm">
               <h4 className="font-semibold text-gray-800 mb-2 text-sm">Quick Actions</h4>
               <div className="flex flex-col gap-2 w-full">
-                {[{ icon: FiPhone, text: "Schedule Call" }, { icon: FiMail, text: "Send E-mail" }, { icon: FiCalendar, text: "Book Meeting" }].map(({ icon: Icon, text }) => (
+                {[{ icon: FiPhone, text: "Schedule Call" }, 
+                { icon: FiMail, text: "Send E-mail" }, 
+                { icon: FiCalendar, text: "Book Meeting" },
+                { icon: FiCheckSquare, text: "Tasks" },
+              ].map(({ icon: Icon, text }) => (
                   <button key={text} className="flex items-center gap-2 border border-gray-100 rounded-md py-1.5 px-2 sm:px-3 hover:bg-gray-50 transition text-sm">
                     <Icon className="text-gray-600 w-4 h-4" /> {text}
                   </button>

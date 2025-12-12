@@ -6,7 +6,6 @@ import {
   FiClock,
   FiCheckCircle,
   FiXCircle,
-  FiStar,
 } from "react-icons/fi";
 import { toast } from "react-toastify";
 import { useSearchParams, useNavigate, useLocation } from "react-router-dom";
@@ -19,6 +18,20 @@ import LoadingSpinner from "../components/LoadingSpinner.jsx";
 
 // --- HELPER FUNCTIONS ---
 const normalizeStatus = (status) => (status ? status.toUpperCase() : "");
+const toAdminStatus = (status) => {
+  const s = normalizeStatus(status);
+  if (s === "PENDING" || s === "IN PROGRESS") return "PLANNED";
+  if (s === "COMPLETED" || s === "DONE") return "HELD";
+  if (s === "CANCELLED") return "NOT_HELD";
+  return "PLANNED";
+};
+const toBackendStatus = (adminStatus) => {
+  const s = normalizeStatus(adminStatus);
+  if (s === "PLANNED") return "PENDING";
+  if (s === "HELD") return "COMPLETED";
+  if (s === "NOT_HELD") return "CANCELLED";
+  return "PENDING";
+};
 
 const formatStatusLabel = (status) => {
   if (!status) return "--";
@@ -29,7 +42,9 @@ const formatStatusLabel = (status) => {
 };
 
 const getStatusBadgeClass = (status) => {
-  switch (normalizeStatus(status)) {
+  const s = normalizeStatus(status);
+  const base = s === "PLANNED" ? "PENDING" : s === "HELD" ? "COMPLETED" : s === "NOT_HELD" ? "CANCELLED" : s;
+  switch (base) {
     case "PENDING":
       return "bg-indigo-100 text-indigo-700";
     case "COMPLETED":
@@ -41,6 +56,15 @@ const getStatusBadgeClass = (status) => {
       return "bg-blue-100 text-blue-700";
     default:
       return "bg-gray-100 text-gray-700";
+  }
+};
+
+const formatDateTime = (iso) => {
+  if (!iso) return "--";
+  try {
+    return new Date(iso).toLocaleString();
+  } catch {
+    return "--";
   }
 };
 
@@ -60,16 +84,15 @@ const getPriorityBadgeClass = (priority) => {
 const ITEMS_PER_PAGE = 10;
 
 const INITIAL_FORM_STATE = {
-  meetingTitle: "",
+  subject: "",
+  startTime: "",
+  endTime: "",
   location: "",
-  duration: "",
-  meetingLink: "",
-  agenda: "",
-  dueDate: "",
+  status: "PLANNED",
+  notes: "",
   assignedTo: "",
   relatedType: "",
   relatedTo: "",
-  priority: "Low",
 };
 
 const AdminMeeting = () => {
@@ -92,7 +115,6 @@ const AdminMeeting = () => {
   const [deals, setDeals] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("Filter by Status");
-  const [priorityFilter, setPriorityFilter] = useState("Filter by Priority");
   const [showModal, setShowModal] = useState(false);
   const [selectedMeeting, setSelectedMeeting] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
@@ -229,7 +251,7 @@ const AdminMeeting = () => {
   const filteredMeetings = useMemo(() => {
     const normalizedQuery = searchTerm.trim().toLowerCase();
     const normalizedStatusFilter = statusFilter.trim().toUpperCase();
-    const normalizedPriorityFilter = priorityFilter.trim().toUpperCase();
+    const normalizedPriorityFilter = "FILTER BY PRIORITY";
 
     return meetings.filter((meeting) => {
       // Search across all visible table fields
@@ -238,9 +260,9 @@ const AdminMeeting = () => {
         meeting?.description,
         meeting?.relatedTo,
         meeting?.assignedTo,
-        meeting?.dueDate,
-        meeting?.priority ? formatStatusLabel(meeting.priority) : "",
-        meeting?.status ? formatStatusLabel(meeting.status) : "",
+        meeting?.startTime,
+        meeting?.endTime,
+        toAdminStatus(meeting?.status),
       ];
 
       const matchesSearch =
@@ -253,15 +275,11 @@ const AdminMeeting = () => {
 
       const matchesStatus =
         normalizedStatusFilter === "FILTER BY STATUS" ||
-        normalizeStatus(meeting.status || "PENDING") === normalizedStatusFilter;
+        toAdminStatus(meeting.status || "PENDING") === normalizedStatusFilter;
 
-      const matchesPriority =
-        normalizedPriorityFilter === "FILTER BY PRIORITY" ||
-        normalizeStatus(meeting.priority || "LOW") === normalizedPriorityFilter;
-
-      return matchesSearch && matchesStatus && matchesPriority;
+      return matchesSearch && matchesStatus;
     });
-  }, [meetings, searchTerm, statusFilter, priorityFilter]);
+  }, [meetings, searchTerm, statusFilter]);
 
   const totalPages = Math.max(
     1,
@@ -270,7 +288,7 @@ const AdminMeeting = () => {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, statusFilter, priorityFilter]);
+  }, [searchTerm, statusFilter]);
 
   useEffect(() => {
     setCurrentPage((prev) => {
@@ -351,17 +369,41 @@ const AdminMeeting = () => {
       }
     }
 
+    const toLocalInput = (iso) => {
+      if (!iso) return "";
+      try {
+        const d = new Date(iso);
+        const yyyy = d.getFullYear();
+        const mm = String(d.getMonth() + 1).padStart(2, "0");
+        const dd = String(d.getDate()).padStart(2, "0");
+        const hh = String(d.getHours()).padStart(2, "0");
+        const min = String(d.getMinutes()).padStart(2, "0");
+        return `${yyyy}-${mm}-${dd}T${hh}:${min}`;
+      } catch {
+        return "";
+      }
+    };
+    const startTime = toLocalInput(meeting.startTime);
+    const endTime = toLocalInput(meeting.endTime);
+
+    const statusMap = {
+      PENDING: "PLANNED",
+      "IN PROGRESS": "PLANNED",
+      DONE: "HELD",
+      COMPLETED: "HELD",
+      CANCELLED: "NOT_HELD",
+    };
+
     setFormData({
-      meetingTitle: meeting.activity || "",
+      subject: meeting.activity || "",
       location: meeting.location || "",
-      duration: meeting.duration ? String(meeting.duration) : "",
-      meetingLink: meeting.meetingLink || "",
-      agenda: meeting.description || "",
-      dueDate: meeting.dueDate || "",
+      startTime,
+      endTime,
+      status: statusMap[(meeting.status || "PENDING").toUpperCase()] || "PLANNED",
+      notes: meeting.description || "",
       assignedTo: assignedToId,
       relatedType: relatedType,
       relatedTo: relatedToId,
-      priority: meeting.priority || "Low",
     });
     setIsEditing(true);
     setCurrentMeetingId(meeting.id);
@@ -401,7 +443,7 @@ const AdminMeeting = () => {
         status: newStatus,
       });
 
-      toast.success(`Meeting status updated to ${formatStatusLabel(newStatus)}`);
+      toast.success(`Meeting status updated to ${toAdminStatus(newStatus)}`);
 
       // Update meeting in state without reloading
       setMeetings((prevMeetings) => {
@@ -426,68 +468,69 @@ const AdminMeeting = () => {
   };
 
   const handleSubmit = (formDataFromModal) => {
-    const trimmedTitle = formDataFromModal.meetingTitle.trim();
-    if (!trimmedTitle) {
-      toast.error("Meeting title is required.");
+    const trimmedSubject = (formDataFromModal.subject || "").trim();
+    if (!trimmedSubject) {
+      toast.error("Subject is required.");
       return;
     }
 
-    if (!formDataFromModal.dueDate) {
-      toast.error("Due date is required.");
+    if (!formDataFromModal.startTime) {
+      toast.error("Start time is required.");
       return;
     }
 
-    // Convert duration to integer
     let duration = null;
-    if (formDataFromModal.duration && formDataFromModal.duration.trim()) {
-      const parsed = parseInt(formDataFromModal.duration, 10);
-      // Only set if it's a valid number (not NaN)
-      if (!isNaN(parsed) && parsed > 0) {
-        duration = parsed;
+    if (formDataFromModal.endTime) {
+      const start = new Date(formDataFromModal.startTime);
+      const end = new Date(formDataFromModal.endTime);
+      const diffMs = end.getTime() - start.getTime();
+      if (diffMs > 0) {
+        duration = Math.round(diffMs / 60000);
+      } else {
+        toast.error("End time must be after start time.");
+        return;
       }
     }
 
-    // Convert assignedTo to integer (user ID)
-    // Allow empty string to be converted to null (for clearing assignment)
     let assignedToId = null;
     if (formDataFromModal.assignedTo && formDataFromModal.assignedTo.trim()) {
       const parsed = parseInt(formDataFromModal.assignedTo, 10);
-      // Only set if it's a valid number (not NaN)
       if (!isNaN(parsed)) {
         assignedToId = parsed;
       }
     }
 
-    // Convert relatedTo to integer (entity ID)
     let relatedToId = null;
     if (formDataFromModal.relatedTo && formDataFromModal.relatedTo.trim()) {
       const parsed = parseInt(formDataFromModal.relatedTo, 10);
-      // Only set if it's a valid number (not NaN)
       if (!isNaN(parsed)) {
         relatedToId = parsed;
       }
     }
-    
-    // If relatedType is provided but relatedTo is null, set relatedType to null too
-    const finalRelatedType = (formDataFromModal.relatedType && relatedToId) ? formDataFromModal.relatedType : null;
+
+    const finalRelatedType = formDataFromModal.relatedType && relatedToId ? formDataFromModal.relatedType : null;
+
+    const statusMapToBackend = {
+      PLANNED: "PENDING",
+      HELD: "COMPLETED",
+      NOT_HELD: "CANCELLED",
+    };
 
     const payload = {
-      subject: trimmedTitle,
+      subject: trimmedSubject,
       location: formDataFromModal.location?.trim() || null,
-      duration: duration,
-      meeting_link: formDataFromModal.meetingLink?.trim() || null,
-      agenda: formDataFromModal.agenda?.trim() || null,
-      due_date: formDataFromModal.dueDate,
+      duration,
+      meeting_link: null,
+      agenda: formDataFromModal.notes?.trim() || null,
+      due_date: formDataFromModal.startTime,
       assigned_to: assignedToId,
       related_type: finalRelatedType,
       related_to: relatedToId,
-      priority: formDataFromModal.priority || "Low",
-      // Only set status for create, not for update (preserve existing status)
-      ...(isEditing && currentMeetingId ? {} : { status: "PENDING" }),
+      status: statusMapToBackend[(formDataFromModal.status || "PLANNED").toUpperCase().replace(" ", "_")] || "PENDING",
     };
 
     const actionType = isEditing && currentMeetingId ? "update" : "create";
-    const meetingName = trimmedTitle;
+    const meetingName = trimmedSubject;
 
     setConfirmModalData({
       title: actionType === "create" ? "Confirm New Meeting" : "Confirm Update",
@@ -595,10 +638,15 @@ const AdminMeeting = () => {
   };
 
   const total = meetings.length;
-  const pending = meetings.filter((m) => m.status === "PENDING").length;
-  const inProgress = meetings.filter((m) => m.status === "IN PROGRESS").length;
-  const done = meetings.filter((m) => m.status === "DONE" || m.status === "COMPLETED").length;
-  const highPriority = meetings.filter((m) => normalizeStatus(m.priority) === "HIGH").length;
+  const planned = meetings.filter((m) => {
+    const s = (m.status || "").toUpperCase();
+    return s === "PENDING" || s === "IN PROGRESS";
+  }).length;
+  const held = meetings.filter((m) => {
+    const s = (m.status || "").toUpperCase();
+    return s === "COMPLETED" || s === "DONE";
+  }).length;
+  const notHeld = meetings.filter((m) => (m.status || "").toUpperCase() === "CANCELLED").length;
 
   const metricCards = [
     {
@@ -609,40 +657,32 @@ const AdminMeeting = () => {
       bgColor: "bg-slate-100",
     },
     {
-      title: "Pending",
-      value: pending,
+      title: "Planned",
+      value: planned,
       icon: FiClock,
       color: "text-indigo-600",
       bgColor: "bg-indigo-100",
     },
     {
-      title: "In Progress",
-      value: inProgress,
-      icon: FiClock,
-      color: "text-orange-600",
-      bgColor: "bg-orange-100",
-    },
-    {
-      title: "Done",
-      value: done,
+      title: "Held",
+      value: held,
       icon: FiCheckCircle,
       color: "text-green-600",
       bgColor: "bg-green-100",
     },
     {
-      title: "High Priority",
-      value: highPriority,
-      icon: FiStar,
-      color: "text-red-600",
-      bgColor: "bg-red-100",
+      title: "Not Held",
+      value: notHeld,
+      icon: FiXCircle,
+      color: "text-gray-600",
+      bgColor: "bg-gray-100",
     },
   ];
 
-  // If accessed via /info route, only show detail modal (no loading, no list)
+  // If accessed via /info route, only show detail modal
   if (isInfoRoute && meetingIdFromQuery) {
     if (!selectedMeeting) {
-      // Still loading, return null (no loading spinner)
-      return null;
+      return <LoadingSpinner message="Loading meeting..." />;
     }
     return (
       <AdminMeetingInfomation
@@ -699,19 +739,9 @@ const AdminMeeting = () => {
             className="border border-gray-300 rounded-lg px-3 h-11 text-sm text-gray-600 bg-white w-full lg:w-40 focus:ring-2 focus:ring-indigo-500 transition"
           >
             <option value="Filter by Status">Filter by Status</option>
-            <option value="PENDING">Pending</option>
-            <option value="IN PROGRESS">In Progress</option>
-            <option value="DONE">Done</option>
-          </select>
-          <select
-            value={priorityFilter}
-            onChange={(e) => setPriorityFilter(e.target.value)}
-            className="border border-gray-300 rounded-lg px-3 h-11 text-sm text-gray-600 bg-white w-full lg:w-40 focus:ring-2 focus:ring-indigo-500 transition"
-          >
-            <option value="Filter by Priority">Filter by Priority</option>
-            <option value="HIGH">High</option>
-            <option value="MEDIUM">Medium</option>
-            <option value="LOW">Low</option>
+            <option value="PLANNED">PLANNED</option>
+            <option value="HELD">HELD</option>
+            <option value="NOT_HELD">NOT_HELD</option>
           </select>
         </div>
       </div>
@@ -720,10 +750,10 @@ const AdminMeeting = () => {
         <table className="w-full min-w-[500px] border border-gray-200 rounded-lg bg-white shadow-sm text-sm">
           <thead className="bg-gray-100 text-left text-gray-600 text-sm tracking-wide font-semibold">
             <tr>
-              <th className="py-3 px-4">Priority</th>
               <th className="py-3 px-4">Activity</th>
               <th className="py-3 px-4">Related</th>
-              <th className="py-3 px-4">Due Date</th>
+              <th className="py-3 px-4">Start Time</th>
+              <th className="py-3 px-4">End Time</th>
               <th className="py-3 px-4">Assigned</th>
               <th className="py-3 px-4">Status</th>
             </tr>
@@ -739,15 +769,6 @@ const AdminMeeting = () => {
                     setSelectedMeeting({ ...meeting });
                   }}
                 >
-                  <td className="py-3 px-4">
-                    <span
-                      className={`px-2 py-1 rounded-full text-xs font-medium ${getPriorityBadgeClass(
-                        meeting.priority || "LOW"
-                      )}`}
-                    >
-                      {formatStatusLabel(meeting.priority || "LOW")}
-                    </span>
-                  </td>
                   <td className="py-3 px-4">
                     <div>
                       <div className="font-medium text-blue-600 hover:underline break-all text-sm">
@@ -766,7 +787,10 @@ const AdminMeeting = () => {
                     </div>
                   </td>
                   <td className="py-3 px-4 text-gray-800 font-medium text-sm">
-                    {meeting.dueDate || "--"}
+                    {formatDateTime(meeting.startTime)}
+                  </td>
+                  <td className="py-3 px-4 text-gray-800 font-medium text-sm">
+                    {formatDateTime(meeting.endTime)}
                   </td>
                   <td className="py-3 px-4 text-gray-800 font-medium text-sm">
                     {meeting.assignedTo || "--"}
@@ -774,10 +798,10 @@ const AdminMeeting = () => {
                   <td className="py-3 px-4">
                     <span
                       className={`px-2 py-1 rounded-full text-xs font-medium whitespace-nowrap ${getStatusBadgeClass(
-                        meeting.status || "PENDING"
+                        toAdminStatus(meeting.status || "PENDING")
                       )}`}
                     >
-                      {formatStatusLabel(meeting.status || "PENDING")}
+                      {toAdminStatus(meeting.status || "PENDING")}
                     </span>
                   </td>
                 </tr>

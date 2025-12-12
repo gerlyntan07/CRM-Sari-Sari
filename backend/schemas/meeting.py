@@ -34,6 +34,8 @@ class MeetingResponse(BaseModel):
     subject: str
     location: Optional[str] = None
     duration: Optional[int] = None
+    startTime: Optional[str] = None
+    endTime: Optional[str] = None
     meetingLink: Optional[str] = None
     description: Optional[str] = None  # alias for agenda
     agenda: Optional[str] = None

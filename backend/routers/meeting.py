@@ -21,53 +21,23 @@ router = APIRouter(
 )
 
 def meeting_to_response(meeting: Meeting) -> dict:
-    """Convert DB Meeting to API-friendly JSON"""
     assigned_name = None
     if meeting.meet_assign_to:
         assigned_name = f"{meeting.meet_assign_to.first_name} {meeting.meet_assign_to.last_name}"
-    
-    # Parse metadata from notes (stored as JSON at the beginning)
-    meeting_link = None
-    priority = "Low"
-    related_to_text = None
-    related_type_text = None
-    actual_notes = meeting.notes or ""
-    
-    if meeting.notes and meeting.notes.startswith("__METADATA__"):
-        try:
-            # Extract JSON metadata from notes
-            parts = meeting.notes.split("__NOTES__", 1)
-            if len(parts) == 2:
-                metadata_str = parts[0].replace("__METADATA__", "")
-                actual_notes = parts[1]
-                metadata = json.loads(metadata_str)
-                meeting_link = metadata.get("meeting_link")
-                priority = metadata.get("priority", "Low")
-                related_to_text = metadata.get("related_to")
-                related_type_text = metadata.get("related_type")
-        except (json.JSONDecodeError, ValueError):
-            # If parsing fails, use notes as-is
-            actual_notes = meeting.notes
-    
-    # Use related_to_text if available, otherwise derive from relationships
-    related_to = related_to_text
-    if not related_to:
-        related_to = (
-            meeting.account.name if meeting.account else
-            f"{meeting.contact.first_name} {meeting.contact.last_name}" if meeting.contact else
-            f"{meeting.lead.first_name} {meeting.lead.last_name}" if meeting.lead else
-            meeting.deal.name if meeting.deal else None
-        )
-    
-    # Use related_type_text from metadata if available, otherwise derive from relationships
-    related_type = related_type_text
-    if not related_type:
-        related_type = (
-            "Client" if meeting.related_to_account else
-            "Contact" if meeting.related_to_contact else
-            "Lead" if meeting.related_to_lead else
-            "Deal" if meeting.related_to_deal else None
-        )
+
+    related_to = (
+        meeting.account.name if meeting.account else
+        f"{meeting.contact.first_name} {meeting.contact.last_name}" if meeting.contact else
+        f"{meeting.lead.first_name} {meeting.lead.last_name}" if meeting.lead else
+        meeting.deal.name if meeting.deal else None
+    )
+
+    related_type = (
+        "Account" if meeting.related_to_account else
+        "Contact" if meeting.related_to_contact else
+        "Lead" if meeting.related_to_lead else
+        "Deal" if meeting.related_to_deal else None
+    )
     
     # Calculate duration from start_time and end_time if available
     duration = None
@@ -93,14 +63,16 @@ def meeting_to_response(meeting: Meeting) -> dict:
         "subject": meeting.subject,
         "location": meeting.location,
         "duration": duration,
-        "meetingLink": meeting_link,
-        "description": actual_notes,
-        "agenda": actual_notes,
+        "startTime": meeting.start_time.isoformat() if meeting.start_time else None,
+        "endTime": meeting.end_time.isoformat() if meeting.end_time else None,
+        "meetingLink": None,
+        "description": meeting.notes or "",
+        "agenda": meeting.notes or "",
         "dueDate": due_date_str,
         "assignedTo": assigned_name,
         "relatedType": related_type,
         "relatedTo": related_to,
-        "priority": priority,
+        "priority": None,
         "status": frontend_status,
         "createdAt": meeting.created_at.isoformat() if meeting.created_at else None,
         "updatedAt": meeting.updated_at.isoformat() if meeting.updated_at else None,
@@ -194,24 +166,13 @@ def create_meeting(
             else:
                 raise HTTPException(status_code=404, detail="Deal not found")
     
-    # Store meeting_link, priority, related_to (as text for display), and related_type as JSON metadata in notes
-    metadata = {
-        "meeting_link": data.meeting_link,
-        "priority": data.priority or "Low",
-        "related_to": related_to_text,
-        "related_type": data.related_type,
-    }
-    metadata_json = json.dumps(metadata)
-    # Store metadata at the beginning of notes, separated by __NOTES__
-    notes_with_metadata = f"__METADATA__{metadata_json}__NOTES__{data.agenda or ''}"
-    
     new_meeting = Meeting(
         subject=data.subject,
         start_time=start_time,
         end_time=end_time,
         location=data.location,
         status=meeting_status,
-        notes=notes_with_metadata,
+        notes=data.agenda or "",
         related_to_account=related_to_account,
         related_to_contact=related_to_contact,
         related_to_lead=related_to_lead,
@@ -331,14 +292,21 @@ def update_meeting(
     
     # Update status
     if data.status is not None:
+        status_key = (data.status or "").upper()
         status_mapping = {
+            # Frontend-call style
             "PENDING": MeetingStatus.PLANNED,
             "COMPLETED": MeetingStatus.HELD,
             "DONE": MeetingStatus.HELD,
             "CANCELLED": MeetingStatus.NOT_HELD,
             "IN PROGRESS": MeetingStatus.PLANNED,
+            # Admin-meetings style
+            "PLANNED": MeetingStatus.PLANNED,
+            "HELD": MeetingStatus.HELD,
+            "NOT_HELD": MeetingStatus.NOT_HELD,
+            "NOT HELD": MeetingStatus.NOT_HELD,
         }
-        meeting.status = status_mapping.get(data.status, MeetingStatus.PLANNED)
+        meeting.status = status_mapping.get(status_key, MeetingStatus.PLANNED)
     
     # Update related_to fields if related_type or related_to is provided
     if data.related_type is not None or data.related_to is not None:
@@ -388,60 +356,8 @@ def update_meeting(
             meeting.related_to_lead = None
             meeting.related_to_deal = None
     
-    # Always update notes with metadata to preserve it
-    # Parse existing metadata
-    existing_metadata = {}
-    existing_notes = ""
-    
-    if meeting.notes and meeting.notes.startswith("__METADATA__"):
-        try:
-            parts = meeting.notes.split("__NOTES__", 1)
-            if len(parts) == 2:
-                metadata_str = parts[0].replace("__METADATA__", "")
-                existing_metadata = json.loads(metadata_str)
-                existing_notes = parts[1]
-        except (json.JSONDecodeError, ValueError):
-            existing_notes = meeting.notes or ""
-    else:
-        existing_notes = meeting.notes or ""
-    
-    # Update metadata fields if provided
-    if data.meeting_link is not None:
-        existing_metadata["meeting_link"] = data.meeting_link
-    if data.priority is not None:
-        existing_metadata["priority"] = data.priority
-    
-    # Update related_to and related_type in metadata (for display purposes)
-    if data.related_type is not None:
-        existing_metadata["related_type"] = data.related_type
-    if data.related_to is not None and data.related_type is not None:
-        # Get the display text for related_to
-        related_to_id = data.related_to
-        if data.related_type == "Account":
-            account = db.query(Account).filter(Account.id == related_to_id).first()
-            existing_metadata["related_to"] = account.name if account else None
-        elif data.related_type == "Contact":
-            contact = db.query(Contact).filter(Contact.id == related_to_id).first()
-            existing_metadata["related_to"] = f"{contact.first_name} {contact.last_name}" if contact else None
-        elif data.related_type == "Lead":
-            lead = db.query(Lead).filter(Lead.id == related_to_id).first()
-            existing_metadata["related_to"] = f"{lead.first_name} {lead.last_name}" if lead else None
-        elif data.related_type == "Deal":
-            deal = db.query(Deal).filter(Deal.id == related_to_id).first()
-            existing_metadata["related_to"] = deal.name if deal else None
-    elif data.related_type is None and data.related_to is None:
-        # If both are None, check if we should clear them from metadata
-        # Only clear if we're explicitly updating related fields
-        if "related_type" in existing_metadata:
-            existing_metadata.pop("related_type", None)
-            existing_metadata.pop("related_to", None)
-    
-    # Use new agenda if provided, otherwise keep existing
-    final_notes = data.agenda if data.agenda is not None else existing_notes
-    
-    # Reconstruct notes with metadata (always preserve metadata structure)
-    metadata_json = json.dumps(existing_metadata)
-    meeting.notes = f"__METADATA__{metadata_json}__NOTES__{final_notes}"
+    if data.agenda is not None:
+        meeting.notes = data.agenda
     
     db.commit()
     db.refresh(meeting)

@@ -14,80 +14,60 @@ const CreateMeetingModal = ({
   leads = [],
   deals = [],
 }) => {
-  // Use external formData if provided, otherwise use internal state
   const [internalFormData, setInternalFormData] = useState({
-    meetingTitle: "",
+    subject: "",
+    startTime: "",
+    endTime: "",
     location: "",
-    duration: "",
-    meetingLink: "",
-    agenda: "",
-    dueDate: "",
+    status: "PLANNED",
+    notes: "",
     assignedTo: "",
     relatedType: "",
     relatedTo: "",
-    priority: "Low",
   });
 
   const formData =
     externalFormData !== undefined ? externalFormData : internalFormData;
   const setFormData = setExternalFormData || setInternalFormData;
-  const relatedTypeOptions = ["Account", "Contact", "Lead", "Deal"];
   
-  // Build relatedTo options based on selected relatedType
+  const relatedTypeOptions = ["Account", "Contact", "Lead", "Deal"];
   const getRelatedToOptions = () => {
     if (!formData.relatedType) return [];
-    
     switch (formData.relatedType) {
       case "Account":
         return accounts
           .filter((account) => account.name && account.name.trim())
-          .map((account) => ({
-            value: String(account.id),
-            label: account.name,
-          }));
+          .map((account) => ({ value: String(account.id), label: account.name }));
       case "Contact":
         return contacts
           .map((contact) => {
             const fullName = `${contact.first_name || ""} ${contact.last_name || ""}`.trim();
             return { value: String(contact.id), label: fullName };
           })
-          .filter((item) => item.label); // Filter out empty names
+          .filter((item) => item.label);
       case "Lead":
         return leads
           .map((lead) => {
             const fullName = `${lead.first_name || ""} ${lead.last_name || ""}`.trim();
             return { value: String(lead.id), label: fullName };
           })
-          .filter((item) => item.label); // Filter out empty names
+          .filter((item) => item.label);
       case "Deal":
         return deals
           .filter((deal) => deal.name && deal.name.trim())
-          .map((deal) => ({
-            value: String(deal.id),
-            label: deal.name,
-          }));
+          .map((deal) => ({ value: String(deal.id), label: deal.name }));
       default:
         return [];
     }
   };
-  
-  const priorityOptions = ["High", "Medium", "Low"];
+  const statusOptions = ["PLANNED", "HELD", "NOT_HELD"];
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-
-    // Reset relatedTo when relatedType changes
     if (name === "relatedType") {
-      setFormData((prev) => ({
-        ...prev,
-        [name]: value,
-        relatedTo: "",
-      }));
+      setFormData((prev) => ({ ...prev, [name]: value, relatedTo: "" }));
     } else {
-      setFormData((prev) => ({
-        ...prev,
-        [name]: value,
-      }));
+      setFormData((prev) => ({ ...prev, [name]: value }));
     }
   };
 
@@ -134,13 +114,14 @@ const CreateMeetingModal = ({
           onSubmit={handleSubmit}
         >
           <InputField
-            label="Meeting Title"
-            name="meetingTitle"
-            value={formData.meetingTitle}
+            label="Subject"
+            name="subject"
+            value={formData.subject}
             onChange={handleInputChange}
-            placeholder="e.g. Follow-up call with Client"
+            placeholder="e.g. Meeting with Client"
             required
             disabled={isSubmitting}
+            className="md:col-span-2"
           />
           <InputField
             label="Location"
@@ -151,32 +132,21 @@ const CreateMeetingModal = ({
             disabled={isSubmitting}
           />
           <InputField
-            label="Duration (minutes)"
-            name="duration"
-            type="number"
-            value={formData.duration}
-            onChange={handleInputChange}
-            placeholder="30"
-            min="1"
-            disabled={isSubmitting}
-          />
-          <InputField
-            label="Meeting Link"
-            name="meetingLink"
-            type="url"
-            value={formData.meetingLink}
-            onChange={handleInputChange}
-            placeholder="https://zoom.us/j/123456"
-            disabled={isSubmitting}
-          />
-          <InputField
-            label="Due Date"
-            name="dueDate"
-            type="date"
-            value={formData.dueDate}
+            label="Start Time"
+            name="startTime"
+            type="datetime-local"
+            value={formData.startTime}
             onChange={handleInputChange}
             required
-            className="md:col-span-2"
+            disabled={isSubmitting}
+          />
+          <InputField
+            label="End Time"
+            name="endTime"
+            type="datetime-local"
+            value={formData.endTime}
+            onChange={handleInputChange}
+            required
             disabled={isSubmitting}
           />
           <SelectField
@@ -195,17 +165,19 @@ const CreateMeetingModal = ({
             disabled={isSubmitting || users.length === 0}
           />
           <SelectField
+            label="Status"
+            name="status"
+            value={formData.status}
+            onChange={handleInputChange}
+            options={statusOptions.map((option) => ({ value: option, label: option.replace('_', ' ') }))}
+            disabled={isSubmitting}
+          />
+          <SelectField
             label="Related Type"
             name="relatedType"
             value={formData.relatedType}
             onChange={handleInputChange}
-            options={[
-              { value: "", label: "Select type" },
-              ...relatedTypeOptions.map((option) => ({
-                value: option,
-                label: option,
-              })),
-            ]}
+            options={[{ value: "", label: "Select type" }, ...relatedTypeOptions.map((option) => ({ value: option, label: option }))]}
             disabled={isSubmitting}
           />
           <SelectField
@@ -213,29 +185,15 @@ const CreateMeetingModal = ({
             name="relatedTo"
             value={formData.relatedTo}
             onChange={handleInputChange}
-            options={[
-              { value: "", label: "Select related item" },
-              ...getRelatedToOptions(),
-            ]}
+            options={[{ value: "", label: "Select related item" }, ...getRelatedToOptions()]}
             disabled={!formData.relatedType || isSubmitting}
           />
-          <SelectField
-            label="Priority"
-            name="priority"
-            value={formData.priority}
-            onChange={handleInputChange}
-            options={priorityOptions.map((option) => ({
-              value: option,
-              label: option,
-            }))}
-            disabled={isSubmitting}
-          />
           <TextareaField
-            label="Agenda"
-            name="agenda"
-            value={formData.agenda}
+            label="Notes"
+            name="notes"
+            value={formData.notes}
             onChange={handleInputChange}
-            placeholder="Add call notes and key discussion points."
+            placeholder="Add meeting notes and key discussion points."
             rows={3}
             className="md:col-span-2"
             disabled={isSubmitting}

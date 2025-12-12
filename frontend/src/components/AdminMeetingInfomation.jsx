@@ -4,13 +4,28 @@ import { FiPhone, FiMail, FiCalendar, FiEdit2, FiTrash2, FiFileText } from "reac
 
 const AdminMeetingInfomation = ({ meeting, onClose, onEdit, onDelete, onStatusUpdate }) => {
   const [activeTab, setActiveTab] = useState("Overview");
-  const [selectedStatus, setSelectedStatus] = useState(meeting?.status || "PENDING");
+  const toAdminStatus = (status) => {
+    const s = (status || "").toUpperCase();
+    if (s === "PENDING" || s === "IN PROGRESS") return "PLANNED";
+    if (s === "COMPLETED" || s === "DONE") return "HELD";
+    if (s === "CANCELLED") return "NOT_HELD";
+    return "PLANNED";
+  };
+  const toBackendStatus = (adminStatus) => {
+    const s = (adminStatus || "").toUpperCase();
+    if (s === "PLANNED") return "PENDING";
+    if (s === "HELD") return "COMPLETED";
+    if (s === "NOT_HELD") return "CANCELLED";
+    return "PENDING";
+  };
+  const [selectedStatus, setSelectedStatus] = useState(toAdminStatus(meeting?.status || "PENDING"));
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
 
   if (!meeting) return null;
 
   const getStatusBadgeClass = (status) => {
     const normalizedStatus = (status || "").toUpperCase();
+    const base = normalizedStatus === "PLANNED" ? "PENDING" : normalizedStatus === "HELD" ? "COMPLETED" : normalizedStatus === "NOT_HELD" ? "CANCELLED" : normalizedStatus;
     switch (normalizedStatus) {
       case "PENDING":
         return "bg-indigo-100 text-indigo-700";
@@ -22,7 +37,16 @@ const AdminMeetingInfomation = ({ meeting, onClose, onEdit, onDelete, onStatusUp
       case "IN PROGRESS":
         return "bg-blue-100 text-blue-700";
       default:
-        return "bg-gray-100 text-gray-700";
+        switch (base) {
+          case "PENDING":
+            return "bg-indigo-100 text-indigo-700";
+          case "COMPLETED":
+            return "bg-green-100 text-green-700";
+          case "CANCELLED":
+            return "bg-gray-200 text-gray-700";
+          default:
+            return "bg-gray-100 text-gray-700";
+        }
     }
   };
 
@@ -57,10 +81,10 @@ const AdminMeetingInfomation = ({ meeting, onClose, onEdit, onDelete, onStatusUp
               </h1>
               <span
                 className={`text-xs sm:text-sm font-medium px-2 sm:px-3 py-1 rounded-full whitespace-nowrap ${getStatusBadgeClass(
-                  meeting.status
+                  toAdminStatus(meeting.status)
                 )}`}
               >
-                {formatStatusLabel(meeting.status || "PENDING")}
+                {toAdminStatus(meeting.status || "PENDING")}
               </span>
             </div>
 
@@ -117,6 +141,14 @@ const AdminMeetingInfomation = ({ meeting, onClose, onEdit, onDelete, onStatusUp
               {activeTab === "Overview" && (
                 <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6 md:p-8 border border-gray-200">
                   <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-4 sm:gap-6 text-sm text-gray-700">
+                  <div>
+                      <p className="font-semibold">Start Time:</p>
+                      <p>{meeting.startTime ? new Date(meeting.startTime).toLocaleString() : "N/A"}</p>
+                    </div>
+                    <div>
+                      <p className="font-semibold">End Time:</p>
+                      <p>{meeting.endTime ? new Date(meeting.endTime).toLocaleString() : "N/A"}</p>
+                    </div>
                     <div>
                       <p className="font-semibold">Meeting Title:</p>
                       <p>{meeting.activity || "N/A"}</p>
@@ -124,31 +156,6 @@ const AdminMeetingInfomation = ({ meeting, onClose, onEdit, onDelete, onStatusUp
                     <div>
                       <p className="font-semibold">Location:</p>
                       <p>{meeting.location || "N/A"}</p>
-                    </div>
-                    <div>
-                      <p className="font-semibold">Duration:</p>
-                      <p>{meeting.duration ? `${meeting.duration} minutes` : "N/A"}</p>
-                    </div>
-                    <div>
-                      <p className="font-semibold">Meeting Link:</p>
-                      <p>
-                        {meeting.meetingLink ? (
-                          <a
-                            href={meeting.meetingLink}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-blue-600 hover:underline break-all"
-                          >
-                            {meeting.meetingLink}
-                          </a>
-                        ) : (
-                          "N/A"
-                        )}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="font-semibold">Due Date:</p>
-                      <p>{meeting.dueDate || "N/A"}</p>
                     </div>
                     <div>
                       <p className="font-semibold">Assigned To:</p>
@@ -163,12 +170,8 @@ const AdminMeetingInfomation = ({ meeting, onClose, onEdit, onDelete, onStatusUp
                       <p>{meeting.relatedTo || "N/A"}</p>
                     </div>
                     <div>
-                      <p className="font-semibold">Priority:</p>
-                      <p>{meeting.priority || "N/A"}</p>
-                    </div>
-                    <div>
                       <p className="font-semibold">Status:</p>
-                      <p>{formatStatusLabel(meeting.status || "PENDING")}</p>
+                      <p>{toAdminStatus(meeting.status || "PENDING")}</p>
                     </div>
                   </div>
                 </div>
@@ -268,23 +271,23 @@ const AdminMeetingInfomation = ({ meeting, onClose, onEdit, onDelete, onStatusUp
                 </h4>
                 <select
                   className="border border-gray-200 rounded-md px-2 sm:px-3 py-1.5 w-full text-sm mb-2 focus:ring-2 focus:ring-indigo-500 outline-none"
-                  value={selectedStatus || meeting.status || "PENDING"}
+                  value={selectedStatus}
                   onChange={(e) => setSelectedStatus(e.target.value)}
                 >
-                  <option value="PENDING">Pending</option>
-                  <option value="COMPLETED">Completed</option>
-                  <option value="CANCELLED">Cancelled</option>
-                  <option value="IN PROGRESS">In Progress</option>
+                  <option value="PLANNED">PLANNED</option>
+                  <option value="HELD">HELD</option>
+                  <option value="NOT_HELD">NOT_HELD</option>
                 </select>
 
                 <button
                   onClick={async () => {
                     if (!onStatusUpdate || !meeting?.id) return;
-                    if (selectedStatus === meeting.status) return;
+                    const backendStatus = toBackendStatus(selectedStatus);
+                    if (toAdminStatus(meeting.status) === selectedStatus) return;
 
                     setIsUpdatingStatus(true);
                     try {
-                      await onStatusUpdate(meeting.id, selectedStatus);
+                      await onStatusUpdate(meeting.id, backendStatus);
                     } catch (err) {
                       console.error("Failed to update status:", err);
                     } finally {

@@ -187,6 +187,7 @@ const CreateMeetingModal = ({
             onChange={handleInputChange}
             options={[{ value: "", label: "Select related item" }, ...getRelatedToOptions()]}
             disabled={!formData.relatedType || isSubmitting}
+            className="lg:col-span-2" 
           />
           <TextareaField
             label="Notes"

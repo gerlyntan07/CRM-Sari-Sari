@@ -62,18 +62,24 @@ const AdminMeetingInfomation = ({ meeting, onClose, onEdit, onDelete, onStatusUp
     <>
       <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
         {/* MODAL */}
-        <div className="bg-white rounded-xl shadow-xl w-full max-w-6xl max-h-[92vh] overflow-y-auto hide-scrollbar animate-scale-in p-4 sm:p-6 md:p-8 font-inter relative">
+          <div className="bg-white rounded-xl shadow-lg w-full max-w-full sm:max-w-6xl max-h-[90vh] overflow-y-auto hide-scrollbar relative box-border">
+        {/* TOP SECTION */}
+        <div className="bg-tertiary w-full rounded-t-xl p-3 lg:p-3 relative">
+          <h1 className="lg:text-3xl text-xl text-white font-semibold text-center w-full">
+            Meeting
+          </h1>
+
           {/* Close Button */}
-          <div className="flex justify-end w-full">
-            <button
-              onClick={onClose}
-              className="text-gray-500 hover:text-gray-700 transition mb-5 cursor-pointer"
-            >
-              <HiX size={30} />
-            </button>
-          </div>
+          <button
+            onClick={onClose}
+            className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white cursor-pointer"
+          >
+            <HiX size={25} />
+          </button>
+        </div>
 
           {/* Header */}
+          <div className="mt-4 gap-2 px-2 lg:gap-4 lg:mx-7">
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-4 gap-2 sm:gap-4">
             <div className="flex flex-wrap items-center gap-2 sm:gap-3">
               <h1 className="text-xl sm:text-2xl font-semibold">
@@ -115,9 +121,12 @@ const AdminMeetingInfomation = ({ meeting, onClose, onEdit, onDelete, onStatusUp
               </button>
             </div>
           </div>
-          <div className="border-b border-gray-200 mb-6"></div>
+          </div>
+        
+          <div className="border-b border-gray-200 my-5"></div>
 
           {/* TABS */}
+           <div className="p-6 lg:p-4">
           <div className="flex w-full bg-[#6A727D] text-white mt-1 overflow-x-auto mb-6">
             {["Overview", "Notes", "Activities"].map((tab) => (
               <button
@@ -307,6 +316,7 @@ const AdminMeetingInfomation = ({ meeting, onClose, onEdit, onDelete, onStatusUp
             </div>
           </div>
         </div>
+      </div>
       </div>
     </>
   );

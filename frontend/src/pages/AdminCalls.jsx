@@ -84,9 +84,9 @@ export default function AdminCalls() {
   const [calls, setCalls] = useState([]);
   const [team, setTeam] = useState(null);
 
-  const [searchParams] = useSearchParams();
-  const navigate = useNavigate();
-  const location = useLocation();
+ const [searchParams] = useSearchParams();
+ const navigate = useNavigate();
+ const location = useLocation();
 
   // INSERT THE FIXED EFFECT HERE
 useEffect(() => {
@@ -104,22 +104,22 @@ useEffect(() => {
     if (location.state?.initialCallData) {
       setFormData((prev) => ({
         ...prev,
-        ...location.state.initialCallData,
-      }));
+       ...location.state.initialCallData,
+     }));
     }
 
-    // If call ID came from query / state, apply it
-    if (incomingId) {
+  // If call ID came from query / state, apply it
+  if (incomingId) {
       setFormData((prev) => ({
         ...prev,
         relatedTo1: incomingId,
       }));
-    }
+   }
 
     // Clear URL state so modal does not reopen on refresh
     navigate(location.pathname, { replace: true, state: {} });
   }
-}, [location, searchParams, navigate]);
+ }, [location, searchParams, navigate]); 
 
 // -------------------------------------------------------
 
@@ -334,13 +334,24 @@ useEffect(() => {
 
   const detailView = selectedCall ? (
     <div id="callModalBackdrop" onClick={(e) => e.target.id === "callModalBackdrop" && setSelectedCall(null)} className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-xl shadow-xl w-full max-w-6xl max-h-[92vh] overflow-y-auto hide-scrollbar animate-scale-in p-4 sm:p-6 md:p-8 font-inter relative">
-        <div className="flex justify-end w-full">
-          <button onClick={() => setSelectedCall(null)} className="text-gray-500 hover:text-gray-700 transition mb-5 cursor-pointer">
-            <HiX size={30} />
-          </button>
-        </div>
+          <div className="bg-white rounded-xl shadow-lg w-full max-w-full sm:max-w-6xl max-h-[90vh] overflow-y-auto hide-scrollbar relative box-border">
+     
+      {/* TOP SECTION */}
+<div className="bg-tertiary w-full rounded-t-xl p-3 lg:p-3 relative">
 
+  {/* Centered Title */}
+  <h1 className="lg:text-3xl text-xl text-white font-semibold text-center w-full">
+    Calls
+  </h1>
+  <button
+    onClick={() => setSelectedCall(null)}
+    className="text-gray-500 hover:text-white transition cursor-pointer absolute top-3 right-3"
+  >
+    <HiX size={25} />
+  </button>
+</div>
+
+          <div className="mt-4 gap-2 px-2 lg:gap-4 lg:mx-7">
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-4 gap-2 sm:gap-4">
           <div className="flex flex-wrap items-center gap-2 sm:gap-3">
             <h1 className="text-xl sm:text-2xl font-semibold text-gray-800">{selectedCall.subject}</h1>
@@ -349,7 +360,9 @@ useEffect(() => {
             </span>
           </div>
         </div>
-        <div className="border-b border-gray-200 mb-6"></div>
+         </div>
+
+        <div className="border-b border-gray-200 my-5"></div>
 
         {/* TABS (Static for now, logic needed to switch tabs) */}
         <div className="flex w-full bg-[#6A727D] text-white mt-1 overflow-x-auto mb-6">

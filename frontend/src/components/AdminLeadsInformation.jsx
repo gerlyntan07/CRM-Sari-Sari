@@ -610,10 +610,23 @@ export default function AdminLeadsInformation({
                     Send E-mail
                   </button>
             
-                  <button className="flex items-center gap-2 border border-gray-100 rounded-md py-1.5 px-2 sm:px-3 hover:bg-gray-50 transition text-sm">
+                 <button
+                    className="flex items-center gap-2 border border-gray-100 rounded-md py-1.5 px-2 sm:px-3 hover:bg-gray-50 transition text-sm"
+                    onClick={() =>
+                      navigate("/admin/meetings", {
+                        state: {
+                          openMeetingModal: true,
+                          initialMeetingData: {
+                            relatedType: "Lead",
+                          },
+                        },
+                      })
+                    }
+                  >
                     <FiCalendar className="text-gray-600 w-4 h-4" />
                     Book Meeting
                   </button>
+
                    <button className="flex items-center gap-2 border border-gray-100 rounded-md py-1.5 px-2 sm:px-3 hover:bg-gray-50 transition text-sm">
                       <FiCheckSquare className="text-gray-600 w-4 h-4" />
                        Tasks

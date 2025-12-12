@@ -125,6 +125,47 @@ const AdminMeeting = () => {
   const [confirmModalData, setConfirmModalData] = useState(null);
   const [confirmProcessing, setConfirmProcessing] = useState(false);
 
+ //----------------------------------------------------------------------------
+  // AUTO-OPEN LOGIC HERE
+  useEffect(() => {
+  console.log("MEETING LOCATION STATE:", location.state);
+
+  const shouldOpen = location.state?.openMeetingModal;
+
+  // This is what you pass from another page as "initialMeetingData"
+  const incomingId =
+    location.state?.initialMeetingData?.relatedTo ||
+    searchParams.get("id");
+
+  if (shouldOpen || incomingId) {
+    console.log("AUTO OPEN MEETING FORM");
+
+    // OPEN THE MODAL
+    setShowModal(true);
+
+    // If redirected with pre-filled form data
+    if (location.state?.initialMeetingData) {
+      setFormData((prev) => ({
+        ...prev,
+        ...location.state.initialMeetingData,
+      }));
+    }
+
+    // If pages send ?id=123
+    if (incomingId) {
+      setFormData((prev) => ({
+        ...prev,
+        relatedTo: incomingId,
+      }));
+    }
+
+    // Clear route state to prevent reopening on refresh
+    navigate(location.pathname, { replace: true, state: {} });
+  }
+}, [location, searchParams, navigate]);
+
+  //----------------------------------------------------------------------
+
   // Fetch meetings from backend
   const fetchMeetings = async () => {
     // Check if we have data from sessionStorage (instant access from dashboard)
@@ -715,7 +756,7 @@ const AdminMeeting = () => {
         </button>
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4 mb-6 w-full break-words overflow-hidden lg:overflow-visible">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 mb-6 w-full break-words overflow-hidden lg:overflow-visible">
         {metricCards.map((metric) => (
           <MetricCard key={metric.title} {...metric} />
         ))}

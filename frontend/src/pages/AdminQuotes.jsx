@@ -826,7 +826,7 @@ export default function AdminQuotes() {
                                state: {
                                  openCallModal: true,      // <-- this triggers your form
                                  initialCallData: {
-                                   relatedType1: "Quote", // <-- your custom default
+                                   relatedType1: "Quotes", // <-- your custom default
                                  },
                                },
                              })
@@ -837,16 +837,28 @@ export default function AdminQuotes() {
                            Schedule Call
                          </button>
                    
-                         {/* --- OTHER BUTTONS (unchanged) --- */}
                          <button className="flex items-center gap-2 border border-gray-100 rounded-md py-1.5 px-2 sm:px-3 hover:bg-gray-50 transition text-sm">
                            <FiMail className="text-gray-600 w-4 h-4" />
                            Send E-mail
                          </button>
                    
-                         <button className="flex items-center gap-2 border border-gray-100 rounded-md py-1.5 px-2 sm:px-3 hover:bg-gray-50 transition text-sm">
-                           <FiCalendar className="text-gray-600 w-4 h-4" />
-                           Book Meeting
-                         </button>
+                         <button
+                    className="flex items-center gap-2 border border-gray-100 rounded-md py-1.5 px-2 sm:px-3 hover:bg-gray-50 transition text-sm"
+                    onClick={() =>
+                      navigate("/admin/meetings", {
+                        state: {
+                          openMeetingModal: true,
+                          initialMeetingData: {
+                            relatedType: "Quotes",
+                          },
+                        },
+                      })
+                    }
+                  >
+                    <FiCalendar className="text-gray-600 w-4 h-4" />
+                    Book Meeting
+                  </button>
+
                            <button className="flex items-center gap-2 border border-gray-100 rounded-md py-1.5 px-2 sm:px-3 hover:bg-gray-50 transition text-sm">
                             <FiCheckSquare className="text-gray-600 w-4 h-4" />
                           Tasks

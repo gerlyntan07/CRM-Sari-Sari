@@ -11,7 +11,9 @@ import {
   FiPhone,
   FiMail,
   FiCalendar,
-   FiCheckSquare
+   FiCheckSquare,
+  FiEdit,
+  FiTrash2,
 } from "react-icons/fi";
 import { HiX } from "react-icons/hi";
 import PaginationControls from "../components/PaginationControls.jsx";
@@ -359,12 +361,29 @@ useEffect(() => {
               {formatStatusLabel(selectedCall.status)}
             </span>
           </div>
+
+        <div className="flex flex-col sm:flex-row sm:space-x-3 space-y-2 sm:space-y-0">
+          <button
+            className="inline-flex items-center justify-center w-full sm:w-auto bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 transition text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+          >
+            <FiEdit className="mr-2" />
+            Edit
+          </button>
+
+          <button
+            className="inline-flex items-center justify-center w-full sm:w-auto px-4 py-2 rounded-md text-sm bg-red-500 text-white hover:bg-red-600 transition focus:outline-none focus:ring-2 focus:ring-red-400"
+          >
+            <FiTrash2 className="mr-2" />
+            Delete
+          </button>
+        </div>
         </div>
          </div>
 
         <div className="border-b border-gray-200 my-5"></div>
 
         {/* TABS (Static for now, logic needed to switch tabs) */}
+        <div className="p-6 lg:p-4">
         <div className="flex w-full bg-[#6A727D] text-white mt-1 overflow-x-auto mb-6">
           {["Overview", "Notes", "Activities"].map((tab) => (
             <button key={tab} className={`flex-1 min-w-[90px] px-4 py-2.5 text-xs sm:text-sm font-medium border-b-2 ${activeTab === tab ? "bg-paper-white text-[#6A727D] border-white" : "text-white hover:bg-[#5c636d]"}`}>
@@ -440,7 +459,8 @@ useEffect(() => {
         </div>
       </div>
     </div>
-  ) : null;
+    </div>
+  ) : null; 
 
   const formModal = showModal ? (
     <div id="modalBackdrop" onClick={(e) => e.target.id === "modalBackdrop" && handleCloseModal()} className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
@@ -590,6 +610,103 @@ useEffect(() => {
       </div>
     </div>
   ) : null;
+
+  <>
+  const formModal = showModal ? (
+  <div
+    id="modalBackdrop"
+    onClick={(e) => e.target.id === "modalBackdrop" && handleCloseModal()}
+    className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4"
+  >
+    <div className="bg-white w-full max-w-xl rounded-2xl shadow-lg p-4 sm:p-6 md:p-8 relative border border-gray-200 overflow-y-auto max-h-[90vh] hide-scrollbar">
+
+      {/* CLOSE BUTTON */}
+      <button onClick={handleCloseModal} className="absolute top-4 right-4 text-gray-500 hover:text-black transition">
+        <FiX size={22} />
+      </button>
+
+      {/*  UPDATED TITLE */}
+      <h2 className="text-xl sm:text-2xl font-semibold text-gray-800 mb-4 sm:mb-6 flex items-center justify-center">
+        {isEditing ? "Edit Call" : "Add New Call"}
+      </h2>
+
+      {/* FORM */}
+      <form className="grid grid-cols-1 md:grid-cols-2 w-full gap-4 text-sm" onSubmit={handleSubmit}>
+        
+        <InputField
+          label="Subject"
+          className="md:col-span-2"
+          name="subject"
+          value={formData.subject}
+          onChange={handleInputChange}
+          disabled={isSubmitting}
+          required
+        />
+
+        {/* CALL TIME */}
+        <div>
+          <label className="block text-gray-700 font-medium mb-1 text-sm">Call Time</label>
+          <input
+            type="datetime-local"
+            value={formData.call_time}
+            onChange={handleInputChange}
+            name="call_time"
+            className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-400 outline-none disabled:bg-gray-100"
+          />
+        </div>
+
+        {/* DURATION */}
+        <div className="w-full">
+          <label className="block text-gray-700 font-medium mb-1 text-sm">Duration</label>
+          <div className="w-full rounded-md text-sm flex flex-row items-center">
+            <input
+              type="tel"
+              value={formData.duration_minutes}
+              onChange={handleInputChange}
+              name="duration_minutes"
+              className="border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-400 outline-none w-20 mr-3"
+            />
+            <p>minutes</p>
+          </div>
+        </div>
+
+        {/* ASSIGN TO */}
+        <TextAreaField
+          className="col-span-2"
+          label="Notes"
+          value={formData.notes}
+          onChange={handleInputChange}
+          name="notes"
+        />
+
+        {/* ⭐ UPDATED BUTTONS — SUPPORT EDIT MODE */}
+        <div className="flex flex-col md:flex-row justify-end col-span-2 mt-4 gap-2 w-full">
+          <button
+            type="button"
+            onClick={handleCloseModal}
+            className="w-full sm:w-auto px-4 py-2 text-white bg-red-400 border border-red-300 rounded hover:bg-red-500 transition"
+          >
+            Cancel
+          </button>
+
+          <button
+            type="submit"
+            disabled={isSubmitting}
+            className="w-full sm:w-auto px-4 py-2 text-white bg-tertiary border border-tertiary rounded hover:bg-secondary transition"
+          >
+            {isSubmitting
+              ? "Saving..."
+              : isEditing
+                ? "Update Call"
+                : "Save Call"}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+) : null;
+
+</>
 
   return (
     <>

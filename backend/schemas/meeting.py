@@ -28,6 +28,29 @@ class MeetingUpdate(BaseModel):
     priority: Optional[str] = None
     status: Optional[str] = None
 
+class AccountBase(BaseModel):
+    id: int
+    name: str
+
+class ContactBase(BaseModel):
+    id:int
+    first_name: str
+    last_name: str
+
+class LeadBase(BaseModel):
+    id:int
+    title: str
+
+class DealBase(BaseModel):
+    id:int
+    first_name: str
+    last_name: str
+
+class UserBase(BaseModel):
+    id:int
+    name: str
+    deal_id: str
+
 class MeetingResponse(BaseModel):
     id: int
     activity: str  # alias for subject
@@ -45,6 +68,12 @@ class MeetingResponse(BaseModel):
     relatedTo: Optional[str] = None
     priority: Optional[str] = None
     status: Optional[str] = None
+    account: Optional[AccountBase] = None
+    contact: Optional[ContactBase] = None
+    lead: Optional[LeadBase] = None
+    deal: Optional[DealBase] = None
+    meet_creator: Optional[UserBase] = None
+    meet_assign_to: Optional[UserBase] = None
     createdAt: Optional[str] = None
     updatedAt: Optional[str] = None
 

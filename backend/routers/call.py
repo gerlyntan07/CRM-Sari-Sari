@@ -109,14 +109,7 @@ def admin_get_calls(
     ).subquery()
     
     calls = (
-        db.query(Call)
-        .options(
-            joinedload(Call.call_assign_to),
-            joinedload(Call.contact),
-            joinedload(Call.account),
-            joinedload(Call.lead),
-            joinedload(Call.deal)
-        )
+        db.query(Call)        
         .filter(Call.created_by.in_(company_users))
         .order_by(Call.created_at.desc())
         .all()

@@ -204,6 +204,7 @@ const AdminMeeting = () => {
           setSelectedMeeting(meeting);
         }
       }
+      console.log(res.data)
     } catch (err) {
       console.error(err);
       toast.error("Failed to load meetings.");

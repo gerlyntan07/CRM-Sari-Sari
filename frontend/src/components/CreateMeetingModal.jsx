@@ -298,15 +298,7 @@ const CreateMeetingModal = ({
             ]}
             required={!isEditing}
             disabled={isSubmitting || users.length === 0}
-          />
-          <SelectField
-            label="Status"
-            name="status"
-            value={formData.status}
-            onChange={handleInputChange}
-            options={statusOptions.map((option) => ({ value: option, label: option.replace('_', ' ') }))}
-            disabled={isSubmitting}
-          />
+          />        
           <div className="w-full flex flex-col">
             <select
               name="relatedType1"
@@ -332,15 +324,14 @@ const CreateMeetingModal = ({
                 </option>
               ))}
             </select>
-          </div>
-          {formData.relatedType1 === "Account" && (
+          </div>          
             <div className="w-full flex flex-col">
               <select
                 name="relatedType2"
                 onChange={handleInputChange}
                 value={formData.relatedType2 ?? "Contact"}
-                className="outline-none cursor-pointer mb-1 w-22 text-gray-700"
-                disabled={isSubmitting}
+                className="outline-none cursor-pointer mb-1 w-22 text-gray-700 disabled:text-gray-400 disabled:cursor-not-allowed"
+                disabled={isSubmitting || formData.relatedType1 === 'Lead'}
               >
                 <option value="Contact">Contact</option>
                 <option value="Deal">Deal</option>
@@ -349,8 +340,8 @@ const CreateMeetingModal = ({
                 name="relatedTo2"
                 onChange={handleInputChange}
                 value={formData.relatedTo2 ?? ""}
-                className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-400 outline-none disabled:bg-gray-100"
-                disabled={isSubmitting}
+                className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-400 outline-none  disabled:text-gray-200 disabled:cursor-not-allowed"
+                disabled={isSubmitting || formData.relatedType1 === 'Lead'}
               >
                 <option value="">--</option>
                 {getRelatedTo2Options().map((item) => (
@@ -359,8 +350,15 @@ const CreateMeetingModal = ({
                   </option>
                 ))}
               </select>
-            </div>
-          )}
+            </div>          
+          <SelectField
+            label="Status"
+            name="status"
+            value={formData.status}
+            onChange={handleInputChange}
+            options={statusOptions.map((option) => ({ value: option, label: option.replace('_', ' ') }))}
+            disabled={isSubmitting}
+          />
           <TextareaField
             label="Notes"
             name="notes"

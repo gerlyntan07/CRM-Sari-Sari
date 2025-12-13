@@ -44,21 +44,38 @@ async def create_task(
         created_by=current_user.id
     )
 
-    # --- FIX START: Use Dot Notation (.) instead of brackets [''] ---
-    
-    # Logic for Primary Relation (Lead or Account)
+    # Primary relation validation and assignment
     if getattr(payload, 'relatedType1', None) == "Lead":
+        lead = db.query(Lead).filter(Lead.id == payload.relatedTo1).first()
+        if not lead:
+            raise HTTPException(status_code=404, detail="Lead not found")
         new_call.related_to_lead = payload.relatedTo1
+        new_call.related_to_account = None
+        new_call.related_to_contact = None
+        new_call.related_to_deal = None
     elif getattr(payload, 'relatedType1', None) == "Account":
+        account = db.query(Account).filter(Account.id == payload.relatedTo1).first()
+        if not account:
+            raise HTTPException(status_code=404, detail="Account not found")
         new_call.related_to_account = payload.relatedTo1
-    
-    # Logic for Secondary Relation (Contact or Deal)
-    if getattr(payload, 'relatedType2', None) == "Contact":
-        new_call.related_to_contact = payload.relatedTo2
-    elif getattr(payload, 'relatedType2', None) == "Deal":
-        new_call.related_to_deal = payload.relatedTo2 
-        
-    # --- FIX END ---
+        # Secondary relation (only valid when Account)
+        if getattr(payload, 'relatedType2', None) == "Contact" and payload.relatedTo2:
+            contact = db.query(Contact).filter(Contact.id == payload.relatedTo2).first()
+            if not contact:
+                raise HTTPException(status_code=404, detail="Contact not found")
+            new_call.related_to_contact = payload.relatedTo2
+            new_call.related_to_deal = None
+        elif getattr(payload, 'relatedType2', None) == "Deal" and payload.relatedTo2:
+            deal = db.query(Deal).filter(Deal.id == payload.relatedTo2).first()
+            if not deal:
+                raise HTTPException(status_code=404, detail="Deal not found")
+            new_call.related_to_deal = payload.relatedTo2
+            new_call.related_to_contact = None
+        else:
+            new_call.related_to_contact = None
+            new_call.related_to_deal = None
+    else:
+        raise HTTPException(status_code=400, detail="Invalid relatedType1. Must be 'Lead' or 'Account'.")
     
     db.add(new_call)
     db.commit()
@@ -169,20 +186,59 @@ def update_call(
         if not assigned_user:
             raise HTTPException(status_code=404, detail="Assigned user not found")
         call.assigned_to = data.assigned_to
+    # Handle relations with cross-field constraints
     if data.relatedType1 is not None:
         call.related_to_lead = None
         call.related_to_account = None
-        if data.relatedType1 == "Lead" and data.relatedTo1:
-            call.related_to_lead = data.relatedTo1
-        if data.relatedType1 == "Account" and data.relatedTo1:
-            call.related_to_account = data.relatedTo1
-    if data.relatedType2 is not None:
         call.related_to_contact = None
         call.related_to_deal = None
-        if data.relatedType2 == "Contact" and data.relatedTo2:
-            call.related_to_contact = data.relatedTo2
-        if data.relatedType2 == "Deal" and data.relatedTo2:
-            call.related_to_deal = data.relatedTo2
+        if data.relatedType1 == "Lead" and data.relatedTo1:
+            # Validate lead exists
+            lead = db.query(Lead).filter(Lead.id == data.relatedTo1).first()
+            if not lead:
+                raise HTTPException(status_code=404, detail="Lead not found")
+            call.related_to_lead = data.relatedTo1
+            # When Lead is selected, ensure no Contact/Deal relations
+            call.related_to_contact = None
+            call.related_to_deal = None
+        elif data.relatedType1 == "Account" and data.relatedTo1:
+            # Validate account exists
+            account = db.query(Account).filter(Account.id == data.relatedTo1).first()
+            if not account:
+                raise HTTPException(status_code=404, detail="Account not found")
+            call.related_to_account = data.relatedTo1
+            # Only allow secondary relation when Account is selected
+            if data.relatedType2 is not None:
+                call.related_to_contact = None
+                call.related_to_deal = None
+                if data.relatedType2 == "Contact" and data.relatedTo2:
+                    contact = db.query(Contact).filter(Contact.id == data.relatedTo2).first()
+                    if not contact:
+                        raise HTTPException(status_code=404, detail="Contact not found")
+                    call.related_to_contact = data.relatedTo2
+                if data.relatedType2 == "Deal" and data.relatedTo2:
+                    deal = db.query(Deal).filter(Deal.id == data.relatedTo2).first()
+                    if not deal:
+                        raise HTTPException(status_code=404, detail="Deal not found")
+                    call.related_to_deal = data.relatedTo2
+        else:
+            raise HTTPException(status_code=400, detail="Invalid relatedType1. Must be 'Lead' or 'Account'.")
+    else:
+        # If primary type not changing, only accept secondary relation when currently related to Account
+        if data.relatedType2 is not None and call.related_to_account is not None:
+            call.related_to_contact = None
+            call.related_to_deal = None
+            if data.relatedType2 == "Contact" and data.relatedTo2:
+                contact = db.query(Contact).filter(Contact.id == data.relatedTo2).first()
+                if not contact:
+                    raise HTTPException(status_code=404, detail="Contact not found")
+                call.related_to_contact = data.relatedTo2
+            if data.relatedType2 == "Deal" and data.relatedTo2:
+                deal = db.query(Deal).filter(Deal.id == data.relatedTo2).first()
+                if not deal:
+                    raise HTTPException(status_code=404, detail="Deal not found")
+                call.related_to_deal = data.relatedTo2
+    
     db.commit()
     db.refresh(call)
     new_data = serialize_instance(call)

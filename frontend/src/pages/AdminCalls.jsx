@@ -189,19 +189,20 @@ useEffect(() => {
   const currentPage = 1;
 
   // Form State
-  const [formData, setFormData] = useState({
+  const INITIAL_FORM_STATE = {
     subject: "",
     call_time: "",
     duration_minutes: "",
     direction: "Outgoing",
-    status: 'Planned',
-    notes: '',
-    relatedType1: 'Lead',
-    relatedType2: 'Contact',
+    status: "Planned",
+    notes: "",
+    relatedType1: "Lead",
+    relatedType2: null,
     relatedTo1: null,
     relatedTo2: null,
-    assigned_to: null
-  })
+    assigned_to: null,
+  };
+  const [formData, setFormData] = useState(INITIAL_FORM_STATE);
 
   // 2. Computed Values (Replacements for useMemo)
   const filteredCalls = calls; // Implement filtering logic
@@ -231,6 +232,13 @@ useEffect(() => {
       const updated = { ...prev, [name]: value };
       if (name === "relatedType1") {
         updated.relatedTo1 = "";
+        if (value === "Lead") {
+          updated.relatedType2 = null;
+          updated.relatedTo2 = null;
+          setRelatedTo2Values([]);
+        } else if (value === "Account") {
+          updated.relatedType2 = "Contact";
+        }
       }
 
       if (name === "relatedType2") {
@@ -282,11 +290,15 @@ useEffect(() => {
         setRelatedTo2Values([]);
 
         let res;
-        if (formData.relatedType2 === 'Contact') {
-          res = await api.get(`/contacts/from-acc/${formData.relatedTo1}`);
-        } else if (formData.relatedType2 === 'Deal') {
-          // FIX: Ensure this endpoint matches your backend for Accounts
-          res = await api.get(`/deals/from-acc/${formData.relatedTo1}`);
+        if (formData.relatedType1 === 'Account' && formData.relatedTo1) {
+          if (formData.relatedType2 === 'Contact') {
+            res = await api.get(`/contacts/from-acc/${formData.relatedTo1}`);
+          } else if (formData.relatedType2 === 'Deal') {
+            res = await api.get(`/deals/from-acc/${formData.relatedTo1}`);
+          }
+        } else {
+          setRelatedTo2Values([]);
+          return;
         }
 
         // Safety check to ensure we received an array
@@ -305,7 +317,7 @@ useEffect(() => {
     if (formData.relatedType2) {
       fetchData();
     }
-  }, [formData.relatedType2, formData.relatedTo1]);
+  }, [formData.relatedType2, formData.relatedTo1, formData.relatedType1]);
 
 
   const handleSubmit = (e) => { 
@@ -318,7 +330,8 @@ useEffect(() => {
       ...formData,
       duration_minutes: formData.duration_minutes ? parseInt(formData.duration_minutes, 10) : null,
       relatedTo1: formData.relatedTo1 ? parseInt(formData.relatedTo1, 10) : null,
-      relatedTo2: formData.relatedTo2 ? parseInt(formData.relatedTo2, 10) : null,
+      relatedTo2: formData.relatedType1 === "Lead" ? null : (formData.relatedTo2 ? parseInt(formData.relatedTo2, 10) : null),
+      relatedType2: formData.relatedType1 === "Lead" ? null : formData.relatedType2,
       assigned_to: formData.assigned_to ? parseInt(formData.assigned_to, 10) : null,
     };
     const actionType = isEditing && currentCallId ? "update" : "create";
@@ -356,6 +369,9 @@ useEffect(() => {
         await api.post(`/calls/create`, payload);
         toast.success(`Call "${name}" created successfully.`);
         setShowModal(false);
+        setFormData(INITIAL_FORM_STATE);
+        setIsEditing(false);
+        setCurrentCallId(null);
         await fetchCalls();
       } else if (type === "update") {
         if (!targetId) {
@@ -365,6 +381,9 @@ useEffect(() => {
         await api.put(`/calls/${targetId}`, payload);
         toast.success(`Call "${name}" updated successfully.`);
         setShowModal(false);
+        setFormData(INITIAL_FORM_STATE);
+        setIsEditing(false);
+        setCurrentCallId(null);
         await fetchCalls();
       } else if (type === "delete") {
         if (!targetId) {
@@ -478,8 +497,12 @@ useEffect(() => {
               };
               const relatedType1 = selectedCall.lead ? "Lead" : selectedCall.account ? "Account" : "Lead";
               const relatedTo1 = selectedCall.lead ? selectedCall.lead.id : selectedCall.account ? selectedCall.account.id : null;
-              const relatedType2 = selectedCall.contact ? "Contact" : selectedCall.deal ? "Deal" : "Contact";
-              const relatedTo2 = selectedCall.contact ? selectedCall.contact.id : selectedCall.deal ? selectedCall.deal.id : null;
+              const relatedType2 = relatedType1 === "Lead"
+                ? null
+                : (selectedCall.contact ? "Contact" : selectedCall.deal ? "Deal" : "Contact");
+              const relatedTo2 = relatedType1 === "Lead"
+                ? null
+                : (selectedCall.contact ? selectedCall.contact.id : selectedCall.deal ? selectedCall.deal.id : null);
               setFormData({
                 subject: selectedCall.subject || "",
                 call_time: toLocal(selectedCall.call_time),
@@ -705,45 +728,45 @@ useEffect(() => {
             )}
           </div>
           
-            <div className="w-full flex flex-col">
-              <select name="relatedType2" onChange={handleInputChange} value={formData.relatedType2} id="" className={`disabled:text-gray-400 text-gray-700 outline-none cursor-pointer mb-1 w-22`}
-                disabled={formData.relatedType1 === 'Lead'}
-              >
-                <option value="Contact">Contact</option>
-                <option value="Deal">Deal</option>
-              </select>
-
-              {Array.isArray(relatedTo2Values) && relatedTo2Values.length > 0 ? (
+            {formData.relatedType1 === 'Account' && (
+              <div className="w-full flex flex-col">
                 <select
-                  name="relatedTo2"
+                  name="relatedType2"
                   onChange={handleInputChange}
-                  value={formData.relatedTo2}
-                  className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-400 outline-none disabled:bg-gray-100"
-                  disabled={formData.relatedType1 === 'Lead'}
+                  value={formData.relatedType2 ?? "Contact"}
+                  id=""
+                  className="text-gray-700 outline-none cursor-pointer mb-1 w-22"
                 >
-                  <option value="">--</option>
-
-                  {/* FIX: Map over the data to create options */}
-                  {relatedTo2Values.map((item) => (
-                    <option key={item.id} value={item.id}>
-                      {/* Handle naming differences between Leads and Accounts */}
-                      {formData.relatedType2 === 'Contact'
-                        ? `${item.first_name} ${item.last_name}`
-                        : item.name                          
-                      }
-                    </option>
-                  ))}
-
+                  <option value="Contact">Contact</option>
+                  <option value="Deal">Deal</option>
                 </select>
-              ) : (
-                <input
-                  type="text"
-                  value={`${formData.relatedType1 === 'Lead' ? ` ` : `No ${formData.relatedType2 || ''} data found`}`}
-                  className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm outline-none bg-gray-100 text-gray-500"
-                  disabled
-                />
-              )}
-            </div>          
+
+                {Array.isArray(relatedTo2Values) && relatedTo2Values.length > 0 ? (
+                  <select
+                    name="relatedTo2"
+                    onChange={handleInputChange}
+                    value={formData.relatedTo2 ?? ""}
+                    className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-400 outline-none disabled:bg-gray-100"
+                  >
+                    <option value=""></option>
+                    {relatedTo2Values.map((item) => (
+                      <option key={item.id} value={item.id}>
+                        {formData.relatedType2 === 'Contact'
+                          ? `${item.first_name} ${item.last_name}`
+                          : item.name}
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <input
+                    type="text"
+                    value={`No ${formData.relatedType2 || ''} data found`}
+                    className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm outline-none bg-gray-100 text-gray-500"
+                    disabled
+                  />
+                )}
+              </div>
+            )}          
 
           <div>
             <label className="block text-gray-700 font-medium mb-1 text-sm">Call Time</label>

@@ -93,7 +93,7 @@ const AdminMeetingInfomation = ({ meeting, onClose, onEdit, onDelete, onStatusUp
                   toAdminStatus(meeting.status)
                 )}`}
               >
-                {toAdminStatus(meeting.status || "PENDING")}
+                {toAdminStatus(meeting.status || "PENDING").replace("_", " ")}
               </span>
             </div>
 
@@ -183,7 +183,7 @@ const AdminMeetingInfomation = ({ meeting, onClose, onEdit, onDelete, onStatusUp
                     </div>
                     <div>
                       <p className="font-semibold">Status:</p>
-                      <p>{toAdminStatus(meeting.status || "PENDING")}</p>
+                      <p>{toAdminStatus(meeting.status || "PENDING").replace("_", " ")}</p>
                     </div>
                   </div>
                 </div>
@@ -314,7 +314,7 @@ const AdminMeetingInfomation = ({ meeting, onClose, onEdit, onDelete, onStatusUp
                 >
                   <option value="PLANNED">PLANNED</option>
                   <option value="HELD">HELD</option>
-                  <option value="NOT_HELD">NOT_HELD</option>
+                  <option value="NOT_HELD">NOT HELD</option>
                 </select>
 
                 <button

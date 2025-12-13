@@ -303,7 +303,7 @@ const AdminMeeting = () => {
         meeting?.assignedTo,
         meeting?.startTime,
         meeting?.endTime,
-        toAdminStatus(meeting?.status),
+        toAdminStatus(meeting?.status)?.replace("_", " "),
       ];
 
       const matchesSearch =
@@ -484,7 +484,7 @@ const AdminMeeting = () => {
         status: newStatus,
       });
 
-      toast.success(`Meeting status updated to ${toAdminStatus(newStatus)}`);
+      toast.success(`Meeting status updated to ${toAdminStatus(newStatus).replace("_", " ")}`);
 
       // Update meeting in state without reloading
       setMeetings((prevMeetings) => {
@@ -782,7 +782,7 @@ const AdminMeeting = () => {
             <option value="Filter by Status">Filter by Status</option>
             <option value="PLANNED">PLANNED</option>
             <option value="HELD">HELD</option>
-            <option value="NOT_HELD">NOT_HELD</option>
+            <option value="NOT_HELD">NOT HELD</option>
           </select>
         </div>
       </div>
@@ -842,7 +842,7 @@ const AdminMeeting = () => {
                         toAdminStatus(meeting.status || "PENDING")
                       )}`}
                     >
-                      {toAdminStatus(meeting.status || "PENDING")}
+                      {toAdminStatus(meeting.status || "PENDING").replace("_", " ")}
                     </span>
                   </td>
                 </tr>

@@ -1,8 +1,11 @@
 import React, { useState } from "react";
 import { HiX } from "react-icons/hi";
 import { FiPhone, FiMail, FiCalendar, FiEdit2, FiTrash2, FiFileText, FiCheckSquare } from "react-icons/fi";
+import { useNavigate} from "react-router-dom";
+
 
 const AdminMeetingInfomation = ({ meeting, onClose, onEdit, onDelete, onStatusUpdate }) => {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("Overview");
   const toAdminStatus = (status) => {
     const s = (status || "").toUpperCase();
@@ -248,30 +251,56 @@ const AdminMeetingInfomation = ({ meeting, onClose, onEdit, onDelete, onStatusUp
                           )}
                         </div>
 
-            <div className="flex flex-col gap-4">
-              {/* QUICK ACTIONS */}
-              <div className="bg-white border border-gray-100 rounded-lg p-3 sm:p-4 shadow-sm">
-                <h4 className="font-semibold text-gray-800 mb-2 text-sm">
-                  Quick Actions
-                </h4>
+              <div className="flex flex-col gap-4">
+                     {/* QUICK ACTIONS */}
+                     <div className="bg-white border border-gray-100 rounded-lg p-3 sm:p-4 shadow-sm">
+                       <h4 className="font-semibold text-gray-800 mb-2 text-sm">
+                         Quick Actions
+                       </h4>
+                   
+                       <div className="flex flex-col gap-2 w-full">
+                   
+                      
+                         <button
+                           onClick={() =>
+                             navigate("/admin/calls", {
+                               state: {
+                                 openCallModal: true,      // <-- this triggers your form
+                                 initialCallData: {
+                                   relatedType1: "Meeting", // <-- your custom default
+                                 },
+                               },
+                             })
+                           }
+                           className="flex items-center gap-2 border border-gray-100 rounded-md py-1.5 px-2 sm:px-3 hover:bg-gray-50 transition text-sm"
+                         >
+                           <FiPhone className="text-gray-600 w-4 h-4" />
+                           Schedule Call
+                         </button>
+                   
+                         <button
+                    className="flex items-center gap-2 border border-gray-100 rounded-md py-1.5 px-2 sm:px-3 hover:bg-gray-50 transition text-sm"
+                    onClick={() =>
+                      navigate("/admin/meetings", {
+                        state: {
+                          openMeetingModal: true,
+                          initialMeetingData: {
+                            relatedType: "Meeting",
+                          },
+                        },
+                      })
+                    }
+                  >
+                    <FiCalendar className="text-gray-600 w-4 h-4" />
+                    Book Meeting
+                  </button>
 
-                <div className="flex flex-col gap-2 w-full">
-                  {[
-                    { icon: FiPhone, text: "Schedule Call" },
-                    { icon: FiMail, text: "Send E-mail" },
-                    { icon: FiCalendar, text: "Book Meeting" },
-                    { icon: FiCheckSquare, text: "Tasks" },
-                  ].map(({ icon: Icon, text }) => (
-                    <button
-                      key={text}
-                      className="flex items-center gap-2 border border-gray-100 rounded-md py-1.5 px-2 sm:px-3 hover:bg-gray-50 transition text-sm"
-                    >
-                      <Icon className="text-gray-600 w-4 h-4 flex-shrink-0" />{" "}
-                      {text}
-                    </button>
-                  ))}
-                </div>
-              </div>
+                           <button className="flex items-center gap-2 border border-gray-100 rounded-md py-1.5 px-2 sm:px-3 hover:bg-gray-50 transition text-sm">
+                            <FiCheckSquare className="text-gray-600 w-4 h-4" />
+                          Tasks
+                         </button>
+                       </div>
+                     </div>
 
               {/* STATUS */}
               <div className="bg-white border border-gray-100 rounded-lg p-3 sm:p-4 shadow-sm w-full">

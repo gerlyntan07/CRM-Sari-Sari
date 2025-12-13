@@ -870,8 +870,22 @@ export default function AdminUser() {
             )}
           </div>
 
-          <div className="flex flex-col gap-4">
-            {/* QUICK ACTIONS */}
+             <div className="flex flex-col gap-4">
+                               {/* QUICK ACTIONS */}
+                               <div className="bg-white border border-gray-100 rounded-lg p-3 sm:p-4 shadow-sm">
+                                 <h4 className="font-semibold text-gray-800 mb-2 text-sm">
+                                   Quick Actions
+                                 </h4>
+                             
+                                 <div className="flex flex-col gap-2 w-full">
+
+                             <button className="flex items-center gap-2 border border-gray-100 rounded-md py-1.5 px-2 sm:px-3 hover:bg-gray-50 transition text-sm">
+                                     <FiMail className="text-gray-600 w-4 h-4" />
+                                     Send E-mail
+                                   </button>
+        
+                                 </div>
+                               </div>
             {/* STATUS */}
             <div className="bg-white border border-gray-100 rounded-lg p-3 sm:p-4 shadow-sm w-full">
               <h4 className="font-semibold text-gray-800 mb-2 text-sm">

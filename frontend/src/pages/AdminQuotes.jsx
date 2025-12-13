@@ -837,11 +837,6 @@ export default function AdminQuotes() {
                            Schedule Call
                          </button>
                    
-                         <button className="flex items-center gap-2 border border-gray-100 rounded-md py-1.5 px-2 sm:px-3 hover:bg-gray-50 transition text-sm">
-                           <FiMail className="text-gray-600 w-4 h-4" />
-                           Send E-mail
-                         </button>
-                   
                          <button
                     className="flex items-center gap-2 border border-gray-100 rounded-md py-1.5 px-2 sm:px-3 hover:bg-gray-50 transition text-sm"
                     onClick={() =>

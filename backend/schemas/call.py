@@ -71,34 +71,16 @@ class CallResponse(CallBase):
     class Config:
         from_attributes = True
 
-# class CallBase(BaseModel):
-#     subject: str
-#     primary_contact: Optional[str] = None
-#     primary_contact_id: Optional[int] = None
-#     phone_number: Optional[str] = None
-#     call_time: Optional[str] = None
-#     call_duration: Optional[str] = None
-#     notes: Optional[str] = None
-#     due_date: Optional[str] = None
-#     assigned_to: Optional[str] = None
-#     assigned_to_id: Optional[int] = None
-#     related_type: Optional[str] = None
-#     related_to: Optional[str] = None
-#     related_to_id: Optional[int] = None
-#     priority: Optional[str] = "LOW"
-#     status: Optional[str] = "PENDING"
+class CallUpdate(BaseModel):
+    subject: Optional[str] = None
+    call_time: Optional[datetime] = None
+    duration_minutes: Optional[int] = None
+    direction: Optional[str] = None
+    status: Optional[str] = None
+    notes: Optional[str] = None
+    assigned_to: Optional[int] = None
+    relatedType1: Optional[str] = None
+    relatedType2: Optional[str] = None
+    relatedTo1: Optional[int] = None
+    relatedTo2: Optional[int] = None
 
-# class CallCreate(CallBase):
-#     pass
-
-# class CallUpdate(BaseModel):
-#     status: Optional[str] = None
-
-# class CallResponse(CallBase):
-#     id: int
-#     call_duration: Optional[int] = None  # Override to int for response
-#     created_at: Optional[datetime] = None
-#     updated_at: Optional[datetime] = None
-
-#     class Config:
-#         from_attributes = True

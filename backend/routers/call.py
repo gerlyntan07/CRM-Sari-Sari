@@ -11,7 +11,7 @@ from models.account import Account
 from models.contact import Contact
 from models.lead import Lead
 from models.deal import Deal
-from schemas.call import CallCreate, CallResponse #, CallUpdate
+from schemas.call import CallCreate, CallResponse, CallUpdate
 from .auth_utils import get_current_user
 from .logs_utils import serialize_instance, create_audit_log
 
@@ -24,7 +24,8 @@ router = APIRouter(
 async def create_task(
     payload: CallCreate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
+    request: Request = None,
 ):    
     assigned_user = None
     if payload.assigned_to:
@@ -63,6 +64,16 @@ async def create_task(
     db.commit()
     db.refresh(new_call)
 
+    create_audit_log(
+        db=db,
+        current_user=current_user,
+        instance=new_call,
+        action="CREATE",
+        request=request,
+        new_data=serialize_instance(new_call),
+        custom_message=f"create call '{new_call.subject}'"
+    )
+
     return new_call
 
 
@@ -81,7 +92,14 @@ def admin_get_calls(
     ).subquery()
     
     calls = (
-        db.query(Call)        
+        db.query(Call)
+        .options(
+            joinedload(Call.call_assign_to),
+            joinedload(Call.contact),
+            joinedload(Call.account),
+            joinedload(Call.lead),
+            joinedload(Call.deal)
+        )
         .filter(Call.created_by.in_(company_users))
         .order_by(Call.created_at.desc())
         .all()
@@ -90,101 +108,118 @@ def admin_get_calls(
     return calls
 
 
+@router.put("/{call_id}", response_model=CallResponse)
+def update_call(
+    call_id: int,
+    data: CallUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    request: Request = None
+):
+    call = (
+        db.query(Call)
+        .options(
+            joinedload(Call.call_assign_to),
+            joinedload(Call.contact),
+            joinedload(Call.account),
+            joinedload(Call.lead),
+            joinedload(Call.deal)
+        )
+        .filter(Call.id == call_id)
+        .first()
+    )
+    if not call:
+        raise HTTPException(status_code=404, detail="Call not found")
+    if current_user.role.upper() not in ['CEO', 'ADMIN', 'GROUP MANAGER']:
+        if call.assigned_to != current_user.id and call.created_by != current_user.id:
+            raise HTTPException(status_code=403, detail="Permission denied")
+    old_data = serialize_instance(call)
+    if data.subject is not None:
+        call.subject = data.subject
+    if data.call_time is not None:
+        call.call_time = data.call_time
+    if data.duration_minutes is not None:
+        call.duration_minutes = data.duration_minutes
+    if data.direction is not None:
+        dir_map = {
+            "INCOMING": CallDirection.INCOMING,
+            "Incoming": CallDirection.INCOMING,
+            "OUTGOING": CallDirection.OUTGOING,
+            "Outgoing": CallDirection.OUTGOING,
+        }
+        call.direction = dir_map.get(str(data.direction), CallDirection.OUTGOING)
+    if data.status is not None:
+        status_map = {
+            "PENDING": CallStatus.PLANNED,
+            "COMPLETED": CallStatus.HELD,
+            "CANCELLED": CallStatus.NOT_HELD,
+            "MISSED": CallStatus.NOT_HELD,
+            "PLANNED": CallStatus.PLANNED,
+            "HELD": CallStatus.HELD,
+            "NOT_HELD": CallStatus.NOT_HELD,
+            "Planned": CallStatus.PLANNED,
+            "Held": CallStatus.HELD,
+            "Not held": CallStatus.NOT_HELD,
+        }
+        call.status = status_map.get(str(data.status), CallStatus.PLANNED)
+    if data.notes is not None:
+        call.notes = data.notes
+    if data.assigned_to is not None:
+        assigned_user = db.query(User).filter(User.id == data.assigned_to).first()
+        if not assigned_user:
+            raise HTTPException(status_code=404, detail="Assigned user not found")
+        call.assigned_to = data.assigned_to
+    if data.relatedType1 is not None:
+        call.related_to_lead = None
+        call.related_to_account = None
+        if data.relatedType1 == "Lead" and data.relatedTo1:
+            call.related_to_lead = data.relatedTo1
+        if data.relatedType1 == "Account" and data.relatedTo1:
+            call.related_to_account = data.relatedTo1
+    if data.relatedType2 is not None:
+        call.related_to_contact = None
+        call.related_to_deal = None
+        if data.relatedType2 == "Contact" and data.relatedTo2:
+            call.related_to_contact = data.relatedTo2
+        if data.relatedType2 == "Deal" and data.relatedTo2:
+            call.related_to_deal = data.relatedTo2
+    db.commit()
+    db.refresh(call)
+    new_data = serialize_instance(call)
+    create_audit_log(
+        db=db,
+        current_user=current_user,
+        instance=call,
+        action="UPDATE",
+        request=request,
+        old_data=old_data,
+        new_data=new_data,
+        custom_message=f"update call '{call.subject}'"
+    )
+    return call
 
-
-# @router.put("/{call_id}", response_model=CallResponse)
-# def update_call(
-#     call_id: int,
-#     data: CallUpdate,
-#     db: Session = Depends(get_db),
-#     current_user: User = Depends(get_current_user),
-#     request: Request = None
-# ):
-#     """Update call status"""
-#     call = (
-#         db.query(Call)
-#         .options(
-#             joinedload(Call.call_assign_to),
-#             joinedload(Call.contact),
-#             joinedload(Call.account),
-#             joinedload(Call.lead),
-#             joinedload(Call.deal)
-#         )
-#         .filter(Call.id == call_id)
-#         .first()
-#     )
-    
-#     if not call:
-#         raise HTTPException(status_code=404, detail="Call not found")
-    
-#     # Check authorization - allow admins, assigned users, or creator
-#     if current_user.role.upper() not in ['CEO', 'ADMIN', 'GROUP MANAGER']:
-#         # Check if user is assigned to or created the call
-#         if call.assigned_to != current_user.id and call.created_by != current_user.id:
-#             raise HTTPException(status_code=403, detail="Permission denied")
-    
-#     old_data = serialize_instance(call)
-    
-#     # Update status if provided
-#     if data.status is not None:
-#         status_mapping = {
-#             "PENDING": CallStatus.PLANNED,
-#             "COMPLETED": CallStatus.HELD,
-#             "CANCELLED": CallStatus.NOT_HELD,
-#             "MISSED": CallStatus.NOT_HELD,
-#         }
-#         new_status = status_mapping.get(data.status.upper(), CallStatus.PLANNED)
-#         call.status = new_status
-        
-#         # Update status in metadata to preserve CANCELLED vs MISSED distinction
-#         if call.notes and call.notes.startswith("__METADATA__"):
-#             try:
-#                 parts = call.notes.split("__NOTES__", 1)
-#                 if len(parts) == 2:
-#                     metadata_str = parts[0].replace("__METADATA__", "")
-#                     actual_notes = parts[1]
-#                     metadata = json.loads(metadata_str)
-#                     metadata["status"] = data.status.upper()  # Update status in metadata
-#                     metadata_json = json.dumps(metadata)
-#                     call.notes = f"__METADATA__{metadata_json}__NOTES__{actual_notes}"
-#             except (json.JSONDecodeError, ValueError):
-#                 # If parsing fails, create new metadata
-#                 metadata = {
-#                     "phone_number": None,
-#                     "priority": "LOW",
-#                     "related_to": None,
-#                     "related_type": None,
-#                     "status": data.status.upper(),
-#                 }
-#                 metadata_json = json.dumps(metadata)
-#                 call.notes = f"__METADATA__{metadata_json}__NOTES__{call.notes or ''}"
-#         else:
-#             # If no metadata exists, create it with status
-#             metadata = {
-#                 "phone_number": None,
-#                 "priority": "LOW",
-#                 "related_to": None,
-#                 "related_type": None,
-#                 "status": data.status.upper(),
-#             }
-#             metadata_json = json.dumps(metadata)
-#             call.notes = f"__METADATA__{metadata_json}__NOTES__{call.notes or ''}"
-    
-#     db.commit()
-#     db.refresh(call)
-    
-#     new_data = serialize_instance(call)
-    
-#     create_audit_log(
-#         db=db,
-#         current_user=current_user,
-#         instance=call,
-#         action="UPDATE",
-#         request=request,
-#         old_data=old_data,
-#         new_data=new_data,
-#         custom_message=f"updated call status of '{call.subject}'"
-#     )
-    
-#     return call_to_response(call)
+@router.delete("/{call_id}", status_code=status.HTTP_200_OK)
+def delete_call(
+    call_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    request: Request = None
+):
+    call = db.query(Call).filter(Call.id == call_id).first()
+    if not call:
+        raise HTTPException(status_code=404, detail="Call not found")
+    subject = call.subject
+    old_data = serialize_instance(call)
+    create_audit_log(
+        db=db,
+        current_user=current_user,
+        instance=call,
+        action="DELETE",
+        request=request,
+        old_data=old_data,
+        custom_message=f"delete call '{subject}'"
+    )
+    db.delete(call)
+    db.commit()
+    return {"message": "Call deleted successfully"}
 

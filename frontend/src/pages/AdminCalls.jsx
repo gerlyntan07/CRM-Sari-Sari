@@ -23,13 +23,6 @@ import { useSearchParams, useNavigate, useLocation } from "react-router-dom";
 
 
 // --- Constants (UI Options) ---
-const STATUS_OPTIONS = [
-  { value: "PENDING", label: "Pending" },
-  { value: "COMPLETED", label: "Completed" },
-  { value: "CANCELLED", label: "Cancelled" },
-  { value: "MISSED", label: "Missed" },
-];
-
 const PRIORITY_OPTIONS = [
   { value: "HIGH", label: "High" },
   { value: "MEDIUM", label: "Medium" },
@@ -39,19 +32,37 @@ const PRIORITY_OPTIONS = [
 const ITEMS_PER_PAGE = 10;
 
 // --- Helper Functions for UI Rendering ---
+const STATUS_OPTIONS = [
+  { value: "PLANNED", label: "PLANNED" },
+  { value: "HELD", label: "HELD" },
+  { value: "NOT_HELD", label: "NOT HELD" },
+];
 const normalizeStatus = (status) => (status ? status.toUpperCase() : "");
 
-const formatStatusLabel = (status) => {
-  if (!status) return "--";
-  return status.toString().toLowerCase().replace(/\b\w/g, (char) => char.toUpperCase());
+const toAdminCallStatus = (status) => {
+  const s = normalizeStatus(status);
+  if (s === "PLANNED" || s === "PENDING") return "PLANNED";
+  if (s === "HELD" || s === "COMPLETED") return "HELD";
+  if (s === "NOT HELD" || s === "NOT_HELD" || s === "CANCELLED") return "NOT_HELD";
+  if (s === "NOT HELD" || s === "NOT_HELD") return "NOT_HELD";
+  if (s === "NOT HELD") return "NOT_HELD";
+  return "PLANNED";
 };
 
-const getStatusBadgeClass = (status) => {
-  switch (normalizeStatus(status)) {
-    case "PENDING": return "bg-indigo-100 text-indigo-700";
-    case "COMPLETED": return "bg-green-100 text-green-700";
-    case "CANCELLED": return "bg-gray-200 text-gray-700";
-    case "MISSED": return "bg-red-100 text-red-700";
+const formatAdminCallStatusLabel = (status) => {
+  const key = toAdminCallStatus(status);
+  if (key === "PLANNED") return "PLANNED";
+  if (key === "HELD") return "HELD";
+  if (key === "NOT_HELD") return "NOT HELD";
+  return "--";
+};
+
+const getCallStatusBadgeClass = (status) => {
+  const key = toAdminCallStatus(status);
+  switch (key) {
+    case "PLANNED": return "bg-indigo-100 text-indigo-700";
+    case "HELD": return "bg-green-100 text-green-700";
+    case "NOT_HELD": return "bg-gray-200 text-gray-700";
     default: return "bg-gray-100 text-gray-700";
   }
 };
@@ -79,12 +90,18 @@ export default function AdminCalls() {
 
   // 1. State Placeholders (Initialize these properly)
   const [showModal, setShowModal] = useState(false);
-  const [selectedCall, setSelectedCall] = useState(null); // Set this object to view details
+  const [selectedCall, setSelectedCall] = useState(null);
   const [confirmModalData, setConfirmModalData] = useState(null);
   const [relatedTo1Values, setRelatedTo1Values] = useState(null);
   const [relatedTo2Values, setRelatedTo2Values] = useState(null);
   const [calls, setCalls] = useState([]);
   const [team, setTeam] = useState(null);
+  const [isEditing, setIsEditing] = useState(false);
+  const [currentCallId, setCurrentCallId] = useState(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [confirmProcessing, setConfirmProcessing] = useState(false);
+  const [statusSelection, setStatusSelection] = useState("PLANNED");
+  const [updatingStatus, setUpdatingStatus] = useState(false);
 
  const [searchParams] = useSearchParams();
  const navigate = useNavigate();
@@ -172,7 +189,6 @@ useEffect(() => {
   const currentPage = 1;
 
   // Form State
-  const isSubmitting = false;
   const [formData, setFormData] = useState({
     subject: "",
     call_time: "",
@@ -191,16 +207,18 @@ useEffect(() => {
   const filteredCalls = calls; // Implement filtering logic
   const paginatedCalls = calls; // Implement pagination logic
   const callsLoading = false;
-  const confirmProcessing = false;
-  const updatingStatus = false;
 
   // Metrics (Dummy Data)
+  const totalCalls = calls.length;
+  const plannedCalls = calls.filter((c) => toAdminCallStatus(c.status) === "PLANNED").length;
+  const heldCalls = calls.filter((c) => toAdminCallStatus(c.status) === "HELD").length;
+  const notHeldCalls = calls.filter((c) => toAdminCallStatus(c.status) === "NOT_HELD").length;
+
   const metricCards = [
-    { title: "Total", value: 0, icon: FiPhoneCall, color: "text-slate-600", bgColor: "bg-slate-100" },
-    { title: "Pending", value: 0, icon: FiClock, color: "text-indigo-600", bgColor: "bg-indigo-100" },
-    { title: "Completed", value: 0, icon: FiCheckCircle, color: "text-green-600", bgColor: "bg-green-100" },
-    { title: "Cancelled", value: 0, icon: FiXCircle, color: "text-gray-600", bgColor: "bg-gray-100" },
-    { title: "Missed", value: 0, icon: FiXCircle, color: "text-red-600", bgColor: "bg-red-100" },
+    { title: "Total", value: totalCalls, icon: FiPhoneCall, color: "text-slate-600", bgColor: "bg-slate-100" },
+    { title: "Planned", value: plannedCalls, icon: FiClock, color: "text-indigo-600", bgColor: "bg-indigo-100" },
+    { title: "Held", value: heldCalls, icon: FiCheckCircle, color: "text-green-600", bgColor: "bg-green-100" },
+    { title: "Not Held", value: notHeldCalls, icon: FiXCircle, color: "text-gray-600", bgColor: "bg-gray-100" },
   ];
 
   const activeTab = "Overview"; // Or use state
@@ -290,38 +308,120 @@ useEffect(() => {
   }, [formData.relatedType2, formData.relatedTo1]);
 
 
-  const handleSubmit = async(e) => { 
+  const handleSubmit = (e) => { 
     e.preventDefault();     
     if (!formData.assigned_to) {
       toast.error("Please assign the call to a user.");
       return;
     }
-
     const payload = {
       ...formData,
-      duration_minutes: parseInt(formData.duration_minutes),
-      relatedTo1: parseInt(formData.relatedTo1),
-      relatedTo2: parseInt(formData.relatedTo2),
-      assigned_to: parseInt(formData.assigned_to),
-    }
-
-    try{
-      const res = await api.post(`/calls/create`, payload);
-      fetchCalls();      
-      toast.success("Call created successfully!");      
-    }catch (err) {
-      console.error(err);
-      const errorMsg = err.response?.data?.detail || "Failed to create call.";
-      toast.error(errorMsg);
-    } finally{
-      setShowModal(false);
-    }
-    
+      duration_minutes: formData.duration_minutes ? parseInt(formData.duration_minutes, 10) : null,
+      relatedTo1: formData.relatedTo1 ? parseInt(formData.relatedTo1, 10) : null,
+      relatedTo2: formData.relatedTo2 ? parseInt(formData.relatedTo2, 10) : null,
+      assigned_to: formData.assigned_to ? parseInt(formData.assigned_to, 10) : null,
+    };
+    const actionType = isEditing && currentCallId ? "update" : "create";
+    const name = (formData.subject || "").trim() || "Untitled Call";
+    setConfirmModalData({
+      title: actionType === "create" ? "Confirm New Call" : "Confirm Update",
+      message:
+        actionType === "create"
+          ? `Create "${name}"?`
+          : `Save changes to "${name}"?`,
+      confirmLabel: actionType === "create" ? "Create Call" : "Update Call",
+      cancelLabel: "Cancel",
+      variant: "primary",
+      action: {
+        type: actionType,
+        payload,
+        targetId: currentCallId || null,
+        name,
+      },
+    });
   };
   const handleCallClick = (call) => { setSelectedCall(call); };
   const handleCloseModal = () => { setShowModal(false); };
-  const handleConfirmAction = () => { };
-  const handleStatusUpdate = () => { };
+  const handleConfirmAction = async () => {
+    if (!confirmModalData?.action) {
+      setConfirmModalData(null);
+      return;
+    }
+    const { action } = confirmModalData;
+    const { type, payload, targetId, name } = action;
+    setConfirmProcessing(true);
+    try {
+      if (type === "create") {
+        setIsSubmitting(true);
+        await api.post(`/calls/create`, payload);
+        toast.success(`Call "${name}" created successfully.`);
+        setShowModal(false);
+        await fetchCalls();
+      } else if (type === "update") {
+        if (!targetId) {
+          throw new Error("Missing call identifier for update.");
+        }
+        setIsSubmitting(true);
+        await api.put(`/calls/${targetId}`, payload);
+        toast.success(`Call "${name}" updated successfully.`);
+        setShowModal(false);
+        await fetchCalls();
+      } else if (type === "delete") {
+        if (!targetId) {
+          throw new Error("Missing call identifier for deletion.");
+        }
+        await api.delete(`/calls/${targetId}`);
+        toast.success(`Call "${name}" deleted successfully.`);
+        if (selectedCall?.id === targetId) {
+          setSelectedCall(null);
+        }
+        await fetchCalls();
+      }
+    } catch (err) {
+      const defaultMessage =
+        type === "create"
+          ? "Failed to create call. Please review the details and try again."
+          : type === "update"
+          ? "Failed to update call. Please review the details and try again."
+          : "Failed to delete call. Please try again.";
+      let message = defaultMessage;
+      if (err.response?.data?.detail) {
+        message = err.response.data.detail;
+      }
+      toast.error(message);
+    } finally {
+      if (type === "create" || type === "update") {
+        setIsSubmitting(false);
+      }
+      setConfirmProcessing(false);
+      setConfirmModalData(null);
+    }
+  };
+  const handleCancelConfirm = () => {
+    if (confirmProcessing) return;
+    setConfirmModalData(null);
+  };
+  const handleStatusUpdate = async () => {
+    if (!selectedCall?.id) return;
+    try {
+      setUpdatingStatus(true);
+      await api.put(`/calls/${selectedCall.id}`, { status: statusSelection });
+      toast.success(`Status updated to ${formatAdminCallStatusLabel(statusSelection)}`);
+      setCalls((prev) =>
+        Array.isArray(prev)
+          ? prev.map((c) =>
+              c.id === selectedCall.id ? { ...c, status: statusSelection } : c
+            )
+          : prev
+      );
+      setSelectedCall(null);
+    } catch (err) {
+      const message = err.response?.data?.detail || "Failed to update status.";
+      toast.error(message);
+    } finally {
+      setUpdatingStatus(false);
+    }
+  };
 
 
 
@@ -357,14 +457,47 @@ useEffect(() => {
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-4 gap-2 sm:gap-4">
           <div className="flex flex-wrap items-center gap-2 sm:gap-3">
             <h1 className="text-xl sm:text-2xl font-semibold text-gray-800">{selectedCall.subject}</h1>
-            <span className={`text-xs sm:text-sm font-medium px-2 sm:px-3 py-1 rounded-full ${getStatusBadgeClass(selectedCall.status)}`}>
-              {formatStatusLabel(selectedCall.status)}
+            <span className={`text-xs sm:text-sm font-medium px-2 sm:px-3 py-1 rounded-full ${getCallStatusBadgeClass(selectedCall.status)}`}>
+              {formatAdminCallStatusLabel(selectedCall.status)}
             </span>
           </div>
 
         <div className="flex flex-col sm:flex-row sm:space-x-3 space-y-2 sm:space-y-0">
           <button
             className="inline-flex items-center justify-center w-full sm:w-auto bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 transition text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+            onClick={() => {
+              const toLocal = (iso) => {
+                if (!iso) return "";
+                const d = new Date(iso);
+                const yyyy = d.getFullYear();
+                const mm = String(d.getMonth() + 1).padStart(2, "0");
+                const dd = String(d.getDate()).padStart(2, "0");
+                const hh = String(d.getHours()).padStart(2, "0");
+                const min = String(d.getMinutes()).padStart(2, "0");
+                return `${yyyy}-${mm}-${dd}T${hh}:${min}`;
+              };
+              const relatedType1 = selectedCall.lead ? "Lead" : selectedCall.account ? "Account" : "Lead";
+              const relatedTo1 = selectedCall.lead ? selectedCall.lead.id : selectedCall.account ? selectedCall.account.id : null;
+              const relatedType2 = selectedCall.contact ? "Contact" : selectedCall.deal ? "Deal" : "Contact";
+              const relatedTo2 = selectedCall.contact ? selectedCall.contact.id : selectedCall.deal ? selectedCall.deal.id : null;
+              setFormData({
+                subject: selectedCall.subject || "",
+                call_time: toLocal(selectedCall.call_time),
+                duration_minutes: selectedCall.duration_minutes ? String(selectedCall.duration_minutes) : "",
+                direction: selectedCall.direction || "Outgoing",
+                status: selectedCall.status || "Planned",
+                notes: selectedCall.notes || "",
+                relatedType1,
+                relatedType2,
+                relatedTo1: relatedTo1 ? String(relatedTo1) : "",
+                relatedTo2: relatedTo2 ? String(relatedTo2) : "",
+                assigned_to: selectedCall.call_assign_to?.id ? String(selectedCall.call_assign_to.id) : "",
+              });
+              setIsEditing(true);
+              setCurrentCallId(selectedCall.id);
+              setSelectedCall(null);
+              setShowModal(true);
+            }}
           >
             <FiEdit className="mr-2" />
             Edit
@@ -372,6 +505,21 @@ useEffect(() => {
 
           <button
             className="inline-flex items-center justify-center w-full sm:w-auto px-4 py-2 rounded-md text-sm bg-red-500 text-white hover:bg-red-600 transition focus:outline-none focus:ring-2 focus:ring-red-400"
+            onClick={() => {
+              const name = selectedCall.subject || "this call";
+              setConfirmModalData({
+                title: "Delete Call",
+                message: `Are you sure you want to permanently delete "${name}"? This action cannot be undone.`,
+                confirmLabel: "Delete Call",
+                cancelLabel: "Cancel",
+                variant: "danger",
+                action: {
+                  type: "delete",
+                  targetId: selectedCall.id,
+                  name,
+                },
+              });
+            }}
           >
             <FiTrash2 className="mr-2" />
             Delete
@@ -399,6 +547,7 @@ useEffect(() => {
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 text-sm text-gray-700">
                   <DetailRow label="Call Time" value={formattedDateTime(selectedCall.call_time)} />
                   <DetailRow label="Duration" value={selectedCall.duration_minutes ? `${selectedCall.duration_minutes} min` : null} />
+                  <DetailRow label="Direction" value={selectedCall.direction || "--"} />
                   <DetailRow label="Assigned To" value={`${selectedCall.call_assign_to.first_name} ${selectedCall.call_assign_to.last_name}`} />
                   {/* <DetailRow label="Related Type" value={selectedCall.related_type} />
                   <DetailRow label="Related To" value={selectedCall.related_to} /> */}
@@ -448,8 +597,14 @@ useEffect(() => {
 
             <div className="bg-white border border-gray-100 rounded-lg p-3 sm:p-4 shadow-sm w-full">
               <h4 className="font-semibold text-gray-800 mb-2 text-sm">Status</h4>
-              <select className="border border-gray-200 rounded-md px-2 py-1.5 w-full text-sm mb-2" defaultValue={selectedCall.status}>
-                {STATUS_OPTIONS.map((op) => <option key={op.value} value={op.value}>{op.label}</option>)}
+              <select
+                className="border border-gray-200 rounded-md px-2 py-1.5 w-full text-sm mb-2"
+                value={statusSelection}
+                onChange={(e) => setStatusSelection(e.target.value)}
+              >
+                <option value="PLANNED">PLANNED</option>
+                <option value="HELD">HELD</option>
+                <option value="NOT_HELD">NOT HELD</option>
               </select>
               <button onClick={handleStatusUpdate} disabled={updatingStatus} className="w-full py-1.5 rounded-md text-sm bg-gray-900 text-white hover:bg-gray-800 disabled:opacity-50">
                 {updatingStatus ? "Updating..." : "Update"}
@@ -462,11 +617,17 @@ useEffect(() => {
     </div>
   ) : null; 
 
+  useEffect(() => {
+    if (selectedCall) {
+      setStatusSelection(toAdminCallStatus(selectedCall.status));
+    }
+  }, [selectedCall]);
+
   const formModal = showModal ? (
     <div id="modalBackdrop" onClick={(e) => e.target.id === "modalBackdrop" && handleCloseModal()} className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
       <div className="bg-white w-full max-w-xl rounded-2xl shadow-lg p-4 sm:p-6 md:p-8 relative border border-gray-200 overflow-y-auto max-h-[90vh] hide-scrollbar">
         <button onClick={handleCloseModal} className="absolute top-4 right-4 text-gray-500 hover:text-black transition"><FiX size={22} /></button>
-        <h2 className="text-xl sm:text-2xl font-semibold text-gray-800 mb-4 sm:mb-6 flex items-center justify-center">Add New Call</h2>
+        <h2 className="text-xl sm:text-2xl font-semibold text-gray-800 mb-4 sm:mb-6 flex items-center justify-center">{isEditing ? "Edit Call" : "Add New Call"}</h2>
 
         <form className="grid grid-cols-1 md:grid-cols-2 w-full gap-4 text-sm" onSubmit={handleSubmit}>
           <InputField label="Subject" className='md:col-span-2' name='subject' value={formData.subject} onChange={handleInputChange} disabled={isSubmitting} required />
@@ -788,8 +949,8 @@ useEffect(() => {
 
 
         <td className="py-3 px-4">
-          <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusBadgeClass(call.status)}`}>
-            {formatStatusLabel(call.status)}
+          <span className={`px-2 py-1 rounded-full text-xs font-medium ${getCallStatusBadgeClass(call.status)}`}>
+            {formatAdminCallStatusLabel(call.status)}
           </span>
         </td>
       </tr>
@@ -808,7 +969,7 @@ useEffect(() => {
 
       {detailView}
       {formModal}
-      {confirmModalData && <ConfirmationModal open title={confirmModalData.title} message={confirmModalData.message} confirmLabel={confirmModalData.confirmLabel} onConfirm={handleConfirmAction} onCancel={() => setConfirmModalData(null)} loading={confirmProcessing} />}
+      {confirmModalData && <ConfirmationModal open title={confirmModalData.title} message={confirmModalData.message} confirmLabel={confirmModalData.confirmLabel} onConfirm={handleConfirmAction} onCancel={handleCancelConfirm} loading={confirmProcessing} />}
     </>
   );
 }
@@ -834,4 +995,53 @@ function TextAreaField(props) {
 
 function DetailRow({ label, value }) {
   return <p><span className="font-semibold">{label}:</span> <br /><span className="break-words">{value || "--"}</span></p>;
+}
+
+function ConfirmationModal({
+  open,
+  title,
+  message,
+  confirmLabel,
+  cancelLabel = "Cancel",
+  variant = "primary",
+  loading = false,
+  onConfirm,
+  onCancel,
+}) {
+  if (!open) return null;
+
+  const confirmClasses =
+    variant === "danger"
+      ? "bg-red-500 hover:bg-red-600 border border-red-400"
+      : "bg-tertiary hover:bg-secondary border border-tertiary";
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-[60]">
+      <div className="bg-white w-full max-w-md rounded-xl shadow-lg p-6 border border-gray-200">
+        <h3 className="text-lg font-semibold text-gray-800">{title}</h3>
+        <p className="text-sm text-gray-600 mt-2 whitespace-pre-line">
+          {message}
+        </p>
+
+        <div className="mt-6 flex flex-col sm:flex-row sm:justify-end sm:space-x-3 space-y-2 sm:space-y-0">
+          <button
+            type="button"
+            onClick={onCancel}
+            className="w-full sm:w-auto px-4 py-2 rounded-md border border-gray-300 text-gray-700 hover:bg-gray-100 transition disabled:opacity-70"
+            disabled={loading}
+          >
+            {cancelLabel}
+          </button>
+          <button
+            type="button"
+            onClick={onConfirm}
+            className={`w-full sm:w-auto px-4 py-2 rounded-md text-white transition disabled:opacity-70 ${confirmClasses}`}
+            disabled={loading}
+          >
+            {loading ? "Processing..." : confirmLabel}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
 }

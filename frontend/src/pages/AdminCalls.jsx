@@ -20,6 +20,8 @@ import PaginationControls from "../components/PaginationControls.jsx";
 import api from "../api.js";
 import {toast} from 'react-toastify';
 import { useSearchParams, useNavigate, useLocation } from "react-router-dom";
+import LoadingSpinner from "../components/LoadingSpinner.jsx";
+
 
 
 // --- Constants (UI Options) ---
@@ -144,25 +146,26 @@ useEffect(() => {
 
   const fetchCalls = async () => {
   try {
-    const res = await api.get("/calls/admin/fetch-all");
+    setCallsLoading(true);
 
+    const res = await api.get("/calls/admin/fetch-all");
     const data = Array.isArray(res.data) ? res.data : [];
 
-    // Safe sort: also prevent mutation using spread
     const sortedData = [...data].sort((a, b) => {
       const dateA = a?.created_at ? new Date(a.created_at) : 0;
       const dateB = b?.created_at ? new Date(b.created_at) : 0;
-      return dateB - dateA; // newest first
+      return dateB - dateA;
     });
 
     setCalls(sortedData);
-    console.log(sortedData);
-
   } catch (err) {
     console.error("Error fetching calls:", err);
     toast.error("Failed to load calls");
+  } finally {
+    setCallsLoading(false);
   }
 };
+
 
   
   const fetchUsers = async () => {
@@ -207,7 +210,7 @@ useEffect(() => {
   // 2. Computed Values (Replacements for useMemo)
   const filteredCalls = calls; // Implement filtering logic
   const paginatedCalls = calls; // Implement pagination logic
-  const callsLoading = false;
+const [callsLoading, setCallsLoading] = useState(false);
 
   // Metrics (Dummy Data)
   const totalCalls = calls.length;
@@ -455,6 +458,7 @@ useEffect(() => {
 
   const detailView = selectedCall ? (
     <div id="callModalBackdrop" onClick={(e) => e.target.id === "callModalBackdrop" && setSelectedCall(null)} className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
+{callsLoading && <LoadingSpinner message="Loading call details..." />}
           <div className="bg-white rounded-xl shadow-lg w-full max-w-full sm:max-w-6xl max-h-[90vh] overflow-y-auto hide-scrollbar relative box-border">
      
       {/* TOP SECTION */}
@@ -728,14 +732,15 @@ useEffect(() => {
             )}
           </div>
           
-            {formData.relatedType1 === 'Account' && (
+            
               <div className="w-full flex flex-col">
                 <select
                   name="relatedType2"
                   onChange={handleInputChange}
                   value={formData.relatedType2 ?? "Contact"}
                   id=""
-                  className="text-gray-700 outline-none cursor-pointer mb-1 w-22"
+                  className={`text-gray-700 outline-none cursor-pointer mb-1 w-22 disabled:text-gray-400 disabled:cursor-not-allowed`}
+                  disabled={formData.relatedType1 === 'Lead'}
                 >
                   <option value="Contact">Contact</option>
                   <option value="Deal">Deal</option>
@@ -746,7 +751,8 @@ useEffect(() => {
                     name="relatedTo2"
                     onChange={handleInputChange}
                     value={formData.relatedTo2 ?? ""}
-                    className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-400 outline-none disabled:bg-gray-100"
+                    className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-400 outline-none disabled:bg-gray-200 disabled:cursor-not-allowed"
+                    disabled={formData.relatedType1 === 'Lead'}
                   >
                     <option value=""></option>
                     {relatedTo2Values.map((item) => (
@@ -760,13 +766,15 @@ useEffect(() => {
                 ) : (
                   <input
                     type="text"
-                    value={`No ${formData.relatedType2 || ''} data found`}
-                    className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm outline-none bg-gray-100 text-gray-500"
+                    value={formData.relatedType1 === 'Lead' ? ''
+                      : `No ${formData.relatedType2 || ''} data found`
+                    }
+                    className={`${formData.relatedType1 === 'Lead' ? 'text-gray-200' : 'text-gray-500'} disabled:cursor-not-allowed w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm outline-none bg-gray-100 text-gray-500`}
                     disabled
                   />
                 )}
               </div>
-            )}          
+            
 
           <div>
             <label className="block text-gray-700 font-medium mb-1 text-sm">Call Time</label>
@@ -776,7 +784,7 @@ useEffect(() => {
           <div className="w-full">
             <label className="block text-gray-700 font-medium mb-1 text-sm">Duration</label>
             <div className="w-full rounded-md text-sm focus:ring-2 focus:ring-blue-400 outline-none disabled:bg-gray-100 flex flex-row items-center justify-start">
-              <input type="tel" value={formData.duration_minutes} onChange={handleInputChange} name="duration_minutes" className="border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-400 outline-none disabled:bg-gray-100 w-20 mr-3" />
+              <input type="tel" value={formData.duration_minutes} onChange={handleInputChange} name="duration_minutes" className="border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-400 outline-none disabled:bg-gray-100 w-44 mr-3" />
               <p>minutes</p>
             </div>
           </div>
@@ -821,9 +829,14 @@ useEffect(() => {
 
           <div className="flex flex-col md:flex-row justify-end col-span-2 mt-4 gap-2 w-full">
             <button type="button" onClick={handleCloseModal} className="w-full sm:w-auto px-4 py-2 text-white bg-red-400 border border-red-300 rounded hover:bg-red-500 transition">Cancel</button>
-            <button type="submit" disabled={isSubmitting} className="w-full sm:w-auto px-4 py-2 text-white bg-tertiary border border-tertiary rounded hover:bg-secondary transition">
-              {isSubmitting ? "Saving..." : "Save Call"}
-            </button>
+           <button
+  type="submit"
+  disabled={isSubmitting}
+  className="w-full sm:w-auto px-4 py-2 text-white bg-tertiary border border-tertiary rounded hover:bg-secondary transition"
+>
+  {isSubmitting ? "Saving..." : "Save Call"}
+</button>
+
           </div>
         </form>
       </div>
@@ -965,11 +978,14 @@ useEffect(() => {
               </tr>
             </thead>
             <tbody>
-  {callsLoading ? (
-    <tr>
-      <td colSpan={6} className="text-center py-4">Loading...</td>
-    </tr>
-  ) : paginatedCalls.length > 0 ? (
+{callsLoading ? (
+  <tr>
+    <td colSpan={6} className="py-10">
+      <LoadingSpinner message="Loading calls..." />
+    </td>
+  </tr>
+) : paginatedCalls.length > 0 ? (
+
     paginatedCalls.map(call => (
       <tr
         key={call.id}

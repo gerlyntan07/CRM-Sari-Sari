@@ -18,6 +18,8 @@ import api from "../api"; // Assuming your Axios instance
 import { toast } from "react-toastify";
 import useFetchUser from "../hooks/useFetchUser";
 import LoadingSpinner from "../components/LoadingSpinner.jsx";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
+
 
 const BOARD_COLUMNS = ["To Do", "In Progress", "Review", "Completed"];
 const LIST_PAGE_SIZE = 10;
@@ -131,6 +133,8 @@ export default function AdminTask() {
   const [currentPage, setCurrentPage] = useState(1);
   const [confirmModalData, setConfirmModalData] = useState(null);
   const [confirmProcessing, setConfirmProcessing] = useState(false);
+  const navigate = useNavigate();
+  const location = useLocation();
   const [formData, setFormData] = useState({
     title: "",
     description: "",
@@ -143,6 +147,29 @@ export default function AdminTask() {
     isPersonal: false,
     notes: "",
   });
+
+  // -----------------------------------------------------------
+
+useEffect(() => {
+  const shouldOpen = location.state?.openTaskModal;
+  const initialData = location.state?.initialTaskData;
+
+  if (shouldOpen) {
+    setShowModal(true);
+
+    if (initialData) {
+      setFormData((prev) => ({
+        ...prev,
+        ...initialData,
+      }));
+    }
+
+    // clear state so it won't reopen on refresh
+    navigate(location.pathname, { replace: true, state: {} });
+  }
+}, [location, navigate]);
+
+  // -----------------------------------------------------------
 
   // --- API Fetch Functions ---
 

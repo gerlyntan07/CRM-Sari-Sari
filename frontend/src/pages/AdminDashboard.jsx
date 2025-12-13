@@ -327,7 +327,7 @@ const RecentLogsCard = ({ logs, loading }) => {
 
 const MetricCard = ({ icon: Icon, title, value, color, bgColor, loading, onClick }) => (
   <div 
-    className="flex items-center p-4 bg-white rounded-xl shadow-md hover:shadow-lg hover:ring-2 hover:ring-blue-500 cursor-pointer transition-all duration-300"
+className="flex items-center p-4 bg-white rounded-xl shadow-md border border-gray-200 transition-all duration-300"
     onClick={onClick || (() => console.log(`Clicked metric card: ${title}`))}
   >
     <div className={`p-3 rounded-full ${bgColor} ${color} mr-4`}>

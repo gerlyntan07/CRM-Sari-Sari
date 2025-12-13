@@ -604,12 +604,31 @@ export default function AdminLeadsInformation({
                     Schedule Call
                   </button>
             
-                  {/* --- OTHER BUTTONS (unchanged) --- */}
-                  <button className="flex items-center gap-2 border border-gray-100 rounded-md py-1.5 px-2 sm:px-3 hover:bg-gray-50 transition text-sm">
-                    <FiMail className="text-gray-600 w-4 h-4" />
-                    Send E-mail
-                  </button>
-            
+    <button
+  type="button"
+  onClick={() => {
+    if (!lead?.email) {
+      alert("No email address available");
+      return;
+    }
+
+    const to = encodeURIComponent(lead.email);
+    const subject = encodeURIComponent("");
+    const body = encodeURIComponent("");
+
+    // Gmail web compose URL
+    const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${to}&su=${subject}&body=${body}`;
+
+    // Open Gmail in a new tab
+    window.open(gmailUrl, "_blank");
+  }}
+  className="flex items-center gap-2 border border-gray-100 rounded-md py-1.5 px-2 sm:px-3 hover:bg-gray-50 transition text-sm"
+>
+  <FiMail className="text-gray-600 w-4 h-4" />
+  Send E-mail
+</button>
+
+           
                  <button
                     className="flex items-center gap-2 border border-gray-100 rounded-md py-1.5 px-2 sm:px-3 hover:bg-gray-50 transition text-sm"
                     onClick={() =>
@@ -627,10 +646,22 @@ export default function AdminLeadsInformation({
                     Book Meeting
                   </button>
 
-                   <button className="flex items-center gap-2 border border-gray-100 rounded-md py-1.5 px-2 sm:px-3 hover:bg-gray-50 transition text-sm">
-                      <FiCheckSquare className="text-gray-600 w-4 h-4" />
-                       Tasks
-                      </button>
+                  <button
+                  onClick={() =>
+                    navigate("/admin/tasks", {
+                      state: {
+                        openTaskModal: true,
+                        initialTaskData: {
+                          relatedTo: "Lead",
+                        },
+                      },
+                    })
+                  }
+                  className="flex items-center gap-2 border border-gray-100 rounded-md py-1.5 px-2 sm:px-3 hover:bg-gray-50 transition text-sm"
+                >
+                  <FiCheckSquare className="text-gray-600 w-4 h-4" />
+                   Tasks
+                  </button>
                 </div>
               </div>
 

@@ -854,11 +854,23 @@ export default function AdminQuotes() {
                     Book Meeting
                   </button>
 
-                           <button className="flex items-center gap-2 border border-gray-100 rounded-md py-1.5 px-2 sm:px-3 hover:bg-gray-50 transition text-sm">
-                            <FiCheckSquare className="text-gray-600 w-4 h-4" />
-                          Tasks
-                         </button>
-                       </div>
+                           <button
+                        onClick={() =>
+                          navigate("/admin/tasks", {
+                            state: {
+                              openTaskModal: true,
+                              initialTaskData: {
+                                relatedTo: "Quotes",
+                              },
+                            },
+                          })
+                        }
+                        className="flex items-center gap-2 border border-gray-100 rounded-md py-1.5 px-2 sm:px-3 hover:bg-gray-50 transition text-sm"
+                      >
+                        <FiCheckSquare className="text-gray-600 w-4 h-4" />
+                        Tasks
+                      </button>
+                         </div>
                      </div>
 
             {/* STATUS */}

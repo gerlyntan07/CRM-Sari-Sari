@@ -278,6 +278,7 @@ const AdminMeetingInfomation = ({ meeting, onClose, onEdit, onDelete, onStatusUp
                            Schedule Call
                          </button>
                    
+                   
                          <button
                     className="flex items-center gap-2 border border-gray-100 rounded-md py-1.5 px-2 sm:px-3 hover:bg-gray-50 transition text-sm"
                     onClick={() =>
@@ -295,10 +296,22 @@ const AdminMeetingInfomation = ({ meeting, onClose, onEdit, onDelete, onStatusUp
                     Book Meeting
                   </button>
 
-                           <button className="flex items-center gap-2 border border-gray-100 rounded-md py-1.5 px-2 sm:px-3 hover:bg-gray-50 transition text-sm">
-                            <FiCheckSquare className="text-gray-600 w-4 h-4" />
-                          Tasks
-                         </button>
+                           <button
+                        onClick={() =>
+                          navigate("/admin/tasks", {
+                            state: {
+                              openTaskModal: true,
+                              initialTaskData: {
+                                relatedTo: "Meeting",
+                              },
+                            },
+                          })
+                        }
+                        className="flex items-center gap-2 border border-gray-100 rounded-md py-1.5 px-2 sm:px-3 hover:bg-gray-50 transition text-sm"
+                      >
+                        <FiCheckSquare className="text-gray-600 w-4 h-4" />
+                        Tasks
+                      </button>
                        </div>
                      </div>
 

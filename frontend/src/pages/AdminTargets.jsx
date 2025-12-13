@@ -534,7 +534,7 @@ export default function AdminTargets() {
       onClick={handleTargetModalBackdropClick}
       className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4"
     >
-    <div className="bg-white rounded-xl shadow-xl w-full max-w-6xl max-h-[92vh] overflow-y-auto hide-scrollbar animate-scale-in font-inter relative">
+    <div className="bg-white rounded-xl shadow-xl w-full max-w-4xl max-h-[92vh] overflow-y-auto hide-scrollbar animate-scale-in font-inter relative">
           {/* 🔵 ONLY TOP */}
 <div className="w-full rounded-t-xl">
   <div className="bg-tertiary w-full relative p-3 lg:p-3 rounded-t-xl">
@@ -604,6 +604,7 @@ export default function AdminTargets() {
         <div className="border-b border-gray-200 my-5"></div>
 
         {/* TABS */}
+                <div className="p-1 lg:p-4">
         <div className="flex w-full bg-[#6A727D] text-white mt-1 overflow-x-auto mb-6">
           {["Overview"].map((tab) => (
             <button
@@ -733,6 +734,7 @@ export default function AdminTargets() {
         </div>
       </div>
     </div>
+     </div>
   ) : null;
 
   const listView = (

@@ -45,14 +45,15 @@ export default function CreateTaskModal({ isOpen, onClose }) {
             leaveFrom="opacity-100 scale-100"
             leaveTo="opacity-0 scale-95"
           >
-            <div className="bg-white w-full max-w-full sm:max-w-3xl rounded-2xl shadow-lg p-4 sm:p-6 md:p-8 relative border border-gray-200 overflow-y-auto max-h-[90vh]">
-              <button
-                onClick={onClose}
-                aria-label="Close modal"
-                className="absolute top-4 right-4 text-gray-500 hover:text-black transition"
-              >
-                &times;
-              </button>
+            <div className="bg-white w-full max-w-full sm:max-w-3xl rounded-2xl shadow-lg p-6 lg:p-8 relative border border-gray-200 overflow-y-auto max-h-[90vh]">
+             <button
+            onClick={onClose}
+            aria-label="Close modal"
+            className="absolute top-3 right-3 p-2 text-2xl leading-none rounded-full text-gray-500 hover:text-black hover:bg-gray-100 transition"
+          >
+            &times;
+          </button>
+
 
               <h2 className="text-xl sm:text-2xl font-semibold text-gray-800 mb-4 sm:mb-6 flex items-center justify-center">
                 Create New Task

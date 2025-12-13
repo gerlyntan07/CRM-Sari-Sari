@@ -879,10 +879,30 @@ export default function AdminUser() {
                              
                                  <div className="flex flex-col gap-2 w-full">
 
-                             <button className="flex items-center gap-2 border border-gray-100 rounded-md py-1.5 px-2 sm:px-3 hover:bg-gray-50 transition text-sm">
-                                     <FiMail className="text-gray-600 w-4 h-4" />
-                                     Send E-mail
-                                   </button>
+                            <button
+                                  type="button"
+                                  onClick={() => {
+                                    if (!selectedUser.email) {
+                                      alert("No email address available");
+                                      return;
+                                    }
+
+                                    const to = encodeURIComponent(selectedUser.email);
+                                    const subject = encodeURIComponent("");
+                                    const body = encodeURIComponent("");
+
+                                    // Gmail web compose URL
+                                    const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${to}&su=${subject}&body=${body}`;
+
+                                    // Open Gmail in a new tab
+                                    window.open(gmailUrl, "_blank");
+                                  }}
+                                  className="flex items-center gap-2 border border-gray-100 rounded-md py-1.5 px-2 sm:px-3 hover:bg-gray-50 transition text-sm"
+                                >
+                                  <FiMail className="text-gray-600 w-4 h-4" />
+                                  Send E-mail
+                                </button>
+
         
                                  </div>
                                </div>

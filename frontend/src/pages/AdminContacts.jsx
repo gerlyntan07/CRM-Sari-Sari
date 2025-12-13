@@ -147,6 +147,7 @@ export default function AdminContacts() {
           return new Date(bDate) - new Date(aDate);
         });
         setContacts(sorted);
+        console.log(res.data)
         if (preserveSelectedId) {
           const updatedSelection = sorted.find(
             (contact) => contact.id === preserveSelectedId
@@ -899,10 +900,31 @@ export default function AdminContacts() {
         Schedule Call
       </button>
 
-      <button className="flex items-center gap-2 border border-gray-100 rounded-md py-1.5 px-2 sm:px-3 hover:bg-gray-50 transition text-sm">
-        <FiMail className="text-gray-600 w-4 h-4" />
-        Send E-mail
-      </button>
+ 
+ <button
+  type="button"
+  onClick={() => {
+    if (!selectedContact?.email) {
+      alert("No email address available");
+      return;
+    }
+
+    const to = encodeURIComponent(selectedContact.email);
+    const subject = encodeURIComponent("");
+    const body = encodeURIComponent("");
+
+    // Gmail web compose URL
+    const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${to}&su=${subject}&body=${body}`;
+
+    // Open Gmail in a new tab
+    window.open(gmailUrl, "_blank");
+  }}
+  className="flex items-center gap-2 border border-gray-100 rounded-md py-1.5 px-2 sm:px-3 hover:bg-gray-50 transition text-sm"
+>
+  <FiMail className="text-gray-600 w-4 h-4" />
+  Send E-mail
+</button>
+
 
      <button
        className="flex items-center gap-2 border border-gray-100 rounded-md py-1.5 px-2 sm:px-3 hover:bg-gray-50 transition text-sm"
@@ -921,10 +943,22 @@ export default function AdminContacts() {
                     Book Meeting
                    </button>
 
-   <button className="flex items-center gap-2 border border-gray-100 rounded-md py-1.5 px-2 sm:px-3 hover:bg-gray-50 transition text-sm">
-    <FiCheckSquare className="text-gray-600 w-4 h-4" />
-     Tasks
-    </button>
+            <button
+              onClick={() =>
+                navigate("/admin/tasks", {
+                  state: {
+                    openTaskModal: true,
+                    initialTaskData: {
+                      relatedTo: "Contact",
+                    },
+                  },
+                })
+              }
+  className="flex items-center gap-2 border border-gray-100 rounded-md py-1.5 px-2 sm:px-3 hover:bg-gray-50 transition text-sm"
+>
+  <FiCheckSquare className="text-gray-600 w-4 h-4" />
+  Tasks
+</button>
     </div>
   </div>
 

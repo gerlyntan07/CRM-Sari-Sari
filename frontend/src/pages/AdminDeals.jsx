@@ -799,7 +799,7 @@ function MetricCard({
 
     return (
         <div
-            className="flex items-center p-4 bg-white rounded-xl shadow-md hover:shadow-lg hover:ring-2 hover:ring-blue-500 cursor-pointer transition-all duration-300"
+className="flex items-center p-4 bg-white rounded-xl shadow-md border border-gray-200 transition-all duration-300"
             onClick={handleClick}
         >
             <div

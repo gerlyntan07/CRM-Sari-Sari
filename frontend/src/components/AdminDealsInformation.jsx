@@ -240,7 +240,8 @@ export default function AdminDealsInformation({
                     <div className="relative flex flex-col w-full">
                       <div className="absolute top-0 left-0 right-0 flex items-center justify-between w-full">
                         {(() => {
-                          const currentStage = selectedDeal.stage;
+                          const currentStage = (selectedDeal?.stage || "PROSPECTING").toUpperCase();
+
                           
                           // Map stages to circle indices: 0=Prospecting, 1=Qualification, 2=Proposal, 3=Negotiation, 4=Closed
                           const getStageIndex = (stage) => {

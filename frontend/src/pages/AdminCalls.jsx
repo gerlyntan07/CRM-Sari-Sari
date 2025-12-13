@@ -912,7 +912,7 @@ useEffect(() => {
           <button onClick={() => setShowModal(true)} className="flex items-center bg-black text-white px-3 sm:px-4 py-2 rounded-md hover:bg-gray-800 text-sm sm:text-base ml-auto sm:ml-0 cursor-pointer"><FiPlus className="mr-2" /> Add Call</button>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4 mb-6">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
           {metricCards.map(m => <MetricCard key={m.title} {...m} />)}
         </div>
 
@@ -1013,7 +1013,7 @@ useEffect(() => {
 
 function MetricCard({ icon: Icon, title, value, color, bgColor }) {
   return (
-    <div className="flex items-center p-4 bg-white rounded-xl shadow-md hover:shadow-lg transition-all">
+    <div className="flex items-center p-4 bg-white rounded-xl shadow-md border border-gray-200 transition-all duration-300">
       <div className={`p-3 rounded-full ${bgColor} ${color} mr-4`}><Icon size={22} /></div>
       <div><p className="text-xs text-gray-500 uppercase">{title}</p><p className="text-2xl font-bold text-gray-800">{value}</p></div>
     </div>

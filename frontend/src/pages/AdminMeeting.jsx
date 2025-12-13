@@ -379,35 +379,73 @@ const AdminMeeting = () => {
       assignedToId = user?.id ? String(user.id) : "";
     }
 
-    // Find related entity ID from relatedTo name
-    let relatedToId = "";
+    // Derive related fields for edit form (supports Lead/Account/Contact/Deal)
     let relatedType = meeting.relatedType || "";
-    
-    if (meeting.relatedType && meeting.relatedTo) {
-      const relatedToName = meeting.relatedTo;
-      
+    const relatedToName = meeting.relatedTo || "";
+    let relatedToId = "";
+    // Additional UI fields for dependent selects
+    let relatedType1 = "Lead";
+    let relatedTo1 = "";
+    let relatedType2 = null;
+    let relatedTo2 = "";
+
+    if (relatedType && relatedToName) {
       if (relatedType === "Account") {
         const account = accounts.find((acc) => acc.name === relatedToName);
-        relatedToId = account?.id ? String(account.id) : "";
+        if (account?.id) {
+          relatedToId = String(account.id);
+          relatedType1 = "Account";
+          relatedTo1 = String(account.id);
+          relatedType2 = null;
+          relatedTo2 = "";
+        }
       } else if (relatedType === "Contact") {
         const contact = contacts.find(
-          (c) => `${c.first_name || ""} ${c.last_name || ""}`.trim() === relatedToName
+          (c) =>
+            `${c.first_name || ""} ${c.last_name || ""}`.trim() === relatedToName
         );
-        relatedToId = contact?.id ? String(contact.id) : "";
+        if (contact?.id) {
+          relatedToId = String(contact.id);
+          relatedType1 = "Account";
+          relatedTo1 = contact.account_id ? String(contact.account_id) : "";
+          relatedType2 = "Contact";
+          relatedTo2 = String(contact.id);
+        }
       } else if (relatedType === "Lead") {
-        const lead = leads.find(
-          (l) => `${l.first_name || ""} ${l.last_name || ""}`.trim() === relatedToName
-        );
-        relatedToId = lead?.id ? String(lead.id) : "";
+        // Prefer title match; fallback to full name
+        let lead = leads.find((l) => (l.title || "").trim() === relatedToName);
+        if (!lead) {
+          lead = leads.find(
+            (l) =>
+              `${l.first_name || ""} ${l.last_name || ""}`.trim() ===
+              relatedToName
+          );
+        }
+        if (lead?.id) {
+          relatedToId = String(lead.id);
+          relatedType1 = "Lead";
+          relatedTo1 = String(lead.id);
+          relatedType2 = null;
+          relatedTo2 = "";
+        }
       } else if (relatedType === "Deal") {
         const deal = deals.find((d) => d.name === relatedToName);
-        relatedToId = deal?.id ? String(deal.id) : "";
+        if (deal?.id) {
+          relatedToId = String(deal.id);
+          relatedType1 = "Account";
+          relatedTo1 = deal.account_id ? String(deal.account_id) : "";
+          relatedType2 = "Deal";
+          relatedTo2 = String(deal.id);
+        }
       }
-      
-      // If we couldn't find the entity, reset relatedType to avoid errors
-      if (!relatedToId) {
-        relatedType = "";
-      }
+    }
+    // If nothing matched, clear to avoid broken state
+    if (!relatedToId) {
+      relatedType = "";
+      relatedType1 = "Lead";
+      relatedTo1 = "";
+      relatedType2 = null;
+      relatedTo2 = "";
     }
 
     const toLocalInput = (iso) => {
@@ -445,6 +483,10 @@ const AdminMeeting = () => {
       assignedTo: assignedToId,
       relatedType: relatedType,
       relatedTo: relatedToId,
+      relatedType1,
+      relatedTo1,
+      relatedType2,
+      relatedTo2,
     });
     setIsEditing(true);
     setCurrentMeetingId(meeting.id);

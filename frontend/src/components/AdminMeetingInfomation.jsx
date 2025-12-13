@@ -173,14 +173,30 @@ const AdminMeetingInfomation = ({ meeting, onClose, onEdit, onDelete, onStatusUp
                       <p className="font-semibold">Assigned To:</p>
                       <p>{meeting.assignedTo || "N/A"}</p>
                     </div>
-                    <div>
-                      <p className="font-semibold">Related Type:</p>
-                      <p>{meeting.relatedType || "N/A"}</p>
-                    </div>
-                    <div>
-                      <p className="font-semibold">Related To:</p>
-                      <p>{meeting.relatedTo || "N/A"}</p>
-                    </div>
+                    {meeting.relatedType === "Lead" && (
+                      <div>
+                        <p className="font-semibold">Lead:</p>
+                        <p>{meeting.relatedTo || "N/A"}</p>
+                      </div>
+                    )}
+                    {meeting.relatedType === "Account" && (
+                      <div>
+                        <p className="font-semibold">Account:</p>
+                        <p>{meeting.relatedTo || "N/A"}</p>
+                      </div>
+                    )}
+                    {meeting.relatedType === "Contact" && (
+                      <div>
+                        <p className="font-semibold">Contact:</p>
+                        <p>{meeting.relatedTo || "N/A"}</p>
+                      </div>
+                    )}
+                    {meeting.relatedType === "Deal" && (
+                      <div>
+                        <p className="font-semibold">Deal:</p>
+                        <p>{meeting.relatedTo || "N/A"}</p>
+                      </div>
+                    )}
                     <div>
                       <p className="font-semibold">Status:</p>
                       <p>{toAdminStatus(meeting.status || "PENDING").replace("_", " ")}</p>

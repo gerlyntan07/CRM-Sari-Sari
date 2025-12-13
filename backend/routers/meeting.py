@@ -25,18 +25,102 @@ def meeting_to_response(meeting: Meeting) -> dict:
     if meeting.meet_assign_to:
         assigned_name = f"{meeting.meet_assign_to.first_name} {meeting.meet_assign_to.last_name}"
 
+    # Existing "single" related display (keep for backward compatibility)
     related_to = (
-        meeting.account.name if meeting.account else
-        f"{meeting.contact.first_name} {meeting.contact.last_name}" if meeting.contact else
-        f"{meeting.lead.first_name} {meeting.lead.last_name}" if meeting.lead else
-        meeting.deal.name if meeting.deal else None
+        (f"{meeting.contact.first_name} {meeting.contact.last_name}") if meeting.contact else
+        (meeting.deal.name) if meeting.deal else
+        (meeting.lead.title or f"{meeting.lead.first_name} {meeting.lead.last_name}") if meeting.lead else
+        (meeting.account.name) if meeting.account else None
     )
 
     related_type = (
-        "Account" if meeting.related_to_account else
         "Contact" if meeting.related_to_contact else
-        "Lead" if meeting.related_to_lead else
-        "Deal" if meeting.related_to_deal else None
+        "Deal" if meeting.related_to_deal else
+        "Account" if meeting.related_to_account else
+        "Lead" if meeting.related_to_lead else None
+    )
+
+    duration = None
+    if meeting.start_time and meeting.end_time:
+        duration = int((meeting.end_time - meeting.start_time).total_seconds() / 60)
+
+    due_date_str = None
+    if meeting.start_time:
+        due_date_str = meeting.start_time.strftime("%Y-%m-%d")
+
+    status_mapping = {
+        MeetingStatus.PLANNED: "PENDING",
+        MeetingStatus.HELD: "COMPLETED",
+        MeetingStatus.NOT_HELD: "CANCELLED",
+    }
+    frontend_status = status_mapping.get(meeting.status, "PENDING")
+
+    # ✅ NEW: return separate entities so UI can show Account + Contact/Deal
+    account_name = meeting.account.name if meeting.account else None
+    contact_name = (
+        f"{meeting.contact.first_name} {meeting.contact.last_name}".strip()
+        if meeting.contact else None
+    )
+    deal_name = meeting.deal.name if meeting.deal else None
+    lead_name = None
+    if meeting.lead:
+        lead_name = (meeting.lead.title or f"{meeting.lead.first_name} {meeting.lead.last_name}").strip()
+
+    return {
+        "id": meeting.id,
+        "activity": meeting.subject,
+        "subject": meeting.subject,
+        "location": meeting.location,
+        "duration": duration,
+        "startTime": meeting.start_time.isoformat() if meeting.start_time else None,
+        "endTime": meeting.end_time.isoformat() if meeting.end_time else None,
+        "meetingLink": None,
+        "description": meeting.notes or "",
+        "agenda": meeting.notes or "",
+        "dueDate": due_date_str,
+        "assignedTo": assigned_name,
+
+        # ✅ NEW (IDs + names)
+        "assignedToId": meeting.assigned_to,
+
+        "accountId": meeting.related_to_account,
+        "accountName": account_name,
+
+        "contactId": meeting.related_to_contact,
+        "contactName": contact_name,
+
+        "dealId": meeting.related_to_deal,
+        "dealName": deal_name,
+
+        "leadId": meeting.related_to_lead,
+        "leadName": lead_name,
+
+        # keep old single-related fields
+        "relatedType": related_type,
+        "relatedTo": related_to,
+
+        "priority": None,
+        "status": frontend_status,
+        "createdAt": meeting.created_at.isoformat() if meeting.created_at else None,
+        "updatedAt": meeting.updated_at.isoformat() if meeting.updated_at else None,
+    }
+
+    assigned_name = None
+    if meeting.meet_assign_to:
+        assigned_name = f"{meeting.meet_assign_to.first_name} {meeting.meet_assign_to.last_name}"
+
+    related_to = (
+        (f"{meeting.contact.first_name} {meeting.contact.last_name}") if meeting.contact else
+        (meeting.deal.name) if meeting.deal else
+        (meeting.lead.title or f"{meeting.lead.first_name} {meeting.lead.last_name}") if meeting.lead else
+        (meeting.account.name) if meeting.account else None
+    )
+
+    related_type = (
+        "Contact" if meeting.related_to_contact else
+        "Deal" if meeting.related_to_deal else
+        "Account" if meeting.related_to_account else
+        "Lead" if meeting.related_to_lead else None
     )
     
     # Calculate duration from start_time and end_time if available
@@ -146,6 +230,7 @@ def create_meeting(
             contact = db.query(Contact).filter(Contact.id == related_to_id).first()
             if contact:
                 related_to_contact = related_to_id
+                related_to_account = contact.account_id
                 related_to_text = f"{contact.first_name} {contact.last_name}"
             else:
                 raise HTTPException(status_code=404, detail="Contact not found")
@@ -162,6 +247,7 @@ def create_meeting(
             deal = db.query(Deal).filter(Deal.id == related_to_id).first()
             if deal:
                 related_to_deal = related_to_id
+                related_to_account = deal.account_id
                 related_to_text = deal.name
             else:
                 raise HTTPException(status_code=404, detail="Deal not found")
@@ -332,6 +418,7 @@ def update_meeting(
                 contact = db.query(Contact).filter(Contact.id == related_to_id).first()
                 if contact:
                     meeting.related_to_contact = related_to_id
+                    meeting.related_to_account = contact.account_id
                     related_to_text = f"{contact.first_name} {contact.last_name}"
                 else:
                     raise HTTPException(status_code=404, detail="Contact not found")
@@ -346,6 +433,7 @@ def update_meeting(
                 deal = db.query(Deal).filter(Deal.id == related_to_id).first()
                 if deal:
                     meeting.related_to_deal = related_to_id
+                    meeting.related_to_account = deal.account_id
                     related_to_text = deal.name
                 else:
                     raise HTTPException(status_code=404, detail="Deal not found")

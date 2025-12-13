@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { FiX } from "react-icons/fi";
+import api from "../api";
 
 const CreateMeetingModal = ({
   onClose,
@@ -24,32 +25,124 @@ const CreateMeetingModal = ({
     assignedTo: "",
     relatedType: "",
     relatedTo: "",
+    relatedType1: "Lead",
+    relatedTo1: "",
+    relatedType2: "Contact",
+    relatedTo2: "",
   });
+  const [relatedTo2Values, setRelatedTo2Values] = useState([]);
 
   const formData =
     externalFormData !== undefined ? externalFormData : internalFormData;
   const setFormData = setExternalFormData || setInternalFormData;
   
-  const relatedTypeOptions = ["Account", "Contact", "Lead", "Deal"];
-  const getRelatedToOptions = () => {
-    if (!formData.relatedType) return [];
-    switch (formData.relatedType) {
+  React.useEffect(() => {
+    if (!formData) return;
+    if (formData.relatedType === "Lead" || formData.relatedType === "Account") {
+      setFormData((prev) => ({
+        ...prev,
+        relatedType1: formData.relatedType || "Lead",
+        relatedTo1: formData.relatedTo || "",
+      }));
+      if (formData.relatedType === "Lead") {
+        setFormData((prev) => ({
+          ...prev,
+          relatedType2: null,
+          relatedTo2: "",
+        }));
+        setRelatedTo2Values([]);
+      }
+    }
+    if (formData.relatedType === "Contact" || formData.relatedType === "Deal") {
+      setFormData((prev) => ({
+        ...prev,
+        relatedType2: formData.relatedType || "Contact",
+        relatedTo2: formData.relatedTo || "",
+      }));
+    }
+  }, [formData.relatedType, formData.relatedTo]);
+  
+  React.useEffect(() => {
+    const shouldFetch =
+      formData.relatedType1 === "Account" &&
+      formData.relatedTo1 &&
+      formData.relatedType2 &&
+      String(formData.relatedTo1).trim() !== "";
+    if (!shouldFetch) {
+      setRelatedTo2Values([]);
+      return;
+    }
+    const fetchData = async () => {
+      try {
+        setRelatedTo2Values([]);
+        let res;
+        if (formData.relatedType2 === "Contact") {
+          res = await api.get(`/contacts/from-acc/${formData.relatedTo1}`);
+        } else if (formData.relatedType2 === "Deal") {
+          res = await api.get(`/deals/from-acc/${formData.relatedTo1}`);
+        }
+        if (res && Array.isArray(res.data)) {
+          setRelatedTo2Values(res.data);
+        } else {
+          setRelatedTo2Values([]);
+        }
+      } catch (error) {
+        console.error("Error fetching relatedTo2 values:", error);
+        setRelatedTo2Values([]);
+      }
+    };
+    fetchData();
+  }, [formData.relatedType2, formData.relatedTo1, formData.relatedType1]);
+  
+  const getRelatedTo1Options = () => {
+    const type = formData.relatedType1 || "Lead";
+    if (!type) return [];
+    switch (type) {
+      case "Lead":
+        return leads
+          .map((lead) => {
+            const fullName = `${lead.first_name || ""} ${lead.last_name || ""}`.trim();
+            const title = lead.title || "";
+            return { value: String(lead.id), label: title || fullName || "" };
+          })
+          .filter((item) => item.label);
       case "Account":
         return accounts
           .filter((account) => account.name && account.name.trim())
           .map((account) => ({ value: String(account.id), label: account.name }));
+      default:
+        return [];
+    }
+  };
+  
+  React.useEffect(() => {
+    if (!formData.relatedType1) {
+      setFormData((prev) => ({
+        ...prev,
+        relatedType1: "Lead",
+      }));
+    }
+  }, []);
+  const getRelatedTo2Options = () => {
+    const type = formData.relatedType2;
+    if (!type) return [];
+    if (formData.relatedType1 === "Account") {
+      return (relatedTo2Values || [])
+        .map((item) => {
+          if (type === "Contact") {
+            const fullName = `${item.first_name || ""} ${item.last_name || ""}`.trim();
+            return { value: String(item.id), label: fullName };
+          }
+          return { value: String(item.id), label: item.name || "" };
+        })
+        .filter((opt) => opt.label);
+    }
+    switch (type) {
       case "Contact":
         return contacts
           .map((contact) => {
             const fullName = `${contact.first_name || ""} ${contact.last_name || ""}`.trim();
             return { value: String(contact.id), label: fullName };
-          })
-          .filter((item) => item.label);
-      case "Lead":
-        return leads
-          .map((lead) => {
-            const fullName = `${lead.first_name || ""} ${lead.last_name || ""}`.trim();
-            return { value: String(lead.id), label: fullName };
           })
           .filter((item) => item.label);
       case "Deal":
@@ -64,10 +157,52 @@ const CreateMeetingModal = ({
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    if (name === "relatedType") {
-      setFormData((prev) => ({ ...prev, [name]: value, relatedTo: "" }));
-    } else {
-      setFormData((prev) => ({ ...prev, [name]: value }));
+    setFormData((prev) => ({ ...prev, [name]: value }));
+    if (name === "relatedType1") {
+      setFormData((prev) => ({
+        ...prev,
+        relatedType: value,
+        relatedTo: "",
+        relatedTo1: "",
+      }));
+      setRelatedTo2Values([]);
+      if (value === "Lead") {
+        setFormData((prev) => ({
+          ...prev,
+          relatedType2: null,
+          relatedTo2: "",
+        }));
+        setRelatedTo2Values([]);
+      } else if (value === "Account" && !formData.relatedType2) {
+        setFormData((prev) => ({
+          ...prev,
+          relatedType2: "Contact",
+        }));
+      }
+    }
+    if (name === "relatedTo1") {
+      setFormData((prev) => ({
+        ...prev,
+        relatedType: prev.relatedType1,
+        relatedTo: value,
+      }));
+      setRelatedTo2Values([]);
+    }
+    if (name === "relatedType2") {
+      setFormData((prev) => ({
+        ...prev,
+        relatedType: value,
+        relatedTo: "",
+        relatedTo2: "",
+      }));
+      setRelatedTo2Values([]);
+    }
+    if (name === "relatedTo2") {
+      setFormData((prev) => ({
+        ...prev,
+        relatedType: prev.relatedType2,
+        relatedTo: value,
+      }));
     }
   };
 
@@ -172,23 +307,60 @@ const CreateMeetingModal = ({
             options={statusOptions.map((option) => ({ value: option, label: option.replace('_', ' ') }))}
             disabled={isSubmitting}
           />
-          <SelectField
-            label="Related Type"
-            name="relatedType"
-            value={formData.relatedType}
-            onChange={handleInputChange}
-            options={[{ value: "", label: "Select type" }, ...relatedTypeOptions.map((option) => ({ value: option, label: option }))]}
-            disabled={isSubmitting}
-          />
-          <SelectField
-            label="Related To"
-            name="relatedTo"
-            value={formData.relatedTo}
-            onChange={handleInputChange}
-            options={[{ value: "", label: "Select related item" }, ...getRelatedToOptions()]}
-            disabled={!formData.relatedType || isSubmitting}
-            className="lg:col-span-2" 
-          />
+          <div className="w-full flex flex-col">
+            <select
+              name="relatedType1"
+              onChange={handleInputChange}
+              value={formData.relatedType1 ?? "Lead"}
+              className="outline-none cursor-pointer mb-1 w-22 text-gray-700"
+              disabled={isSubmitting}
+            >
+              <option value="Lead">Lead</option>
+              <option value="Account">Account</option>
+            </select>
+            <select
+              name="relatedTo1"
+              onChange={handleInputChange}
+              value={formData.relatedTo1 ?? ""}
+              className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-400 outline-none disabled:bg-gray-100"
+              disabled={isSubmitting}
+            >
+              <option value="">--</option>
+              {getRelatedTo1Options().map((item) => (
+                <option key={item.value} value={item.value}>
+                  {item.label}
+                </option>
+              ))}
+            </select>
+          </div>
+          {formData.relatedType1 === "Account" && (
+            <div className="w-full flex flex-col">
+              <select
+                name="relatedType2"
+                onChange={handleInputChange}
+                value={formData.relatedType2 ?? "Contact"}
+                className="outline-none cursor-pointer mb-1 w-22 text-gray-700"
+                disabled={isSubmitting}
+              >
+                <option value="Contact">Contact</option>
+                <option value="Deal">Deal</option>
+              </select>
+              <select
+                name="relatedTo2"
+                onChange={handleInputChange}
+                value={formData.relatedTo2 ?? ""}
+                className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-400 outline-none disabled:bg-gray-100"
+                disabled={isSubmitting}
+              >
+                <option value="">--</option>
+                {getRelatedTo2Options().map((item) => (
+                  <option key={item.value} value={item.value}>
+                    {item.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
           <TextareaField
             label="Notes"
             name="notes"

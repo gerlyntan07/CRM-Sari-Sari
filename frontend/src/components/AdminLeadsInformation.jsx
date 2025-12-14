@@ -208,6 +208,7 @@ export default function AdminLeadsInformation({
         department: lead.department,
         email: lead.email,
         first_name: lead.first_name,
+        last_name: lead.last_name,
         mobile_phone_1: lead.mobile_phone_1,
         mobile_phone_2: lead.mobile_phone_2,
         notes: lead.notes,

@@ -270,7 +270,7 @@ export default function AdminLeads() {
     const normalizedStatusFilter = statusFilter.trim().toUpperCase();
 
     return leads.filter((lead) => {
-      // Search across all visible table fields
+      // 1. Search Logic (Keep as is)
       const searchFields = [
         lead?.first_name,
         lead?.last_name,
@@ -289,9 +289,16 @@ export default function AdminLeads() {
           return field.toString().toLowerCase().includes(normalizedQuery);
         });
 
-      const matchesStatus =
-        normalizedStatusFilter === "FILTER BY STATUS" ||
-        (lead.status ? lead.status.toUpperCase() : "") === normalizedStatusFilter;
+      // 2. UPDATED Status Logic
+      let matchesStatus = false;
+
+      if (normalizedStatusFilter === "FILTER BY STATUS") {
+        // DEFAULT VIEW: Show everything EXCEPT 'Converted'
+        matchesStatus = (lead.status ? lead.status.toUpperCase() : "") !== "CONVERTED";
+      } else {
+        // SPECIFIC VIEW: Show only what the user asked for (e.g., if they select Converted, show Converted)
+        matchesStatus = (lead.status ? lead.status.toUpperCase() : "") === normalizedStatusFilter;
+      }
 
       return matchesSearch && matchesStatus;
     });
@@ -965,24 +972,21 @@ export default function AdminLeads() {
                 <label className="block text-gray-700 font-medium mb-1 text-sm">
                   Assign To
                 </label>
-                <select
-                  className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-400 outline-none"
-                  defaultValue=""
-                  name="lead_owner"
-                  value={leadData.lead_owner}
-                  onChange={handleLeadChange}
-                >
-                  <option value="" disabled>
-                    Select user
-                  </option>
-                  {Array.isArray(users) &&
-                    users.length > 0 &&
-                    users.map((user) => (
-                      <option key={user.id} value={user.id}>
-                        {user.first_name} {user.last_name}
-                      </option>
-                    ))}
-                </select>
+                <SearchableSelect              
+              items={Array.isArray(users) ? users : []}
+              value={leadData.lead_owner ?? ""}
+              placeholder={`Search a user...`
+              }
+              getLabel={(item) =>
+                `${item.first_name} ${item.last_name}`
+              }
+              onChange={(newId) =>
+                setLeadData((prev) => ({
+                  ...prev,
+                  lead_owner: newId, // keep string
+                }))
+              }
+            />
               </div>
 
               {/* Territory */}
@@ -1178,6 +1182,98 @@ className="flex items-center p-4 bg-white rounded-xl shadow-md border border-gra
         <p className="text-xs text-gray-500 uppercase">{title}</p>
         <p className="text-2xl font-bold text-gray-800">{value}</p>
       </div>
+    </div>
+  );
+}
+
+function SearchableSelect({
+  items = [],
+  value = "",
+  onChange,
+  getLabel,
+  placeholder = "Search...",
+  disabled = false,
+  maxRender = 200,
+}) {
+  const [open, setOpen] = useState(false);
+  const [q, setQ] = useState("");
+  const wrapRef = useRef(null);
+
+  const selectedItem = items.find((it) => String(it.id) === String(value));
+  const selectedLabel = selectedItem ? getLabel(selectedItem) : "";
+
+  const filtered = useMemo(() => {
+    const query = q.trim().toLowerCase();
+    const base = query
+      ? items.filter((it) => (getLabel(it) || "").toLowerCase().includes(query))
+      : items;
+
+    return base.slice(0, maxRender);
+  }, [items, q, getLabel, maxRender]);
+
+  useEffect(() => {
+    const onDoc = (e) => {
+      if (wrapRef.current && !wrapRef.current.contains(e.target)) setOpen(false);
+    };
+    document.addEventListener("mousedown", onDoc);
+    return () => document.removeEventListener("mousedown", onDoc);
+  }, []);
+
+  useEffect(() => {
+    if (!open) setQ("");
+  }, [open]);
+
+  return (
+    <div ref={wrapRef} className="relative w-full">
+      <input
+        disabled={disabled}
+        value={open ? q : selectedLabel}
+        placeholder={placeholder}
+        onFocus={() => !disabled && setOpen(true)}
+        onChange={(e) => {
+          setQ(e.target.value);
+          if (!open) setOpen(true);
+        }}
+        className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-400 outline-none disabled:bg-gray-100"
+      />
+
+      {open && !disabled && (
+        <div className="absolute z-50 mt-1 w-full bg-white border border-gray-200 rounded-md shadow-lg overflow-hidden">
+          <div className="max-h-56 overflow-y-auto">
+            {filtered.length > 0 ? (
+              filtered.map((it) => {
+                const id = String(it.id);
+                const label = getLabel(it);
+                const active = String(value) === id;
+
+                return (
+                  <button
+                    key={id}
+                    type="button"
+                    onClick={() => {
+                      onChange(id);
+                      setOpen(false);
+                    }}
+                    className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-50 ${
+                      active ? "bg-blue-50" : ""
+                    }`}
+                  >
+                    {label || "--"}
+                  </button>
+                );
+              })
+            ) : (
+              <div className="px-3 py-2 text-sm text-gray-500">No results</div>
+            )}
+          </div>
+
+          {items.length > maxRender && (
+            <div className="px-3 py-2 text-[11px] text-gray-400 border-t">
+              Showing first {maxRender} results — keep typing to narrow.
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

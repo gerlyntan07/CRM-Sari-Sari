@@ -132,6 +132,8 @@ const AdminMeeting = () => {
         const meeting = sorted.find(m => m.id === parseInt(meetingIdFromQuery));
         if (meeting) setSelectedMeeting(meeting);
       }
+
+      console.log(res.data);
     } catch (err) {
       toast.error("Failed to load meetings.");
     } finally {
@@ -300,7 +302,10 @@ const AdminMeeting = () => {
     }
 
     const payload = {
-      ...formDataFromModal
+      ...formDataFromModal,
+      assignedTo: parseInt(formDataFromModal.assignedTo),
+      relatedTo1: parseInt(formDataFromModal.relatedTo1),
+      relatedTo2: parseInt(formDataFromModal.relatedTo2),      
     };
 
     const actionType = isEditing && currentMeetingId ? "update" : "create";
@@ -319,34 +324,35 @@ const AdminMeeting = () => {
     const { type, payload, targetId, name } = confirmModalData.action;
     console.log(payload);
 
-    // setConfirmProcessing(true);
-    // try {
-    //   if (type === "create") {
-    //     setIsSubmitting(true);
-    //     await api.post(`/meetings/create`, payload);
-    //     toast.success(`Meeting "${name}" created.`);
-    //     closeModal();
-    //     await fetchMeetings();
-    //   } else if (type === "update") {
-    //     setIsSubmitting(true);
-    //     await api.put(`/meetings/${targetId}`, payload);
-    //     toast.success(`Meeting "${name}" updated.`);
-    //     closeModal();
-    //     await fetchMeetings();
-    //   } else if (type === "delete") {
-    //     await api.delete(`/meetings/${targetId}`);
-    //     toast.success(`Meeting "${name}" deleted.`);
-    //     if (selectedMeeting?.id === targetId) setSelectedMeeting(null);
-    //     await fetchMeetings();
-    //   }
-    // } catch (err) {
-    //   const msg = err.response?.data?.detail || "Action failed.";
-    //   toast.error(typeof msg === 'string' ? msg : JSON.stringify(msg));
-    // } finally {
-    //   setIsSubmitting(false);
-    //   setConfirmProcessing(false);
-    //   setConfirmModalData(null);
-    // }
+    setConfirmProcessing(true);
+    try {
+      if (type === "create") {
+        setIsSubmitting(true);
+        await api.post(`/meetings/create`, payload);
+        toast.success(`Meeting "${name}" created.`);
+        closeModal();
+        await fetchMeetings();
+      } else if (type === "update") {
+        setIsSubmitting(true);
+        await api.put(`/meetings/${targetId}`, payload);
+        toast.success(`Meeting "${name}" updated.`);
+        closeModal();
+        await fetchMeetings();
+      } else if (type === "delete") {
+        await api.delete(`/meetings/${targetId}`);
+        toast.success(`Meeting "${name}" deleted.`);
+        if (selectedMeeting?.id === targetId) setSelectedMeeting(null);
+        await fetchMeetings();
+      }
+    } catch (err) {
+      const msg = err.response?.data?.detail || "Action failed.";
+      toast.error(typeof msg === 'string' ? msg : JSON.stringify(msg));
+      console.error(msg)
+    } finally {
+      setIsSubmitting(false);
+      setConfirmProcessing(false);
+      setConfirmModalData(null);
+    }
   };
 
   // ... (Keep existing MetricCard, handleStatusUpdate, handleDelete logic same as provided) ...
@@ -418,8 +424,8 @@ const AdminMeeting = () => {
         <table className="w-full min-w-[500px] border border-gray-200 rounded-lg bg-white shadow-sm text-sm">
           <thead className="bg-gray-100 text-left text-gray-600 font-semibold">
             <tr>
-              <th className="py-3 px-4">Activity</th>
-              <th className="py-3 px-4">Related</th>
+              <th className="py-3 px-4">Subject</th>
+              <th className="py-3 px-4">Related To</th>
               <th className="py-3 px-4">Start Time</th>
               <th className="py-3 px-4">Assigned</th>
               <th className="py-3 px-4">Status</th>
@@ -428,10 +434,23 @@ const AdminMeeting = () => {
           <tbody>
             {paginatedMeetings.length > 0 ? paginatedMeetings.map((m) => (
                <tr key={m.id} onClick={() => setSelectedMeeting(m)} className="hover:bg-gray-50 cursor-pointer border-b border-gray-100">
-                  <td className="py-3 px-4 font-medium text-blue-600">{m.activity}</td>
-                  <td className="py-3 px-4">{m.relatedTo || "--"}</td>
-                  <td className="py-3 px-4">{formatDateTime(m.startTime)}</td>
-                  <td className="py-3 px-4">{m.assignedTo || "--"}</td>
+                  <td className="py-3 px-4 font-medium text-blue-600">{m.subject}</td>
+                  <td className="py-3 px-4">
+                    {m.lead && (
+            <p className="font-medium text-blue-500 text-xs">{m.lead.title}</p>
+          )}
+          {m.account && (
+            <p className="font-medium text-blue-500 text-xs">{m.account.name}</p>
+          )}
+          {m.contact && (
+            <p className="font-medium text-blue-500 text-xs">{m.contact.first_name} {m.contact.last_name}</p>
+          )}
+          {m.deal && (
+            <p className="font-medium text-blue-500 text-xs">{m.deal.name}</p>
+          )}
+                  </td>
+                  <td className="py-3 px-4">{formatDateTime(m.start_time)}</td>
+                  <td className="py-3 px-4">{m.meet_assign_to.first_name} {m.meet_assign_to.last_name}</td>
                   <td className="py-3 px-4">
                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusBadgeClass(toAdminStatus(m.status))}`}>
                         {toAdminStatus(m.status).replace("_", " ")}

@@ -581,13 +581,13 @@ const [callsLoading, setCallsLoading] = useState(false);
 
                   {selectedCall.lead && (
                     <DetailRow label="Lead" value={selectedCall.lead.title} />
-                  )}
-                  {selectedCall.contact && (
-                    <DetailRow label="Contact" value={`${selectedCall.contact.first_name} ${selectedCall.contact.last_name}`} />
-                  )} 
+                  )}                   
                   {selectedCall.account && (
                     <DetailRow label="Account" value={selectedCall.account.name} />
                   )}
+                  {selectedCall.contact && (
+                    <DetailRow label="Contact" value={`${selectedCall.contact.first_name} ${selectedCall.contact.last_name}`} />
+                  )}                  
                   {selectedCall.deal && (
                     <DetailRow label="Deal" value={selectedCall.deal.name} />
                   )}

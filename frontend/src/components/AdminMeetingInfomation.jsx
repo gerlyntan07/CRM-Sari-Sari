@@ -155,15 +155,15 @@ const AdminMeetingInfomation = ({ meeting, onClose, onEdit, onDelete, onStatusUp
                   <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-4 sm:gap-6 text-sm text-gray-700">
                   <div>
                       <p className="font-semibold">Start Time:</p>
-                      <p>{meeting.startTime ? new Date(meeting.startTime).toLocaleString() : "N/A"}</p>
+                      <p>{meeting.start_time ? new Date(meeting.start_time).toLocaleString() : "N/A"}</p>
                     </div>
                     <div>
                       <p className="font-semibold">End Time:</p>
-                      <p>{meeting.endTime ? new Date(meeting.endTime).toLocaleString() : "N/A"}</p>
+                      <p>{meeting.end_time ? new Date(meeting.end_time).toLocaleString() : "N/A"}</p>
                     </div>
                     <div>
                       <p className="font-semibold">Meeting Title:</p>
-                      <p>{meeting.activity || "N/A"}</p>
+                      <p>{meeting.subject || "N/A"}</p>
                     </div>
                     <div>
                       <p className="font-semibold">Location:</p>
@@ -171,30 +171,30 @@ const AdminMeetingInfomation = ({ meeting, onClose, onEdit, onDelete, onStatusUp
                     </div>
                     <div>
                       <p className="font-semibold">Assigned To:</p>
-                      <p>{meeting.assignedTo || "N/A"}</p>
+                      <p>{meeting.meet_assign_to.first_name} {meeting.meet_assign_to.last_name}</p>
                     </div>
-                    {meeting.relatedType === "Lead" && (
+                    {meeting.lead && (
                       <div>
                         <p className="font-semibold">Lead:</p>
-                        <p>{meeting.relatedTo || "N/A"}</p>
+                        <p>{meeting.lead.title}</p>
                       </div>
                     )}
-                    {meeting.relatedType === "Account" && (
+                    {meeting.account && (
                       <div>
                         <p className="font-semibold">Account:</p>
-                        <p>{meeting.relatedTo || "N/A"}</p>
+                        <p>{meeting.account.name}</p>
                       </div>
                     )}
-                    {meeting.relatedType === "Contact" && (
+                    {meeting.contact && (
                       <div>
                         <p className="font-semibold">Contact:</p>
-                        <p>{meeting.relatedTo || "N/A"}</p>
+                        <p>{meeting.contact.first_name} {meeting.contact.last_name}</p>
                       </div>
                     )}
-                    {meeting.relatedType === "Deal" && (
+                    {meeting.deal && (
                       <div>
                         <p className="font-semibold">Deal:</p>
-                        <p>{meeting.relatedTo || "N/A"}</p>
+                        <p>{meeting.deal.name}</p>
                       </div>
                     )}
                     <div>
@@ -221,7 +221,7 @@ const AdminMeetingInfomation = ({ meeting, onClose, onEdit, onDelete, onStatusUp
                     </div>
                   </div>
                   <div className="mt-3 text-sm text-gray-700 whitespace-pre-wrap break-words">
-                    {meeting.description || meeting.agenda || "No notes available."}
+                    {meeting.notes || "No notes available."}
                   </div>
                 </div>
               </div>

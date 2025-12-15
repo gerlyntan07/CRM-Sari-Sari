@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { FiX } from "react-icons/fi";
 import api from "../api";
+import {toast} from 'react-toastify';
 
 const CreateMeetingModal = ({
   onClose,
@@ -17,7 +18,7 @@ const CreateMeetingModal = ({
     startTime: "",
     endTime: "",
     location: "",
-    status: "PLANNED",
+    status: "Planned",
     notes: "",
     assignedTo: "",
     relatedType1: "Lead",
@@ -132,6 +133,12 @@ const CreateMeetingModal = ({
 
   const handleSubmit = (e) => {
     e.preventDefault();
+
+    if (formData.status === "--") {
+      toast.warn("Please select a valid status."); // Optional: Notify the user
+      return;
+    }
+
     if (onSubmit) {
       onSubmit(formData);
     } else {
@@ -173,12 +180,11 @@ const CreateMeetingModal = ({
 
           {/* --- RELATED TO SECTION (Refactored to match AdminCalls) --- */}
           <div className="w-full flex flex-col">
-            <label className="block text-gray-700 font-medium mb-1 text-sm">Related To</label>
             <select
               name="relatedType1"
               onChange={handleInputChange}
               value={formData.relatedType1 || "Lead"}
-              className="outline-none cursor-pointer mb-1 w-full border border-gray-300 rounded p-1 text-gray-700 disabled:bg-gray-100"
+              className="outline-none w-23 cursor-pointer mb-1 rounded p-1 text-gray-700 disabled:text-gray-200"
               disabled={isSubmitting}
             >
               <option value="Lead">Lead</option>
@@ -208,12 +214,11 @@ const CreateMeetingModal = ({
           </div>
 
           <div className="w-full flex flex-col">
-            <label className="block text-gray-700 font-medium mb-1 text-sm">Associated With (Optional)</label>
             <select
               name="relatedType2"
               onChange={handleInputChange}
               value={formData.relatedType2 || "Contact"}
-              className="outline-none cursor-pointer mb-1 w-full border border-gray-300 rounded p-1 text-gray-700 disabled:text-gray-400 disabled:bg-gray-100 disabled:cursor-not-allowed"
+              className="outline-none cursor-pointer mb-1 w-23 rounded p-1 text-gray-700 disabled:text-gray-200 disabled:cursor-not-allowed"
               disabled={isSubmitting || formData.relatedType1 === 'Lead'}
             >
               <option value="Contact">Contact</option>
@@ -251,6 +256,7 @@ const CreateMeetingModal = ({
           <InputField
             label="Location"
             name="location"
+            className="col-span-2"
             value={formData.location}
             onChange={handleInputChange}
             disabled={isSubmitting}
@@ -298,7 +304,7 @@ const CreateMeetingModal = ({
             name="status"
             value={formData.status}
             onChange={handleInputChange}
-            options={["PLANNED", "HELD", "NOT_HELD"].map((opt) => ({ value: opt, label: opt.replace('_', ' ') }))}
+            options={["--", "Planned", "Held", "Not held"].map((opt) => ({ value: opt, label: opt.replace('_', ' ') }))}
             disabled={isSubmitting}
           />
 

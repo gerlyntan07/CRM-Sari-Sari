@@ -2,18 +2,26 @@ from pydantic import BaseModel
 from typing import Optional
 from datetime import datetime
 
-class MeetingCreate(BaseModel):
+class MeetingBase(BaseModel):
     subject: str
+    start_time: datetime
+    end_time: datetime
     location: Optional[str] = None
-    duration: Optional[int] = None  # in minutes
-    meeting_link: Optional[str] = None
-    agenda: Optional[str] = None
-    due_date: str  # ISO format date string
-    assigned_to: Optional[int] = None  # user ID
-    related_type: Optional[str] = None  # Account, Contact, Lead, Deal
-    related_to: Optional[int] = None  # ID of related entity
-    priority: Optional[str] = "Low"
-    status: Optional[str] = "PENDING"
+    status: str
+    notes: Optional[str] = None
+
+class MeetingCreate(BaseModel):
+    subject: str    
+    startTime: datetime
+    endTime: datetime
+    location: Optional[str] = None
+    status: str
+    notes: Optional[str] = None
+    relatedType1: str
+    relatedType2: Optional[str] = None
+    relatedTo1: int
+    relatedTo2: Optional[int] = None
+    assignedTo: int
 
 class MeetingUpdate(BaseModel):
     subject: Optional[str] = None
@@ -32,50 +40,47 @@ class AccountBase(BaseModel):
     id: int
     name: str
 
+    class Config:
+        from_attributes = True
+
 class ContactBase(BaseModel):
     id:int
     first_name: str
     last_name: str
+    class Config:
+        from_attributes = True
 
 class LeadBase(BaseModel):
     id:int
     title: str
+    class Config:
+        from_attributes = True
 
-class DealBase(BaseModel):
+class UserBase(BaseModel):
     id:int
     first_name: str
     last_name: str
+    class Config:
+        from_attributes = True
 
-class UserBase(BaseModel):
+class DealBase(BaseModel):
     id:int
     name: str
     deal_id: str
 
-class MeetingResponse(BaseModel):
-    id: int
-    activity: str  # alias for subject
-    subject: str
-    location: Optional[str] = None
-    duration: Optional[int] = None
-    startTime: Optional[str] = None
-    endTime: Optional[str] = None
-    meetingLink: Optional[str] = None
-    description: Optional[str] = None  # alias for agenda
-    agenda: Optional[str] = None
-    dueDate: Optional[str] = None
-    assignedTo: Optional[str] = None  # full name
-    relatedType: Optional[str] = None
-    relatedTo: Optional[str] = None
-    priority: Optional[str] = None
-    status: Optional[str] = None
+    class Config:
+        from_attributes = True
+
+class MeetingResponse(MeetingBase):
+    id: int        
     account: Optional[AccountBase] = None
     contact: Optional[ContactBase] = None
     lead: Optional[LeadBase] = None
     deal: Optional[DealBase] = None
     meet_creator: Optional[UserBase] = None
     meet_assign_to: Optional[UserBase] = None
-    createdAt: Optional[str] = None
-    updatedAt: Optional[str] = None
+    created_at: datetime
+    updated_at: Optional[datetime] = None
 
     class Config:
         from_attributes = True

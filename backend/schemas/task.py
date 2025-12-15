@@ -8,20 +8,11 @@ from datetime import datetime
 # ------------------------------
 class TaskBase(BaseModel):
     title: str
-    description: Optional[str] = None
-    type: Optional[str] = None
-
+    description: Optional[str] = None    
     priority: str
     status: str
-
-    dueDate: Optional[datetime] = None
-    dateAssigned: Optional[datetime] = None
-
-    # IDs must be INT, not string
-    assignedTo: Optional[int] = None      # <-- FIXED
-    relatedTo: Optional[int] = None       # <-- FIXED
-
-    notes: Optional[str] = None
+    due_date: Optional[datetime] = None
+    created_by: int    
 
 
 # ------------------------------
@@ -29,15 +20,15 @@ class TaskBase(BaseModel):
 # ------------------------------
 class TaskCreate(BaseModel):
     title: str
-    description: Optional[str] = None
-    type: str
-
-    priority: str
+    due_date: datetime
     status: str
-
-    dueDate: datetime
-    assignedTo: Optional[int] = None      # <-- FIXED
-    relatedTo: Optional[int] = None       # <-- FIXED
+    priority: str
+    description: Optional[str] = None
+    related_type_1: str
+    related_type_2: Optional[str] = None
+    related_to_1: int
+    related_to_2: Optional[int] = None
+    assigned_to: int
 
 
 # ------------------------------

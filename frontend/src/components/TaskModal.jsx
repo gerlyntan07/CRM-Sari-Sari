@@ -1,3 +1,4 @@
+// frontend/src/components/TaskModal.jsx
 import { Dialog, Transition } from "@headlessui/react";
 import { Fragment, useState, useEffect } from "react";
 import api from "../api";
@@ -9,75 +10,104 @@ export default function TaskModal({
   setFormData,
   formData,
   isEditing = false,
-  viewMode = false,  
+  viewMode = false,
+  users = [], 
 }) {
-  const [salesList, setSalesList] = useState([]);
-  const [relatedTo, setRelatedTo] = useState("");
-  const [relatedOptions, setRelatedOptions] = useState([]);
-  const [leadsList, setLeadsList] = useState([]);
-  const [accountsList, setAccountsList] = useState([]);
-  const [contactsList, setContactsList] = useState([]);
-  const [dealsList, setDealsList] = useState([]);
+  // Local state for the dropdown options
+  const [relatedTo1Values, setRelatedTo1Values] = useState([]);
+  const [relatedTo2Values, setRelatedTo2Values] = useState([]);
 
-  const fetchRelatedTables = async () => {
-    try {
-      const res1 = await api.get("/leads/admin/getLeads");
-      setLeadsList(res1.data);
-
-      const res2 = await api.get("/accounts/admin/fetch-all");
-      setAccountsList(res2.data);
-
-      const res3 = await api.get("/contacts/admin/fetch-all");
-      setContactsList(res3.data);
-
-      const res4 = await api.get("/deals/admin/fetch-all");
-      setDealsList(res4.data);
-    } catch (error) {
-      console.error("Error fetching related tables:", error);
-    }
-  }
-
-  const handleRelatedToChange = (e) => {
-    setRelatedTo(e.target.value);    
-    switch (e.target.value) {
-      case "Lead":
-        setRelatedOptions(leadsList);
-        break;
-      case "Account":
-        setRelatedOptions(accountsList);
-        break;
-      case "Contact":
-        setRelatedOptions(contactsList);
-        break;
-      case "Deal":
-        setRelatedOptions(dealsList);
-        break;
-      default:
-        setRelatedOptions([]);
-    }
-  };
-
-  useEffect(() => {
-    if (isOpen) fetchSales(); fetchRelatedTables();
-  }, [isOpen]);
-
-  const fetchSales = async () => {
-    try {
-      const response = await api.get("/users/sales/read");
-      setSalesList(response.data || []);
-    } catch (error) {
-      console.error("Error fetching sales:", error);
-    }
-  };
-
+  // --- Logic to Handle Input Changes ---
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData({ ...formData, [name]: value });
+    
+    setFormData((prev) => {
+      const updated = { ...prev, [name]: value };
+
+      // Logic from Calls: Reset dependent fields when parent type changes
+      if (name === "relatedType1") {
+        updated.relatedTo1 = "";
+        if (value === "Lead") {
+          updated.relatedType2 = null;
+          updated.relatedTo2 = null;
+          setRelatedTo2Values([]);
+        } else if (value === "Account") {
+          updated.relatedType2 = "Contact";
+        }
+      }
+
+      if (name === "relatedType2") {
+        updated.relatedTo2 = "";
+      }
+
+      return updated;
+    });
   };
+
+  // --- Effect 1: Fetch Level 1 Options (Leads or Accounts) ---
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const fetchRelated1 = async () => {
+      try {
+        setRelatedTo1Values([]);
+        let res;
+        if (formData.relatedType1 === 'Lead') {
+          res = await api.get(`/leads/admin/getLeads`);
+        } else if (formData.relatedType1 === 'Account') {
+          res = await api.get(`/accounts/admin/fetch-all`);
+        }
+        
+        if (res && Array.isArray(res.data)) {
+          setRelatedTo1Values(res.data);
+        } else {
+            setRelatedTo1Values([]);
+        }
+      } catch (error) {
+        console.error("Error fetching related 1 data:", error);
+        setRelatedTo1Values([]);
+      }
+    };
+
+    fetchRelated1();
+  }, [formData.relatedType1, isOpen]);
+
+  // --- Effect 2: Fetch Level 2 Options (Contacts or Deals) when Account is selected ---
+  useEffect(() => {
+    if (!isOpen) return;
+    
+    const fetchRelated2 = async () => {
+      try {
+        setRelatedTo2Values([]);
+
+        // Only fetch level 2 if Type1 is Account and an Account is selected
+        if (formData.relatedType1 === 'Account' && formData.relatedTo1) {
+            let res;
+            if (formData.relatedType2 === 'Contact') {
+                res = await api.get(`/contacts/from-acc/${formData.relatedTo1}`);
+            } else if (formData.relatedType2 === 'Deal') {
+                res = await api.get(`/deals/from-acc/${formData.relatedTo1}`);
+            }
+
+            if (res && Array.isArray(res.data)) {
+                setRelatedTo2Values(res.data);
+            } else {
+                setRelatedTo2Values([]);
+            }
+        }
+      } catch (error) {
+        console.error("Error fetching related 2 data:", error);
+        setRelatedTo2Values([]);
+      }
+    };
+
+    fetchRelated2();
+  }, [formData.relatedType1, formData.relatedTo1, formData.relatedType2, isOpen]);
+
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    onSave?.(formData, relatedTo); // modal does not close immediately; update handled in AdminTask
+    onSave?.(formData); 
   };
 
   const modalTitle = viewMode ? "Task Details" : isEditing ? "Edit Task" : "Create Task";
@@ -132,8 +162,8 @@ export default function TaskModal({
                       </label>
                       <input
                         type="text"
-                        name="title"
-                        value={formData.title}
+                        name="subject"
+                        value={formData.subject}
                         onChange={handleChange}
                         required
                         disabled={viewMode}
@@ -143,6 +173,84 @@ export default function TaskModal({
                         }`}
                       />
                     </div>
+
+                    {/* --- Related Section Starts Here (Updated to match Calls) --- */}
+                    <div className="w-full flex flex-col">
+                        <select 
+                            name="relatedType1" 
+                            onChange={handleChange} 
+                            value={formData.relatedType1} 
+                            disabled={viewMode}
+                            className={`w-23 rounded-md text-sm focus:ring-2 focus:ring-blue-400 outline-none mb-2 ${viewMode ? "bg-gray-50" : ""}`}
+                        >
+                            <option value="Lead">Lead</option>
+                            <option value="Account">Account</option>
+                        </select>
+
+                        {Array.isArray(relatedTo1Values) && relatedTo1Values.length > 0 ? (
+                            <select
+                                name="relatedTo1"
+                                onChange={handleChange}
+                                value={formData.relatedTo1}
+                                disabled={viewMode}
+                                className={`w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-400 outline-none ${viewMode ? "bg-gray-50" : ""}`}
+                            >
+                                <option value="">-- Select {formData.relatedType1} --</option>
+                                {relatedTo1Values.map((item) => (
+                                    <option key={item.id} value={item.id}>
+                                        {formData.relatedType1 === 'Lead' ? item.title : item.name}
+                                    </option>
+                                ))}
+                            </select>
+                        ) : (
+                            <input
+                                type="text"
+                                value={`No ${formData.relatedType1 || ''} data found`}
+                                className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm bg-gray-100 text-gray-500"
+                                disabled
+                            />
+                        )}
+                    </div>
+
+                    <div className="w-full flex flex-col">
+                         <select
+                            name="relatedType2"
+                            onChange={handleChange}
+                            value={formData.relatedType2 ?? "Contact"}
+                            className={`w-23 rounded-md text-sm focus:ring-2 focus:ring-blue-400 outline-none mb-2 disabled:text-gray-400 disabled:bg-gray-100 disabled:cursor-not-allowed`}
+                            disabled={viewMode || formData.relatedType1 === 'Lead'}
+                        >
+                            <option value="Contact">Contact</option>
+                            <option value="Deal">Deal</option>
+                        </select>
+
+                        {Array.isArray(relatedTo2Values) && relatedTo2Values.length > 0 ? (
+                            <select
+                                name="relatedTo2"
+                                onChange={handleChange}
+                                value={formData.relatedTo2 ?? ""}
+                                disabled={viewMode || formData.relatedType1 === 'Lead'}
+                                className={`w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-400 outline-none disabled:bg-gray-100`}
+                            >
+                                <option value="">-- Select {formData.relatedType2} --</option>
+                                {relatedTo2Values.map((item) => (
+                                    <option key={item.id} value={item.id}>
+                                        {formData.relatedType2 === 'Contact'
+                                            ? `${item.first_name} ${item.last_name}`
+                                            : item.name}
+                                    </option>
+                                ))}
+                            </select>
+                        ) : (
+                            <input
+                                type="text"
+                                value={formData.relatedType1 === 'Lead' ? 'N/A' : `No ${formData.relatedType2 || ''} data found`}
+                                className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm bg-gray-100 text-gray-500"
+                                disabled
+                            />
+                        )}
+                    </div>
+                    {/* --- Related Section Ends --- */}
 
                     <div className="md:col-span-2">
                       <label className="block text-gray-700 font-medium mb-1 text-sm">
@@ -159,46 +267,6 @@ export default function TaskModal({
                           viewMode ? "bg-gray-50 cursor-not-allowed" : ""
                         }`}
                       />
-                    </div>                    
-
-                    <div>
-                      <label className="block text-gray-700 font-medium mb-1 text-sm">
-                        Type
-                      </label>
-                      <select                        
-                        onChange={handleRelatedToChange}
-                        disabled={viewMode}
-                        className={`w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-400 outline-none ${
-                          viewMode ? "bg-gray-50 cursor-not-allowed" : ""
-                        }`}
-                        required
-                      >
-                        <option value="">- -</option>
-                        <option>Account</option>
-                        <option>Contact</option>
-                        <option>Lead</option>
-                        <option>Deal</option>
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="block text-gray-700 font-medium mb-1 text-sm">
-                        Related To
-                      </label>
-                      <select
-                        name="relatedTo"
-                        value={formData.relatedTo}
-                        onChange={handleChange}
-                        disabled={viewMode}
-                        className={`w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-400 outline-none ${
-                          viewMode ? "bg-gray-50 cursor-not-allowed" : ""
-                        }`}
-                      >
-                        <option value="">- -</option>
-                        {relatedOptions.map((option) => (
-                          <option value={option.id} key={option.id}>{relatedTo === 'Account' ? option.name : relatedTo === 'Contact' ? `${option.first_name} ${option.last_name}` : relatedTo === 'Lead' ? option.title : option.name}</option>
-                        ))}
-                      </select>
                     </div>
 
                     <div>
@@ -214,10 +282,9 @@ export default function TaskModal({
                           viewMode ? "bg-gray-50 cursor-not-allowed" : ""
                         }`}
                       >
-                        <option value="">- -</option>
-                        <option>Low</option>
-                        <option>Medium</option>
-                        <option>High</option>
+                        <option value="Low">Low</option>
+    <option value="Normal">Normal</option>
+    <option value="High">High</option>
                       </select>
                     </div>                    
 
@@ -252,13 +319,13 @@ export default function TaskModal({
                         }`}
                       >
                         <option value="">Select User</option>
-                        {salesList.map((user) => (
+                        {users.map((user) => (
                           <option key={user.id} value={user.id}>
                             {user.first_name} {user.last_name}
                           </option>
                         ))}
                       </select>
-                    </div>     
+                    </div>    
 
                     <div>
                       <label className="block text-gray-700 font-medium mb-1 text-sm">
@@ -273,11 +340,10 @@ export default function TaskModal({
                           viewMode ? "bg-gray-50 cursor-not-allowed" : ""
                         }`}
                       >
-                        <option value="">- -</option>
-                        <option>Not started</option>
-                        <option>In progress</option>
-                        <option>Completed</option>
-                        <option>Deferred</option>
+                        <option value="Not started">Not started</option>
+    <option value="In progress">In Progress</option>
+    <option value="Deferred">Deferred</option>
+    <option value="Completed">Completed</option>
                       </select>
                     </div>               
 

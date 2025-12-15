@@ -3,15 +3,14 @@ from sqlalchemy.orm import relationship
 import enum
 from database import Base
 
-class TaskStatus(str, enum.Enum):    
+class StatusCategory(str, enum.Enum):
     IN_PROGRESS = "In progress"
     COMPLETED = "Completed"
     DEFERRED = "Deferred"
     NOT_STARTED = "Not started"
-
-class TaskPriority(str, enum.Enum):
+class PriorityCategory(str, enum.Enum):
     LOW = "Low"
-    MEDIUM = "Medium"
+    NORMAL = "Normal"
     HIGH = "High"
 
 class Task(Base):
@@ -20,8 +19,8 @@ class Task(Base):
     id = Column(Integer, primary_key=True, index=True)
     title = Column(String(255), nullable=False)
     description = Column(Text, nullable=True)    
-    priority = Column(Enum(TaskPriority), default=TaskPriority.MEDIUM, nullable=False)
-    status = Column(Enum(TaskStatus), default=TaskStatus.NOT_STARTED, nullable=False)
+    priority = Column(Enum(PriorityCategory), default=PriorityCategory.NORMAL, nullable=True)
+    status = Column(Enum(StatusCategory), default=StatusCategory.NOT_STARTED, nullable=True)
     due_date = Column(DateTime, nullable=True)
     related_to_account = Column(Integer, ForeignKey("accounts.id", ondelete="CASCADE"), nullable=True)
     related_to_contact = Column(Integer, ForeignKey("contacts.id", ondelete="CASCADE"), nullable=True)

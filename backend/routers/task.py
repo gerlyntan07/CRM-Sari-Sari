@@ -1,15 +1,19 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Request
 from sqlalchemy.orm import Session
 from typing import List
 from datetime import datetime
 from sqlalchemy import or_
 from database import get_db
-from models.task import Task, TaskStatus, TaskPriority
+from models.task import Task, PriorityCategory, StatusCategory
 from models.auth import User
 from schemas.task import TaskCreate, TaskUpdate, TaskResponse, TaskFetch
 from .auth_utils import get_current_user
 from routers.ws_notification import broadcast_notification  # WebSocket broadcaster
-from models.task import TaskPriority, TaskStatus
+from models.account import Account
+from models.contact import Contact
+from models.lead import Lead
+from .logs_utils import serialize_instance, create_audit_log
+from models.deal import Deal
 
 router = APIRouter(prefix="/tasks", tags=["Tasks"])
 
@@ -52,66 +56,94 @@ def task_to_response(task: Task) -> dict:
 # -----------------------------------------
 # CREATE TASK + SEND NOTIFICATION
 # -----------------------------------------
-@router.post("/createtask", response_model=TaskResponse, status_code=status.HTTP_201_CREATED)
+@router.post("/create", response_model=TaskResponse, status_code=status.HTTP_201_CREATED)
 async def create_task(
     payload: TaskCreate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
-):
-    # Validate assigned user
-    assigned_user = None
-    if payload.assignedTo:
-        assigned_user = db.query(User).filter(User.id == payload.assignedTo).first()
-        if not assigned_user:
-            raise HTTPException(status_code=404, detail="Assigned user not found")
+    current_user: User = Depends(get_current_user),
+    request: Request = None,
+):    
+    # --- 1. NORMALIZE ENUM VALUES (THE FIX) ---
+    # Defines valid DB values mapped from possible uppercase frontend inputs
+    priority_map = {
+        "HIGH": "High", "NORMAL": "Normal", "LOW": "Low"
+    }
     
-    priority_value = TaskPriority(payload.priority).value
-    status_value = TaskStatus(payload.status).value
-
-    # Build task data
-    task_data = {
-        "title": payload.title,
-        "description": payload.description,
-        "priority": priority_value,
-        "status": status_value,
-        "due_date": payload.dueDate,
-        "created_by": current_user.id,
-        "assigned_to": payload.assignedTo
+    status_map = {
+        "NOT_STARTED": "Not started", "NOT STARTED": "Not started",
+        "IN_PROGRESS": "In progress", "IN PROGRESS": "In progress",
+        "COMPLETED": "Completed", "DEFERRED": "Deferred"
     }
 
-    # Related-to logic
-    if payload.type == "Account":
-        task_data["related_to_account"] = payload.relatedTo
-    elif payload.type == "Contact":
-        task_data["related_to_contact"] = payload.relatedTo
-    elif payload.type == "Lead":
-        task_data["related_to_lead"] = payload.relatedTo
-    elif payload.type == "Deal":
-        task_data["related_to_deal"] = payload.relatedTo
+    # Convert payload to Upper Case for lookup, fallback to original if not found
+    clean_priority = priority_map.get(payload.priority.upper(), payload.priority)
+    clean_status = status_map.get(payload.status.upper(), payload.status)
+    # ------------------------------------------
 
-    # Create task
-    db_task = Task(**task_data)
-    db.add(db_task)
+    assigned_user = None
+    if payload.assigned_to:
+        assigned_user = db.query(User).filter(User.id == payload.assigned_to).first()
+        if not assigned_user:
+            raise HTTPException(status_code=404, detail="Assigned user not found")            
+
+    new_task = Task(
+        title=payload.title,
+        description=payload.description,
+        priority=clean_priority, # <--- Use the cleaned variable
+        status=clean_status,     # <--- Use the cleaned variable
+        due_date=payload.due_date,
+        created_by=current_user.id,
+        assigned_to=payload.assigned_to,
+    )
+
+    # Primary relation validation and assignment
+    if getattr(payload, 'related_type_1', None) == "Lead":
+        lead = db.query(Lead).filter(Lead.id == payload.related_to_1).first()
+        if not lead:
+            raise HTTPException(status_code=404, detail="Lead not found")
+        new_task.related_to_lead = payload.related_to_1
+        new_task.related_to_account = None
+        new_task.related_to_contact = None
+        new_task.related_to_deal = None
+    elif getattr(payload, 'related_type_1', None) == "Account":
+        account = db.query(Account).filter(Account.id == payload.related_to_1).first()
+        if not account:
+            raise HTTPException(status_code=404, detail="Account not found")
+        new_task.related_to_account = payload.related_to_1
+        # Secondary relation (only valid when Account)
+        if getattr(payload, 'related_type_2', None) == "Contact" and payload.related_to_2:
+            contact = db.query(Contact).filter(Contact.id == payload.related_to_2).first()
+            if not contact:
+                raise HTTPException(status_code=404, detail="Contact not found")
+            new_task.related_to_contact = payload.related_to_2
+            new_task.related_to_deal = None
+        elif getattr(payload, 'related_type_2', None) == "Deal" and payload.related_to_2:
+            deal = db.query(Deal).filter(Deal.id == payload.related_to_2).first()
+            if not deal:
+                raise HTTPException(status_code=404, detail="Deal not found")
+            new_task.related_to_deal = payload.related_to_2
+            new_task.related_to_contact = None
+        else:
+            new_task.related_to_contact = None
+            new_task.related_to_deal = None
+    else:
+        raise HTTPException(status_code=400, detail="Invalid related_type_1. Must be 'Lead' or 'Account'.")
+    
+    db.add(new_task)
     db.commit()
-    db.refresh(db_task)
+    db.refresh(new_task)
 
-    # -----------------------------------------
-    # 🔔 SEND WEBSOCKET NOTIFICATION (FIXED)
-    # -----------------------------------------
-    if payload.assignedTo:
-        await broadcast_notification(
-            {
-                "type": "task_assignment",
-                "taskId": db_task.id,
-                "title": db_task.title,
-                "priority": priority_value,
-                "assignedBy": f"{current_user.first_name} {current_user.last_name}",
-                "createdAt": db_task.created_at.isoformat(),
-            },
-            target_user_id=payload.assignedTo
-        )
+    create_audit_log(
+        db=db,
+        current_user=current_user,
+        instance=new_task,
+        action="CREATE",
+        request=request,
+        new_data=serialize_instance(new_task),
+        custom_message=f"create task '{new_task.title}'"
+    )
 
-    return task_to_response(db_task)
+    return new_task
 
 
 # -----------------------------------------

@@ -13,7 +13,6 @@ function getWsOriginFromApiBaseURL() {
   try {
     url = new URL(base);
   } catch {
-    // fallback if base is not a valid URL
     url = new URL("http://localhost:8000");
   }
 
@@ -58,10 +57,18 @@ export default function SalesHeader({ toggleSidebar }) {
 
   const currentTitle = routeTitles[location.pathname] || "Sales Panel";
 
-  // Load user
+  // ✅ FIX: fetch user once on mount (NO dependency on fetchUser ref changing)
+  const fetchUserRef = useRef(fetchUser);
   useEffect(() => {
-    fetchUser();
+    fetchUserRef.current = fetchUser;
   }, [fetchUser]);
+
+  const didFetchOnceRef = useRef(false);
+  useEffect(() => {
+    if (didFetchOnceRef.current) return;
+    didFetchOnceRef.current = true;
+    fetchUserRef.current?.();
+  }, []);
 
   const wsOrigin = useMemo(() => getWsOriginFromApiBaseURL(), []);
 
@@ -75,7 +82,9 @@ export default function SalesHeader({ toggleSidebar }) {
       pingRef.current = null;
     }
     if (wsRef.current) {
-      try { wsRef.current.close(); } catch {}
+      try {
+        wsRef.current.close();
+      } catch {}
       wsRef.current = null;
     }
 
@@ -111,17 +120,23 @@ export default function SalesHeader({ toggleSidebar }) {
 
       switch (newNotif.type) {
         case "territory_assignment":
-          newNotif.title = `You have been assigned to ${newNotif.territoryName || "a territory"}`;
+          newNotif.title = `You have been assigned to ${
+            newNotif.territoryName || "a territory"
+          }`;
           break;
 
         case "lead_assigned":
         case "lead_assignment":
           newNotif.type = "lead_assignment";
-          newNotif.title = `New lead assigned: ${newNotif.leadName || newNotif.company || "Lead"}`;
+          newNotif.title = `New lead assigned: ${
+            newNotif.leadName || newNotif.company || "Lead"
+          }`;
           break;
 
         case "lead_update":
-          newNotif.title = `Lead updated: ${newNotif.leadName || newNotif.company || "Lead"}`;
+          newNotif.title = `Lead updated: ${
+            newNotif.leadName || newNotif.company || "Lead"
+          }`;
           break;
 
         case "task_assignment": {
@@ -145,7 +160,9 @@ export default function SalesHeader({ toggleSidebar }) {
       if (pingRef.current) clearInterval(pingRef.current);
       pingRef.current = null;
 
-      try { ws.close(); } catch {}
+      try {
+        ws.close();
+      } catch {}
       wsRef.current = null;
     };
   }, [user?.id, wsOrigin]);

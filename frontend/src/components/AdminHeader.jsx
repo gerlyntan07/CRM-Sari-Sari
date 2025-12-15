@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
-import { FiBell, FiUser } from "react-icons/fi";
+import { FiBell } from "react-icons/fi";
 import { useLocation, useNavigate } from "react-router-dom";
-import useAuth from '../hooks/useAuth.js';
+import useAuth from "../hooks/useAuth.js";
 import useFetchUser from "../hooks/useFetchUser.js";
 
 export default function AdminHeader({ toggleSidebar }) {
@@ -9,6 +9,7 @@ export default function AdminHeader({ toggleSidebar }) {
   const dropdownRef = useRef(null);
   const location = useLocation();
   const navigate = useNavigate();
+
   const { logout } = useAuth();
   const { user, fetchUser } = useFetchUser();
 
@@ -27,24 +28,25 @@ export default function AdminHeader({ toggleSidebar }) {
     "/admin/deals": "Deals",
   };
 
-  useEffect(() => {
-    fetchUser();
-  }, []);
+  const currentTitle = routeTitles[location.pathname] || "Admin Panel";
 
-  // Listen for profile update events to refresh user data
+  // ✅ Keep the latest fetchUser without re-registering event listeners every render
+  const fetchUserRef = useRef(fetchUser);
   useEffect(() => {
-    const handleProfileUpdate = () => {
-      fetchUser();
-    };
-
-    window.addEventListener('userProfileUpdated', handleProfileUpdate);
-    
-    return () => {
-      window.removeEventListener('userProfileUpdated', handleProfileUpdate);
-    };
+    fetchUserRef.current = fetchUser;
   }, [fetchUser]);
 
-  const currentTitle = routeTitles[location.pathname] || "Admin Panel";
+  // ✅ Listen for profile update events to refresh user data (stable)
+  useEffect(() => {
+    const handleProfileUpdate = () => {
+      fetchUserRef.current?.();
+    };
+
+    window.addEventListener("userProfileUpdated", handleProfileUpdate);
+    return () => {
+      window.removeEventListener("userProfileUpdated", handleProfileUpdate);
+    };
+  }, []);
 
   // Close dropdown if clicked outside
   useEffect(() => {
@@ -113,26 +115,23 @@ export default function AdminHeader({ toggleSidebar }) {
           {open && (
             <div className="absolute right-0 mt-2 w-64 bg-white shadow-xl rounded-xl border border-gray-200 z-50 p-4">
               <div className="flex flex-col items-center text-center space-y-3">
-                {/* Profile Picture */}
                 <img
                   src={user?.profile_picture || "https://via.placeholder.com/80"}
                   alt="Profile"
                   className="w-16 h-16 rounded-full object-cover"
                 />
 
-                {/* Name */}
                 <h2 className="text-gray-800 font-semibold text-sm">
                   {user?.first_name} {user?.middle_name} {user?.last_name}
                 </h2>
               </div>
 
-              {/* Menu Options */}
               <div className="mt-4 space-y-1 px-4 text-left">
                 <button className="block w-full text-sm text-gray-700 hover:bg-gray-50 py-1 rounded text-left">
                   Invite Your Team
                 </button>
 
-                <button 
+                <button
                   onClick={() => {
                     navigate("/admin/manage-account");
                     setOpen(false);

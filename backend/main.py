@@ -5,6 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from database import Base, engine
 from dotenv import load_dotenv
+
 load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), ".env"))
 
 # Import models to create tables
@@ -41,54 +42,55 @@ import routers.quote as quote_router
 import routers.target as target_router
 import routers.ws_notification as ws_notification
 
-
 app = FastAPI()
 
-# === Routers ===
-app.include_router(auth_router.router, prefix='/api')
-app.include_router(company_router.router, prefix='/api')
-app.include_router(users_router.router, prefix='/api')
-app.include_router(subscription_router.router, prefix='/api')
-app.include_router(territory_router.router, prefix='/api')
-app.include_router(lead_router.router, prefix='/api')
-app.include_router(task_router.router, prefix='/api')
-app.include_router(auditlog_router.router, prefix='/api')
-app.include_router(account_router.router, prefix='/api')
-app.include_router(contact_router.router, prefix='/api')
-app.include_router(deal_router.router, prefix='/api')
-app.include_router(call_router.router, prefix='/api')
-app.include_router(meeting_router.router, prefix='/api')
-app.include_router(quote_router.router, prefix='/api')
-app.include_router(target_router.router, prefix='/api')
-app.include_router(ws_notification.router)
-
-
-# === Database initialization ===
-Base.metadata.create_all(bind=engine)
-
-# === CORS setup ===
+# ✅ CORS MUST BE CLEAN (no "*" if allow_credentials=True)
 origins = [
-    "*",
-    "http://localhost:5173",  # local dev
-    "*",  # allow all in production; adjust later for security
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+
+    # prod domains (no trailing slash)
     "http://crm-sari-sari-env.eba-pdpixtqe.ap-southeast-1.elasticbeanstalk.com",
     "https://crm.sari-sari.com",
-    "http://crm.sari-sari.com/",    
+    "http://crm.sari-sari.com",
 ]
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
-    allow_credentials=True,
+    allow_credentials=True,   # keep True if you use cookies/auth
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# === Routers ===
+app.include_router(auth_router.router, prefix="/api")
+app.include_router(company_router.router, prefix="/api")
+app.include_router(users_router.router, prefix="/api")
+app.include_router(subscription_router.router, prefix="/api")
+app.include_router(territory_router.router, prefix="/api")
+app.include_router(lead_router.router, prefix="/api")
+app.include_router(task_router.router, prefix="/api")
+app.include_router(auditlog_router.router, prefix="/api")
+app.include_router(account_router.router, prefix="/api")
+app.include_router(contact_router.router, prefix="/api")
+app.include_router(deal_router.router, prefix="/api")
+app.include_router(call_router.router, prefix="/api")
+app.include_router(meeting_router.router, prefix="/api")
+app.include_router(quote_router.router, prefix="/api")
+app.include_router(target_router.router, prefix="/api")
+
+# websocket router (no /api prefix)
+app.include_router(ws_notification.router)
+
+# === Database initialization ===
+Base.metadata.create_all(bind=engine)
 
 # === Media setup ===
 MEDIA_ROOT = os.getenv("MEDIA_ROOT", "./media")
 app.mount("/media", StaticFiles(directory=MEDIA_ROOT), name="media")
 
 # === Frontend setup ===
-# Assuming your built React files are inside: backend/static/
 FRONTEND_DIR = os.path.join(os.path.dirname(__file__), "static")
 
 if os.path.exists(FRONTEND_DIR):
@@ -98,13 +100,11 @@ else:
     def root_fallback():
         return {"msg": "Notes API is running (no frontend found)"}
 
-
 @app.on_event("startup")
 def startup_event():
     print("Backend API is starting up...")
 
-
-# Optional: Serve index.html for any unknown route (React Router support)
+# React Router support (optional)
 @app.get("/{full_path:path}")
 def serve_react_app(full_path: str):
     index_path = os.path.join(FRONTEND_DIR, "index.html")

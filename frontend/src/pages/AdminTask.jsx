@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import {
   FiClock,
   FiActivity,
@@ -9,23 +9,41 @@ import {
   FiSearch,
   FiPlus,
   FiTrash2,
-  FiUser,
 } from "react-icons/fi";
-// NOTE: Make sure TaskModal, PaginationControls, api, useFetchUser, and LoadingSpinner are correctly imported from their respective paths.
+
 import TaskModal from "../components/TaskModal";
 import PaginationControls from "../components/PaginationControls.jsx";
-import api from "../api"; // Assuming your Axios instance
+import api from "../api";
 import { toast } from "react-toastify";
 import useFetchUser from "../hooks/useFetchUser";
 import LoadingSpinner from "../components/LoadingSpinner.jsx";
-import { useLocation, useNavigate, useParams } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 
-
-const BOARD_COLUMNS = ["To Do", "In Progress", "Review", "Completed"];
+/** ✅ Match your backend Enum values */
+const BOARD_COLUMNS = ["Not started", "In progress", "Deferred", "Completed"];
 const LIST_PAGE_SIZE = 10;
 
-// --- Utility Functions ---
+const RELATED_TYPES = ["Account", "Contact", "Lead", "Deal"];
 
+const normalizeRelatedType = (t) => {
+  if (!t) return null;
+  const v = String(t).trim().toLowerCase();
+  if (v === "account") return "Account";
+  if (v === "contact") return "Contact";
+  if (v === "lead") return "Lead";
+  if (v === "deal") return "Deal";
+  return null;
+};
+
+const parseOptionalInt = (v) => {
+  if (v === undefined || v === null) return null;
+  const s = String(v).trim();
+  if (!s) return null;
+  const n = Number(s);
+  return Number.isFinite(n) ? n : null;
+};
+
+// --- Utility Functions ---
 const toDateTimeInputValue = (value) => {
   if (!value) return "";
   const date = new Date(value);
@@ -46,71 +64,106 @@ const formatDateDisplay = (value) => {
   });
 };
 
+/**
+ * ✅ IMPORTANT:
+ * - Send type ONLY if it's Account/Contact/Lead/Deal
+ * - Convert relatedTo to int
+ * - If type is invalid, relatedTo is forced to null (prevents backend 422)
+ */
 const buildTaskPayload = (data) => {
   const trimmedTitle = data.title?.trim() ?? "";
   const trimmedDescription = data.description?.trim() ?? "";
   const trimmedNotes = data.notes?.trim() ?? "";
-  const trimmedRelated = data.relatedTo?.trim() ?? "";
-  const isPersonal = Boolean(data.isPersonal);
-  // Ensure assignedTo is null if empty string, otherwise parse as number
-  const assignedToValue = data.assignedTo ? Number(data.assignedTo) : null; 
-  
+
+  const assignedToValue = parseOptionalInt(data.assignedTo);
+
+  const type = normalizeRelatedType(data.type);
+  const relatedToId = parseOptionalInt(data.relatedTo);
+
   return {
     title: trimmedTitle,
     description: trimmedDescription,
-    type: data.type || "Call",
+    type: type, // ✅ null OR Account/Contact/Lead/Deal
     priority: data.priority || "Low",
-    status: data.status || "To Do",
+    status: data.status || "Not started",
     dueDate: data.dueDate ? data.dueDate : null,
-    assigned_to: assignedToValue,
-    related_to: trimmedRelated || null,
-    notes: trimmedNotes,
-    is_personal: isPersonal,
-    visibility: isPersonal ? "personal" : "shared",
+    assignedTo: assignedToValue,
+    relatedTo: type ? relatedToId : null, // ✅ only allow relatedTo if type is valid
+    notes: trimmedNotes || null,
+    isPersonal: Boolean(data.isPersonal),
+    visibility: Boolean(data.isPersonal) ? "personal" : "shared",
   };
 };
 
-// --- Task Data Mapping Function ---
-/**
- * Maps the backend task structure to the frontend's expected Task format.
- * @param {Object} task - The task object from the backend API.
- * @returns {Object} The formatted task object for the frontend.
- */
+// --- Task Data Mapping (supports snake_case OR nested relations)
 const mapBackendTaskToFrontend = (task) => {
-  const assignedToName = task.task_assign_to 
-    ? `${task.task_assign_to.first_name} ${task.task_assign_to.last_name}`
-    : task.assigned_to 
-    ? String(task.assigned_to) 
-    : "Unassigned";
+  const assignedToId = task.assignedTo ?? task.assigned_to ?? null;
 
-  const createdByName = task.task_creator
-    ? `${task.task_creator.first_name} ${task.task_creator.last_name}`
-    : task.created_by 
-    ? String(task.created_by)
-    : "System";
+  const assignedToName =
+    task.assignedToName ??
+    (task.task_assign_to
+      ? `${task.task_assign_to.first_name} ${task.task_assign_to.last_name}`
+      : task.assigned_to
+      ? String(task.assigned_to)
+      : "Unassigned");
 
-  // Prioritize due_date if it exists, otherwise use dueDate (if backend provides both)
-  const dueDate = task.due_date || task.dueDate || null; 
-  // Prioritize date_assigned if it exists, otherwise use created_at
-  const dateAssigned = task.date_assigned || task.created_at || null; 
-  
+  const createdByName =
+    task.createdBy ??
+    (task.task_creator
+      ? `${task.task_creator.first_name} ${task.task_creator.last_name}`
+      : task.created_by
+      ? String(task.created_by)
+      : "System");
+
+  const dueDate = task.dueDate ?? task.due_date ?? null;
+
+  const dateAssigned =
+    task.dateAssigned ??
+    task.date_assigned ??
+    task.created_at ??
+    task.createdAt ??
+    null;
+
+  const createdAt = task.createdAt ?? task.created_at ?? null;
+
+  // ✅ infer relatedType + relatedId from FK or nested models
+  const relatedType =
+    normalizeRelatedType(task.type) ||
+    (task.related_to_account || task.account ? "Account" : null) ||
+    (task.related_to_contact || task.contact ? "Contact" : null) ||
+    (task.related_to_lead || task.lead ? "Lead" : null) ||
+    (task.related_to_deal || task.deal ? "Deal" : null);
+
+  const relatedToId =
+    task.relatedTo ??
+    task.related_to ??
+    task.related_to_account ??
+    task.related_to_contact ??
+    task.related_to_lead ??
+    task.related_to_deal ??
+    task.account?.id ??
+    task.contact?.id ??
+    task.lead?.id ??
+    task.deal?.id ??
+    null;
+
   return {
     id: task.id,
     title: task.title,
     description: task.description,
-    type: task.type || "Task",
     priority: task.priority || "Low",
-    status: task.status || "To Do", 
-    dueDate: dueDate,
-    dateAssigned: dateAssigned, 
-    assignedToId: task.assigned_to ?? null,
-    assignedToName: assignedToName,
-    createdAt: task.created_at || null,
-    createdById: task.created_by ?? null,
+    status: task.status || "Not started",
+    dueDate,
+    dateAssigned,
+    assignedToId,
+    assignedToName,
+    createdAt,
+    createdById: task.createdById ?? task.created_by ?? null,
     createdBy: createdByName,
-    relatedTo: task.related_to || "",
+    relatedType,
+    relatedToId,
     notes: task.notes || "",
-    isPersonal: Boolean(task.is_personal),
+    isPersonal: Boolean(task.isPersonal ?? task.is_personal),
   };
 };
 
@@ -120,179 +173,191 @@ export default function AdminTask() {
   }, []);
 
   const { user: currentUser, loading: userLoading } = useFetchUser();
+
   const [view, setView] = useState("board");
   const [showModal, setShowModal] = useState(false);
   const [selectedTask, setSelectedTask] = useState(null);
   const [viewMode, setViewMode] = useState(false);
+
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
+
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState("Filter by Status");
   const [filterPriority, setFilterPriority] = useState("Filter by Priority");
+
   const [users, setUsers] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
+
   const [confirmModalData, setConfirmModalData] = useState(null);
   const [confirmProcessing, setConfirmProcessing] = useState(false);
+
   const navigate = useNavigate();
   const location = useLocation();
+
+  // store taskId to open after tasks load (notif)
+  const [pendingOpenTaskId, setPendingOpenTaskId] = useState(null);
+
   const [formData, setFormData] = useState({
     title: "",
     description: "",
-    type: "Call",
+    type: "", // ✅ no default "Call"
     relatedTo: "",
     priority: "Low",
-    status: "To Do",
+    status: "Not started",
     dueDate: "",
     assignedTo: "",
     isPersonal: false,
     notes: "",
   });
 
-  // -----------------------------------------------------------
+  const resetForm = useCallback(() => {
+    setSelectedTask(null);
+    setFormData({
+      title: "",
+      description: "",
+      type: "",
+      relatedTo: "",
+      priority: "Low",
+      status: "Not started",
+      dueDate: "",
+      assignedTo: "",
+      isPersonal: false,
+      notes: "",
+    });
+  }, []);
 
-useEffect(() => {
-  const shouldOpen = location.state?.openTaskModal;
-  const initialData = location.state?.initialTaskData;
+  const handleOpenModal = useCallback(
+    (task = null, isViewOnly = false) => {
+      setSelectedTask(task);
+      setViewMode(isViewOnly);
 
-  if (shouldOpen) {
-    setShowModal(true);
+      if (task) {
+        setFormData({
+          title: task.title || "",
+          description: task.description || "",
+          type: task.relatedType || "", // ✅ inferred from backend data
+          priority: task.priority || "Low",
+          status: task.status || "Not started",
+          dueDate: toDateTimeInputValue(task.dueDate),
+          assignedTo: task.assignedToId ? String(task.assignedToId) : "",
+          relatedTo: task.relatedToId ? String(task.relatedToId) : "",
+          notes: task.notes || "",
+          isPersonal: Boolean(task.isPersonal),
+        });
+      } else {
+        resetForm();
+      }
 
-    if (initialData) {
-      setFormData((prev) => ({
-        ...prev,
-        ...initialData,
-      }));
-    }
+      setShowModal(true);
+    },
+    [resetForm]
+  );
 
-    // clear state so it won't reopen on refresh
-    navigate(location.pathname, { replace: true, state: {} });
-  }
-}, [location, navigate]);
+  const handleCloseModal = useCallback(() => {
+    setShowModal(false);
+    setSelectedTask(null);
+    setViewMode(false);
+    resetForm();
+  }, [resetForm]);
 
-  // -----------------------------------------------------------
-
-  // --- API Fetch Functions ---
-
-  const fetchUsers = async () => {
+  const fetchUsers = useCallback(async () => {
     try {
-      const res = await api.get("/users/all"); 
+      const res = await api.get("/users/all");
       setUsers(Array.isArray(res.data) ? res.data : []);
     } catch (error) {
       console.error("Failed to fetch users:", error);
       toast.error("Failed to fetch users. Please refresh and try again.");
     }
-  };
+  }, []);
 
-  const fetchTasks = async () => {
+  const fetchTasks = useCallback(async () => {
     try {
       setLoading(true);
-      // Calls your backend endpoint @router.get("/all")
       const res = await api.get("/tasks/all");
-      console.log(res.data)
-      
       const rawTasks = Array.isArray(res.data) ? res.data : [];
-      
-      // *** MAPPING STEP: Format backend data for frontend state ***
       const formattedTasks = rawTasks.map(mapBackendTaskToFrontend);
 
       formattedTasks.sort((a, b) => {
         const aDate = a.createdAt ? new Date(a.createdAt) : 0;
         const bDate = b.createdAt ? new Date(b.createdAt) : 0;
-        return bDate - aDate; // Sort by creation date descending
+        return bDate - aDate;
       });
-      
+
       setTasks(formattedTasks);
-      if (view === "list") {
-        setCurrentPage(1);
-      }
+
+      if (view === "list") setCurrentPage(1);
     } catch (error) {
       console.error("Failed to load tasks:", error);
       toast.error("Failed to load tasks. Please try again.");
     } finally {
       setLoading(false);
     }
-  };
-
+  }, [view]);
 
   useEffect(() => {
     if (!userLoading && currentUser) {
-      // Use real data fetching
       fetchUsers();
       fetchTasks();
     }
-  }, [userLoading, currentUser]); 
+  }, [userLoading, currentUser, fetchUsers, fetchTasks]);
 
-  const resetForm = () => {
-    setSelectedTask(null);
-    setFormData({
-      title: "",
-      description: "",
-      type: "Call",
-      relatedTo: "",
-      priority: "Low",
-      status: "To Do",
-      dueDate: "",
-      assignedTo: "",
-      isPersonal: false,
-      notes: "",
-    });
-  };
+  // accept navigation state from notification (taskId)
+  useEffect(() => {
+    const shouldOpen = location.state?.openTaskModal;
+    const initialData = location.state?.initialTaskData;
+    const taskId = location.state?.taskId;
 
-  const handleOpenModal = (task = null, isViewOnly = false) => {
-    setSelectedTask(task);
-    setViewMode(isViewOnly);
-    
-    if (task) {
-      setFormData({
-        title: task.title || "",
-        description: task.description || "",
-        type: task.type || "Call",
-        priority: task.priority || "Low",
-        status: task.status || "To Do",
-        dueDate: toDateTimeInputValue(task.dueDate),
-        assignedTo: task.assignedToId ? String(task.assignedToId) : "",
-        relatedTo: task.relatedTo || "",
-        notes: task.notes || "",
-        isPersonal: Boolean(task.isPersonal),
-      });
+    if (!shouldOpen) return;
+
+    if (taskId) {
+      setPendingOpenTaskId(taskId);
     } else {
-      resetForm();
+      setShowModal(true);
+      if (initialData) setFormData((prev) => ({ ...prev, ...initialData }));
     }
-    setShowModal(true);
-  };
 
-  const handleCloseModal = () => {
-    setShowModal(false);
-    setSelectedTask(null);
-    setViewMode(false);
-    resetForm();
-  };
+    navigate(location.pathname, { replace: true, state: {} });
+  }, [location, navigate]);
 
-  const handleSaveTask = async (newTask) => { 
-      // newTask is the raw form data from TaskModal
-      const requestPayload = buildTaskPayload(newTask);
-      console.log(requestPayload)
-      
-      try {
-          if (selectedTask && !viewMode) {
-              // Update existing task (Assuming PUT endpoint is /tasks/{id})
-              await api.put(`/tasks/${selectedTask.id}`, requestPayload);
-              toast.success(`Task "${selectedTask.title}" updated successfully.`);
-          } else {
-              // Create new task (Assuming POST endpoint is /tasks/createtask)              
-              await api.post(`/tasks/createtask`, requestPayload);
-              toast.success("Task created successfully.");
-          }
+  // open the task after tasks are loaded
+  useEffect(() => {
+    if (!pendingOpenTaskId) return;
+    if (loading || userLoading) return;
 
-          setShowModal(false);
-          await fetchTasks(); // Re-fetch tasks to update the list
-      } catch (error) {
-          console.error("Failed to save task:", error);
-          const detail = error.response?.data?.detail || "Failed to save task.";
-          toast.error(detail);
+    const found = tasks.find((t) => String(t.id) === String(pendingOpenTaskId));
+    if (found) handleOpenModal(found, true);
+    else toast.error("Task not found or you don't have access to it.");
+
+    setPendingOpenTaskId(null);
+  }, [pendingOpenTaskId, tasks, loading, userLoading, handleOpenModal]);
+
+  const handleSaveTask = async (newTask) => {
+    const requestPayload = buildTaskPayload(newTask);
+
+    // optional guard: prevent sending relatedTo with invalid type
+    if (parseOptionalInt(newTask.relatedTo) && !normalizeRelatedType(newTask.type)) {
+      toast.error("Select a valid Type (Account/Contact/Lead/Deal) before choosing Related To.");
+      return;
+    }
+
+    try {
+      if (selectedTask && !viewMode) {
+        await api.put(`/tasks/${selectedTask.id}`, requestPayload);
+        toast.success(`Task "${selectedTask.title}" updated successfully.`);
+      } else {
+        await api.post(`/tasks/createtask`, requestPayload);
+        toast.success("Task created successfully.");
       }
-  };
 
+      setShowModal(false);
+      await fetchTasks();
+    } catch (error) {
+      console.error("Failed to save task:", error);
+      const detail = error.response?.data?.detail || "Failed to save task.";
+      toast.error(detail);
+    }
+  };
 
   const handleDeleteTask = (task) => {
     if (!task) return;
@@ -301,18 +366,13 @@ useEffect(() => {
       message: (
         <>
           Are you sure you want to delete{" "}
-          <span className="font-semibold">{task.title}</span>? This action
-          cannot be undone.
+          <span className="font-semibold">{task.title}</span>? This action cannot be undone.
         </>
       ),
       confirmLabel: "Delete Task",
       cancelLabel: "Cancel",
       variant: "danger",
-      action: {
-        type: "delete",
-        targetId: task.id,
-        name: task.title,
-      },
+      action: { type: "delete", targetId: task.id, name: task.title },
     });
   };
 
@@ -322,27 +382,18 @@ useEffect(() => {
       return;
     }
 
-    const { action } = confirmModalData;
-    const { type, targetId, name } = action;
-
+    const { type, targetId, name } = confirmModalData.action;
     setConfirmProcessing(true);
 
     try {
       if (type === "delete") {
-        if (!targetId) {
-          throw new Error("Missing task identifier for deletion.");
-        }
-        // Real Backend API call (Assuming DELETE endpoint is /tasks/{id})
         await api.delete(`/tasks/${targetId}`);
-        toast.success(
-          name ? `Task "${name}" deleted successfully.` : "Task deleted."
-        );
-        await fetchTasks(); // Re-fetch tasks after successful deletion
-      } 
+        toast.success(name ? `Task "${name}" deleted successfully.` : "Task deleted.");
+        await fetchTasks();
+      }
     } catch (error) {
       console.error("Task action failed:", error);
-      const detail =
-        error.response?.data?.detail || "Failed to delete task.";
+      const detail = error.response?.data?.detail || "Failed to delete task.";
       toast.error(detail);
     } finally {
       setConfirmProcessing(false);
@@ -354,7 +405,7 @@ useEffect(() => {
     if (confirmProcessing) return;
     setConfirmModalData(null);
   };
-  
+
   const filteredTasks = useMemo(() => {
     const normalized = search.trim().toLowerCase();
     const sortedTasks = [...tasks].sort((a, b) => {
@@ -373,6 +424,7 @@ useEffect(() => {
 
       const matchesStatus =
         filterStatus === "Filter by Status" || task.status === filterStatus;
+
       const matchesPriority =
         filterPriority === "Filter by Priority" || task.priority === filterPriority;
 
@@ -380,46 +432,35 @@ useEffect(() => {
     });
   }, [tasks, search, filterStatus, filterPriority]);
 
-  // Pagination for list view only
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [search, filterStatus, filterPriority, view]);
+  useEffect(() => setCurrentPage(1), [search, filterStatus, filterPriority, view]);
 
   useEffect(() => {
     if (view === "list") {
       const maxPage =
-        filteredTasks.length === 0
-          ? 1
-          : Math.ceil(filteredTasks.length / LIST_PAGE_SIZE);
-      if (currentPage > maxPage) {
-        setCurrentPage(maxPage);
-      }
+        filteredTasks.length === 0 ? 1 : Math.ceil(filteredTasks.length / LIST_PAGE_SIZE);
+      if (currentPage > maxPage) setCurrentPage(maxPage);
     }
   }, [filteredTasks.length, currentPage, view]);
 
-  // Board view: show all tasks, List view: paginated
   const displayTasks = useMemo(() => {
-    if (view === "board") {
-      return filteredTasks;
-    } else {
-      const startIndex = (currentPage - 1) * LIST_PAGE_SIZE;
-      return filteredTasks.slice(startIndex, startIndex + LIST_PAGE_SIZE);
-    }
+    if (view === "board") return filteredTasks;
+    const startIndex = (currentPage - 1) * LIST_PAGE_SIZE;
+    return filteredTasks.slice(startIndex, startIndex + LIST_PAGE_SIZE);
   }, [filteredTasks, currentPage, view]);
 
   const METRICS = useMemo(() => {
     const now = new Date();
     return [
       {
-        title: "To Do",
-        value: tasks.filter((t) => t.status === "To Do").length,
+        title: "Not started",
+        value: tasks.filter((t) => t.status === "Not started").length,
         icon: FiClock,
         color: "text-blue-600",
         bgColor: "bg-blue-100",
       },
       {
-        title: "In Progress",
-        value: tasks.filter((t) => t.status === "In Progress").length,
+        title: "In progress",
+        value: tasks.filter((t) => t.status === "In progress").length,
         icon: FiActivity,
         color: "text-purple-600",
         bgColor: "bg-purple-100",
@@ -434,8 +475,7 @@ useEffect(() => {
       {
         title: "Overdue",
         value: tasks.filter(
-          (t) =>
-            t.dueDate && new Date(t.dueDate) < now && t.status !== "Completed"
+          (t) => t.dueDate && new Date(t.dueDate) < now && t.status !== "Completed"
         ).length,
         icon: FiAlertCircle,
         color: "text-red-600",
@@ -452,17 +492,15 @@ useEffect(() => {
   }, [tasks]);
 
   const isTaskOverdue = (task) =>
-    task.dueDate &&
-    new Date(task.dueDate) < new Date() &&
-    task.status !== "Completed";
+    task.dueDate && new Date(task.dueDate) < new Date() && task.status !== "Completed";
 
   const getTaskCardColor = (task) => {
     switch (task.status) {
-      case "To Do":
+      case "Not started":
         return "bg-blue-50 hover:bg-blue-100 border-blue-200";
-      case "In Progress":
+      case "In progress":
         return "bg-purple-50 hover:bg-purple-100 border-purple-200";
-      case "Review":
+      case "Deferred":
         return "bg-orange-50 hover:bg-orange-100 border-orange-200";
       case "Completed":
         return "bg-green-50 hover:bg-green-100 border-green-200";
@@ -471,14 +509,13 @@ useEffect(() => {
     }
   };
 
-  // Helper functions for list view badges
   const getStatusBadgeClass = (status) => {
     switch (status) {
-      case "To Do":
+      case "Not started":
         return "bg-blue-100 text-blue-700";
-      case "In Progress":
+      case "In progress":
         return "bg-purple-100 text-purple-700";
-      case "Review":
+      case "Deferred":
         return "bg-orange-100 text-orange-700";
       case "Completed":
         return "bg-green-100 text-green-700";
@@ -517,6 +554,7 @@ useEffect(() => {
   return (
     <div className="p-4 sm:p-6 lg:p-8 min-h-screen font-inter relative">
       {(loading || userLoading) && <LoadingSpinner message="Loading tasks..." />}
+
       {/* Header */}
       <div className="flex justify-between items-start mb-4">
         <div>
@@ -539,7 +577,6 @@ useEffect(() => {
           <MetricCard key={metric.title} {...metric} />
         ))}
       </div>
-      
 
       {/* Filters */}
       <div className="bg-white rounded-xl p-4 shadow-sm mt-6 mb-4 flex flex-col lg:flex-row items-center justify-between gap-3 w-full">
@@ -603,40 +640,31 @@ useEffect(() => {
         </button>
       </div>
 
-      {/* Status Indicators */}
-      {(loading || userLoading) && <p className="text-gray-500">Loading tasks...</p>}
-      
       {!loading && !userLoading && filteredTasks.length === 0 && (
-          <p className="text-center text-gray-500 mt-10 p-4 bg-white shadow rounded-lg">
-            No tasks found matching current filters.
-          </p>
+        <p className="text-center text-gray-500 mt-10 p-4 bg-white shadow rounded-lg">
+          No tasks found matching current filters.
+        </p>
       )}
 
       {/* Board View */}
       {!loading && !userLoading && filteredTasks.length > 0 && view === "board" && (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 rounded-md">
           {BOARD_COLUMNS.map((column) => {
-            const columnTasks = displayTasks.filter(
-              (task) => task.status === column
-            );
-            
+            const columnTasks = displayTasks.filter((task) => task.status === column);
             return (
               <div
                 key={column}
                 className="bg-white p-4 shadow border border-gray-200 flex flex-col relative"
               >
-                {/* Top horizontal line: Assuming 'bg-secondary' is defined in your CSS */}
-                <div className="absolute top-0 left-0 w-full h-5 bg-secondary rounded-t-md" /> 
-
+                <div className="absolute top-0 left-0 w-full h-5 bg-secondary rounded-t-md" />
                 <div className="flex items-center justify-between mb-3 pt-7">
                   <h3 className="font-medium text-gray-900">{column}</h3>
                   <span className="text-xs bg-gray-100 px-2 py-1 rounded-full text-gray-500">
                     {columnTasks.length}
                   </span>
                 </div>
-                <div 
-                  className={`space-y-3 ${columnTasks.length > 3 ? 'overflow-y-auto max-h-[480px] hide-scrollbar' : ''}`}
-                >
+
+                <div className={`space-y-3 ${columnTasks.length > 3 ? "overflow-y-auto max-h-[480px] hide-scrollbar" : ""}`}>
                   {columnTasks.length > 0 ? (
                     columnTasks.map((task) => (
                       <div
@@ -645,30 +673,19 @@ useEffect(() => {
                         onClick={() => handleOpenModal(task, true)}
                       >
                         <div className="text-left flex-1">
-                          <p className="font-medium text-gray-800 text-sm">
-                            {task.title}
-                          </p>
-                          <p className="text-xs text-gray-500 mt-1">
-                            Priority: {task.priority}
-                          </p>
+                          <p className="font-medium text-gray-800 text-sm">{task.title}</p>
+                          <p className="text-xs text-gray-500 mt-1">Priority: {task.priority}</p>
                           <p className="text-xs text-gray-500 mt-1">
                             Assigned To: {task.assignedToName || "Unassigned"}
                           </p>
                           <p className="text-xs mt-1 text-gray-500">
                             Date:{" "}
-                            <span
-                              className={
-                                isTaskOverdue(task)
-                                  ? "text-red-600"
-                                  : "text-gray-600"
-                              }
-                            >
-                              {task.dateAssigned
-                                ? formatDateDisplay(task.dateAssigned)
-                                : "—"}
+                            <span className={isTaskOverdue(task) ? "text-red-600" : "text-gray-600"}>
+                              {task.dateAssigned ? formatDateDisplay(task.dateAssigned) : "—"}
                             </span>
                           </p>
                         </div>
+
                         <div className="flex items-center gap-2 ml-3">
                           <button
                             type="button"
@@ -694,9 +711,7 @@ useEffect(() => {
                       </div>
                     ))
                   ) : (
-                    <p className="text-sm text-gray-400 text-center py-4">
-                      No tasks
-                    </p>
+                    <p className="text-sm text-gray-400 text-center py-4">No tasks</p>
                   )}
                 </div>
               </div>
@@ -712,29 +727,17 @@ useEffect(() => {
             <table className="min-w-full text-sm">
               <thead className="bg-gray-100 text-gray-600 text-left">
                 <tr>
-                  <th className="py-3 px-4 font-medium">
-                    Task
-                  </th>
-                  <th className="py-3 px-4 font-medium">
-                    Status
-                  </th>
-                  <th className="py-3 px-4 font-medium">
-                    Priority
-                  </th>
-                  <th className="py-3 px-4 font-medium">
-                    Assigned To
-                  </th>
-                  <th className="py-3 px-4 font-medium">
-                    Date Assigned
-                  </th>
-                  <th className="py-3 px-4 font-medium">
-                    Actions
-                  </th>
+                  <th className="py-3 px-4 font-medium">Task</th>
+                  <th className="py-3 px-4 font-medium">Status</th>
+                  <th className="py-3 px-4 font-medium">Priority</th>
+                  <th className="py-3 px-4 font-medium">Assigned To</th>
+                  <th className="py-3 px-4 font-medium">Date Assigned</th>
+                  <th className="py-3 px-4 font-medium">Actions</th>
                 </tr>
               </thead>
-            <tbody>
-              {displayTasks.length > 0 ? (
-                displayTasks.map((task) => (
+
+              <tbody>
+                {displayTasks.map((task) => (
                   <tr
                     key={task.id}
                     className="hover:bg-gray-50 transition-colors text-sm cursor-pointer"
@@ -743,36 +746,27 @@ useEffect(() => {
                     <td className="py-3 px-4 text-gray-700 whitespace-nowrap font-medium">
                       {task.title}
                     </td>
+
                     <td className="py-3 px-4 whitespace-nowrap">
-                      <span
-                        className={`px-2 py-1 rounded-full text-xs font-medium whitespace-nowrap ${getStatusBadgeClass(
-                          task.status || "To Do"
-                        )}`}
-                      >
-                        {task.status || "To Do"}
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium whitespace-nowrap ${getStatusBadgeClass(task.status)}`}>
+                        {task.status}
                       </span>
                     </td>
+
                     <td className="py-3 px-4 whitespace-nowrap">
-                      <span
-                        className={`px-2 py-1 rounded-full text-xs font-medium whitespace-nowrap ${getPriorityBadgeClass(
-                          task.priority || "Low"
-                        )}`}
-                      >
-                        {task.priority || "Low"}
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium whitespace-nowrap ${getPriorityBadgeClass(task.priority)}`}>
+                        {task.priority}
                       </span>
                     </td>
+
                     <td className="py-3 px-4 text-gray-700 whitespace-nowrap">
                       {task.assignedToName || "Unassigned"}
                     </td>
-                    <td
-                      className={`py-3 px-4 text-gray-700 whitespace-nowrap ${
-                        isTaskOverdue(task) ? "text-red-600 font-medium" : ""
-                      }`}
-                    >
-                      {task.dateAssigned
-                        ? formatDateDisplay(task.dateAssigned)
-                        : "—"}
+
+                    <td className={`py-3 px-4 text-gray-700 whitespace-nowrap ${isTaskOverdue(task) ? "text-red-600 font-medium" : ""}`}>
+                      {task.dateAssigned ? formatDateDisplay(task.dateAssigned) : "—"}
                     </td>
+
                     <td className="py-3 px-4 whitespace-nowrap">
                       <div className="flex items-center gap-3" onClick={(e) => e.stopPropagation()}>
                         <button
@@ -792,24 +786,13 @@ useEffect(() => {
                       </div>
                     </td>
                   </tr>
-                ))
-              ) : (
-                <tr>
-                  <td
-                    className="py-3 px-4 text-center text-sm text-gray-500"
-                    colSpan={6}
-                  >
-                    No tasks found.
-                  </td>
-                </tr>
-              )}
-            </tbody>
+                ))}
+              </tbody>
             </table>
           </div>
         </div>
       )}
 
-      {/* Pagination for List View only */}
       {!loading && !userLoading && view === "list" && (
         <PaginationControls
           className="mt-6"
@@ -819,17 +802,13 @@ useEffect(() => {
           onPrev={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
           onNext={() =>
             setCurrentPage((prev) =>
-              Math.min(
-                prev + 1,
-                Math.max(1, Math.ceil(filteredTasks.length / LIST_PAGE_SIZE) || 1)
-              )
+              Math.min(prev + 1, Math.max(1, Math.ceil(filteredTasks.length / LIST_PAGE_SIZE) || 1))
             )
           }
           label="tasks"
         />
       )}
 
-      {/* Task Modal */}
       <TaskModal
         isOpen={showModal}
         onClose={handleCloseModal}
@@ -840,6 +819,7 @@ useEffect(() => {
         viewMode={viewMode}
         users={users}
         currentUser={currentUser}
+        relatedTypes={RELATED_TYPES} // ✅ if you want to use it in TaskModal
       />
 
       {confirmationModal}
@@ -848,31 +828,13 @@ useEffect(() => {
 }
 
 // --- Helper UI Components ---
-
-function MetricCard({
-  icon: Icon,
-  title,
-  value,
-  color = "text-blue-600",
-  bgColor = "bg-blue-100",
-  onClick,
-}) {
-  const handleClick = () => {
-    if (typeof onClick === "function") {
-      onClick();
-    } else {
-      console.log(`Clicked: ${title}`);
-    }
-  };
-
+function MetricCard({ icon: Icon, title, value, color = "text-blue-600", bgColor = "bg-blue-100", onClick }) {
   return (
     <div
-className="flex items-center p-4 bg-white rounded-xl shadow-md border border-gray-200 transition-all duration-300"
-      onClick={handleClick}
+      className="flex items-center p-4 bg-white rounded-xl shadow-md border border-gray-200 transition-all duration-300"
+      onClick={onClick}
     >
-      <div
-        className={`flex-shrink-0 p-3 rounded-full ${bgColor} ${color} mr-4`}
-      >
+      <div className={`flex-shrink-0 p-3 rounded-full ${bgColor} ${color} mr-4`}>
         {Icon ? <Icon size={22} /> : null}
       </div>
       <div className="min-w-0">
@@ -899,15 +861,13 @@ function ConfirmationModal({
   const confirmClasses =
     variant === "danger"
       ? "bg-red-500 hover:bg-red-600 border border-red-400"
-      : "bg-tertiary hover:bg-secondary border border-tertiary"; // Assuming 'bg-tertiary' and 'bg-secondary' are defined in your CSS
+      : "bg-tertiary hover:bg-secondary border border-tertiary";
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-[60]">
       <div className="bg-white w-full max-w-md rounded-xl shadow-lg p-6 border border-gray-200">
         <h3 className="text-lg font-semibold text-gray-800">{title}</h3>
-        <p className="text-sm text-gray-600 mt-2 whitespace-pre-line">
-          {message}
-        </p>
+        <p className="text-sm text-gray-600 mt-2 whitespace-pre-line">{message}</p>
 
         <div className="mt-6 flex flex-col sm:flex-row sm:justify-end sm:space-x-3 space-y-2 sm:space-y-0">
           <button

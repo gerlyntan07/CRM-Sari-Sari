@@ -9,16 +9,16 @@ const AdminMeetingInfomation = ({ meeting, onClose, onEdit, onDelete, onStatusUp
   const [activeTab, setActiveTab] = useState("Overview");
   const toAdminStatus = (status) => {
     const s = (status || "").toUpperCase();
-    if (s === "PENDING" || s === "IN PROGRESS") return "PLANNED";
-    if (s === "COMPLETED" || s === "DONE") return "HELD";
-    if (s === "CANCELLED") return "NOT_HELD";
+    if (s === "PLANNED" || s === "IN PROGRESS") return "PLANNED";
+    if (s === "HELD" || s === "DONE") return "HELD";
+    if (s === "NOT HELD") return "NOT_HELD";
     return "PLANNED";
   };
   const toBackendStatus = (adminStatus) => {
     const s = (adminStatus || "").toUpperCase();
     if (s === "PLANNED") return "PENDING";
     if (s === "HELD") return "COMPLETED";
-    if (s === "NOT_HELD") return "CANCELLED";
+    if (s === "NOT HELD") return "CANCELLED";
     return "PENDING";
   };
   const [selectedStatus, setSelectedStatus] = useState(toAdminStatus(meeting?.status || "PENDING"));

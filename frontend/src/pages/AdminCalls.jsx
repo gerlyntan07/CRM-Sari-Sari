@@ -744,28 +744,23 @@ export default function AdminCalls() {
               <option value="Account">Account</option>
             </select>
 
-            {Array.isArray(relatedTo1Values) && relatedTo1Values.length > 0 ? (
-              <select
-                name="relatedTo1"
-                onChange={handleInputChange}
-                value={formData.relatedTo1 ?? ""}
-                className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-400 outline-none disabled:bg-gray-100"
-              >
-                <option value="">--</option>
-                {relatedTo1Values.map((item) => (
-                  <option key={item.id} value={item.id}>
-                    {formData.relatedType1 === "Lead" ? `${item.title}` : item.name}
-                  </option>
-                ))}
-              </select>
-            ) : (
-              <input
-                type="text"
-                value={`No ${formData.relatedType1 || ""} data found`}
-                className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm outline-none bg-gray-100 text-gray-500"
-                disabled
-              />
-            )}
+            <SearchableSelect              
+              items={Array.isArray(relatedTo1Values) ? relatedTo1Values : []}
+              value={formData.relatedTo1 ?? ""}
+              placeholder={`Search ${formData.relatedType1 || 'here'}...`
+              }
+              getLabel={(item) =>
+                formData.relatedType1 === "Lead"
+                  ? item.title
+                  : item.name ?? ""
+              }
+              onChange={(newId) =>
+                setFormData((prev) => ({
+                  ...prev,
+                  relatedTo1: newId, // keep string
+                }))
+              }
+            />            
           </div>
 
           {/* ✅ RELATED TYPE 2 + SEARCHABLE RELATED TO 2 (CONTACT / DEAL) */}
@@ -832,22 +827,22 @@ export default function AdminCalls() {
           </div>
 
           <div className="col-span-2">
-            <label className="block text-gray-700 font-medium mb-1 text-sm">Assign To</label>
-            <select
-              name="assigned_to"
-              onChange={handleInputChange}
-              value={formData.assigned_to || ""}
-              className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-400 outline-none disabled:bg-gray-100"
-            >
-              <option value="">Select User</option>
-              {Array.isArray(team) &&
-                team.length > 0 &&
-                team.map((u) => (
-                  <option key={u.id} value={u.id}>
-                    {u.first_name} {u.last_name}
-                  </option>
-                ))}
-            </select>
+            <label className="block text-gray-700 font-medium mb-1 text-sm">Assign To</label>            
+            <SearchableSelect              
+              items={Array.isArray(team) ? team : []}
+              value={formData.assigned_to ?? ""}
+              placeholder={`Search an account...`
+              }
+              getLabel={(item) =>
+                `${item.first_name} ${item.last_name}`
+              }
+              onChange={(newId) =>
+                setFormData((prev) => ({
+                  ...prev,
+                  assigned_to: newId, // keep string
+                }))
+              }
+            /> 
           </div>
 
           <div>

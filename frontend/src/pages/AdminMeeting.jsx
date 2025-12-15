@@ -19,9 +19,9 @@ import LoadingSpinner from "../components/LoadingSpinner.jsx";
 const normalizeStatus = (status) => (status ? status.toUpperCase() : "");
 const toAdminStatus = (status) => {
   const s = normalizeStatus(status);
-  if (s === "PENDING" || s === "IN PROGRESS") return "PLANNED";
-  if (s === "COMPLETED" || s === "DONE") return "HELD";
-  if (s === "CANCELLED") return "NOT_HELD";
+  if (s === "PLANNED" || s === "IN PROGRESS") return "PLANNED";
+  if (s === "HELD" || s === "DONE") return "HELD";
+  if (s === "NOT_HELD" || s === "NOT HELD") return "NOT_HELD";
   return "PLANNED";
 };
 

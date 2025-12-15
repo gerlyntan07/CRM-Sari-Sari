@@ -4,8 +4,8 @@ from datetime import datetime
 
 class MeetingBase(BaseModel):
     subject: str
-    start_time: datetime
-    end_time: datetime
+    start_time: Optional[datetime] = None
+    end_time: Optional[datetime] = None
     location: Optional[str] = None
     status: str
     notes: Optional[str] = None
@@ -24,17 +24,17 @@ class MeetingCreate(BaseModel):
     assignedTo: int
 
 class MeetingUpdate(BaseModel):
-    subject: Optional[str] = None
+    subject: Optional[str] = None    
+    startTime: Optional[datetime] = None
+    endTime: Optional[datetime] = None
     location: Optional[str] = None
-    duration: Optional[int] = None
-    meeting_link: Optional[str] = None
-    agenda: Optional[str] = None
-    due_date: Optional[str] = None
-    assigned_to: Optional[int] = None
-    related_type: Optional[str] = None
-    related_to: Optional[int] = None  # ID of related entity
-    priority: Optional[str] = None
     status: Optional[str] = None
+    notes: Optional[str] = None
+    relatedType1: Optional[str] = None
+    relatedType2: Optional[str] = None
+    relatedTo1: Optional[int] = None
+    relatedTo2: Optional[int] = None
+    assignedTo: Optional[int] = None
 
 class AccountBase(BaseModel):
     id: int

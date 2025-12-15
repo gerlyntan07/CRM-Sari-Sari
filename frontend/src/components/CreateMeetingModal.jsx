@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import { FiX } from "react-icons/fi";
 import api from "../api";
 import {toast} from 'react-toastify';
@@ -191,26 +191,23 @@ const CreateMeetingModal = ({
               <option value="Account">Account</option>
             </select>
 
-            {Array.isArray(relatedTo1Values) && relatedTo1Values.length > 0 ? (
-              <select
-                name="relatedTo1"
-                onChange={handleInputChange}
-                value={formData.relatedTo1 || ""}
-                className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-400 outline-none"
-                disabled={isSubmitting}
-              >
-                <option value="">-- Select {formData.relatedType1} --</option>
-                {relatedTo1Values.map((item) => (
-                  <option key={item.id} value={item.id}>
-                    {formData.relatedType1 === 'Lead' ? item.title : item.name}
-                  </option>
-                ))}
-              </select>
-            ) : (
-               <div className="text-gray-400 text-xs mt-1 border border-gray-200 rounded p-2 bg-gray-50">
-                  {formData.relatedType1 ? `Loading ${formData.relatedType1}s...` : 'Select a type'}
-               </div>
-            )}
+            <SearchableSelect              
+              items={Array.isArray(relatedTo1Values) ? relatedTo1Values : []}
+              value={formData.relatedTo1 ?? ""}
+              placeholder={`Search ${formData.relatedType1 || 'here'}...`
+              }
+              getLabel={(item) =>
+                formData.relatedType1 === "Lead"
+                  ? item.title
+                  : item.name ?? ""
+              }
+              onChange={(newId) =>
+                setFormData((prev) => ({
+                  ...prev,
+                  relatedTo1: newId, // keep string
+                }))
+              }
+            />            
           </div>
 
           <div className="w-full flex flex-col">
@@ -225,31 +222,29 @@ const CreateMeetingModal = ({
               <option value="Deal">Deal</option>
             </select>
 
-            {Array.isArray(relatedTo2Values) && relatedTo2Values.length > 0 ? (
-              <select
-                name="relatedTo2"
-                onChange={handleInputChange}
-                value={formData.relatedTo2 || ""}
-                className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-400 outline-none disabled:bg-gray-100"
-                disabled={isSubmitting || formData.relatedType1 === 'Lead'}
-              >
-                <option value="">-- Select {formData.relatedType2} --</option>
-                {relatedTo2Values.map((item) => (
-                  <option key={item.id} value={item.id}>
-                    {formData.relatedType2 === 'Contact' 
-                      ? `${item.first_name} ${item.last_name}` 
-                      : item.name}
-                  </option>
-                ))}
-              </select>
-            ) : (
-              <input
-                type="text"
-                value={formData.relatedType1 === 'Lead' ? 'Not applicable for Leads' : `No ${formData.relatedType2 || ''}s found for this Account`}
-                disabled
-                className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm bg-gray-100 text-gray-500"
-              />
-            )}
+            <SearchableSelect
+              disabled={formData.relatedType1 === "Lead"}
+              items={Array.isArray(relatedTo2Values) ? relatedTo2Values : []}
+              value={formData.relatedTo2 ?? ""}
+              placeholder={
+                formData.relatedType1 === "Lead"
+                  ? ""
+                  : Array.isArray(relatedTo2Values) && relatedTo2Values.length > 0
+                  ? `Search ${formData.relatedType2 || "Contact"}...`
+                  : `No ${formData.relatedType2 || ""} data found`
+              }
+              getLabel={(item) =>
+                formData.relatedType2 === "Contact"
+                  ? `${item.first_name ?? ""} ${item.last_name ?? ""}`.trim()
+                  : item.name ?? ""
+              }
+              onChange={(newId) =>
+                setFormData((prev) => ({
+                  ...prev,
+                  relatedTo2: newId, // keep string
+                }))
+              }
+            />            
           </div>
           {/* -------------------------------------------------------- */}
 
@@ -283,21 +278,28 @@ const CreateMeetingModal = ({
             />
           </div>
 
-          <SelectField
-            label="Assigned To"
-            name="assignedTo"
-            value={formData.assignedTo}
-            onChange={handleInputChange}
-            options={[
-              { value: "", label: "Select assignee" },
-              ...users.map((user) => ({
-                value: String(user.id),
-                label: `${user.first_name} ${user.last_name}`,
-              })),
-            ]}
-            required={!isEditing}
-            disabled={isSubmitting || users.length === 0}
-          />
+          
+
+          <div>
+                      <label className="block text-gray-700 font-medium mb-1 text-sm">
+                        Assign To
+                      </label>
+                      <SearchableSelect              
+              items={Array.isArray(users) ? users : []}
+              value={formData.assignedTo ?? ""}
+              placeholder={`Search an account...`
+              }
+              getLabel={(item) =>
+                `${item.first_name} ${item.last_name}`
+              }
+              onChange={(newId) =>
+                setFormData((prev) => ({
+                  ...prev,
+                  assignedTo: newId, // keep string
+                }))
+              }
+            /> 
+                    </div>   
 
           <SelectField
             label="Status"
@@ -373,6 +375,98 @@ function TextareaField({ label, name, value, onChange, placeholder, required = f
     <div className={className}>
       <label className="block text-gray-700 font-medium mb-1 text-sm">{label}</label>
       <textarea name={name} value={value ?? ""} onChange={onChange} placeholder={placeholder} required={required} disabled={disabled} rows={rows} className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-400 outline-none disabled:bg-gray-100 resize-none" />
+    </div>
+  );
+}
+
+function SearchableSelect({
+  items = [],
+  value = "",
+  onChange,
+  getLabel,
+  placeholder = "Search...",
+  disabled = false,
+  maxRender = 200,
+}) {
+  const [open, setOpen] = useState(false);
+  const [q, setQ] = useState("");
+  const wrapRef = useRef(null);
+
+  const selectedItem = items.find((it) => String(it.id) === String(value));
+  const selectedLabel = selectedItem ? getLabel(selectedItem) : "";
+
+  const filtered = useMemo(() => {
+    const query = q.trim().toLowerCase();
+    const base = query
+      ? items.filter((it) => (getLabel(it) || "").toLowerCase().includes(query))
+      : items;
+
+    return base.slice(0, maxRender);
+  }, [items, q, getLabel, maxRender]);
+
+  useEffect(() => {
+    const onDoc = (e) => {
+      if (wrapRef.current && !wrapRef.current.contains(e.target)) setOpen(false);
+    };
+    document.addEventListener("mousedown", onDoc);
+    return () => document.removeEventListener("mousedown", onDoc);
+  }, []);
+
+  useEffect(() => {
+    if (!open) setQ("");
+  }, [open]);
+
+  return (
+    <div ref={wrapRef} className="relative w-full">
+      <input
+        disabled={disabled}
+        value={open ? q : selectedLabel}
+        placeholder={placeholder}
+        onFocus={() => !disabled && setOpen(true)}
+        onChange={(e) => {
+          setQ(e.target.value);
+          if (!open) setOpen(true);
+        }}
+        className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-400 outline-none disabled:bg-gray-100"
+      />
+
+      {open && !disabled && (
+        <div className="absolute z-50 mt-1 w-full bg-white border border-gray-200 rounded-md shadow-lg overflow-hidden">
+          <div className="max-h-56 overflow-y-auto">
+            {filtered.length > 0 ? (
+              filtered.map((it) => {
+                const id = String(it.id);
+                const label = getLabel(it);
+                const active = String(value) === id;
+
+                return (
+                  <button
+                    key={id}
+                    type="button"
+                    onClick={() => {
+                      onChange(id);
+                      setOpen(false);
+                    }}
+                    className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-50 ${
+                      active ? "bg-blue-50" : ""
+                    }`}
+                  >
+                    {label || "--"}
+                  </button>
+                );
+              })
+            ) : (
+              <div className="px-3 py-2 text-sm text-gray-500">No results</div>
+            )}
+          </div>
+
+          {items.length > maxRender && (
+            <div className="px-3 py-2 text-[11px] text-gray-400 border-t">
+              Showing first {maxRender} results — keep typing to narrow.
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

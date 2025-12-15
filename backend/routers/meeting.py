@@ -397,139 +397,103 @@ def update_meeting(
     # Store old data for audit log
     old_data = serialize_instance(meeting)
     
-    # Validate and update assigned user if provided
-    if data.assigned_to is not None:
-        if data.assigned_to == 0:
-            # Allow clearing assigned_to by setting to None
-            meeting.assigned_to = None
-        else:
-            assigned_user = db.query(User).filter(User.id == data.assigned_to).first()
-            if not assigned_user:
-                raise HTTPException(status_code=404, detail="Assigned user not found")
-            meeting.assigned_to = data.assigned_to
-    
-    # Update start_time if due_date is provided
-    if data.due_date:
-        try:
-            if 'T' in data.due_date:
-                meeting.start_time = datetime.fromisoformat(data.due_date.replace('Z', '+00:00'))
-            else:
-                meeting.start_time = datetime.strptime(data.due_date, '%Y-%m-%d')
-        except (ValueError, AttributeError):
-            raise HTTPException(status_code=400, detail="Invalid date format for due_date")
-    
-    # Update end_time if duration is provided
-    if data.duration is not None:
-        if data.duration == 0 or data.duration is None:
-            meeting.end_time = None
-        elif meeting.start_time:
-            meeting.end_time = meeting.start_time + timedelta(minutes=data.duration)
-        elif data.due_date:
-            # If due_date was also updated, use the new start_time
-            try:
-                if 'T' in data.due_date:
-                    start_time = datetime.fromisoformat(data.due_date.replace('Z', '+00:00'))
-                else:
-                    start_time = datetime.strptime(data.due_date, '%Y-%m-%d')
-                meeting.end_time = start_time + timedelta(minutes=data.duration)
-            except (ValueError, AttributeError):
-                # If date parsing fails, we already updated start_time above, so just skip
-                pass
-    
-    # Update other fields
+    # 1. Update Basic Fields
     if data.subject is not None:
         meeting.subject = data.subject
     if data.location is not None:
         meeting.location = data.location
+    if data.notes is not None:
+        meeting.notes = data.notes
+
+    # 2. Update Times
+    if data.startTime is not None:
+        meeting.start_time = data.startTime
     
-    # Update status
+    if data.endTime is not None:
+        meeting.end_time = data.endTime
+
+    # 3. Update Status
     if data.status is not None:
-        status_key = (data.status or "").upper()
+        status_key = data.status.strip().upper()
         status_mapping = {
-            # Frontend-call style
             "PENDING": MeetingStatus.PLANNED,
+            "PLANNED": MeetingStatus.PLANNED,
+            "IN PROGRESS": MeetingStatus.PLANNED,
             "COMPLETED": MeetingStatus.HELD,
+            "HELD": MeetingStatus.HELD,
             "DONE": MeetingStatus.HELD,
             "CANCELLED": MeetingStatus.NOT_HELD,
-            "IN PROGRESS": MeetingStatus.PLANNED,
-            # Admin-meetings style
-            "PLANNED": MeetingStatus.PLANNED,
-            "HELD": MeetingStatus.HELD,
             "NOT_HELD": MeetingStatus.NOT_HELD,
             "NOT HELD": MeetingStatus.NOT_HELD,
         }
-        meeting.status = status_mapping.get(status_key, MeetingStatus.PLANNED)
-    
-    # Update related_to fields if related_type or related_to is provided
-    if data.related_type is not None or data.related_to is not None:
-        # If both related_type and related_to are being updated, set the appropriate foreign key
-        if data.related_type is not None and data.related_to is not None:
-            # Reset all related_to fields first
-            meeting.related_to_account = None
-            meeting.related_to_contact = None
-            meeting.related_to_lead = None
-            meeting.related_to_deal = None
+        if status_key in status_mapping:
+            meeting.status = status_mapping[status_key]
+
+    # 4. Update Assigned User
+    if data.assignedTo is not None:
+        if data.assignedTo == 0:
+            meeting.assigned_to = None
+        else:
+            assigned_user = db.query(User).filter(User.id == data.assignedTo).first()
+            if not assigned_user:
+                raise HTTPException(status_code=404, detail="Assigned user not found")
+            meeting.assigned_to = data.assignedTo
+
+    # 5. Update Relations
+    if data.relatedType1 is not None and data.relatedTo1 is not None:
+        # Reset existing
+        meeting.related_to_lead = None
+        meeting.related_to_account = None
+        meeting.related_to_contact = None
+        meeting.related_to_deal = None
+
+        if data.relatedType1 == "Lead":
+            lead = db.query(Lead).filter(Lead.id == data.relatedTo1).first()
+            if not lead:
+                raise HTTPException(status_code=404, detail="Lead not found")
+            meeting.related_to_lead = lead.id
+
+        elif data.relatedType1 == "Account":
+            account = db.query(Account).filter(Account.id == data.relatedTo1).first()
+            if not account:
+                raise HTTPException(status_code=404, detail="Account not found")
             
-            related_to_id = data.related_to
-            related_to_text = None
-            
-            if data.related_type == "Account":
-                account = db.query(Account).filter(Account.id == related_to_id).first()
-                if account:
-                    meeting.related_to_account = related_to_id
-                    related_to_text = account.name
-                else:
-                    raise HTTPException(status_code=404, detail="Account not found")
-            elif data.related_type == "Contact":
-                contact = db.query(Contact).filter(Contact.id == related_to_id).first()
-                if contact:
-                    meeting.related_to_contact = related_to_id
-                    meeting.related_to_account = contact.account_id
-                    related_to_text = f"{contact.first_name} {contact.last_name}"
-                else:
+            if data.relatedType2 == "Contact" and data.relatedTo2:
+                contact = db.query(Contact).filter(Contact.id == data.relatedTo2).first()
+                if not contact:
                     raise HTTPException(status_code=404, detail="Contact not found")
-            elif data.related_type == "Lead":
-                lead = db.query(Lead).filter(Lead.id == related_to_id).first()
-                if lead:
-                    meeting.related_to_lead = related_to_id
-                    related_to_text = f"{lead.first_name} {lead.last_name}"
-                else:
-                    raise HTTPException(status_code=404, detail="Lead not found")
-            elif data.related_type == "Deal":
-                deal = db.query(Deal).filter(Deal.id == related_to_id).first()
-                if deal:
-                    meeting.related_to_deal = related_to_id
-                    meeting.related_to_account = deal.account_id
-                    related_to_text = deal.name
-                else:
+                meeting.related_to_contact = contact.id
+                meeting.related_to_account = account.id 
+                
+            elif data.relatedType2 == "Deal" and data.relatedTo2:
+                deal = db.query(Deal).filter(Deal.id == data.relatedTo2).first()
+                if not deal:
                     raise HTTPException(status_code=404, detail="Deal not found")
-        elif (data.related_type is None and data.related_to is None) or (data.related_type is not None and data.related_to is None):
-            # If both are set to None, or if related_type is set but related_to is None, clear all related_to fields
-            meeting.related_to_account = None
-            meeting.related_to_contact = None
-            meeting.related_to_lead = None
-            meeting.related_to_deal = None
-    
-    if data.agenda is not None:
-        meeting.notes = data.agenda
-    
+                meeting.related_to_deal = deal.id
+                meeting.related_to_account = account.id
+            else:
+                meeting.related_to_account = account.id
+
     db.commit()
     db.refresh(meeting)
     
-    # Create audit log
-    new_data = serialize_instance(meeting)
-    create_audit_log(
-        db=db,
-        current_user=current_user,
-        instance=meeting,
-        action="UPDATE",
-        request=request,
-        old_data=old_data,
-        new_data=new_data,
-        custom_message=f"update meeting '{meeting.subject}'"
-    )
+    # Audit Log logic (wrapped in try/except to prevent 500 errors if audit fails)
+    try:
+        new_data = serialize_instance(meeting)
+        create_audit_log(
+            db=db,
+            current_user=current_user,
+            instance=meeting,
+            action="UPDATE",
+            request=request,
+            old_data=old_data,
+            new_data=new_data,
+            custom_message=f"Updated meeting '{meeting.subject}'"
+        )
+    except Exception as e:
+        print(f"Audit Log Error: {e}")
     
-    return meeting_to_response(meeting)
+    return meeting
 
 @router.delete("/{meeting_id}", status_code=status.HTTP_200_OK)
 def delete_meeting(

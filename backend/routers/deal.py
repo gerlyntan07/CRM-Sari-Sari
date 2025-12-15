@@ -4,7 +4,7 @@ from typing import List
 from database import get_db
 from schemas.deal import DealBase, DealResponse, DealCreate, DealUpdate
 from schemas.auth import UserResponse, UserWithTerritories
-from .auth_utils import get_current_user, hash_password,get_default_avatar
+from .auth_utils import get_current_user, hash_password, get_default_avatar
 from models.auth import User
 from models.deal import Deal, DealStage, STAGE_PROBABILITY_MAP
 from models.account import Account
@@ -35,7 +35,7 @@ def create_deal(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Deal amount cannot be negative"
             )
-                    
+
     new_deal = Deal(
         name=data.name,
         account_id=data.account_id,
@@ -48,19 +48,17 @@ def create_deal(
         assigned_to=data.assigned_to,
         created_by=current_user.id,  # safer to use current_user
     )
-    
-    # Step 1: Add and commit once to get the DB-assigned id
-    db.add(new_deal)
-    db.commit()
-    db.refresh(new_deal)
 
-    # Step 2: Generate and save deal_id like D25-00001
-    new_deal.generate_deal_id(db)
+    # ✅ Single commit approach: flush -> generate_deal_id -> commit
+    db.add(new_deal)
+    db.flush()  # assigns new_deal.id without committing
+
+    new_deal.generate_deal_id(db)  # ✅ pass db
     db.commit()
     db.refresh(new_deal)
 
     # Step 3: Log and return
-    new_data = serialize_instance(new_deal)    
+    new_data = serialize_instance(new_deal)
     create_audit_log(
         db=db,
         current_user=current_user,
@@ -73,11 +71,12 @@ def create_deal(
 
     return new_deal
 
+
 @router.get("/admin/fetch-all", response_model=list[DealResponse])
-def admin_get_deals(    
+def admin_get_deals(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
-):        
+):
     if current_user.role.upper() not in ['CEO', 'ADMIN', 'GROUP MANAGER']:
         raise HTTPException(status_code=403, detail="Permission denied")
 
@@ -90,12 +89,13 @@ def admin_get_deals(
 
     return deals
 
+
 @router.get("/from-acc/{accID}", response_model=list[DealResponse])
-def admin_get_deals(    
+def admin_get_deals_from_acc(
     accID: int,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
-):        
+):
     # Get all users in the same company
     company_users = db.query(User.id).filter(User.related_to_company == current_user.related_to_company).subquery()
 
@@ -104,6 +104,7 @@ def admin_get_deals(
     ).filter(Deal.account_id == accID).all()
 
     return deals
+
 
 @router.post("/admin/create", response_model=DealResponse, status_code=status.HTTP_201_CREATED)
 def admin_create_deal(
@@ -122,7 +123,7 @@ def admin_create_deal(
     account = db.query(Account).filter(Account.id == data.account_id).first()
     if not account:
         raise HTTPException(status_code=404, detail="Account not found.")
-    
+
     # Check if account belongs to company
     account_creator = db.query(User).filter(User.id == account.created_by).first()
     if not account_creator or account_creator.related_to_company != current_user.related_to_company:
@@ -159,9 +160,18 @@ def admin_create_deal(
                 detail="Deal amount cannot be negative"
             )
 
+    # ✅ Validate stage safely (prevents Enum ValueError crash)
+    stage_upper = (data.stage or "").upper()
+    try:
+        stage_enum = DealStage(stage_upper)
+    except Exception:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid stage '{data.stage}'. Allowed: {[s.value for s in DealStage]}"
+        )
+
     # Calculate probability from stage
-    stage_upper = data.stage.upper()
-    probability = STAGE_PROBABILITY_MAP.get(DealStage(stage_upper), 10)
+    probability = STAGE_PROBABILITY_MAP.get(stage_enum, 10)
 
     new_deal = Deal(
         name=data.name,
@@ -176,13 +186,12 @@ def admin_create_deal(
         assigned_to=data.assigned_to,
         created_by=current_user.id,
     )
-    
-    db.add(new_deal)
-    db.commit()
-    db.refresh(new_deal)
 
-    # Generate deal_id
-    new_deal.generate_deal_id()
+    # ✅ Single commit approach + FIX generate_deal_id(db)
+    db.add(new_deal)
+    db.flush()  # assigns new_deal.id
+
+    new_deal.generate_deal_id(db)  # ✅ FIXED (was missing db)
     db.commit()
     db.refresh(new_deal)
 
@@ -205,6 +214,7 @@ def admin_create_deal(
 
     return new_deal
 
+
 @router.put("/admin/{deal_id}", response_model=DealResponse)
 def admin_update_deal(
     deal_id: int,
@@ -221,7 +231,6 @@ def admin_update_deal(
         raise HTTPException(status_code=404, detail="Deal not found")
 
     # Verify deal belongs to same company
-    company_users = db.query(User.id).filter(User.related_to_company == current_user.related_to_company).subquery()
     deal_creator = db.query(User).filter(User.id == deal.created_by).first()
     if not deal_creator or deal_creator.related_to_company != current_user.related_to_company:
         raise HTTPException(status_code=403, detail="Not authorized to access this deal")
@@ -231,7 +240,7 @@ def admin_update_deal(
     # Update fields if provided
     if data.name is not None:
         deal.name = data.name
-    
+
     if data.account_id is not None:
         account = db.query(Account).filter(Account.id == data.account_id).first()
         if not account:
@@ -257,8 +266,15 @@ def admin_update_deal(
         stage_upper = data.stage.upper()
         deal.stage = stage_upper
         # Update probability based on stage
-        probability = STAGE_PROBABILITY_MAP.get(DealStage(stage_upper), deal.probability)
-        deal.probability = probability
+        try:
+            stage_enum = DealStage(stage_upper)
+            probability = STAGE_PROBABILITY_MAP.get(stage_enum, deal.probability)
+            deal.probability = probability
+        except Exception:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Invalid stage '{data.stage}'. Allowed: {[s.value for s in DealStage]}"
+            )
 
     if data.amount is not None:
         if data.amount > 99999999.99:
@@ -309,6 +325,7 @@ def admin_update_deal(
     )
 
     return deal
+
 
 @router.delete("/admin/{deal_id}", status_code=status.HTTP_200_OK)
 def admin_delete_deal(

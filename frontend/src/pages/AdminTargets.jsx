@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   FiSearch,
   FiEdit,
@@ -14,6 +14,7 @@ import PaginationControls from "../components/PaginationControls.jsx";
 import LoadingSpinner from "../components/LoadingSpinner.jsx";
 import api from "../api";
 
+
 /* ======================================================
    CONSTANTS
 ====================================================== */
@@ -25,6 +26,77 @@ const INITIAL_FORM_STATE = {
   end_date: "",
   target_amount: "",
 };
+
+
+
+/* ======================================================
+   SEARCHABLE SELECT COMPONENT
+====================================================== */
+function SearchableSelect({ name, items = [], value = "", onChange, getLabel, placeholder = "Search..." }) {
+  const [open, setOpen] = useState(false);
+  const [q, setQ] = useState("");
+  const ref = useRef(null);
+
+  const selectedItem = items.find((i) => String(i.id) === String(value));
+  const selectedLabel = selectedItem ? getLabel(selectedItem) : "";
+
+  const filtered = useMemo(() => {
+    const query = q.toLowerCase();
+    return query
+      ? items.filter((i) => getLabel(i).toLowerCase().includes(query))
+      : items;
+  }, [items, q, getLabel]);
+
+  useEffect(() => {
+    const handler = (e) => {
+      if (ref.current && !ref.current.contains(e.target)) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  return (
+    <div ref={ref} className="flex justify-center w-full">
+      <input
+        value={open ? q : selectedLabel}
+        placeholder={placeholder}
+        onFocus={() => setOpen(true)}
+        onChange={(e) => {
+          setQ(e.target.value);
+          setOpen(true);
+        }}
+  className="w-full max-w-md border text-gray-500 border-gray-300 rounded-lg p-1 focus:outline-none focus:ring-1 focus:ring-blue-400 focus:border-blue-400"
+      />
+
+      {open && (
+        <div className="absolute z-50 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+          {filtered.length ? (
+            filtered.map((item) => (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => {
+                  onChange({ target: { name, value: String(item.id) } });
+                  setOpen(false);
+                  setQ("");
+                }}
+                className="w-full text-left px-3 py-2 text-sm hover:bg-gray-50"
+              >
+                {getLabel(item)}
+              </button>
+            ))
+          ) : (
+            <div className="px-3 py-2 text-sm text-gray-500">
+              No results found
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
 
 /* ======================================================
    MAIN COMPONENT
@@ -116,6 +188,8 @@ export default function AdminTargets() {
     const start = (currentPage - 1) * ITEMS_PER_PAGE;
     return filteredTargets.slice(start, start + ITEMS_PER_PAGE);
   }, [filteredTargets, currentPage]);
+
+
 
   /* ======================================================
      HANDLERS
@@ -239,7 +313,7 @@ export default function AdminTargets() {
           </h1>
           <button
             onClick={handleOpenAddModal}
-            className="flex items-center bg-black text-white px-4 py-2 rounded-md"
+            className="flex items-center bg-black text-white px-4 py-2 rounded-md cursor-pointer"
           >
             <FiPlus className="mr-2" /> Add Target
           </button>
@@ -253,7 +327,8 @@ export default function AdminTargets() {
           />
         </div>
 
-        <div className="bg-white rounded-xl p-4 shadow-sm mb-6 flex items-center">
+       <div className="bg-white rounded-xl p-4 shadow-sm mb-6 flex flex-col lg:flex-row items-center justify-between gap-3 w-full">
+        <div className="flex items-center border border-gray-300 rounded-lg px-4 h-11 w-full lg:w-4/4 focus-within:ring-2 focus-within:ring-indigo-500 transition">
           <FiSearch className="text-gray-400 mr-3" />
           <input
             type="text"
@@ -263,15 +338,16 @@ export default function AdminTargets() {
             className="w-full outline-none"
           />
         </div>
+         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full border border-gray-200 rounded-lg bg-white shadow-sm text-sm">
-            <thead className="bg-gray-100 font-semibold text-gray-600">
+         <table className="w-full border border-gray-200 rounded-lg bg-white shadow-sm text-sm">
+  <thead className="bg-gray-100 font-semibold text-gray-600">
               <tr>
                 <th className="py-3 px-4 text-left">User</th>
-                <th className="py-3 px-4">Target Amount</th>
-                <th className="py-3 px-4">Start Date</th>
-                <th className="py-3 px-4">End Date</th>
+                <th className="py-3 px-4 text-left">Target Amount</th>
+                <th className="py-3 px-4 text-left">Start Date</th>
+                <th className="py-3 px-4 text-left">End Date</th>
               </tr>
             </thead>
             <tbody>
@@ -281,16 +357,16 @@ export default function AdminTargets() {
                   className="hover:bg-gray-50 cursor-pointer"
                   onClick={() => setSelectedTarget(t)}
                 >
-                  <td className="py-3 px-4">
+                  <td className="py-3 px-4 text-left">
                     {t.user
                       ? `${t.user.first_name} ${t.user.last_name}`
                       : "Unknown"}
                   </td>
-                  <td className="py-3 px-4">
+                  <td className="py-3 px-4 text-left">
                     ₱{Number(t.target_amount).toLocaleString()}
                   </td>
-                  <td className="py-3 px-4">{t.start_date}</td>
-                  <td className="py-3 px-4">{t.end_date}</td>
+                   <td className="py-3 px-4 text-left">{t.start_date}</td>
+                   <td className="py-3 px-4 text-left">{t.end_date}</td>
                 </tr>
               ))}
             </tbody>
@@ -366,58 +442,98 @@ function MetricCard({ title, value }) {
 
 function DetailModal({ target, onClose, onEdit, onDelete }) {
   return (
-    <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-xl shadow-xl w-full max-w-4xl">
-        <div className="bg-tertiary p-3 rounded-t-xl text-white relative">
-          <h1 className="text-xl font-semibold text-center">Target</h1>
+    <div
+      className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4"
+      onClick={onClose}
+    >
+      <div
+        className="bg-white rounded-xl shadow-xl w-full max-w-4xl max-h-[92vh] overflow-y-auto hide-scrollbar animate-scale-in font-inter relative"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* 🔵 Top Header */}
+        <div className="bg-tertiary w-full flex items-center justify-between p-3 lg:p-4 rounded-t-xl">
+          <h1 className="lg:text-3xl text-xl text-white font-semibold text-center w-full">
+            Target
+          </h1>
           <button
             onClick={onClose}
-            className="absolute right-3 top-1/2 -translate-y-1/2"
+            className="text-gray-500 hover:text-white transition cursor-pointer"
           >
-            <HiX size={22} />
+            <HiX size={25} />
           </button>
         </div>
 
-        <div className="p-6 grid grid-cols-2 gap-4 text-sm">
-          <p>
-            <b>User:</b>
-            <br />
-            {target.user?.first_name} {target.user?.last_name}
-          </p>
-          <p>
-            <b>Target Amount:</b>
-            <br />₱{Number(target.target_amount).toLocaleString()}
-          </p>
-          <p>
-            <b>Start Date:</b>
-            <br />
-            {target.start_date}
-          </p>
-          <p>
-            <b>End Date:</b>
-            <br />
-            {target.end_date}
-          </p>
-        </div>
+        {/* Action Buttons */}
+       <div className="p-6 lg:p-4">
+  <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-2 p-2 lg:mx-7">
+    <div className="flex items-center gap-2">
+      <h1 className="text-xl sm:text-2xl font-semibold text-gray-800">
+        {target.user && `${target.user.first_name} ${target.user.last_name}`}
+      </h1>
+    </div>
 
-        <div className="flex justify-end gap-3 p-6">
-          <button
-            onClick={onEdit}
-            className="bg-blue-500 text-white px-4 py-2 rounded"
-          >
-            <FiEdit className="inline mr-2" /> Edit
-          </button>
-          <button
-            onClick={onDelete}
-            className="bg-red-500 text-white px-4 py-2 rounded"
-          >
-            <FiTrash2 className="inline mr-2" /> Delete
-          </button>
+    <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+      <button
+        className="inline-flex items-center justify-center w-full sm:w-auto bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 transition text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 cursor-pointer"
+        onClick={onEdit}
+      >
+        <FiEdit className="mr-2" />
+        Edit
+      </button>
+      <button
+        className="inline-flex items-center justify-center w-full sm:w-auto px-4 py-2 rounded-md text-sm bg-red-500 text-white hover:bg-red-600 transition focus:outline-none focus:ring-2 focus:ring-red-400 cursor-pointer"
+        onClick={onDelete}
+      >
+        <FiTrash2 className="mr-2" />
+        Delete
+      </button>
+    </div>
+  </div>
+</div>
+
+
+        <div className="border-b border-gray-200 my-5"></div>
+
+        {/* Overview Content */}
+        <div className="p-4 lg:p-6">
+    <div className="flex w-full bg-[#6A727D] text-white overflow-x-auto">
+  <button
+    className="flex-1 min-w-[90px] px-4 py-2 lg:text-lg text-sm font-medium text-center text-white"
+  >
+    Overview
+  </button>
+</div>
+          <div className="bg-white rounded-xl shadow-sm sm:p-6 lg:p-5 border border-gray-200 text-sm text-gray-700">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-2 gap-4 sm:gap-6">
+              <div>
+                <p className="font-semibold">User:</p>
+                <p>
+                  {target.user
+                    ? `${target.user.first_name} ${target.user.last_name}`
+                    : "Unknown"}
+                </p>
+              </div>
+              <div>
+                <p className="font-semibold">Target Amount:</p>
+                <p>₱{Number(target.target_amount).toLocaleString()}</p>
+              </div>
+              <div>
+                <p className="font-semibold">Start Date:</p>
+                <p>{target.start_date}</p>
+              </div>
+              <div>
+                <p className="font-semibold">End Date:</p>
+                <p>{target.end_date}</p>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
+   
   );
 }
+
 
 function FormModal({
   formData,
@@ -430,71 +546,90 @@ function FormModal({
 }) {
   return (
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-      <div className="bg-white w-full max-w-xl rounded-2xl p-6 relative">
-        <button onClick={onClose} className="absolute top-4 right-4">
-          <FiX size={22} />
+      <div className="bg-white w-full max-w-md rounded-2xl p-8 relative min-h-[50vh]">
+        <button onClick={onClose} className="absolute top-5 right-5">
+          <FiX size={24} />
         </button>
 
-        <h2 className="text-xl font-semibold text-center mb-6">
+        <h2 className="text-2xl font-semibold text-center mb-8">
           {isEditing ? "Edit Target" : "Add New Target"}
         </h2>
 
-        <form onSubmit={onSubmit} className="grid gap-4 text-sm">
-          <select
-            name="user_id"
-            value={formData.user_id}
-            onChange={onChange}
-            required
-            className="border rounded p-2"
-          >
-            <option value="">Select user</option>
-            {users.map((u) => (
-              <option key={u.id} value={u.id}>
-                {u.first_name} {u.last_name}
-              </option>
-            ))}
-          </select>
+        <form onSubmit={onSubmit} className="grid gap-5 text-base">
 
-          <input
-            type="number"
-            name="target_amount"
-            placeholder="Target Amount"
-            value={formData.target_amount}
-            onChange={onChange}
-            required
-            className="border rounded p-2"
-          />
+         <div className="flex flex-col gap-1">
+            <label className="text-sm font-medium text-gray-700">
+              Assign User
+            </label>
 
+            <SearchableSelect
+              name="user_id"
+              items={users}
+              value={formData.user_id}
+              onChange={onChange}
+              getLabel={(u) => `${u.first_name} ${u.last_name}`}
+              placeholder="Search user..."
+            />
+          </div>
+
+         <div className="flex flex-col gap-1">
+         <label className="text-sm font-medium text-gray-700 text-left">
+              Target Amount
+            </label>
+              <div className="flex justify-center w-full">
+            <input
+              type="number"
+              name="target_amount"
+              placeholder="0.00"
+              value={formData.target_amount}
+              onChange={onChange}
+              required
+  className="w-full max-w-md border text-gray-500 border-gray-300 rounded-lg p-1 focus:outline-none focus:ring-1 focus:ring-blue-400 focus:border-blue-400"/>
+  </div>
+</div>
+          
+                <div className="flex flex-col gap-1">
+         <label className="text-sm font-medium text-gray-700 text-left">
+              Start Date
+            </label>
+            <div className="flex justify-center w-full">
           <input
             type="date"
             name="start_date"
             value={formData.start_date}
             onChange={onChange}
             required
-            className="border rounded p-2"
-          />
+    className="w-full max-w-md border text-gray-500 border-gray-300 text-gray-500 rounded-lg p-1 focus:outline-none focus:ring-1 focus:ring-blue-400 focus:border-blue-400"/>
+  </div>
+</div>
 
+             <div className="flex flex-col gap-1">
+         <label className="text-sm font-medium text-gray-700 text-left">
+              End Date
+            </label>
+             <div className="flex justify-center w-full">
           <input
             type="date"
             name="end_date"
             value={formData.end_date}
             onChange={onChange}
             required
-            className="border rounded p-2"
-          />
+    className="w-full max-w-md border text-gray-500 border-gray-300 text-gray-500 rounded-lg p-1 focus:outline-none focus:ring-1 focus:ring-blue-400 focus:border-blue-400"/>
+      </div>
+    </div>
 
-          <div className="flex justify-end gap-2 mt-4">
+          <div className="flex justify-end gap-3 mt-4">
             <button
               type="button"
               onClick={onClose}
-              className="bg-red-400 text-white px-4 py-2 rounded"
+              className="bg-red-400 text-white px-5 py-2 rounded-lg"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={isSubmitting}
-              className="bg-tertiary text-white px-4 py-2 rounded"
+              className="bg-tertiary text-white px-5 py-2 rounded-lg"
             >
               {isSubmitting ? "Saving..." : "Save Target"}
             </button>
@@ -503,7 +638,7 @@ function FormModal({
       </div>
     </div>
   );
-}
+  }
 
 function ConfirmationModal({
   title,
@@ -517,23 +652,24 @@ function ConfirmationModal({
 }) {
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-[60]">
-      <div className="bg-white w-full max-w-md rounded-xl shadow-lg p-6">
-        <h3 className="text-lg font-semibold">{title}</h3>
-        <p className="text-sm mt-2">{message}</p>
+      <div className="bg-white w-full max-w-md rounded-xl shadow-lg p-6 border border-gray-200">
+        <h3 className="text-lg font-semibold text-gray-800">{title}</h3>
+         <p className="text-sm text-gray-600 mt-2 whitespace-pre-line">{message}</p>
 
-        <div className="mt-6 flex justify-end gap-2">
+        <div className="mt-6 flex flex-col sm:flex-row sm:justify-end sm:space-x-3 space-y-2 sm:space-y-0">
           <button
             onClick={onCancel}
             disabled={loading}
-            className="px-4 py-2 border rounded"
+            className="w-full sm:w-auto px-4 py-2 rounded-md border border-gray-300 text-gray-700 hover:bg-gray-100 transition disabled:opacity-70"
           >
             {cancelLabel}
           </button>
           <button
             onClick={onConfirm}
             disabled={loading}
-            className={`px-4 py-2 text-white rounded ${
-              variant === "danger" ? "bg-red-500" : "bg-tertiary"
+            className={`w-full sm:w-auto px-4 py-2 rounded-md text-white transition disabled:opacity-70 ${
+              variant === "danger" ? "bg-red-500 hover:bg-red-600 border border-red-400"
+              : "bg-tertiary hover:bg-secondary border border-tertiary"
             }`}
           >
             {loading ? "Processing..." : confirmLabel}

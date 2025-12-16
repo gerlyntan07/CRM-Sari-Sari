@@ -506,17 +506,23 @@ const AdminMeeting = () => {
 };
 
 // ... MetricCard, ConfirmationModal (Keep existing) ...
-function ConfirmationModal({ open, title, message, confirmLabel, cancelLabel="Cancel", variant="primary", loading, onConfirm, onCancel }) {
+function ConfirmationModal({ open, title, message, confirmLabel,
+   cancelLabel="Cancel", variant="primary", loading, onConfirm, onCancel }) {
     if(!open) return null;
-    const btnClass = variant === "danger" ? "bg-red-500 hover:bg-red-600" : "bg-indigo-600 hover:bg-indigo-700";
+    const btnClass = variant === "danger" ? "bg-red-500 hover:bg-red-600 border border-red-400" 
+    : "bg-tertiary hover:bg-secondary border border-tertiary";
     return (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-[60]">
-            <div className="bg-white p-6 rounded-lg max-w-sm w-full">
-                <h3 className="text-lg font-bold mb-2">{title}</h3>
-                <p className="mb-4 text-gray-600">{message}</p>
-                <div className="flex justify-end gap-2">
-                    <button onClick={onCancel} disabled={loading} className="px-4 py-2 border rounded hover:bg-gray-50">Cancel</button>
-                    <button onClick={onConfirm} disabled={loading} className={`px-4 py-2 text-white rounded ${btnClass}`}>{loading ? "..." : confirmLabel}</button>
+            <div className="bg-white w-full max-w-md rounded-xl shadow-lg p-6 border border-gray-200">
+                <h3 className="text-lg font-semibold text-gray-800">{title}</h3>
+                <p className="text-sm text-gray-600 mt-2 whitespace-pre-line">{message}</p>
+
+                <div className="mt-6 flex flex-col sm:flex-row sm:justify-end sm:space-x-3 space-y-2 sm:space-y-0">
+                    <button onClick={onCancel} disabled={loading} 
+            className="w-full sm:w-auto px-4 py-2 rounded-md border border-gray-300 text-gray-700 hover:bg-gray-100 transition disabled:opacity-70">
+                      Cancel</button>
+                    <button onClick={onConfirm} disabled={loading} className={`w-full sm:w-auto px-4 py-2 rounded-md text-white transition disabled:opacity-70
+                       ${btnClass}`}>{loading ? "..." : confirmLabel}</button>
                 </div>
             </div>
         </div>

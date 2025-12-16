@@ -1,9 +1,13 @@
+# backend/main.py
 import os
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from database import Base, engine
+from contextlib import asynccontextmanager
+from services.scheduler import start_scheduler
+
 from dotenv import load_dotenv
 load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), ".env"))
 
@@ -41,8 +45,14 @@ import routers.quote as quote_router
 import routers.target as target_router
 import routers.ws_notification as ws_notification
 
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup: Start the scheduler
+    print("Starting background scheduler...")
+    start_scheduler()
+    yield
 
-app = FastAPI()
+app = FastAPI(lifespan=lifespan)
 
 # === Routers ===
 app.include_router(auth_router.router, prefix='/api')

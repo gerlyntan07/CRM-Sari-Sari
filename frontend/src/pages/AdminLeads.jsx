@@ -416,7 +416,7 @@ export default function AdminLeads() {
       address: lead.address || "",
       notes: lead.notes || "",
       source: lead.source || "",
-      territory_id: lead.assigned_to?.territory?.id || null,
+      territory_id: lead.territory?.id || null,
       lead_owner: leadOwnerId,
       status: lead.status || "New",
     });
@@ -494,7 +494,7 @@ export default function AdminLeads() {
 
     const finalForm = {
       ...leadData,
-      territory_id: selectedUser && selectedUser.territory && selectedUser.territory.length > 0 ? selectedUser.territory[0].id : null,
+      territory_id: leadData.territory_id ? parseInt(leadData.territory_id) : null,
       lead_owner: parseInt(leadData.lead_owner),
       work_phone: `${leadData.work_ccode} ${leadData.work_phone}`,
       mobile_phone_1: `${leadData.m1_ccode} ${leadData.mobile_phone_1}`,
@@ -538,6 +538,7 @@ export default function AdminLeads() {
     const { action } = confirmModalData;
     const { type, payload, targetId, name, lead } = action;
 
+    console.log(payload)
     setConfirmProcessing(true);
 
     try {
@@ -972,41 +973,60 @@ export default function AdminLeads() {
                 <label className="block text-gray-700 font-medium mb-1 text-sm">
                   Assign To
                 </label>
-                <SearchableSelect              
-              items={Array.isArray(users) ? users : []}
-              value={leadData.lead_owner ?? ""}
-              placeholder={`Search a user...`
-              }
-              getLabel={(item) =>
-                `${item.first_name} ${item.last_name}`
-              }
-              onChange={(newId) =>
-                setLeadData((prev) => ({
-                  ...prev,
-                  lead_owner: newId, // keep string
-                }))
-              }
-            />
+                <SearchableSelect               
+                  items={Array.isArray(users) ? users : []}
+                  value={leadData.lead_owner ?? ""}
+                  placeholder={`Search a user...`}
+                  getLabel={(item) => `${item.first_name} ${item.last_name}`}
+                  onChange={(newId) => {
+                    const user = users.find((u) => String(u.id) === String(newId));
+                    setSelectedUser(user);
+                    
+                    // Auto-select territory if user has exactly one, otherwise reset
+                    let newTerritoryId = null;
+                    if (user && user.assigned_territory && user.assigned_territory.length === 1) {
+                        newTerritoryId = user.assigned_territory[0].id;
+                    }
+
+                    setLeadData((prev) => ({
+                      ...prev,
+                      lead_owner: newId,
+                      territory_id: newTerritoryId // Reset or Auto-select
+                    }));
+                  }}
+                />
               </div>
 
+              {/* Territory */}
               {/* Territory */}
               <div className="flex flex-col">
                 <label className="block text-gray-700 font-medium mb-1 text-sm">
                   Territory
                 </label>
-                <input
-                  type="text"
-                  disabled
+                <select
                   name="territory_id"
-                  value={
-                    selectedUser && selectedUser.territory
-                      ? selectedUser.territory.name
-                      : ""
-                  }
-                  placeholder="Assign a user"
+                  value={leadData.territory_id || ""}
                   onChange={handleLeadChange}
-                  className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-400 outline-none disabled:bg-gray-100"
-                />
+                  disabled={!selectedUser || !selectedUser.assigned_territory || selectedUser.assigned_territory.length === 0}
+                  className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm bg-white focus:ring-2 focus:ring-blue-400 outline-none disabled:bg-gray-100 disabled:text-gray-500"
+                >
+                  <option value="" disabled>
+                    {!selectedUser 
+                      ? "Select a user first" 
+                      : (selectedUser.assigned_territory && selectedUser.assigned_territory.length > 0)
+                        ? "Select Territory"
+                        : "No territories assigned to this user"
+                    }
+                  </option>
+                  
+                  {selectedUser && 
+                   selectedUser.assigned_territory && 
+                   selectedUser.assigned_territory.map((t) => (
+                    <option key={t.id} value={t.id}>
+                      {t.name}
+                    </option>
+                  ))}
+                </select>
               </div>
 
               {/* Source */}

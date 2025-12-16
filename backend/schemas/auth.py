@@ -1,5 +1,5 @@
 from pydantic import BaseModel, EmailStr, constr
-from typing import Optional
+from typing import Optional, List
 from datetime import datetime
 
 
@@ -91,12 +91,13 @@ class UserResponse(UserBase):
     last_login: Optional[datetime]  # Last login
     company: Optional[CompanyOut] = None
     related_to_CEO: Optional[int] = None
+    assigned_territory: List[UserTerritory] = []
 
     class Config:
         orm_mode = True
 
 class UserWithTerritories(UserResponse):
-    territory: Optional[UserTerritory] = []
+    assigned_territory: List[UserTerritory] = []
 
     class Config:
         orm_mode = True

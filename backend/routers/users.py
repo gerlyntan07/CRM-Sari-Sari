@@ -7,6 +7,7 @@ from .auth_utils import get_current_user, hash_password,get_default_avatar
 from models.auth import User
 from .logs_utils import serialize_instance, create_audit_log
 from .aws_ses_utils import send_welcome_email
+from models.auth import UserRole
 
 router = APIRouter(
     prefix="/users",
@@ -21,19 +22,34 @@ def get_sales(
 ):
     # CEO/Admin/Manager/Group Manager → see all Sales users related to their company
     # Others → only themselves if they have Sales role
-    allowed_roles = {"CEO", "ADMIN", "MANAGER", "GROUP MANAGER"}
+    allowed_roles = {"CEO", "ADMIN", "GROUP MANAGER"}    
     current_user_role_upper = (current_user.role or "").upper()
+
+    target_roles1 = [UserRole.SALES.value, UserRole.MANAGER.value]
+    target_roles2 = [UserRole.SALES.value]
     
     if current_user_role_upper in allowed_roles:
-        # Get only Sales users from same company
         users = db.query(User).filter(
-            User.related_to_company == current_user.related_to_company
-        ).filter(User.role == "Sales").filter(User.is_active == True).all()
+            User.related_to_company == current_user.related_to_company,
+            User.is_active == True
+        ).all()
+    elif (current_user.role).upper() == 'GROUP MANAGER':
+        users = db.query(User).filter(
+            User.related_to_company == current_user.related_to_company,
+            User.role.in_(target_roles1),
+            User.is_active == True
+        ).all()
+    elif (current_user.role).upper() == 'MANAGER':
+        users = db.query(User).filter(
+            User.related_to_company == current_user.related_to_company,
+            User.role.in_(target_roles2),
+            User.is_active == True
+        ).all()
     else:
         # For non-admin users, only return themselves if they have Sales role
         users = db.query(User).filter(
             User.id == current_user.id,
-            User.role == "Sales",
+            User.role.in_(target_roles2),
             User.is_active == True
         ).all()
 

@@ -95,7 +95,7 @@ export default function AdminLeadsInformation({
         shipping_address: "",
         industry: "",
         status: "Prospect",
-        territory_id: res.data.assigned_to?.territory?.id || null,
+        territory_id: res.data.territory?.id || null,
         assigned_to: res.data.assigned_to?.id || null,
         created_by: res.data.creator?.id || null,
       });
@@ -187,7 +187,7 @@ export default function AdminLeadsInformation({
       name: lead.company_name,
       phone_number: lead.work_phone,
       status: "Prospect",
-      territory_id: lead.assigned_to?.territory?.id,
+      territory_id: lead.territory?.id,
       website: "",
     };
 
@@ -457,7 +457,7 @@ export default function AdminLeadsInformation({
                     </div>
                     <div>
                       <p className="font-semibold">Territory:</p>
-                      <p>{lead.assigned_to?.territory?.name || "N/A"}</p>
+                      <p>{lead.territory?.name || "N/A"}</p>
                     </div>
                     <div>
                       <p className="font-semibold">Assigned To:</p>

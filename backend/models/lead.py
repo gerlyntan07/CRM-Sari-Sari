@@ -1,4 +1,4 @@
-#backend/models/auth.py
+#backend/models/lead.py
 from sqlalchemy import Column, Integer, String, Boolean, DateTime, func, ForeignKey, UniqueConstraint
 from sqlalchemy.orm import relationship
 from database import Base

@@ -1,9 +1,10 @@
+# backend/routers/lead.py
 from fastapi import APIRouter, Depends, HTTPException, status, Request
 from sqlalchemy.orm import Session
 from typing import List
 from database import get_db
 from schemas.lead import LeadCreate, LeadResponse, LeadStatusUpdate, LeadUpdate
-from schemas.auth import UserResponse, UserWithTerritories
+from schemas.auth import UserWithTerritories, UserResponse
 from .auth_utils import get_current_user, hash_password,get_default_avatar
 from models.auth import User
 from models.lead import Lead
@@ -39,12 +40,17 @@ def get_leads_admin(
     return leads
 
 
-@router.get("/getUsers", response_model=list[UserWithTerritories])
+@router.get("/getUsers", response_model=list[UserResponse])
 def get_users(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    users = db.query(User).filter(User.related_to_company == current_user.related_to_company).all()
+    users = db.query(User).options(
+        joinedload(User.assigned_territory)
+    ).filter(
+        User.related_to_company == current_user.related_to_company
+    ).all()
+    
     return users
 
 # ✅ CREATE new territory

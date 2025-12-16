@@ -1,6 +1,6 @@
 # backend/schemas/auth.py
 from pydantic import BaseModel, HttpUrl, EmailStr
-from typing import Optional
+from typing import Optional, List
 from datetime import datetime
 
 class LeadBase(BaseModel):    
@@ -61,7 +61,7 @@ class UserWithTerritories(BaseModel):
     related_to_company: int
     role: str
     profile_picture: Optional[str] = None
-    territory: Optional[TerritoryBase] = None
+    assigned_territory: List[TerritoryBase] = []
 
     class Config:
         orm_mode = True
@@ -77,6 +77,7 @@ class UserBase(BaseModel):
 class LeadResponse(LeadBase):
     id: int    
     assigned_to: Optional[UserWithTerritories] = None
+    territory: Optional[TerritoryBase] = None
     created_at: datetime
     updated_at: Optional[datetime] = None
     status: str

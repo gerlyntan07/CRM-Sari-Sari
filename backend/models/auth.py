@@ -34,8 +34,10 @@ class User(Base):
 
     manager = relationship("User", remote_side=[id])
     company = relationship("Company", back_populates="users")
-    audit_logs = relationship("Auditlog", back_populates="logger", cascade="all, delete-orphan")
-    territory = relationship("Territory", back_populates="managed_by", uselist=False, cascade="all, delete-orphan")
+    audit_logs = relationship("Auditlog", back_populates="logger", cascade="all, delete-orphan")    
+
+    assigned_territory = relationship("Territory", back_populates="assigned_to", foreign_keys="[Territory.user_id]", cascade="all, delete-orphan")
+    managed_territory = relationship("Territory", back_populates="managed_by", foreign_keys="[Territory.manager_id]", cascade="all, delete-orphan")
 
     leads = relationship("Lead", back_populates="assigned_to", foreign_keys="[Lead.lead_owner]", cascade="all, delete-orphan")
     created_leads = relationship("Lead", back_populates="creator", foreign_keys="[Lead.created_by]", cascade="all, delete-orphan")

@@ -12,20 +12,20 @@ from dotenv import load_dotenv
 load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), ".env"))
 
 # Import models to create tables
-import models.auth
-import models.company
-import models.subscription
-import models.auditlog
-import models.territory
-import models.lead
 import models.account
+import models.auditlog
+import models.auth
+import models.call
+import models.company
 import models.contact
 import models.deal
-import models.task
+import models.lead
 import models.meeting
-import models.call
 import models.quote
+import models.subscription
 import models.target
+import models.task
+import models.territory
 
 # Import routers
 import routers.auth as auth_router

@@ -104,27 +104,28 @@ const CreateMeetingModal = ({
     setFormData((prev) => {
       const updated = { ...prev, [name]: value };
 
-      // Logic: Reset dependent fields when parent changes
+      // Logic: Reset dependent fields ONLY when the user manually changes the Type
       if (name === "relatedType1") {
-        updated.relatedTo1 = ""; // Clear selection
+        // Only clear relatedTo1 if the TYPE actually changed. 
+        // (This prevents issues if React calls this on mount for some reason)
+        if (prev.relatedType1 !== value) {
+             updated.relatedTo1 = ""; 
+        }
+
         if (value === "Lead") {
           updated.relatedType2 = null;
           updated.relatedTo2 = null;
           setRelatedTo2Values([]);
         } else if (value === "Account") {
-          updated.relatedType2 = "Contact"; // Default to Contact
+          updated.relatedType2 = "Contact";
           updated.relatedTo2 = "";
         }
       }
 
       if (name === "relatedType2") {
-        updated.relatedTo2 = ""; // Clear sub-selection
-      }
-
-      // Sync the old "relatedTo" / "relatedType" format for backward compatibility if needed
-      if (name === "relatedTo1") {
-         updated.relatedTo = value;
-         updated.relatedType = updated.relatedType1;
+        if (prev.relatedType2 !== value) {
+            updated.relatedTo2 = "";
+        }
       }
 
       return updated;

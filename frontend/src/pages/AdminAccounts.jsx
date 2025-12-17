@@ -132,6 +132,7 @@ export default function AdminAccounts() {
           return new Date(bDate) - new Date(aDate);
         });
         setAccounts(sortedData);
+        console.log('Fetch from backend: ', res.data)
 
         if (preserveSelectedId) {
           const updatedSelection = sortedData.find(
@@ -401,6 +402,7 @@ export default function AdminAccounts() {
   const handleEditClick = (account) => {
     // Close the account details modal
     setSelectedAccount(null);
+    console.log("edit: ", account)
     setFormData({
       name: account.name || "",
       website: account.website || "",

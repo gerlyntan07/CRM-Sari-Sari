@@ -35,18 +35,16 @@ class TaskCreate(BaseModel):
 # UPDATE
 # ------------------------------
 class TaskUpdate(BaseModel):
-    title: Optional[str] = None
-    description: Optional[str] = None
-    type: Optional[str] = None
-
-    priority: str
+    title: str
+    due_date: datetime
     status: str
-
-    dueDate: Optional[datetime] = None
-    assignedTo: Optional[int] = None      # <-- FIXED
-    relatedTo: Optional[int] = None       # <-- FIXED
-
-    notes: Optional[str] = None
+    priority: str
+    description: Optional[str] = None
+    related_type_1: str
+    related_type_2: Optional[str] = None
+    related_to_1: int
+    related_to_2: Optional[int] = None
+    assigned_to: int
 
 
 # ------------------------------

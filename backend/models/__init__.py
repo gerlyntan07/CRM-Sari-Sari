@@ -1,18 +1,20 @@
-from .auth import User
-from .company import Company
-from .territory import Territory
-from .subscription import Subscription
-from .auditlog import Auditlog
-from .lead import Lead
 from .account import Account
+from .auditlog import Auditlog
+from .auth import User
+from .call import Call
+from .company import Company
 from .contact import Contact
 from .deal import Deal
-from .task import Task
+from .lead import Lead
 from .meeting import Meeting
-from .call import Call
+from .quote import Quote
+from .subscription import Subscription
+from .target import Target
+from .task import Task
+from .territory import Territory
 
 __all__ = [
-    "User", "Company", "Lead", "Account", "Task",
-    "Territory", "Deal", "Call", "Meeting",
-    "Subscription", "Auditlog", "Contact"
+    "Account", "Auditlog", "User", "Call", "Company",
+    "Contact", "Deal", "Lead", "Meeting", "Quote",
+    "Subscription", "Target", "Task", "Territory"
 ]

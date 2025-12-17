@@ -12,10 +12,10 @@ class CallBase(BaseModel):
     related_to_contact: Optional[int] = None
     related_to_lead: Optional[int] = None
     related_to_deal: Optional[int] = None
-    assigned_to: int
     notes: str
 
 class CallCreate(CallBase):
+    assigned_to: int
     relatedType1: str
     relatedType2: Optional[str] = None
     relatedTo1: int

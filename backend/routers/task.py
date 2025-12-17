@@ -179,7 +179,7 @@ def update_task(task_id: int, payload: TaskUpdate, db: Session = Depends(get_db)
 
     db.commit()
     db.refresh(task)
-    return task_to_response(task)
+    return task
 
 
 # -----------------------------------------

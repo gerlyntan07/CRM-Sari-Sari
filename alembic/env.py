@@ -1,29 +1,39 @@
 import sys
 import os
 from logging.config import fileConfig
-
 from sqlalchemy import engine_from_config, pool
 from alembic import context
 
-# Add backend folder to path
+# Add backend folder to sys.path so Alembic can find database.py and models
 sys.path.append(os.path.join(os.path.dirname(os.path.dirname(__file__)), "backend"))
 
+# Import Base and DATABASE_URL from your app
+from database import Base, DATABASE_URL
+# Import your models so Alembic sees them
+import models.account
+import models.auditlog
+import models.auth
+import models.call
+import models.company
+import models.contact
+import models.deal
+import models.lead
+import models.meeting
+import models.quote
+import models.subscription
+import models.target
+import models.task
+import models.territory
 
-# import your models here (add more as you create them)
-from backend import models
-from backend.database import Base, DATABASE_URL
-
-# Alembic Config object
+# Alembic config
 config = context.config
-
-# Instead of hardcoding DB URL, load from our app
 config.set_main_option("sqlalchemy.url", DATABASE_URL)
 
-# Interpret config file for Python logging
+# Logging
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
-# Add your metadata here for 'autogenerate'
+# Metadata for autogenerate
 target_metadata = Base.metadata
 
 def run_migrations_offline():
@@ -31,8 +41,9 @@ def run_migrations_offline():
         url=DATABASE_URL,
         target_metadata=target_metadata,
         literal_binds=True,
-        dialect_opts={"paramstyle": "named"},
+        dialect_opts={"paramstyle": "named"}
     )
+
     with context.begin_transaction():
         context.run_migrations()
 
@@ -40,28 +51,20 @@ def run_migrations_online():
     connectable = engine_from_config(
         config.get_section(config.config_ini_section),
         prefix="sqlalchemy.",
-        poolclass=pool.NullPool,
+        poolclass=pool.NullPool
     )
-
-    # 🔹 This function tells Alembic NOT to drop tables that exist in the DB but not in models
-    def include_object(object, name, type_, reflected, compare_to):
-        # Skip automatic drop for tables
-        if type_ == "table" and compare_to is None:
-            return False
-        return True
 
     with connectable.connect() as connection:
         context.configure(
             connection=connection,
             target_metadata=target_metadata,
-            include_object=include_object,  # ✅ Added here
-            compare_type=True,              # Optional: detect column type changes
-            compare_server_default=True     # Optional: detect default value changes
+            compare_type=True,              # Detect column type changes
+            compare_server_default=True     # Detect default value changes
         )
 
+        # ✅ Keep the transaction inside the connection context
         with context.begin_transaction():
             context.run_migrations()
-
 
 if context.is_offline_mode():
     run_migrations_offline()

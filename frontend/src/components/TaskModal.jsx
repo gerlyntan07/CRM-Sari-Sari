@@ -12,7 +12,7 @@ export default function TaskModal({
   formData,
   isEditing = false,
   viewMode = false,
-  users = [], 
+  users = [],
 }) {
   // Local state for the dropdown options
   const [relatedTo1Values, setRelatedTo1Values] = useState([]);
@@ -21,7 +21,7 @@ export default function TaskModal({
   // --- Logic to Handle Input Changes ---
   const handleChange = (e) => {
     const { name, value } = e.target;
-    
+
     setFormData((prev) => {
       const updated = { ...prev, [name]: value };
 
@@ -53,16 +53,16 @@ export default function TaskModal({
       try {
         setRelatedTo1Values([]);
         let res;
-        if (formData.relatedType1 === 'Lead') {
+        if (formData.relatedType1 === "Lead") {
           res = await api.get(`/leads/admin/getLeads`);
-        } else if (formData.relatedType1 === 'Account') {
+        } else if (formData.relatedType1 === "Account") {
           res = await api.get(`/accounts/admin/fetch-all`);
         }
-        
+
         if (res && Array.isArray(res.data)) {
           setRelatedTo1Values(res.data);
         } else {
-            setRelatedTo1Values([]);
+          setRelatedTo1Values([]);
         }
       } catch (error) {
         console.error("Error fetching related 1 data:", error);
@@ -76,25 +76,25 @@ export default function TaskModal({
   // --- Effect 2: Fetch Level 2 Options (Contacts or Deals) when Account is selected ---
   useEffect(() => {
     if (!isOpen) return;
-    
+
     const fetchRelated2 = async () => {
       try {
         setRelatedTo2Values([]);
 
         // Only fetch level 2 if Type1 is Account and an Account is selected
-        if (formData.relatedType1 === 'Account' && formData.relatedTo1) {
-            let res;
-            if (formData.relatedType2 === 'Contact') {
-                res = await api.get(`/contacts/from-acc/${formData.relatedTo1}`);
-            } else if (formData.relatedType2 === 'Deal') {
-                res = await api.get(`/deals/from-acc/${formData.relatedTo1}`);
-            }
+        if (formData.relatedType1 === "Account" && formData.relatedTo1) {
+          let res;
+          if (formData.relatedType2 === "Contact") {
+            res = await api.get(`/contacts/from-acc/${formData.relatedTo1}`);
+          } else if (formData.relatedType2 === "Deal") {
+            res = await api.get(`/deals/from-acc/${formData.relatedTo1}`);
+          }
 
-            if (res && Array.isArray(res.data)) {
-                setRelatedTo2Values(res.data);
-            } else {
-                setRelatedTo2Values([]);
-            }
+          if (res && Array.isArray(res.data)) {
+            setRelatedTo2Values(res.data);
+          } else {
+            setRelatedTo2Values([]);
+          }
         }
       } catch (error) {
         console.error("Error fetching related 2 data:", error);
@@ -103,15 +103,23 @@ export default function TaskModal({
     };
 
     fetchRelated2();
-  }, [formData.relatedType1, formData.relatedTo1, formData.relatedType2, isOpen]);
-
+  }, [
+    formData.relatedType1,
+    formData.relatedTo1,
+    formData.relatedType2,
+    isOpen,
+  ]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    onSave?.(formData); 
+    onSave?.(formData);
   };
 
-  const modalTitle = viewMode ? "Task Details" : isEditing ? "Edit Task" : "Create Task";
+  const modalTitle = viewMode
+    ? "Task Details"
+    : isEditing
+    ? "Edit Task"
+    : "Create Task";
 
   return (
     <Transition appear show={isOpen} as={Fragment}>
@@ -159,7 +167,7 @@ export default function TaskModal({
                   >
                     <div className="md:col-span-2">
                       <label className="block text-gray-700 font-medium mb-1 text-sm">
-                        Title 
+                        Title
                       </label>
                       <input
                         type="text"
@@ -177,71 +185,85 @@ export default function TaskModal({
 
                     {/* --- Related Section Starts Here (Updated to match Calls) --- */}
                     <div className="w-full flex flex-col">
-                        <select 
-                            name="relatedType1" 
-                            onChange={handleChange} 
-                            value={formData.relatedType1} 
-                            disabled={viewMode}
-                            className={`w-23 rounded-md text-sm focus:ring-2 focus:ring-blue-400 outline-none mb-2 ${viewMode ? "bg-gray-50" : ""}`}
-                        >
-                            <option value="Lead">Lead</option>
-                            <option value="Account">Account</option>
-                        </select>
+                      <select
+                        name="relatedType1"
+                        onChange={handleChange}
+                        value={formData.relatedType1}
+                        disabled={viewMode}
+                        className={`w-23 rounded-md text-sm focus:ring-2 focus:ring-blue-400 outline-none mb-2 ${
+                          viewMode ? "bg-gray-50" : ""
+                        }`}
+                      >
+                        <option value="Lead">Lead</option>
+                        <option value="Account">Account</option>
+                      </select>
 
-                        <SearchableSelect              
-              items={Array.isArray(relatedTo1Values) ? relatedTo1Values : []}
-              value={formData.relatedTo1 ?? ""}
-              placeholder={`Search ${formData.relatedType1 || 'here'}...`
-              }
-              getLabel={(item) =>
-                formData.relatedType1 === "Lead"
-                  ? item.title
-                  : item.name ?? ""
-              }
-              onChange={(newId) =>
-                setFormData((prev) => ({
-                  ...prev,
-                  relatedTo1: newId, // keep string
-                }))
-              }
-            />                              
+                      <SearchableSelect
+                        items={
+                          Array.isArray(relatedTo1Values)
+                            ? relatedTo1Values
+                            : []
+                        }
+                        value={formData.relatedTo1 ?? ""}
+                        placeholder={`Search ${
+                          formData.relatedType1 || "here"
+                        }...`}
+                        getLabel={(item) =>
+                          formData.relatedType1 === "Lead"
+                            ? item.title
+                            : item.name ?? ""
+                        }
+                        onChange={(newId) =>
+                          setFormData((prev) => ({
+                            ...prev,
+                            relatedTo1: newId, // keep string
+                          }))
+                        }
+                      />
                     </div>
 
                     <div className="w-full flex flex-col">
-                         <select
-                            name="relatedType2"
-                            onChange={handleChange}
-                            value={formData.relatedType2 ?? "Contact"}
-                            className={`w-23 rounded-md text-sm focus:ring-2 focus:ring-blue-400 outline-none mb-2 disabled:text-gray-400 disabled:bg-gray-100 disabled:cursor-not-allowed`}
-                            disabled={viewMode || formData.relatedType1 === 'Lead'}
-                        >
-                            <option value="Contact">Contact</option>
-                            <option value="Deal">Deal</option>
-                        </select>
+                      <select
+                        name="relatedType2"
+                        onChange={handleChange}
+                        value={formData.relatedType2 ?? "Contact"}
+                        className={`w-23 rounded-md text-sm focus:ring-2 focus:ring-blue-400 outline-none mb-2 disabled:text-gray-400 disabled:bg-gray-100 disabled:cursor-not-allowed`}
+                        disabled={viewMode || formData.relatedType1 === "Lead"}
+                      >
+                        <option value="Contact">Contact</option>
+                        <option value="Deal">Deal</option>
+                      </select>
 
-                        <SearchableSelect
-              disabled={formData.relatedType1 === "Lead"}
-              items={Array.isArray(relatedTo2Values) ? relatedTo2Values : []}
-              value={formData.relatedTo2 ?? ""}
-              placeholder={
-                formData.relatedType1 === "Lead"
-                  ? ""
-                  : Array.isArray(relatedTo2Values) && relatedTo2Values.length > 0
-                  ? `Search ${formData.relatedType2 || "Contact"}...`
-                  : `No ${formData.relatedType2 || ""} data found`
-              }
-              getLabel={(item) =>
-                formData.relatedType2 === "Contact"
-                  ? `${item.first_name ?? ""} ${item.last_name ?? ""}`.trim()
-                  : item.name ?? ""
-              }
-              onChange={(newId) =>
-                setFormData((prev) => ({
-                  ...prev,
-                  relatedTo2: newId, // keep string
-                }))
-              }
-            />
+                      <SearchableSelect
+                        disabled={formData.relatedType1 === "Lead"}
+                        items={
+                          Array.isArray(relatedTo2Values)
+                            ? relatedTo2Values
+                            : []
+                        }
+                        value={formData.relatedTo2 ?? ""}
+                        placeholder={
+                          formData.relatedType1 === "Lead"
+                            ? ""
+                            : Array.isArray(relatedTo2Values) &&
+                              relatedTo2Values.length > 0
+                            ? `Search ${formData.relatedType2 || "Contact"}...`
+                            : `No ${formData.relatedType2 || ""} data found`
+                        }
+                        getLabel={(item) =>
+                          formData.relatedType2 === "Contact"
+                            ? `${item.first_name ?? ""} ${
+                                item.last_name ?? ""
+                              }`.trim()
+                            : item.name ?? ""
+                        }
+                        onChange={(newId) =>
+                          setFormData((prev) => ({
+                            ...prev,
+                            relatedTo2: newId, // keep string
+                          }))
+                        }
+                      />
                     </div>
                     {/* --- Related Section Ends --- */}
 
@@ -276,14 +298,14 @@ export default function TaskModal({
                         }`}
                       >
                         <option value="Low">Low</option>
-    <option value="Normal">Normal</option>
-    <option value="High">High</option>
+                        <option value="Normal">Normal</option>
+                        <option value="High">High</option>
                       </select>
-                    </div>                    
+                    </div>
 
                     <div>
                       <label className="block text-gray-700 font-medium mb-1 text-sm">
-                        Due Date 
+                        Due Date
                       </label>
                       <input
                         type="datetime-local"
@@ -302,22 +324,21 @@ export default function TaskModal({
                       <label className="block text-gray-700 font-medium mb-1 text-sm">
                         Assign To
                       </label>
-                      <SearchableSelect              
-              items={Array.isArray(users) ? users : []}
-              value={formData.assignedTo ?? ""}
-              placeholder={`Search an account...`
-              }
-              getLabel={(item) =>
-                `${item.first_name} ${item.last_name}`
-              }
-              onChange={(newId) =>
-                setFormData((prev) => ({
-                  ...prev,
-                  assignedTo: newId, // keep string
-                }))
-              }
-            /> 
-                    </div>    
+                      <SearchableSelect
+                        items={Array.isArray(users) ? users : []}
+                        value={formData.assignedTo ?? ""}
+                        placeholder={`Search an account...`}
+                        getLabel={(item) =>
+                          `${item.first_name} ${item.last_name}`
+                        }
+                        onChange={(newId) =>
+                          setFormData((prev) => ({
+                            ...prev,
+                            assignedTo: newId, // keep string
+                          }))
+                        }
+                      />
+                    </div>
 
                     <div>
                       <label className="block text-gray-700 font-medium mb-1 text-sm">
@@ -333,11 +354,11 @@ export default function TaskModal({
                         }`}
                       >
                         <option value="Not started">Not started</option>
-    <option value="In progress">In Progress</option>
-    <option value="Deferred">Deferred</option>
-    <option value="Completed">Completed</option>
+                        <option value="In progress">In Progress</option>
+                        <option value="Deferred">Deferred</option>
+                        <option value="Completed">Completed</option>
                       </select>
-                    </div>               
+                    </div>
 
                     {!viewMode && (
                       <div className="flex flex-col sm:flex-row justify-end sm:justify-end space-y-2 sm:space-y-0 sm:space-x-2 col-span-1 md:col-span-2 mt-4 w-full">
@@ -394,7 +415,8 @@ function SearchableSelect({
 
   useEffect(() => {
     const onDoc = (e) => {
-      if (wrapRef.current && !wrapRef.current.contains(e.target)) setOpen(false);
+      if (wrapRef.current && !wrapRef.current.contains(e.target))
+        setOpen(false);
     };
     document.addEventListener("mousedown", onDoc);
     return () => document.removeEventListener("mousedown", onDoc);

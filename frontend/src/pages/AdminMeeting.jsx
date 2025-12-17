@@ -200,75 +200,88 @@ const AdminMeeting = () => {
     setShowModal(true);
   };
 
+  // Inside AdminMeeting component...
+
   const handleEditClick = (meeting) => {
     // 1. Assignee Logic
+    // Try to find the user ID based on the nested object or flat ID
     let assignedToId = "";
-    if (meeting.assignedTo) {
-      // Try to find by name, or check if backend sends 'assigned_to_id'
-      const user = users.find(u => `${u.first_name} ${u.last_name}` === meeting.assignedTo);
-      assignedToId = user?.id ? String(user.id) : (meeting.assigned_to_id ? String(meeting.assigned_to_id) : "");
+    if (meeting.meet_assign_to?.id) {
+      assignedToId = String(meeting.meet_assign_to.id);
+    } else if (meeting.assignedTo) {
+      // Fallback: try to match string name to user list
+      const user = users.find((u) => `${u.first_name} ${u.last_name}` === meeting.assignedTo);
+      assignedToId = user ? String(user.id) : "";
     }
 
-    // 2. Date Logic
+    // 2. Date Logic (Convert to YYYY-MM-DDTHH:mm format for input type="datetime-local")
     const toLocalInput = (iso) => {
       if (!iso) return "";
       try {
         const d = new Date(iso);
-        const yyyy = d.getFullYear();
-        const mm = String(d.getMonth() + 1).padStart(2, "0");
-        const dd = String(d.getDate()).padStart(2, "0");
-        const hh = String(d.getHours()).padStart(2, "0");
-        const min = String(d.getMinutes()).padStart(2, "0");
-        return `${yyyy}-${mm}-${dd}T${hh}:${min}`;
-      } catch { return ""; }
+        // Adjust for timezone offset to ensure the input shows local time correctly
+        const offset = d.getTimezoneOffset() * 60000;
+        const localISOTime = new Date(d.getTime() - offset).toISOString().slice(0, 16);
+        return localISOTime;
+      } catch {
+        return "";
+      }
     };
 
-    // 3. Related To Logic
-    // Assumption: meeting object has `related_to` (ID) and `related_type` (String)
-    // If backend only sends string names, this will need adjustment, but standard is ID.
-    // Based on AdminCalls, we want relatedType1/relatedTo1/relatedType2/relatedTo2
-    
-    let relatedType1 = "Lead"; 
+    // 3. Related To Logic (The Critical Fix)
+    let relatedType1 = "Lead";
     let relatedTo1 = "";
-    let relatedType2 = null; 
+    let relatedType2 = "Contact"; // Default
     let relatedTo2 = "";
 
-    const rType = meeting.relatedType || meeting.related_type; // 'Lead', 'Account', 'Contact', 'Deal'
-    const rId = meeting.related_to || meeting.relatedToId; // We need the ID here
-
-    if (rType === 'Lead') {
-        relatedType1 = 'Lead';
-        relatedTo1 = rId ? String(rId) : "";
-    } else if (rType === 'Account') {
-        relatedType1 = 'Account';
-        relatedTo1 = rId ? String(rId) : "";
-    } else if (rType === 'Contact') {
-        // If it's a contact, we need the parent Account ID to fill relatedTo1
-        relatedType1 = 'Account';
-        relatedTo1 = meeting.account_id ? String(meeting.account_id) : ""; // Meeting should ideally have account_id
-        relatedType2 = 'Contact';
-        relatedTo2 = rId ? String(rId) : "";
-    } else if (rType === 'Deal') {
-        relatedType1 = 'Account';
-        relatedTo1 = meeting.account_id ? String(meeting.account_id) : "";
-        relatedType2 = 'Deal';
-        relatedTo2 = rId ? String(rId) : "";
+    // Check the nested objects to determine relationships
+    if (meeting.lead) {
+      relatedType1 = "Lead";
+      relatedTo1 = String(meeting.lead.id);
+    } 
+    else if (meeting.account) {
+      relatedType1 = "Account";
+      relatedTo1 = String(meeting.account.id);
+      
+      // If it is an Account, check if it is actually a Contact or Deal
+      if (meeting.contact) {
+        relatedType2 = "Contact";
+        relatedTo2 = String(meeting.contact.id);
+      } else if (meeting.deal) {
+        relatedType2 = "Deal";
+        relatedTo2 = String(meeting.deal.id);
+      }
+    } 
+    // Fallback: Check flat fields if nested objects are missing
+    else if (meeting.relatedType || meeting.related_type) {
+       const rType = meeting.relatedType || meeting.related_type;
+       const rId = meeting.related_to || meeting.relatedToId;
+       
+       if (rType === 'Lead') {
+          relatedType1 = 'Lead';
+          relatedTo1 = String(rId);
+       } else {
+          relatedType1 = 'Account';
+          // We might be missing the Account ID here if backend only sent the child ID
+          // But we try our best:
+          relatedTo1 = meeting.account_id ? String(meeting.account_id) : ""; 
+       }
     }
 
     setFormData({
-      subject: meeting.activity || "",
+      subject: meeting.subject || meeting.activity || "",
       location: meeting.location || "",
-      startTime: toLocalInput(meeting.startTime),
-      endTime: toLocalInput(meeting.endTime),
+      startTime: toLocalInput(meeting.start_time || meeting.startTime),
+      endTime: toLocalInput(meeting.end_time || meeting.endTime),
       status: toAdminStatus(meeting.status),
-      notes: meeting.description || "",
+      notes: meeting.description || meeting.notes || "",
       assignedTo: assignedToId,
       relatedType1,
       relatedTo1,
       relatedType2,
       relatedTo2,
     });
-    
+
     setIsEditing(true);
     setCurrentMeetingId(meeting.id);
     setSelectedMeeting(null);

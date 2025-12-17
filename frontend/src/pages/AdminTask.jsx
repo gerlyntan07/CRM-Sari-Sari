@@ -140,45 +140,59 @@ const buildTaskPayload = (data) => {
 };
 
 const mapBackendTaskToFrontend = (task) => {
-  const assignedToName = task.task_assign_to 
+  const assignedToName = task.task_assign_to
     ? `${task.task_assign_to.first_name} ${task.task_assign_to.last_name}`
-    : task.assigned_to 
-    ? String(task.assigned_to) 
+    : task.assigned_to
+    ? String(task.assigned_to)
     : "Unassigned";
 
   const createdByName = task.task_creator
     ? `${task.task_creator.first_name} ${task.task_creator.last_name}`
-    : task.created_by 
+    : task.created_by
     ? String(task.created_by)
     : "System";
 
-  const dueDate = task.due_date || task.dueDate || null; 
-  const dateAssigned = task.date_assigned || task.created_at || null; 
-  
+  const dueDate = task.due_date || task.dueDate || null;
+  const dateAssigned = task.date_assigned || task.created_at || null;
+
+  // --- FIX START: ROBUST ID EXTRACTION ---
+  // Helper to get ID from either nested object or flat field
+  const getLeadId = () => task.lead?.id || task.lead_id;
+  const getAccountId = () => task.account?.id || task.account_id;
+  const getContactId = () => task.contact?.id || task.contact_id;
+  const getDealId = () => task.deal?.id || task.deal_id;
+  const getAssignedToId = () => task.task_assign_to?.id || task.assigned_to;
+  // --- FIX END ---
+
   // Reverse Map for Edit Form: Attempt to detect relationship
-  // This helps populate the "Related To" dropdowns when you click Edit
   let relatedType1 = "Lead";
   let relatedTo1 = "";
   let relatedType2 = "Contact";
   let relatedTo2 = "";
 
-  if (task.account_id) {
+  const activeAccountId = getAccountId();
+  const activeLeadId = getLeadId();
+
+  if (activeAccountId) {
     relatedType1 = "Account";
-    relatedTo1 = String(task.account_id);
-    
-    if (task.contact_id) {
-        relatedType2 = "Contact";
-        relatedTo2 = String(task.contact_id);
-    } else if (task.deal_id) {
-        relatedType2 = "Deal";
-        relatedTo2 = String(task.deal_id);
+    relatedTo1 = String(activeAccountId);
+
+    const activeContactId = getContactId();
+    const activeDealId = getDealId();
+
+    if (activeContactId) {
+      relatedType2 = "Contact";
+      relatedTo2 = String(activeContactId);
+    } else if (activeDealId) {
+      relatedType2 = "Deal";
+      relatedTo2 = String(activeDealId);
     }
-  } else if (task.lead_id) {
-      relatedType1 = "Lead";
-      relatedTo1 = String(task.lead_id);
+  } else if (activeLeadId) {
+    relatedType1 = "Lead";
+    relatedTo1 = String(activeLeadId);
   } else if (task.related_type === "Account") {
-       relatedType1 = "Account";
-       relatedTo1 = String(task.related_to);
+    relatedType1 = "Account";
+    relatedTo1 = String(task.related_to);
   }
 
   return {
@@ -186,23 +200,26 @@ const mapBackendTaskToFrontend = (task) => {
     title: task.title,
     description: task.description,
     priority: task.priority || "Normal",
-    status: task.status || "Not started", 
+    status: task.status || "Not started",
     dueDate: dueDate,
-    dateAssigned: dateAssigned, 
-    assignedToId: task.assigned_to ?? null,
+    dateAssigned: dateAssigned,
+    
+    // Updated to grab ID correctly for the dropdown
+    assignedToId: getAssignedToId() || null, 
     assignedToName: assignedToName,
+    
     createdAt: task.created_at || null,
     createdById: task.created_by ?? null,
     createdBy: createdByName,
     notes: task.notes || "",
     isPersonal: Boolean(task.is_personal),
-    
+
     // Mapped for Edit Form
     subject: task.title,
     relatedType1,
-    relatedTo1,
+    relatedTo1, // This will now have the value "8"
     relatedType2,
-    relatedTo2
+    relatedTo2,
   };
 };
 
@@ -335,10 +352,10 @@ export default function AdminTask() {
         assignedTo: task.assignedToId ? String(task.assignedToId) : "",
         notes: task.notes || "",
         // Populate from the mapping function
-        relatedType1: task.relatedType1 || "Lead",
+        relatedType1: task.relatedType1 || "",
         relatedTo1: task.relatedTo1 || "",
-        relatedType2: task.relatedType2 || "Contact",
-        relatedTo2: task.relatedTo2 || "",
+        relatedType2: task.relatedType2 || "",
+        relatedTo2: task.relatedTo2 || "",        
       });
     } else {
       resetForm();
@@ -360,7 +377,7 @@ export default function AdminTask() {
       try {
           if (selectedTask && !viewMode) {
               await api.put(`/tasks/${selectedTask.id}`, requestPayload);
-              toast.success(`Task updated successfully.`);
+              toast.success(`Task updated successfully.`);              
           } else {
               await api.post(`/tasks/create`, requestPayload);
               toast.success("Task created successfully.");

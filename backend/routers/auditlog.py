@@ -1,3 +1,4 @@
+# backend/routers/auditlog.py
 from fastapi import APIRouter, Depends, HTTPException, status, Request
 from sqlalchemy.orm import Session
 from typing import List
@@ -6,6 +7,7 @@ from schemas.auditlog import LogBase, LeadResponse
 from .auth_utils import get_current_user, hash_password,get_default_avatar
 from models.auth import User
 from models.auditlog import Auditlog
+from models.territory import Territory
 from .logs_utils import serialize_instance, create_audit_log
 
 router = APIRouter(
@@ -28,7 +30,7 @@ def get_audit_logs(
         )
 
     # Group Manager or Manager: get all logs in company, excluding CEO/Admin logs
-    elif current_user.role in ["Group Manager", "Manager"]:
+    elif current_user.role in ["Group Manager"]:
         logs = (
             db.query(Auditlog)
             .join(User, Auditlog.user_id == User.id)
@@ -36,8 +38,26 @@ def get_audit_logs(
             .filter(~User.role.in_(["CEO", "Admin"]))
             .all()
         )
+    elif current_user.role in ["Manager"]:
+        # 1. Identify all users (Sales/Marketing) assigned to territories managed by this Manager
+        subquery_user_ids = (
+            db.query(Territory.user_id)
+            .filter(Territory.manager_id == current_user.id)
+            .scalar_subquery()
+        )
 
-    # Other roles: get only their own logs
+        # 2. Fetch logs of those users + the Manager's own logs
+        logs = (
+            db.query(Auditlog)
+            .join(User, Auditlog.user_id == User.id)
+            .filter(User.related_to_company == current_user.related_to_company)
+            # Filter: The log must belong to a user in the managed territory OR the manager themselves
+            .filter(
+                (Auditlog.user_id.in_(subquery_user_ids)) | 
+                (Auditlog.user_id == current_user.id)
+            )
+            .all()
+        )
     else:
         logs = (
             db.query(Auditlog)

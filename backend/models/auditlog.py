@@ -1,4 +1,4 @@
-#backend/models/auth.py
+#backend/models/auditlog.py
 from sqlalchemy import Column, Integer, String, Boolean, DateTime, func, ForeignKey, JSON
 from sqlalchemy.orm import relationship
 from database import Base

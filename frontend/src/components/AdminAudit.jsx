@@ -4,6 +4,7 @@ import api from "../api";
 import toast, { Toaster } from "react-hot-toast";
 import PaginationControls from "./PaginationControls.jsx";
 import LoadingSpinner from "./LoadingSpinner.jsx";
+import { FiCalendar } from "react-icons/fi";
 
 const ITEMS_PER_PAGE = 10;
 
@@ -197,6 +198,15 @@ export default function AdminAudit() {
           duration: 1000,
         }}
       />
+
+      <div className="bg-blue-50 border-l-4 border-blue-400 p-4 mb-6 rounded-r-md flex items-center">
+        <FiCalendar className="text-blue-600 mr-3 flex-shrink-0" size={20} />
+        <p className="text-sm text-blue-700">
+          <span className="font-semibold">Data Retention Policy:</span> Audit
+          logs are automatically purged after 30 days to optimize system
+          performance.
+        </p>
+      </div>
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-5 space-y-3 sm:space-y-0">
         <div className="flex items-center space-x-2">
@@ -206,8 +216,8 @@ export default function AdminAudit() {
           </h2>
         </div>
         <button
-className="flex items-center bg-black text-white px-3 sm:px-4 py-2 rounded-md hover:bg-gray-800 text-sm sm:text-base self-end sm:self-auto cursor-pointer"        
-  onClick={exportToExcel}
+          className="flex items-center bg-black text-white px-3 sm:px-4 py-2 rounded-md hover:bg-gray-800 text-sm sm:text-base self-end sm:self-auto cursor-pointer"
+          onClick={exportToExcel}
         >
           <FiDownload className="mr-2" />
           Export Logs
@@ -285,7 +295,10 @@ className="flex items-center bg-black text-white px-3 sm:px-4 py-2 rounded-md ho
               ))
             ) : (
               <tr>
-                <td className="py-3 px-4 text-sm text-gray-500 text-center" colSpan={5}>
+                <td
+                  className="py-3 px-4 text-sm text-gray-500 text-center"
+                  colSpan={5}
+                >
                   No activities to show.
                 </td>
               </tr>

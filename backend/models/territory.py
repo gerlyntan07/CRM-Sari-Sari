@@ -1,3 +1,4 @@
+# backend/models/territory.py
 from sqlalchemy import Column, Integer, String, DateTime, func, ForeignKey, UniqueConstraint
 from sqlalchemy.orm import relationship
 from database import Base

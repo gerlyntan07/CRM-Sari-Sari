@@ -262,7 +262,12 @@ export default function SalesHeader({ toggleSidebar }) {
               </div>
 
               <div className="mt-4 space-y-1 px-4 text-left">
-                <button className="block w-full text-sm text-gray-700 hover:bg-gray-50 py-2 rounded text-left">
+                <button className="block w-full text-sm text-gray-700 hover:bg-gray-50 py-2 rounded text-left"
+                onClick={() => {
+                    navigate("/sales/manage-account");
+                    setOpen(false);
+                  }}
+                >
                   Manage Your Account
                 </button>
                 <div className="border-t border-gray-200 my-2"></div>

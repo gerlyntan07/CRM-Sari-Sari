@@ -170,12 +170,13 @@ function App() {
           <Route path="deals/quickaction" element={<SalesDealsQuickAction />} />
           <Route path="quotes" element={<SalesQuotes />} />
           <Route path="targets" element={<SalesTargets />} />
+          <Route path="manage-account" element={<PublicManageAccount />} />
           <Route path="hub/*" element={<SalesHub />}>
             <Route index element={<Navigate to="mytasks" replace />} />
             <Route path="activities" element={<SalesActivities />} />
             <Route path="mytasks" element={<SalesMyTask />} />
             <Route path="pipeline" element={<SalesPipeline />} />
-            <Route path="performance" element={<SalesPerformance />} />
+            <Route path="performance" element={<SalesPerformance />} />            
           </Route>
         </Route>
 

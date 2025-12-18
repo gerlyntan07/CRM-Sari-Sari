@@ -7,6 +7,7 @@ import pytz
 # Import your DB session and Model
 from database import SessionLocal 
 from models.lead import Lead, LeadStatus
+from models.auditlog import Auditlog
 
 def delete_old_converted_leads():
     """
@@ -42,9 +43,41 @@ def delete_old_converted_leads():
         db.rollback()
     finally:
         db.close()
+    
+def delete_old_audit_logs():
+    """
+    Hard deletes all audit logs older than 30 days based on the 'timestamp' column.
+    """
+    db: Session = SessionLocal()
+    try:
+        # Calculate the cutoff date (30 days ago)
+        cutoff_date = datetime.now(pytz.utc) - timedelta(days=30)
+        
+        # Filter logs where the creation timestamp is older than the cutoff
+        logs_to_delete = db.query(Auditlog).filter(
+            Auditlog.timestamp < cutoff_date
+        ).all()
+        
+        count = len(logs_to_delete)
+        
+        if count > 0:
+            for log in logs_to_delete:
+                db.delete(log)
+            db.commit()
+            print(f"[Auto-Cleanup] Purged {count} audit logs older than 30 days.")
+        else:
+            # print("[Auto-Cleanup] No old audit logs found to purge.")
+            pass
+            
+    except Exception as e:
+        print(f"[Auto-Cleanup Audit Error] {e}")
+        db.rollback()
+    finally:
+        db.close()
 
 def start_scheduler():
     scheduler = BackgroundScheduler()
     # Run this job once every day (interval)
     scheduler.add_job(delete_old_converted_leads, 'interval', days=1)
+    scheduler.add_job(delete_old_audit_logs, 'interval', days=1)
     scheduler.start()

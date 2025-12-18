@@ -44,7 +44,7 @@ export default function AdminHeader({ toggleSidebar }) {
     };
   }, [fetchUser]);
 
-  const currentTitle = routeTitles[location.pathname] || "Group Manager Panel";
+  const currentTitle = routeTitles[location.pathname] || "Manager Panel";
 
   // Close dropdown if clicked outside
   useEffect(() => {

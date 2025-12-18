@@ -119,7 +119,14 @@ export default function SalesPanel() {
           >
             <FiBarChart2 className="text-lg" />
             <span>Reports</span>
-          </NavLink>
+          </NavLink>     
+          <NavLink
+            to="/sales/manage-account"
+            className={({ isActive }) => (isActive ? activeLink : normalLink)}
+          >
+            <FiUser className="text-lg" />
+            <span>Manage Account</span>
+          </NavLink>     
         </nav>
 
         {/* Footer */}

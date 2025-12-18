@@ -66,3 +66,22 @@ def get_audit_logs(
         )
 
     return logs
+
+@router.patch("/mark-read/{log_id}")
+def mark_log_as_read(
+    log_id: int, 
+    db: Session = Depends(get_db), 
+    current_user: User = Depends(get_current_user)
+):
+    # Find the log that belongs to this user
+    log = db.query(Auditlog).filter(
+        Auditlog.id == log_id, 
+        Auditlog.user_id == current_user.id
+    ).first()
+    
+    if not log:
+        raise HTTPException(status_code=404, detail="Notification not found")
+        
+    log.is_read = True
+    db.commit()
+    return {"status": "success"}

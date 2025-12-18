@@ -83,6 +83,34 @@ export default function SalesHeader({ toggleSidebar }) {
     return () => ws.close();
   }, [user]);
 
+  // Inside SalesHeader component
+useEffect(() => {
+  const fetchInitialNotifications = async () => {
+    try {
+      // Fetch audit logs belonging to the user
+      const res = await api.get("/logs/read-all"); 
+      console.log("🔍 Raw Logs from DB:", res.data);
+      
+      // Filter for specific actions or types if necessary
+      const mappedLogs = res.data.map(log => ({
+        id: log.id,
+        type: "lead_assignment", // Map your audit action to notification type
+        title: log.description,
+        assignedBy: log.name,
+        createdAt: log.timestamp,
+        read: log.is_read || false,
+      }));
+
+      setNotifications(mappedLogs);
+      setUnreadCount(mappedLogs.filter(n => !n.read).length);
+    } catch (err) {
+      console.error("Failed to load history notifications", err);
+    }
+  };
+
+  if (user) fetchInitialNotifications();
+}, [user]);
+
   // Close dropdowns when clicking outside
   useEffect(() => {
     function handleClickOutside(event) {
@@ -98,34 +126,48 @@ export default function SalesHeader({ toggleSidebar }) {
   }, []);
 
   // Handle clicking a notification
-  const handleNotificationClick = (notif) => {
-    console.log("Clicked:", notif);
+  // frontend/src/components/SalesHeader.jsx
 
-    // Mark as read
+const handleNotificationClick = async (notif) => {
+  // 1. If it's already read locally, just navigate
+  if (notif.read) {
+    performNavigation(notif);
+    return;
+  }
+
+  try {
+    // 2. Tell the Backend to mark it as read
+    await api.patch(`/logs/mark-read/${notif.id}`);
+
+    // 3. Update Local State (UI)
     setNotifications((prev) =>
-      prev.map((n) => (n === notif ? { ...n, read: true } : n))
+      prev.map((n) => (n.id === notif.id ? { ...n, read: true } : n))
     );
     setUnreadCount((prev) => (prev > 0 ? prev - 1 : 0));
 
-    // Routing
-    switch (notif.type) {
-      case "task_assignment":
-        navigate(`/sales/hub/${notif.taskId || notif.task_id || ""}`);
-        break;
+    // 4. Navigate
+    performNavigation(notif);
+  } catch (err) {
+    console.error("Failed to mark notification as read", err);
+    // Optional: Still navigate even if the API call fails
+    performNavigation(notif);
+  }
+};
 
-      case "territory_assignment":
-        navigate("/sales/overview");
-        break;
-
-      case "lead_assignment":
-      case "lead_update":
-        navigate(`/sales/leads/${notif.leadId || notif.lead_id || ""}`);
-        break;
-
-      default:
-        navigate("/sales/overview");
-    }
-  };
+// Helper to keep the code clean
+const performNavigation = (notif) => {
+  switch (notif.type) {
+    case "task_assignment":
+      navigate(`/sales/hub/${notif.taskId || notif.task_id || ""}`);
+      break;
+    case "lead_assignment":
+    case "lead_update":
+      navigate(`/sales/leads/${notif.leadId || notif.lead_id || ""}`);
+      break;
+    default:
+      navigate("/sales/overview");
+  }
+};
 
   return (
     <header className="flex justify-between items-center bg-white shadow px-4 sm:px-6 py-3 border-b relative">

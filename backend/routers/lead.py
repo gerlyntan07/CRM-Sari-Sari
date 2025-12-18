@@ -1,5 +1,5 @@
 # backend/routers/lead.py
-from fastapi import APIRouter, Depends, HTTPException, status, Request
+from fastapi import APIRouter, Depends, HTTPException, status, Request, BackgroundTasks
 from sqlalchemy.orm import Session
 from typing import List
 from database import get_db
@@ -53,10 +53,10 @@ def get_users(
     
     return users
 
-# ✅ CREATE new territory
 @router.post("/create", response_model=LeadResponse, status_code=status.HTTP_201_CREATED)
 def create_lead(
     data: LeadCreate,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
     request: Request = None
@@ -85,35 +85,40 @@ def create_lead(
     )
     db.add(new_lead)
     db.commit()
-    db.refresh(new_lead)
-    
-    notif_data = {
-        "type": "lead_assignment",
-        "title": f"New Lead Assigned: {new_lead.first_name} {new_lead.last_name}",
-        "company": new_lead.company_name,
-        "assignedBy": f"{current_user.first_name} {current_user.last_name}",
-        "createdAt": str(new_lead.created_at),
-        "read": False,
-    }
-
-    try:
-        asyncio.run(broadcast_notification(notif_data, target_user_id=data.lead_owner))
-    except RuntimeError:
-        loop = asyncio.get_event_loop()
-        loop.create_task(broadcast_notification(notif_data, target_user_id=data.lead_owner))
+    db.refresh(new_lead)        
 
     # ✅ Create audit log
     new_data = serialize_instance(new_lead)    
 
-    create_audit_log(
+    log_entry = create_audit_log(
         db=db,
         current_user=current_user,
         instance=new_lead,
         action="CREATE",
         request=request,
         new_data=new_data,
-        custom_message=f"add lead '{data.title}' to user: {lead_owner.first_name} {lead_owner.last_name}"
+        target_user_id=data.lead_owner, # Directed to Sales User
+        custom_message=f"New Lead Assigned: {new_lead.first_name} {new_lead.last_name}"
     )
+
+    notif_data = {
+        "id": log_entry.id,
+        "type": "lead_assignment",
+        "title": f"New Lead Assigned: {new_lead.first_name} {new_lead.last_name}",
+        "company": new_lead.company_name,
+        "assignedBy": f"{current_user.first_name} {current_user.last_name}",
+        "createdAt": str(new_lead.created_at),
+        "read": False,
+        "leadId": new_lead.id # Crucial for your frontend navigate() logic!
+    }
+
+    background_tasks.add_task(broadcast_notification, notif_data, target_user_id=data.lead_owner)
+
+    try:
+        asyncio.run(broadcast_notification(notif_data, target_user_id=data.lead_owner))
+    except RuntimeError:
+        loop = asyncio.get_event_loop()
+        loop.create_task(broadcast_notification(notif_data, target_user_id=data.lead_owner))
 
     return new_lead
 

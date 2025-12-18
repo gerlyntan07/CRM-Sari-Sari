@@ -18,6 +18,7 @@ class Auditlog(Base):
     new_data = Column(JSON, nullable=True)
     ip_address = Column(String, nullable=True)
     success = Column(Boolean, default=True)
+    is_read = Column(Boolean, default=False)
     timestamp = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
     

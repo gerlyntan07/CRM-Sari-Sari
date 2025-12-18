@@ -30,6 +30,7 @@ class LeadResponse(LogBase):
     id: int
     logger: Optional[UserBase] = None
     timestamp: datetime
+    is_read: Optional[bool] = None
 
     class Config:
         orm_mode = True

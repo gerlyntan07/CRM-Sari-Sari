@@ -7,9 +7,8 @@ import {
   FiFileText,
   FiX,
   FiPhone,
-  FiMail,
   FiCalendar,
-  FiCheckSquare
+  FiCheckSquare,
 } from "react-icons/fi";
 import { HiX } from "react-icons/hi";
 import { toast } from "react-toastify";
@@ -17,7 +16,6 @@ import api from "../api.js";
 import PaginationControls from "../components/PaginationControls.jsx";
 import LoadingSpinner from "../components/LoadingSpinner.jsx";
 import { useNavigate } from "react-router-dom";
-
 
 const ITEMS_PER_PAGE = 10;
 
@@ -29,13 +27,12 @@ const STATUS_OPTIONS = [
 ];
 
 const INITIAL_FORM_STATE = {
-  deal_name: "",
-  created_by_id: "",
+  deal_id: "",
+  account_id: "",
   contact_id: "",
-  amount: "",
   total_amount: "",
   presented_date: "",
-  validity_date: "",
+  validity_days: "",
   status: "Draft",
   assigned_to: "",
   notes: "",
@@ -43,15 +40,14 @@ const INITIAL_FORM_STATE = {
 
 const normalizeStatus = (status) => {
   if (!status) return "Draft";
-  const statusStr = status.toString().trim();
-  // Map to exact values in STATUS_OPTIONS
-  const statusMap = {
-    "draft": "Draft",
-    "presented": "Presented",
-    "accepted": "Accepted",
-    "rejected": "Rejected",
+  const s = status.toString().trim().toLowerCase();
+  const map = {
+    draft: "Draft",
+    presented: "Presented",
+    accepted: "Accepted",
+    rejected: "Rejected",
   };
-  return statusMap[statusStr.toLowerCase()] || statusStr;
+  return map[s] || "Draft";
 };
 
 const formatStatusLabel = (status) => {
@@ -59,7 +55,7 @@ const formatStatusLabel = (status) => {
   return status
     .toString()
     .toLowerCase()
-    .replace(/\b\w/g, (char) => char.toUpperCase());
+    .replace(/\b\w/g, (c) => c.toUpperCase());
 };
 
 const getStatusBadgeClass = (status) => {
@@ -117,68 +113,352 @@ const formatDate = (date) => {
   });
 };
 
+const formatDateForInput = (date) => {
+  if (!date) return "";
+  if (typeof date === "string" && date.match(/^\d{4}-\d{2}-\d{2}$/))
+    return date;
+  try {
+    const d = new Date(date);
+    if (isNaN(d.getTime())) return "";
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return `${y}-${m}-${day}`;
+  } catch {
+    return "";
+  }
+};
+
+const computeExpiryDate = (presented_date, validity_days) => {
+  if (!presented_date) return "";
+  if (
+    validity_days === null ||
+    validity_days === undefined ||
+    validity_days === ""
+  )
+    return "";
+  const days = Number(validity_days);
+  if (Number.isNaN(days)) return "";
+  const base = new Date(presented_date);
+  if (isNaN(base.getTime())) return "";
+  base.setDate(base.getDate() + days);
+  return base.toISOString().slice(0, 10);
+};
+
+// --------- Current user id helpers ----------
+const tryExtractUserId = (obj) => {
+  if (!obj) return null;
+
+  if (typeof obj === "number") return obj;
+  if (typeof obj === "string" && obj.trim() && !Number.isNaN(Number(obj)))
+    return Number(obj);
+
+  if (typeof obj === "object") {
+    if (obj.id && !Number.isNaN(Number(obj.id))) return Number(obj.id);
+    if (obj.user?.id && !Number.isNaN(Number(obj.user.id)))
+      return Number(obj.user.id);
+    if (obj.data?.id && !Number.isNaN(Number(obj.data.id)))
+      return Number(obj.data.id);
+    if (obj.profile?.id && !Number.isNaN(Number(obj.profile.id)))
+      return Number(obj.profile.id);
+  }
+  return null;
+};
+
+const getUserIdFromLocalStorage = () => {
+  const keys = ["user", "currentUser", "userData", "authUser", "profile"];
+  for (const key of keys) {
+    const raw = localStorage.getItem(key);
+    if (!raw) continue;
+    try {
+      const parsed = JSON.parse(raw);
+      const id = tryExtractUserId(parsed);
+      if (id) return id;
+    } catch {}
+  }
+  const fallback = localStorage.getItem("user_id");
+  const id2 = tryExtractUserId(fallback);
+  if (id2) return id2;
+  return null;
+};
+
+// --------- Deal → Account/Contact extraction (flexible shape) ----------
+const extractDealAccountId = (deal) => {
+  if (!deal) return "";
+  const candidates = [
+    deal.account_id,
+    deal.accountId,
+    deal.account?.id,
+    deal.account?.account_id,
+    deal.account?.accountId,
+  ];
+  const found = candidates.find(
+    (v) => v !== null && v !== undefined && String(v).trim() !== ""
+  );
+  return found ? String(found) : "";
+};
+
+const extractDealContactId = (deal) => {
+  if (!deal) return "";
+  const candidates = [
+    deal.contact_id,
+    deal.contactId,
+    deal.contact?.id,
+    deal.primary_contact_id,
+    deal.primaryContactId,
+    deal.primary_contact?.id,
+    deal.primaryContact?.id,
+  ];
+  const found = candidates.find(
+    (v) => v !== null && v !== undefined && String(v).trim() !== ""
+  );
+  return found ? String(found) : "";
+};
+
 export default function AdminQuotes() {
-       const navigate = useNavigate();
-  
+  const navigate = useNavigate();
+
   useEffect(() => {
     document.title = "Quotes | Sari-Sari CRM";
   }, []);
 
   const [quotes, setQuotes] = useState([]);
   const [quotesLoading, setQuotesLoading] = useState(false);
+
+  const [deals, setDeals] = useState([]);
   const [accounts, setAccounts] = useState([]);
   const [contacts, setContacts] = useState([]);
   const [users, setUsers] = useState([]);
+
+  const [currentUserId, setCurrentUserId] = useState(null);
+
   const [selectedQuote, setSelectedQuote] = useState(null);
   const [showModal, setShowModal] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
   const [confirmModalData, setConfirmModalData] = useState(null);
   const [confirmProcessing, setConfirmProcessing] = useState(false);
+
   const [currentQuoteId, setCurrentQuoteId] = useState(null);
   const [formData, setFormData] = useState(INITIAL_FORM_STATE);
+
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("Filter by Status");
   const [deletingId, setDeletingId] = useState(null);
+
   const [currentPage, setCurrentPage] = useState(1);
   const [activeTab, setActiveTab] = useState("Overview");
   const [selectedStatus, setSelectedStatus] = useState("Draft");
 
-  const fetchQuotes = useCallback(
-    async (preserveSelectedId = null) => {
-      setQuotesLoading(true);
-      try {
-        const res = await api.get(`/quotes/admin/fetch-all`);
-        const data = Array.isArray(res.data) ? res.data : [];
-        const sortedData = [...data].sort((a, b) => {
-          const aDate = a?.created_at || a?.updated_at || 0;
-          const bDate = b?.created_at || b?.updated_at || 0;
-          return new Date(bDate) - new Date(aDate);
-        });
-        setQuotes(sortedData);
+  // Resolve current user id
+  useEffect(() => {
+    let mounted = true;
 
-        if (preserveSelectedId) {
-          const updatedSelection = sortedData.find(
-            (q) => q.id === preserveSelectedId
-          );
-          setSelectedQuote(updatedSelection || null);
-        }
-      } catch (err) {
-        console.error(err);
-        setQuotes([]);
-        if (err.response?.status === 403) {
-          toast.error(
-            "Permission denied. Only CEO, Admin, or Group Manager can access this page."
-          );
-        } else {
-          toast.error("Failed to fetch quotes. Please try again later.");
-        }
-      } finally {
-        setQuotesLoading(false);
+    const resolveMe = async () => {
+      const localId = getUserIdFromLocalStorage();
+      if (localId && mounted) {
+        setCurrentUserId(localId);
+        return;
       }
+
+      try {
+        const res = await api.get("/auth/me");
+        const id = tryExtractUserId(res?.data);
+        if (id && mounted) {
+          setCurrentUserId(id);
+          return;
+        }
+      } catch {}
+
+      try {
+        const res = await api.get("/users/me");
+        const id = tryExtractUserId(res?.data);
+        if (id && mounted) {
+          setCurrentUserId(id);
+          return;
+        }
+      } catch {}
+
+      if (mounted) setCurrentUserId(null);
+    };
+
+    resolveMe();
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  // Helpers to get display names by id
+  const getAccountNameById = useCallback(
+    (accountId) => {
+      if (!accountId) return "";
+      const found = accounts.find((a) => String(a.id) === String(accountId));
+      return found?.name || "";
     },
-    []
+    [accounts]
   );
+
+  const getContactNameById = useCallback(
+    (contactId) => {
+      if (!contactId) return "";
+      const found = contacts.find((c) => String(c.id) === String(contactId));
+      if (!found) return "";
+      return `${found.first_name} ${found.last_name}`.trim();
+    },
+    [contacts]
+  );
+
+  const getDealLabelById = useCallback(
+    (dealId) => {
+      if (!dealId) return "--";
+      const found = deals.find((d) => String(d.id) === String(dealId));
+      return found?.deal_name || found?.name || `Deal #${dealId}`;
+    },
+    [deals]
+  );
+
+  // Derive account/contact from a deal (and best-effort choose contact if missing)
+  const deriveAccountAndContactFromDealId = useCallback(
+    (dealId) => {
+      const deal = deals.find((d) => String(d.id) === String(dealId));
+      const accountId = extractDealAccountId(deal);
+      let contactId = extractDealContactId(deal);
+
+      if (!contactId && accountId) {
+        const candidates = contacts.filter(
+          (c) => String(c.account_id || "") === String(accountId)
+        );
+        if (candidates.length > 0) {
+          const sorted = [...candidates].sort((a, b) => {
+            const an = `${a.first_name || ""} ${a.last_name || ""}`
+              .trim()
+              .toLowerCase();
+            const bn = `${b.first_name || ""} ${b.last_name || ""}`
+              .trim()
+              .toLowerCase();
+            return an.localeCompare(bn);
+          });
+          contactId = String(sorted[0].id);
+        }
+      }
+
+      if (accountId && contactId) {
+        const c = contacts.find((x) => String(x.id) === String(contactId));
+        if (c?.account_id && String(c.account_id) !== String(accountId)) {
+          contactId = "";
+        }
+      }
+
+      return { accountId: accountId || "", contactId: contactId || "" };
+    },
+    [deals, contacts]
+  );
+
+  // Display helpers for list/details
+  const resolveDealLabel = useCallback(
+    (quote) => {
+      if (!quote) return "--";
+      if (quote.deal?.deal_name) return quote.deal.deal_name;
+      if (quote.deal?.name) return quote.deal.name;
+      const dealId = quote.deal_id || quote.deal?.id;
+      return dealId ? getDealLabelById(dealId) : "--";
+    },
+    [getDealLabelById]
+  );
+
+  const resolveAccountLabel = useCallback(
+    (quote) => {
+      if (!quote) return "--";
+      if (quote.account?.name) return quote.account.name;
+
+      let accountId = quote.account_id || quote.account?.id;
+
+      if (!accountId) {
+        const dealId = quote.deal_id || quote.deal?.id;
+        if (dealId) {
+          const derived = deriveAccountAndContactFromDealId(dealId);
+          accountId = derived.accountId;
+        }
+      }
+
+      return accountId
+        ? getAccountNameById(accountId) || `Account #${accountId}`
+        : "--";
+    },
+    [deriveAccountAndContactFromDealId, getAccountNameById]
+  );
+
+  const resolveContactLabel = useCallback(
+    (quote) => {
+      if (!quote) return "--";
+      if (quote.contact?.first_name || quote.contact?.last_name) {
+        return (
+          `${quote.contact?.first_name || ""} ${
+            quote.contact?.last_name || ""
+          }`.trim() || "--"
+        );
+      }
+
+      let contactId = quote.contact_id || quote.contact?.id;
+
+      if (!contactId) {
+        const dealId = quote.deal_id || quote.deal?.id;
+        if (dealId) {
+          const derived = deriveAccountAndContactFromDealId(dealId);
+          contactId = derived.contactId;
+        }
+      }
+
+      const name = contactId ? getContactNameById(contactId) : "";
+      return name || (contactId ? `Contact #${contactId}` : "--");
+    },
+    [deriveAccountAndContactFromDealId, getContactNameById]
+  );
+
+  const fetchQuotes = useCallback(async (preserveSelectedId = null) => {
+    setQuotesLoading(true);
+    try {
+      const res = await api.get(`/quotes/admin/fetch-all`);
+      const data = Array.isArray(res.data) ? res.data : [];
+      const sorted = [...data].sort((a, b) => {
+        const aDate = a?.created_at || a?.updated_at || 0;
+        const bDate = b?.created_at || b?.updated_at || 0;
+        return new Date(bDate) - new Date(aDate);
+      });
+      setQuotes(sorted);
+
+      if (preserveSelectedId) {
+        const updatedSelection = sorted.find(
+          (q) => q.id === preserveSelectedId
+        );
+        setSelectedQuote(updatedSelection || null);
+      }
+    } catch (err) {
+      console.error(err);
+      setQuotes([]);
+      if (err.response?.status === 403) {
+        toast.error(
+          "Permission denied. Only CEO, Admin, or Group Manager can access this page."
+        );
+      } else {
+        toast.error("Failed to fetch quotes. Please try again later.");
+      }
+    } finally {
+      setQuotesLoading(false);
+    }
+  }, []);
+
+  const fetchDeals = useCallback(async () => {
+    try {
+      const res = await api.get(`/deals/admin/fetch-all`);
+      setDeals(Array.isArray(res.data) ? res.data : []);
+    } catch (err) {
+      console.error(err);
+      if (err.response?.status === 403)
+        toast.warn("Unable to load deals (permission denied).");
+    }
+  }, []);
 
   const fetchAccounts = useCallback(async () => {
     try {
@@ -186,9 +466,8 @@ export default function AdminQuotes() {
       setAccounts(Array.isArray(res.data) ? res.data : []);
     } catch (err) {
       console.error(err);
-      if (err.response?.status === 403) {
+      if (err.response?.status === 403)
         toast.warn("Unable to load accounts (permission denied).");
-      }
     }
   }, []);
 
@@ -198,9 +477,8 @@ export default function AdminQuotes() {
       setContacts(Array.isArray(res.data) ? res.data : []);
     } catch (err) {
       console.error(err);
-      if (err.response?.status === 403) {
+      if (err.response?.status === 403)
         toast.warn("Unable to load contacts (permission denied).");
-      }
     }
   }, []);
 
@@ -210,64 +488,76 @@ export default function AdminQuotes() {
       setUsers(Array.isArray(res.data) ? res.data : []);
     } catch (err) {
       console.error(err);
-      if (err.response?.status === 403) {
-        toast.warn("Unable to load users for assignment (permission denied).");
-      }
+      if (err.response?.status === 403)
+        toast.warn("Unable to load users (permission denied).");
     }
   }, []);
 
   useEffect(() => {
     fetchQuotes();
+    fetchDeals();
     fetchAccounts();
     fetchContacts();
     fetchUsers();
-  }, [fetchQuotes, fetchAccounts, fetchContacts, fetchUsers]);
+  }, [fetchQuotes, fetchDeals, fetchAccounts, fetchContacts, fetchUsers]);
 
   const filteredQuotes = useMemo(() => {
-    const normalizedQuery = searchQuery.trim().toLowerCase();
-    const normalizedFilter = statusFilter.trim();
+    const q = searchQuery.trim().toLowerCase();
+    const f = statusFilter.trim();
 
-    return quotes.filter((q) => {
+    return quotes.filter((row) => {
+      const dealLabel = resolveDealLabel(row);
+      const accountLabel = resolveAccountLabel(row);
+      const contactLabel = resolveContactLabel(row);
+
+      const expiry = computeExpiryDate(row.presented_date, row.validity_days);
+
       const searchFields = [
-        q.quote_id,
-        q.deal_name,
-        q.account?.name,
-        q.contact?.first_name,
-        q.contact?.last_name,
-        q.total_amount?.toString(),
-        q.assigned_user?.first_name,
-        q.assigned_user?.last_name,
-        q.creator?.first_name,
-        q.creator?.last_name,
-        q.status,
-        q.notes,
-        formattedDateTime(q.created_at),
-        formattedDateTime(q.updated_at),
+        row.quote_id,
+        dealLabel,
+        accountLabel,
+        contactLabel,
+        row.total_amount?.toString(),
+        row.validity_days?.toString(),
+        row.presented_date ? formatDate(row.presented_date) : "",
+        expiry ? formatDate(expiry) : "",
+        row.assigned_user?.first_name,
+        row.assigned_user?.last_name,
+        row.creator?.first_name,
+        row.creator?.last_name,
+        row.status,
+        row.notes,
+        formattedDateTime(row.created_at),
+        formattedDateTime(row.updated_at),
       ];
 
       const matchesSearch =
-        normalizedQuery === "" ||
+        q === "" ||
         searchFields.some((field) => {
           if (field === null || field === undefined) return false;
-          return field.toString().toLowerCase().includes(normalizedQuery);
+          return field.toString().toLowerCase().includes(q);
         });
 
       const matchesStatus =
-        normalizedFilter === "Filter by Status" ||
-        normalizeStatus(q.status) === normalizedFilter;
+        f === "Filter by Status" || normalizeStatus(row.status) === f;
 
       return matchesSearch && matchesStatus;
     });
-  }, [quotes, searchQuery, statusFilter]);
+  }, [
+    quotes,
+    searchQuery,
+    statusFilter,
+    resolveDealLabel,
+    resolveAccountLabel,
+    resolveContactLabel,
+  ]);
 
   const totalPages = Math.max(
     1,
     Math.ceil(filteredQuotes.length / ITEMS_PER_PAGE) || 1
   );
 
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [searchQuery, statusFilter]);
+  useEffect(() => setCurrentPage(1), [searchQuery, statusFilter]);
 
   useEffect(() => {
     setCurrentPage((prev) => {
@@ -291,7 +581,7 @@ export default function AdminQuotes() {
   const handleQuoteClick = (quote) => {
     setSelectedQuote(quote);
     setActiveTab("Overview");
-    setSelectedStatus(quote?.status || "Draft");
+    setSelectedStatus(normalizeStatus(quote?.status) || "Draft");
   };
 
   const handleBackToList = () => {
@@ -300,9 +590,8 @@ export default function AdminQuotes() {
   };
 
   const handleQuoteModalBackdropClick = (e) => {
-    if (e.target.id === "quoteModalBackdrop" && !confirmProcessing) {
+    if (e.target.id === "quoteModalBackdrop" && !confirmProcessing)
       handleBackToList();
-    }
   };
 
   const closeModal = useCallback(() => {
@@ -314,21 +603,25 @@ export default function AdminQuotes() {
   }, []);
 
   const handleBackdropClick = (e) => {
-    if (
-      e.target.id === "modalBackdrop" &&
-      !isSubmitting &&
-      !confirmProcessing
-    ) {
+    if (e.target.id === "modalBackdrop" && !isSubmitting && !confirmProcessing)
       closeModal();
-    }
   };
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+
+    if (name === "deal_id") {
+      const { accountId, contactId } = deriveAccountAndContactFromDealId(value);
+      setFormData((prev) => ({
+        ...prev,
+        deal_id: value,
+        account_id: accountId,
+        contact_id: contactId,
+      }));
+      return;
+    }
+
+    setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
   const handleOpenAddModal = () => {
@@ -338,65 +631,53 @@ export default function AdminQuotes() {
     setShowModal(true);
   };
 
-  const formatDateForInput = (date) => {
-    if (!date) return "";
-    // If date is already in YYYY-MM-DD format, return it
-    if (typeof date === "string" && date.match(/^\d{4}-\d{2}-\d{2}$/)) {
-      return date;
-    }
-    // Otherwise, convert to YYYY-MM-DD format
-    try {
-      const dateObj = new Date(date);
-      if (isNaN(dateObj.getTime())) return "";
-      const year = dateObj.getFullYear();
-      const month = String(dateObj.getMonth() + 1).padStart(2, "0");
-      const day = String(dateObj.getDate()).padStart(2, "0");
-      return `${year}-${month}-${day}`;
-    } catch (e) {
-      return "";
-    }
-  };
-
   const handleEditClick = (quote) => {
     if (!quote) return;
-    // Close the quote details modal
     setSelectedQuote(null);
-    
-    // Get created_by_id - use creator relationship if available, otherwise use created_by field
-    let createdById = "";
-    if (quote.creator?.id) {
-      createdById = String(quote.creator.id);
-    } else if (quote.created_by) {
-      createdById = String(quote.created_by);
-    }
-    
-    // Get assigned_to - use assigned_user relationship if available, otherwise use assigned_to field
-    let assignedToId = "";
-    if (quote.assigned_user?.id) {
-      assignedToId = String(quote.assigned_user.id);
-    } else if (quote.assigned_to) {
-      assignedToId = String(quote.assigned_to);
-    }
-    
-    const newFormData = {
-      deal_name: quote.deal_name || "",
-      created_by_id: createdById,
-      contact_id: quote.contact?.id ? String(quote.contact.id) : "",
-      amount: quote.amount?.toString() || "",
+
+    const dealId = quote.deal?.id
+      ? String(quote.deal.id)
+      : quote.deal_id
+      ? String(quote.deal_id)
+      : "";
+
+    const derived = dealId
+      ? deriveAccountAndContactFromDealId(dealId)
+      : { accountId: "", contactId: "" };
+
+    const accountId = quote.account?.id
+      ? String(quote.account.id)
+      : quote.account_id
+      ? String(quote.account_id)
+      : derived.accountId;
+
+    const contactId = quote.contact?.id
+      ? String(quote.contact.id)
+      : quote.contact_id
+      ? String(quote.contact_id)
+      : derived.contactId;
+
+    const assignedToId = quote.assigned_user?.id
+      ? String(quote.assigned_user.id)
+      : quote.assigned_to
+      ? String(quote.assigned_to)
+      : "";
+
+    setFormData({
+      deal_id: dealId,
+      account_id: accountId || "",
+      contact_id: contactId || "",
       total_amount: quote.total_amount?.toString() || "",
       presented_date: formatDateForInput(quote.presented_date),
-      validity_date: formatDateForInput(quote.validity_date),
+      validity_days:
+        quote.validity_days !== null && quote.validity_days !== undefined
+          ? String(quote.validity_days)
+          : "",
       status: normalizeStatus(quote.status) || "Draft",
       assigned_to: assignedToId,
       notes: quote.notes || "",
-    };
-    
-    // Debug logging
-    console.log("Edit Quote - Quote data:", quote);
-    console.log("Edit Quote - Form data:", newFormData);
-    console.log("Edit Quote - Available users:", users.map(u => ({ id: String(u.id), name: `${u.first_name} ${u.last_name}` })));
-    
-    setFormData(newFormData);
+    });
+
     setIsEditing(true);
     setCurrentQuoteId(quote.id);
     setShowModal(true);
@@ -417,24 +698,20 @@ export default function AdminQuotes() {
       confirmLabel: "Delete Quote",
       cancelLabel: "Cancel",
       variant: "danger",
-      action: {
-        type: "delete",
-        targetId: quote.id,
-        name: quoteName,
-      },
+      action: { type: "delete", targetId: quote.id, name: quoteName },
     });
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
 
-    if (!formData.deal_name?.trim()) {
-      toast.error("Deal name is required.");
+    if (!currentUserId) {
+      toast.error("Unable to determine current user. Please log in again.");
       return;
     }
 
-    if (!formData.created_by_id) {
-      toast.error("Created by is required.");
+    if (!formData.deal_id) {
+      toast.error("Deal is required.");
       return;
     }
 
@@ -443,26 +720,33 @@ export default function AdminQuotes() {
       return;
     }
 
-    // Get account_id from contact if contact is selected
-    const selectedContact = contacts.find(c => c.id === Number(formData.contact_id));
-    const account_id = selectedContact?.account_id || null;
+    if (formData.validity_days !== "" && Number(formData.validity_days) < 0) {
+      toast.error("Validity days must be 0 or higher.");
+      return;
+    }
 
-    const payload = {
-      deal_name: formData.deal_name.trim(),
-      created_by_id: Number(formData.created_by_id),
-      contact_id: formData.contact_id ? Number(formData.contact_id) : null,
-      account_id: account_id,
-      amount: formData.amount ? Number(formData.amount) : null,
+    const derived = deriveAccountAndContactFromDealId(formData.deal_id);
+
+    const basePayload = {
+      deal_id: Number(formData.deal_id),
+      account_id: derived.accountId ? Number(derived.accountId) : null,
+      contact_id: derived.contactId ? Number(derived.contactId) : null,
       total_amount: Number(formData.total_amount),
       presented_date: formData.presented_date || null,
-      validity_date: formData.validity_date || null,
+      validity_days:
+        formData.validity_days === "" ? null : Number(formData.validity_days),
       status: formData.status || "Draft",
       assigned_to: formData.assigned_to ? Number(formData.assigned_to) : null,
       notes: formData.notes?.trim() || null,
     };
 
     const actionType = isEditing && currentQuoteId ? "update" : "create";
-    const quoteName = formData.deal_name.trim();
+    const dealLabelForConfirm = getDealLabelById(formData.deal_id);
+
+    const payload =
+      actionType === "create"
+        ? { ...basePayload, created_by_id: Number(currentUserId) }
+        : basePayload;
 
     setConfirmModalData({
       title: actionType === "create" ? "Confirm New Quote" : "Confirm Update",
@@ -470,11 +754,12 @@ export default function AdminQuotes() {
         actionType === "create" ? (
           <span>
             Are you sure you want to create a quote for{" "}
-            <span className="font-semibold">{quoteName}</span>?
+            <span className="font-semibold">{dealLabelForConfirm}</span>?
           </span>
         ) : (
           <span>
-            Save changes to <span className="font-semibold">{quoteName}</span>?
+            Save changes to{" "}
+            <span className="font-semibold">{dealLabelForConfirm}</span>?
           </span>
         ),
       confirmLabel: actionType === "create" ? "Create Quote" : "Update Quote",
@@ -484,7 +769,7 @@ export default function AdminQuotes() {
         type: actionType,
         payload,
         targetId: currentQuoteId || null,
-        name: quoteName,
+        name: dealLabelForConfirm,
       },
     });
   };
@@ -503,80 +788,33 @@ export default function AdminQuotes() {
     try {
       if (type === "create") {
         setIsSubmitting(true);
-        const createPayload = {
-          deal_name: payload.deal_name,
-          contact_id: payload.contact_id || null,
-          account_id: payload.account_id || null,
-          amount: payload.amount || null,
-          total_amount: payload.total_amount,
-          presented_date: payload.presented_date || null,
-          validity_date: payload.validity_date || null,
-          status: payload.status || "Draft",
-          assigned_to: payload.assigned_to || null,
-          created_by_id: payload.created_by_id,
-          notes: payload.notes || null,
-        };
-
-        await api.post(`/quotes/admin`, createPayload);
-        toast.success(`Quote "${name}" created successfully.`);
-
-        const preserveId = selectedQuote?.id || null;
+        await api.post(`/quotes/admin`, payload);
+        toast.success(`Quote created successfully.`);
         closeModal();
-        await fetchQuotes(preserveId);
+        await fetchQuotes();
       } else if (type === "update") {
-        if (!targetId) {
-          throw new Error("Missing quote identifier for update.");
-        }
+        if (!targetId) throw new Error("Missing quote identifier for update.");
         setIsSubmitting(true);
-
-        // Get account_id from contact if contact is selected
-        const selectedContact = contacts.find(c => c.id === payload.contact_id);
-        const account_id = selectedContact?.account_id || payload.account_id || null;
-
-        const updatePayload = {
-          deal_name: payload.deal_name,
-          contact_id: payload.contact_id || null,
-          account_id: account_id,
-          amount: payload.amount || null,
-          total_amount: payload.total_amount,
-          presented_date: payload.presented_date || null,
-          validity_date: payload.validity_date || null,
-          status: payload.status || "Draft",
-          assigned_to: payload.assigned_to || null,
-          notes: payload.notes || null,
-        };
-
-        await api.put(`/quotes/admin/${targetId}`, updatePayload);
-        toast.success(`Quote "${name}" updated successfully.`);
-
-        const preserveId =
-          selectedQuote?.id && selectedQuote.id === targetId
-            ? targetId
-            : selectedQuote?.id || null;
+        await api.put(`/quotes/admin/${targetId}`, payload);
+        toast.success(`Quote updated successfully.`);
         closeModal();
-        await fetchQuotes(preserveId);
-        if (selectedQuote?.id === targetId) {
-          setSelectedQuote(null);
-        }
+        await fetchQuotes();
+        if (selectedQuote?.id === targetId) setSelectedQuote(null);
       } else if (type === "delete") {
-        if (!targetId) {
+        if (!targetId)
           throw new Error("Missing quote identifier for deletion.");
-        }
         const currentSelectedId = selectedQuote?.id;
         setDeletingId(targetId);
 
         await api.delete(`/quotes/admin/${targetId}`);
         toast.success(`Quote "${name}" deleted successfully.`);
 
-        const preserveId =
+        await fetchQuotes(
           currentSelectedId && currentSelectedId !== targetId
             ? currentSelectedId
-            : null;
-        await fetchQuotes(preserveId);
-
-        if (currentSelectedId === targetId) {
-          setSelectedQuote(null);
-        }
+            : null
+        );
+        if (currentSelectedId === targetId) setSelectedQuote(null);
       }
     } catch (err) {
       console.error(err);
@@ -586,23 +824,13 @@ export default function AdminQuotes() {
           : type === "update"
           ? "Failed to update quote. Please review the details and try again."
           : "Failed to delete quote. Please try again.";
-
       toast.error(defaultMessage);
 
-      if (type === "create" || type === "update") {
-        setIsSubmitting(false);
-      }
-
-      if (type === "delete") {
-        setDeletingId(null);
-      }
+      if (type === "create" || type === "update") setIsSubmitting(false);
+      if (type === "delete") setDeletingId(null);
     } finally {
-      if (type === "create" || type === "update") {
-        setIsSubmitting(false);
-      }
-      if (type === "delete") {
-        setDeletingId(null);
-      }
+      if (type === "create" || type === "update") setIsSubmitting(false);
+      if (type === "delete") setDeletingId(null);
       setConfirmProcessing(false);
       setConfirmModalData(null);
     }
@@ -612,6 +840,129 @@ export default function AdminQuotes() {
     if (confirmProcessing) return;
     setConfirmModalData(null);
   };
+
+  // ✅ FIX: status change handler with PATCH-then-fallback-to-PUT
+  const buildUpdatePayloadFromQuote = useCallback(
+    (quote, overrideStatus) => {
+      const dealIdRaw = quote?.deal_id ?? quote?.deal?.id ?? "";
+      const deal_id = dealIdRaw ? Number(dealIdRaw) : null;
+
+      const derived = deal_id
+        ? deriveAccountAndContactFromDealId(String(deal_id))
+        : { accountId: "", contactId: "" };
+
+      const accountIdRaw =
+        quote?.account_id ?? quote?.account?.id ?? derived.accountId ?? null;
+      const contactIdRaw =
+        quote?.contact_id ?? quote?.contact?.id ?? derived.contactId ?? null;
+
+      const totalAmountRaw = quote?.total_amount ?? 0;
+      const assignedToRaw =
+        quote?.assigned_to ?? quote?.assigned_user?.id ?? null;
+
+      return {
+        deal_id,
+        account_id:
+          accountIdRaw !== null &&
+          accountIdRaw !== undefined &&
+          String(accountIdRaw).trim() !== ""
+            ? Number(accountIdRaw)
+            : null,
+        contact_id:
+          contactIdRaw !== null &&
+          contactIdRaw !== undefined &&
+          String(contactIdRaw).trim() !== ""
+            ? Number(contactIdRaw)
+            : null,
+        total_amount: Number(totalAmountRaw),
+        presented_date: quote?.presented_date || null,
+        validity_days:
+          quote?.validity_days === "" || quote?.validity_days === undefined
+            ? null
+            : quote?.validity_days === null
+            ? null
+            : Number(quote.validity_days),
+        status: overrideStatus, // Title Case (same as your working PUT flow)
+        assigned_to:
+          assignedToRaw !== null &&
+          assignedToRaw !== undefined &&
+          String(assignedToRaw).trim() !== ""
+            ? Number(assignedToRaw)
+            : null,
+        notes: quote?.notes?.trim() || null,
+      };
+    },
+    [deriveAccountAndContactFromDealId]
+  );
+
+  // ✅ requirement: once changed status, close the popup modal (detail view)
+  const handleStatusUpdate = useCallback(async () => {
+    if (!selectedQuote?.id) return;
+
+    const uiStatus = normalizeStatus(selectedStatus); // "Draft"
+    const attempts = [uiStatus, uiStatus.toLowerCase()];
+
+    const patchStatus = async (statusValue) => {
+      return api.patch(
+        `/quotes/admin/${selectedQuote.id}/status`,
+        { status: statusValue },
+        { headers: { "Content-Type": "application/json" } }
+      );
+    };
+
+    try {
+      let patched = false;
+
+      for (const statusValue of attempts) {
+        try {
+          await patchStatus(statusValue);
+          patched = true;
+          break;
+        } catch (e) {
+          if (e?.response?.status === 422) continue; // try next format
+          throw e;
+        }
+      }
+
+      if (!patched) {
+        // Fallback to full PUT update
+        const payload = buildUpdatePayloadFromQuote(selectedQuote, uiStatus);
+
+        if (!payload.deal_id) {
+          toast.error(
+            "Cannot update status: missing deal_id on selected quote."
+          );
+          return;
+        }
+        if (!payload.total_amount || payload.total_amount <= 0) {
+          toast.error(
+            "Cannot update status: missing/invalid total_amount on selected quote."
+          );
+          return;
+        }
+
+        await api.put(`/quotes/admin/${selectedQuote.id}`, payload);
+      }
+
+      toast.success(`Quote status updated to ${uiStatus}`);
+
+      // ✅ CLOSE the detail modal after success
+      setSelectedQuote(null);
+      setActiveTab("Overview");
+
+      // Refresh list after closing
+      await fetchQuotes();
+    } catch (err) {
+      console.error(err);
+      const msg =
+        err?.response?.data?.message ||
+        (err?.response?.data?.errors
+          ? Object.values(err.response.data.errors).flat().join(" ")
+          : null) ||
+        "Failed to update quote status. Please try again.";
+      toast.error(msg);
+    }
+  }, [selectedQuote, selectedStatus, fetchQuotes, buildUpdatePayloadFromQuote]);
 
   const statusFilterOptions = [
     { label: "Filter by Status", value: "Filter by Status" },
@@ -641,289 +992,307 @@ export default function AdminQuotes() {
       className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4"
     >
       <div
-      className="bg-white rounded-xl shadow-xl w-full max-w-6xl max-h-[92vh] overflow-y-auto hide-scrollbar animate-scale-in font-inter relative"
+        className="bg-white rounded-xl shadow-xl w-full max-w-6xl max-h-[92vh] overflow-y-auto hide-scrollbar animate-scale-in font-inter relative"
         onClick={(e) => e.stopPropagation()}
       >
-          {/* 🔵 ONLY TOP */}
-      <div className="w-full flex flex-col items-center justify-center rounded-t-xl">
-  <div className="bg-tertiary w-full flex items-center justify-between p-3 lg:p-3 rounded-t-xl">
-    <h1 className="lg:text-3xl text-xl text-white font-semibold text-center w-full">
-      Quotes
-    </h1>
-
-    {/* Close Button */}
-    <button
-      onClick={handleBackToList}
-      className="text-gray-500 hover:text-white transition cursor-pointer"
-    >
-      <HiX size={25} />
-    </button>
-  </div>
-</div>
-
-        {/* Header */}
-        <div className="p-6 lg:p-4">
-        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-2 mt-3 p-2 sm:gap-4 lg:mx-7">
-          <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-            <h1 className="text-xl sm:text-2xl font-semibold text-gray-800">
-              {selectedQuote.deal_name || "Untitled Quote"}
+        <div className="w-full flex flex-col items-center justify-center rounded-t-xl">
+          <div className="bg-tertiary w-full flex items-center justify-between p-3 lg:p-3 rounded-t-xl">
+            <h1 className="lg:text-3xl text-xl text-white font-semibold text-center w-full">
+              Quotes
             </h1>
-            <span
-              className={`text-xs sm:text-sm font-medium px-2 sm:px-3 py-1 rounded-full whitespace-nowrap ${getDetailBadgeClass(
-                selectedQuote.status
-              )}`}
-            >
-              {formatStatusLabel(selectedQuote.status)}
-            </span>
-          </div>
-
-          <div className="flex flex-col sm:flex-row sm:space-x-3 space-y-2 sm:space-y-0">
             <button
-              className="inline-flex items-center justify-center w-full sm:w-auto bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 disabled:opacity-70 transition text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
-              onClick={() => handleEditClick(selectedQuote)}
-              disabled={
-                confirmProcessing ||
-                (confirmModalData?.action?.type === "update" &&
-                  confirmModalData.action.targetId === selectedQuote.id)
-              }
+              onClick={handleBackToList}
+              className="text-gray-500 hover:text-white transition cursor-pointer"
             >
-              <FiEdit className="mr-2" />
-              Edit
-            </button>
-            <button
-              className="inline-flex items-center justify-center w-full sm:w-auto px-4 py-2 rounded-md text-sm bg-red-500 text-white hover:bg-red-600 transition focus:outline-none focus:ring-2 focus:ring-red-400"
-              onClick={() => handleDelete(selectedQuote)}
-              disabled={Boolean(selectedQuoteDeleteDisabled)}
-            >
-              {selectedQuoteDeleting ? (
-                "Deleting..."
-              ) : (
-                <>
-                  <FiTrash2 className="mr-2" />
-                  Delete
-                </>
-              )}
+              <HiX size={25} />
             </button>
           </div>
         </div>
-        <div className="border-b border-gray-200 my-5"></div>
 
-        {/* TABS */}
-        <div className="p-1 lg:p-4">
-        <div className="flex w-full bg-[#6A727D] text-white mt-1 overflow-x-auto mb-6">
-          {["Overview", "Notes"].map((tab) => (
-            <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
-              className={`flex-1 min-w-[90px] px-4 py-2.5 text-xs sm:text-sm font-medium text-center transition-all duration-200 border-b-2
-        ${activeTab === tab
-                  ? "bg-paper-white text-[#6A727D] border-white"
-                  : "text-white hover:bg-[#5c636d]"
-                }`}
-            >
-              {tab}
-            </button>
-          ))}
-        </div>
-
-        {/* TAB CONTENT */}
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 items-start">
-          <div className="lg:col-span-3">
-            {activeTab === "Overview" && (
-              <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6 md:p-8 border border-gray-200">
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-4 sm:gap-6 text-sm text-gray-700">
-                  <div>
-                    <p className="font-semibold">Quote ID:</p>
-                    <p>{selectedQuote.quote_id || "N/A"}</p>
-                  </div>
-                  <div>
-                    <p className="font-semibold">Deal Name:</p>
-                    <p>{selectedQuote.deal_name || "N/A"}</p>
-                  </div>
-                  <div>
-                    <p className="font-semibold">Account:</p>
-                    <p>{selectedQuote.account?.name || "N/A"}</p>
-                  </div>
-                  <div>
-                    <p className="font-semibold">Contact:</p>
-                    <p>
-                      {selectedQuote.contact
-                        ? `${selectedQuote.contact.first_name} ${selectedQuote.contact.last_name}`
-                        : "N/A"}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="font-semibold">Total Amount:</p>
-                    <p>
-                      {selectedQuote.total_amount
-                        ? `₱${Number(selectedQuote.total_amount).toLocaleString()}`
-                        : "N/A"}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="font-semibold">Presented Date:</p>
-                    <p>{formatDate(selectedQuote.presented_date) || "N/A"}</p>
-                  </div>
-                  <div>
-                    <p className="font-semibold">Validity Date:</p>
-                    <p>{formatDate(selectedQuote.validity_date) || "N/A"}</p>
-                  </div>
-                  <div>
-                    <p className="font-semibold">Created By:</p>
-                    <p>
-                      {selectedQuote.creator
-                        ? `${selectedQuote.creator.first_name} ${selectedQuote.creator.last_name}`
-                        : "N/A"}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="font-semibold">Created At:</p>
-                    <p>{formattedDateTime(selectedQuote.created_at) || "N/A"}</p>
-                  </div>
-                  <div>
-                    <p className="font-semibold">Last Updated:</p>
-                    <p>{formattedDateTime(selectedQuote.updated_at) || "N/A"}</p>
-                  </div>
-                  <div>
-                    <p className="font-semibold">Status:</p>
-                    <p>{formatStatusLabel(selectedQuote.status)}</p>
-                  </div>
-                  <div>
-                    <p className="font-semibold">Assigned To:</p>
-                    <p>
-                      {selectedQuote.assigned_user
-                        ? `${selectedQuote.assigned_user.first_name} ${selectedQuote.assigned_user.last_name}`
-                        : "Unassigned"}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {activeTab === "Notes" && (
-              <div className="bg-white p-4 sm:p-6 rounded-xl border border-gray-200 shadow-sm">
-                <h3 className="font-semibold text-gray-800 mb-2">Notes:</h3>
-                <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">
-                  {selectedQuote.notes || "No notes available."}
-                </p>
-              </div>
-            )}
-          </div>
-
-            <div className="flex flex-col gap-4">
-                     {/* QUICK ACTIONS */}
-                     <div className="bg-white border border-gray-100 rounded-lg p-3 sm:p-4 shadow-sm">
-                       <h4 className="font-semibold text-gray-800 mb-2 text-sm">
-                         Quick Actions
-                       </h4>
-                   
-                       <div className="flex flex-col gap-2 w-full">
-                   
-                         {/* --- SCHEDULE CALL BUTTON (updated) --- */}
-                         <button
-                           onClick={() =>
-                             navigate("/admin/calls", {
-                               state: {
-                                 openCallModal: true,      // <-- this triggers your form
-                                 initialCallData: {
-                                   relatedType1: "Quotes", // <-- your custom default
-                                 },
-                               },
-                             })
-                           }
-                           className="flex items-center gap-2 border border-gray-100 rounded-md py-1.5 px-2 sm:px-3 hover:bg-gray-50 transition text-sm"
-                         >
-                           <FiPhone className="text-gray-600 w-4 h-4" />
-                           Schedule Call
-                         </button>
-                   
-                         <button
-                    className="flex items-center gap-2 border border-gray-100 rounded-md py-1.5 px-2 sm:px-3 hover:bg-gray-50 transition text-sm"
-                    onClick={() =>
-                      navigate("/admin/meetings", {
-                        state: {
-                          openMeetingModal: true,
-                          initialMeetingData: {
-                            relatedType: "Quotes",
-                          },
-                        },
-                      })
-                    }
-                  >
-                    <FiCalendar className="text-gray-600 w-4 h-4" />
-                    Book Meeting
-                  </button>
-
-                           <button
-                        onClick={() =>
-                          navigate("/admin/tasks", {
-                            state: {
-                              openTaskModal: true,
-                              initialTaskData: {
-                                relatedTo: "Quotes",
-                              },
-                            },
-                          })
-                        }
-                        className="flex items-center gap-2 border border-gray-100 rounded-md py-1.5 px-2 sm:px-3 hover:bg-gray-50 transition text-sm"
-                      >
-                        <FiCheckSquare className="text-gray-600 w-4 h-4" />
-                        Tasks
-                      </button>
-                         </div>
-                     </div>
-
-            {/* STATUS */}
-            <div className="bg-white border border-gray-100 rounded-lg p-3 sm:p-4 shadow-sm w-full">
-              <h4 className="font-semibold text-gray-800 mb-2 text-sm">
-                Status
-              </h4>
-              <select
-                className="border border-gray-200 rounded-md px-2 sm:px-3 py-1.5 w-full text-sm mb-2 focus:ring-2 focus:ring-indigo-500 outline-none"
-                value={selectedStatus || selectedQuote.status || "Draft"}
-                onChange={(e) => setSelectedStatus(e.target.value)}
+        <div className="p-6 lg:p-4">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-2 mt-3 p-2 sm:gap-4 lg:mx-7">
+            <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+              <h1 className="text-xl sm:text-2xl font-semibold text-gray-800">
+                {resolveDealLabel(selectedQuote)}
+              </h1>
+              <span
+                className={`text-xs sm:text-sm font-medium px-2 sm:px-3 py-1 rounded-full whitespace-nowrap ${getDetailBadgeClass(
+                  selectedQuote.status
+                )}`}
               >
-                {STATUS_OPTIONS.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
+                {formatStatusLabel(selectedQuote.status)}
+              </span>
+            </div>
+
+            <div className="flex flex-col sm:flex-row sm:space-x-3 space-y-2 sm:space-y-0">
+              <button
+                className="inline-flex items-center justify-center w-full sm:w-auto bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 disabled:opacity-70 transition text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+                onClick={() => handleEditClick(selectedQuote)}
+                disabled={
+                  confirmProcessing ||
+                  (confirmModalData?.action?.type === "update" &&
+                    confirmModalData.action.targetId === selectedQuote.id)
+                }
+              >
+                <FiEdit className="mr-2" />
+                Edit
+              </button>
 
               <button
-                onClick={async () => {
-                  try {
-                    await api.patch(`/quotes/admin/${selectedQuote.id}/status?status=${encodeURIComponent(selectedStatus)}`);
-                    toast.success(`Quote status updated to ${selectedStatus}`);
-                    // Close popup and update quotes list in real-time
-                    setSelectedQuote(null);
-                    await fetchQuotes();
-                  } catch (err) {
-                    console.error(err);
-                    toast.error("Failed to update quote status. Please try again.");
-                  }
-                }}
-                disabled={selectedStatus === selectedQuote.status}
-                className={`w-full py-1.5 rounded-md text-sm transition focus:outline-none focus:ring-2 ${
-                  selectedStatus === selectedQuote.status
-                    ? "bg-gray-400 cursor-not-allowed text-white"
-                    : "bg-gray-900 text-white hover:bg-gray-800 focus:ring-gray-400"
-                }`}
+                className="inline-flex items-center justify-center w-full sm:w-auto px-4 py-2 rounded-md text-sm bg-red-500 text-white hover:bg-red-600 transition focus:outline-none focus:ring-2 focus:ring-red-400"
+                onClick={() => handleDelete(selectedQuote)}
+                disabled={Boolean(selectedQuoteDeleteDisabled)}
               >
-                Update
+                {selectedQuoteDeleting ? (
+                  "Deleting..."
+                ) : (
+                  <>
+                    <FiTrash2 className="mr-2" />
+                    Delete
+                  </>
+                )}
               </button>
+            </div>
+          </div>
+
+          <div className="border-b border-gray-200 my-5"></div>
+
+          <div className="p-1 lg:p-4">
+            <div className="flex w-full bg-[#6A727D] text-white mt-1 overflow-x-auto mb-6">
+              {["Overview", "Notes"].map((tab) => (
+                <button
+                  key={tab}
+                  onClick={() => setActiveTab(tab)}
+                  className={`flex-1 min-w-[90px] px-4 py-2.5 text-xs sm:text-sm font-medium text-center transition-all duration-200 border-b-2
+                    ${
+                      activeTab === tab
+                        ? "bg-paper-white text-[#6A727D] border-white"
+                        : "text-white hover:bg-[#5c636d]"
+                    }`}
+                >
+                  {tab}
+                </button>
+              ))}
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 items-start">
+              <div className="lg:col-span-3">
+                {activeTab === "Overview" && (
+                  <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6 md:p-8 border border-gray-200">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-4 sm:gap-6 text-sm text-gray-700">
+                      <div>
+                        <p className="font-semibold">Quote ID:</p>
+                        <p>{selectedQuote.quote_id || "N/A"}</p>
+                      </div>
+
+                      <div>
+                        <p className="font-semibold">Deal:</p>
+                        <p>{resolveDealLabel(selectedQuote) || "N/A"}</p>
+                      </div>
+
+                      <div>
+                        <p className="font-semibold">Account:</p>
+                        <p>{resolveAccountLabel(selectedQuote) || "N/A"}</p>
+                      </div>
+
+                      <div>
+                        <p className="font-semibold">Contact:</p>
+                        <p>{resolveContactLabel(selectedQuote) || "N/A"}</p>
+                      </div>
+
+                      <div>
+                        <p className="font-semibold">Total Amount:</p>
+                        <p>
+                          {selectedQuote.total_amount
+                            ? `₱${Number(
+                                selectedQuote.total_amount
+                              ).toLocaleString()}`
+                            : "N/A"}
+                        </p>
+                      </div>
+
+                      <div>
+                        <p className="font-semibold">Presented Date:</p>
+                        <p>
+                          {formatDate(selectedQuote.presented_date) || "N/A"}
+                        </p>
+                      </div>
+
+                      <div>
+                        <p className="font-semibold">Validity Days:</p>
+                        <p>
+                          {selectedQuote.validity_days !== null &&
+                          selectedQuote.validity_days !== undefined
+                            ? selectedQuote.validity_days
+                            : "N/A"}
+                        </p>
+                      </div>
+
+                      <div>
+                        <p className="font-semibold">Expiry Date:</p>
+                        <p>
+                          {formatDate(
+                            computeExpiryDate(
+                              selectedQuote.presented_date,
+                              selectedQuote.validity_days
+                            )
+                          ) || "N/A"}
+                        </p>
+                      </div>
+
+                      <div>
+                        <p className="font-semibold">Status:</p>
+                        <p>{formatStatusLabel(selectedQuote.status)}</p>
+                      </div>
+
+                      <div>
+                        <p className="font-semibold">Assigned To:</p>
+                        <p>
+                          {selectedQuote.assigned_user
+                            ? `${selectedQuote.assigned_user.first_name} ${selectedQuote.assigned_user.last_name}`
+                            : "Unassigned"}
+                        </p>
+                      </div>
+
+                      <div>
+                        <p className="font-semibold">Created By:</p>
+                        <p>
+                          {selectedQuote.creator
+                            ? `${selectedQuote.creator.first_name} ${selectedQuote.creator.last_name}`
+                            : "N/A"}
+                        </p>
+                      </div>
+
+                      <div>
+                        <p className="font-semibold">Created At:</p>
+                        <p>
+                          {formattedDateTime(selectedQuote.created_at) || "N/A"}
+                        </p>
+                      </div>
+
+                      <div>
+                        <p className="font-semibold">Last Updated:</p>
+                        <p>
+                          {formattedDateTime(selectedQuote.updated_at) || "N/A"}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {activeTab === "Notes" && (
+                  <div className="bg-white p-4 sm:p-6 rounded-xl border border-gray-200 shadow-sm">
+                    <h3 className="font-semibold text-gray-800 mb-2">Notes:</h3>
+                    <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">
+                      {selectedQuote.notes || "No notes available."}
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex flex-col gap-4">
+                <div className="bg-white border border-gray-100 rounded-lg p-3 sm:p-4 shadow-sm">
+                  <h4 className="font-semibold text-gray-800 mb-2 text-sm">
+                    Quick Actions
+                  </h4>
+
+                  <div className="flex flex-col gap-2 w-full">
+                    <button
+                      onClick={() =>
+                        navigate("/admin/calls", {
+                          state: {
+                            openCallModal: true,
+                            initialCallData: { relatedType1: "Quotes" },
+                          },
+                        })
+                      }
+                      className="flex items-center gap-2 border border-gray-100 rounded-md py-1.5 px-2 sm:px-3 hover:bg-gray-50 transition text-sm"
+                    >
+                      <FiPhone className="text-gray-600 w-4 h-4" />
+                      Schedule Call
+                    </button>
+
+                    <button
+                      className="flex items-center gap-2 border border-gray-100 rounded-md py-1.5 px-2 sm:px-3 hover:bg-gray-50 transition text-sm"
+                      onClick={() =>
+                        navigate("/admin/meetings", {
+                          state: {
+                            openMeetingModal: true,
+                            initialMeetingData: { relatedType: "Quotes" },
+                          },
+                        })
+                      }
+                    >
+                      <FiCalendar className="text-gray-600 w-4 h-4" />
+                      Book Meeting
+                    </button>
+
+                    <button
+                      onClick={() =>
+                        navigate("/admin/tasks", {
+                          state: {
+                            openTaskModal: true,
+                            initialTaskData: { relatedTo: "Quotes" },
+                          },
+                        })
+                      }
+                      className="flex items-center gap-2 border border-gray-100 rounded-md py-1.5 px-2 sm:px-3 hover:bg-gray-50 transition text-sm"
+                    >
+                      <FiCheckSquare className="text-gray-600 w-4 h-4" />
+                      Tasks
+                    </button>
+                  </div>
+                </div>
+
+                <div className="bg-white border border-gray-100 rounded-lg p-3 sm:p-4 shadow-sm w-full">
+                  <h4 className="font-semibold text-gray-800 mb-2 text-sm">
+                    Status
+                  </h4>
+
+                  <select
+                    className="border border-gray-200 rounded-md px-2 sm:px-3 py-1.5 w-full text-sm mb-2 focus:ring-2 focus:ring-indigo-500 outline-none"
+                    value={
+                      selectedStatus ||
+                      normalizeStatus(selectedQuote.status) ||
+                      "Draft"
+                    }
+                    onChange={(e) => setSelectedStatus(e.target.value)}
+                  >
+                    {STATUS_OPTIONS.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+
+                  <button
+                    onClick={handleStatusUpdate}
+                    disabled={
+                      normalizeStatus(selectedStatus) ===
+                      normalizeStatus(selectedQuote.status)
+                    }
+                    className={`w-full py-1.5 rounded-md text-sm transition focus:outline-none focus:ring-2 ${
+                      normalizeStatus(selectedStatus) ===
+                      normalizeStatus(selectedQuote.status)
+                        ? "bg-gray-400 cursor-not-allowed text-white"
+                        : "bg-gray-900 text-white hover:bg-gray-800 focus:ring-gray-400"
+                    }`}
+                  >
+                    Update
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         </div>
       </div>
-    </div>
-    </div>
     </div>
   ) : null;
 
   const listView = (
     <div className="p-4 sm:p-6 lg:p-8 font-inter relative">
       {quotesLoading && <LoadingSpinner message="Loading quotes..." />}
+
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 sm:mb-6 space-y-2 sm:space-y-0">
         <h2 className="flex items-center text-xl sm:text-2xl font-semibold text-gray-800">
           <FiFileText className="mr-2 text-blue-600" /> Quotes
@@ -948,6 +1317,7 @@ export default function AdminQuotes() {
             className="focus:outline-none text-base w-full"
           />
         </div>
+
         <div className="w-full lg:w-1/4">
           <select
             value={statusFilter}
@@ -964,11 +1334,11 @@ export default function AdminQuotes() {
       </div>
 
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[800px] border border-gray-200 rounded-lg bg-white shadow-sm text-sm">
+        <table className="w-full min-w-[900px] border border-gray-200 rounded-lg bg-white shadow-sm text-sm">
           <thead className="bg-gray-100 text-left text-gray-600 text-sm tracking-wide font-semibold">
             <tr>
               <th className="py-3 px-4">Quote ID</th>
-              <th className="py-3 px-4">Deal Name</th>
+              <th className="py-3 px-4">Deal</th>
               <th className="py-3 px-4">Account</th>
               <th className="py-3 px-4">Contact</th>
               <th className="py-3 px-4">Total Amount</th>
@@ -977,6 +1347,7 @@ export default function AdminQuotes() {
               <th className="py-3 px-4">Expiry Date</th>
             </tr>
           </thead>
+
           <tbody>
             {quotesLoading ? (
               <tr>
@@ -989,6 +1360,10 @@ export default function AdminQuotes() {
               </tr>
             ) : filteredQuotes.length > 0 ? (
               paginatedQuotes.map((quote) => {
+                const expiry = computeExpiryDate(
+                  quote.presented_date,
+                  quote.validity_days
+                );
                 return (
                   <tr
                     key={quote.id}
@@ -1000,21 +1375,25 @@ export default function AdminQuotes() {
                         {quote.quote_id || "--"}
                       </div>
                     </td>
+
                     <td className="py-3 px-4 align-top">
-                      <div className="break-words">{quote.deal_name || "--"}</div>
+                      <div className="break-words">
+                        {resolveDealLabel(quote) || "--"}
+                      </div>
                     </td>
+
                     <td className="py-3 px-4 align-top">
                       <div className="text-sm text-gray-700 break-words">
-                        {quote.account?.name || "--"}
+                        {resolveAccountLabel(quote) || "--"}
                       </div>
                     </td>
+
                     <td className="py-3 px-4 align-top">
-                      <div>
-                        {quote.contact
-                          ? `${quote.contact.first_name} ${quote.contact.last_name}`
-                          : "--"}
+                      <div className="break-words">
+                        {resolveContactLabel(quote) || "--"}
                       </div>
                     </td>
+
                     <td className="py-3 px-4 align-top">
                       <div className="text-gray-700">
                         {quote.total_amount
@@ -1022,6 +1401,7 @@ export default function AdminQuotes() {
                           : "--"}
                       </div>
                     </td>
+
                     <td className="py-3 px-4 align-top">
                       <span
                         className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${getStatusBadgeClass(
@@ -1031,6 +1411,7 @@ export default function AdminQuotes() {
                         {formatStatusLabel(quote.status)}
                       </span>
                     </td>
+
                     <td className="py-3 px-4 align-top">
                       <div>
                         {quote.assigned_user
@@ -1038,9 +1419,10 @@ export default function AdminQuotes() {
                           : "Unassigned"}
                       </div>
                     </td>
+
                     <td className="py-3 px-4 align-top">
                       <div className="text-gray-500 text-xs">
-                        {formatDate(quote.validity_date) || "--"}
+                        {formatDate(expiry) || "--"}
                       </div>
                     </td>
                   </tr>
@@ -1059,6 +1441,7 @@ export default function AdminQuotes() {
           </tbody>
         </table>
       </div>
+
       <PaginationControls
         className="mt-4"
         totalItems={filteredQuotes.length}
@@ -1097,54 +1480,41 @@ export default function AdminQuotes() {
           className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm"
           onSubmit={handleSubmit}
         >
-          <InputField
-            label="Deal Name"
-            name="deal_name"
-            value={formData.deal_name}
+          <SelectField
+            label="Deal"
+            name="deal_id"
+            value={formData.deal_id}
             onChange={handleInputChange}
-            placeholder="Deal name"
+            options={[
+              { value: "", label: "Select deal" },
+              ...deals.map((d) => ({
+                value: String(d.id),
+                label: d.deal_name || d.name || `Deal #${d.id}`,
+              })),
+            ]}
             required
-            disabled={isSubmitting}
+            disabled={isSubmitting || deals.length === 0}
             className="md:col-span-2"
           />
-          <SelectField
-            label="Created By"
-            name="created_by_id"
-            value={formData.created_by_id}
-            onChange={handleInputChange}
-            options={[
-              { value: "", label: "Select user" },
-              ...users.map((user) => ({
-                value: String(user.id),
-                label: `${user.first_name} ${user.last_name} (${user.role})`,
-              })),
-            ]}
-            required
-            disabled={isSubmitting || users.length === 0}
+
+          <ReadOnlyField
+            label="Account"
+            value={
+              getAccountNameById(formData.account_id) ||
+              (formData.account_id ? `Account #${formData.account_id}` : "")
+            }
+            disabled
           />
-          <SelectField
+
+          <ReadOnlyField
             label="Contact"
-            name="contact_id"
-            value={formData.contact_id}
-            onChange={handleInputChange}
-            options={[
-              { value: "", label: "Select contact" },
-              ...contacts.map((contact) => ({
-                value: String(contact.id),
-                label: `${contact.first_name} ${contact.last_name}`,
-              })),
-            ]}
-            disabled={isSubmitting || contacts.length === 0}
+            value={
+              getContactNameById(formData.contact_id) ||
+              (formData.contact_id ? `Contact #${formData.contact_id}` : "")
+            }
+            disabled
           />
-          <InputField
-            label="Amount"
-            name="amount"
-            type="number"
-            value={formData.amount}
-            onChange={handleInputChange}
-            placeholder="0.00"
-            disabled={isSubmitting}
-          />
+
           <InputField
             label="Total Amount"
             name="total_amount"
@@ -1155,6 +1525,7 @@ export default function AdminQuotes() {
             required
             disabled={isSubmitting}
           />
+
           <InputField
             label="Presented Date"
             name="presented_date"
@@ -1163,14 +1534,32 @@ export default function AdminQuotes() {
             onChange={handleInputChange}
             disabled={isSubmitting}
           />
+
           <InputField
-            label="Validity Date"
-            name="validity_date"
-            type="date"
-            value={formData.validity_date}
+            label="Validity Days"
+            name="validity_days"
+            type="number"
+            value={formData.validity_days}
             onChange={handleInputChange}
+            placeholder="30"
             disabled={isSubmitting}
           />
+
+          <SelectField
+            label="Assigned To"
+            name="assigned_to"
+            value={formData.assigned_to}
+            onChange={handleInputChange}
+            options={[
+              { value: "", label: "Select assignee" },
+              ...users.map((u) => ({
+                value: String(u.id),
+                label: `${u.first_name} ${u.last_name} (${u.role})`,
+              })),
+            ]}
+            disabled={isSubmitting || users.length === 0}
+          />
+
           <SelectField
             label="Status"
             name="status"
@@ -1179,21 +1568,9 @@ export default function AdminQuotes() {
             options={STATUS_OPTIONS}
             required
             disabled={isSubmitting}
+            className="md:col-span-2"
           />
-          <SelectField
-            label="Assigned To"
-            name="assigned_to"
-            value={formData.assigned_to}
-            onChange={handleInputChange}
-            options={[
-              { value: "", label: "Select assignee" },
-              ...users.map((user) => ({
-                value: String(user.id),
-                label: `${user.first_name} ${user.last_name} (${user.role})`,
-              })),
-            ]}
-            disabled={isSubmitting || users.length === 0}
-          />
+
           <TextareaField
             label="Notes"
             name="notes"
@@ -1254,6 +1631,7 @@ export default function AdminQuotes() {
   );
 }
 
+// ---------- UI Components ----------
 function InputField({
   label,
   name,
@@ -1284,6 +1662,22 @@ function InputField({
   );
 }
 
+function ReadOnlyField({ label, value, className = "", disabled = true }) {
+  return (
+    <div className={className}>
+      <label className="block text-gray-700 font-medium mb-1 text-sm">
+        {label}
+      </label>
+      <input
+        type="text"
+        value={value ?? ""}
+        disabled={disabled}
+        className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm outline-none disabled:bg-gray-100"
+      />
+    </div>
+  );
+}
+
 function SelectField({
   label,
   name,
@@ -1294,11 +1688,13 @@ function SelectField({
   disabled = false,
   className = "",
 }) {
-  // Ensure value is a string and matches one of the option values
-  const stringValue = value !== null && value !== undefined ? String(value) : "";
-  const hasValidValue = options.some(opt => String(opt.value) === stringValue);
+  const stringValue =
+    value !== null && value !== undefined ? String(value) : "";
+  const hasValidValue = options.some(
+    (opt) => String(opt.value) === stringValue
+  );
   const displayValue = hasValidValue ? stringValue : "";
-  
+
   return (
     <div className={className}>
       <label className="block text-gray-700 font-medium mb-1 text-sm">
@@ -1313,7 +1709,10 @@ function SelectField({
         className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-400 outline-none disabled:bg-gray-100"
       >
         {options.map((option) => (
-          <option key={option.value ?? option.label} value={String(option.value ?? "")}>
+          <option
+            key={option.value ?? option.label}
+            value={String(option.value ?? "")}
+          >
             {option.label}
           </option>
         ))}
@@ -1347,16 +1746,6 @@ function TextareaField({
         className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-blue-400 outline-none disabled:bg-gray-100 resize-none"
       />
     </div>
-  );
-}
-
-function DetailRow({ label, value }) {
-  const hasValue = value !== undefined && value !== null && value !== "";
-  return (
-    <p>
-      <span className="font-semibold">{label}:</span> <br />
-      <span className="break-words">{hasValue ? value : "--"}</span>
-    </p>
   );
 }
 

@@ -65,7 +65,7 @@ class CompanyOut(CompanyBase):
 class UserWithCompany(UserBase):
     id: int
     auth_provider: str
-    profile_picture: Optional[str] 
+    profile_picture: Optional[str] = None
     company: Optional[CompanyBase] = None
 
     class Config:
@@ -80,17 +80,25 @@ class UserTerritory(BaseModel):
     class Config:
         orm_mode = True
 
+class RelatedToCEO(BaseModel):
+    id: int
+    first_name: str
+    last_name: str
+    email: EmailStr
+    profile_picture: Optional[str] = None
+
 
 # ✅ Response model (includes extra fields)
 class UserResponse(UserBase):
     id: int
     auth_provider: str
-    profile_picture: Optional[str]    
+    profile_picture: Optional[str] = None
     is_active: bool
     created_at: Optional[datetime]  # Date joined
     last_login: Optional[datetime]  # Last login
     company: Optional[CompanyOut] = None
     related_to_CEO: Optional[int] = None
+    manager: Optional[RelatedToCEO] = None
     assigned_territory: List[UserTerritory] = []
 
     class Config:

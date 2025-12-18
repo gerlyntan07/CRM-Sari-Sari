@@ -48,6 +48,7 @@ export default function ManagerPanel() {
     "/manager/quotes",
     "/manager/targets",
     "/manager/meetings",
+    "/manager/manage-account",
   ];
   const isSalesActive = salesRoutes.includes(location.pathname);
 
@@ -198,6 +199,12 @@ export default function ManagerPanel() {
                   className={({ isActive }) => (isActive ? activeLink : normalLink)}
                 >
                   <FiUsers /> Users
+                </NavLink>
+                <NavLink
+                  to="/manager/manage-account"
+                  className={({ isActive }) => (isActive ? activeLink : normalLink)}
+                >
+                  <FiUser /> Manage Account
                 </NavLink>
               </div>
             )}

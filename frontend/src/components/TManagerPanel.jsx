@@ -198,6 +198,12 @@ export default function TManagerPanel() {
                 >
                   <FiUsers /> Users
                 </NavLink>
+                <NavLink
+                  to="/group-manager/manage-account"
+                  className={({ isActive }) => (isActive ? activeLink : normalLink)}
+                >
+                  <FiUser /> Manage Account
+                </NavLink>
               </div>
             )}
           </div>

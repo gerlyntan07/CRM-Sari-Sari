@@ -14,6 +14,7 @@ import Header from "./components/Header";
 import Signup from "./pages/Signup";
 import Login from "./pages/Login";
 import ForgotPass from "./pages/ForgotPass";
+import PublicManageAccount from './pages/PublicManageAccount.jsx';
 
 // 🔹 Admin layout + pages
 import AdminPanel from "./components/AdminPanel";
@@ -126,7 +127,7 @@ function App() {
         <Route path="/header" element={<Header />} />
         <Route path="/signup" element={<Signup />} />
         <Route path="/login" element={<Login />} />
-        <Route path="/forgot-password" element={<ForgotPass />} />
+        <Route path="/forgot-password" element={<ForgotPass />} />        
 
         {/* ================= Admin Layout ================= */}
         <Route path="/admin" element={<AdminPanel />}>
@@ -200,6 +201,7 @@ function App() {
           <Route path="calls" element={<ManagerCalls />} />
           <Route path="tasks" element={<ManagerTask />} />
           <Route path="users" element={<ManagerUser />} />
+          <Route path="manage-account" element={<PublicManageAccount />} />
         </Route>
 
         {/* ================= Marketing Layout ================= */}
@@ -215,6 +217,7 @@ function App() {
             <Route path="tasks" element={<MarketingTask />} />
             <Route path="campaigns" element={<MarketingCampaign />} />
             <Route path="templates" element={<MarketingTemplates />} />
+            <Route path="manage-account" element={<PublicManageAccount />} />
           </Route>
         </Route>
 
@@ -240,6 +243,7 @@ function App() {
           <Route path="calls" element={<TManagerCalls />} />
           <Route path="audit" element={<TManagerAudit />} />
           <Route path="users" element={<TManagerUser />} />
+          <Route path="manage-account" element={<PublicManageAccount />} />
         </Route>
       </Routes>
     </Router>

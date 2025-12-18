@@ -128,7 +128,12 @@ export default function AdminHeader({ toggleSidebar }) {
 
               {/* Menu Options */}
               <div className="mt-4 space-y-1 px-4 text-left">
-                <button className="block w-full text-sm text-gray-700 hover:bg-gray-50 py-1 rounded text-left">
+                <button 
+                onClick={() => {
+                    navigate("/admin/users");
+                    setOpen(false);
+                  }}
+                className="block w-full text-sm text-gray-700 hover:bg-gray-50 py-1 rounded text-left">
                   Invite Your Team
                 </button>
 

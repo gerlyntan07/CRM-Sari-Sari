@@ -1,17 +1,18 @@
 import { useState, useRef, useEffect } from "react";
-import { FiBell, FiMenu } from "react-icons/fi";
-import { useLocation } from "react-router-dom";
-import useAuth from "../hooks/useAuth.js";
+import { FiBell, FiUser } from "react-icons/fi";
+import { useLocation, useNavigate } from "react-router-dom";
+import useAuth from '../hooks/useAuth.js';
 import useFetchUser from "../hooks/useFetchUser.js";
 
-export default function ManagerHeader({ toggleSidebar }) {
+export default function AdminHeader({ toggleSidebar }) {
   const [open, setOpen] = useState(false);
   const dropdownRef = useRef(null);
   const location = useLocation();
-
+  const navigate = useNavigate();
   const { logout } = useAuth();
   const { user, fetchUser } = useFetchUser();
 
+  // Map routes to titles
   const routeTitles = {
     "/manager/dashboard": "Dashboard",
     "/manager/accounts": "Accounts",
@@ -22,14 +23,30 @@ export default function ManagerHeader({ toggleSidebar }) {
     "/manager/targets": "Targets",
     "/manager/leads": "Leads",
     "/manager/quotes": "Quotes",
+    "/manager/users": "Users",
+    "/manager/deals": "Deals",
   };
-
-  const currentTitle = routeTitles[location.pathname] || "Manager Panel";
 
   useEffect(() => {
     fetchUser();
   }, []);
 
+  // Listen for profile update events to refresh user data
+  useEffect(() => {
+    const handleProfileUpdate = () => {
+      fetchUser();
+    };
+
+    window.addEventListener('userProfileUpdated', handleProfileUpdate);
+    
+    return () => {
+      window.removeEventListener('userProfileUpdated', handleProfileUpdate);
+    };
+  }, [fetchUser]);
+
+  const currentTitle = routeTitles[location.pathname] || "Group Manager Panel";
+
+  // Close dropdown if clicked outside
   useEffect(() => {
     function handleClickOutside(event) {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
@@ -41,20 +58,35 @@ export default function ManagerHeader({ toggleSidebar }) {
   }, []);
 
   return (
-    <header className="flex justify-between items-center bg-white shadow px-6 py-3 border-b relative">
+    <header className="flex justify-between items-center bg-white shadow px-4 sm:px-6 py-3 border-b relative">
+      {/* Left Side - Hamburger & Title */}
       <div className="flex items-center gap-3">
-        {/* Burger Menu (Mobile Only) */}
+        {/* Hamburger Button - Mobile Only */}
         <button
           onClick={toggleSidebar}
           className="lg:hidden text-gray-700 hover:text-gray-900"
         >
-          <FiMenu className="text-2xl" />
+          <svg
+            className="w-6 h-6"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M4 6h16M4 12h16M4 18h16"
+            />
+          </svg>
         </button>
+
         <h1 className="text-lg font-semibold text-gray-800">{currentTitle}</h1>
       </div>
 
+      {/* Right Side */}
       <div className="flex items-center space-x-4">
-        {/* Notifications */}
+        {/* Notification */}
         <button className="relative text-gray-600 hover:text-gray-800">
           <FiBell className="text-xl" />
           <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs w-4 h-4 flex items-center justify-center rounded-full">
@@ -96,7 +128,22 @@ export default function ManagerHeader({ toggleSidebar }) {
 
               {/* Menu Options */}
               <div className="mt-4 space-y-1 px-4 text-left">
-                <button className="block w-full text-sm text-gray-700 hover:bg-gray-50 py-2 rounded text-left">
+                <button 
+                onClick={() => {
+                    navigate("/manager/users");
+                    setOpen(false);
+                  }}
+                className="block w-full text-sm text-gray-700 hover:bg-gray-50 py-1 rounded text-left">
+                  Invite Your Team
+                </button>
+
+                <button 
+                  onClick={() => {
+                    navigate("/manager/manage-account");
+                    setOpen(false);
+                  }}
+                  className="block w-full text-sm text-gray-700 hover:bg-gray-50 py-1 rounded text-left"
+                >
                   Manage Your Account
                 </button>
 

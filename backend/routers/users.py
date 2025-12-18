@@ -67,8 +67,10 @@ def get_users(
         users = db.query(User).filter(
             User.related_to_company == current_user.related_to_company
         ).all()
-    else:
-        users = db.query(User).filter(User.id == current_user.id).all()
+    elif current_user.role.upper() in ["GROUP MANAGER", "MANAGER"]:
+        users = db.query(User).filter(
+            User.related_to_company == current_user.related_to_company
+        ).all()
 
     return users
 
@@ -81,7 +83,7 @@ def create_user(
     request: Request = None
 ):
     # Only CEO or Admin can create users
-    if current_user.role.upper() not in ["CEO", "ADMIN"]:
+    if current_user.role.upper() not in ["CEO", "ADMIN", "MANAGER", "GROUP MANAGER"]:
         raise HTTPException(status_code=403, detail="Permission denied")
 
     # Prevent duplicate emails
@@ -90,7 +92,7 @@ def create_user(
         raise HTTPException(status_code=400, detail="Email already exists")
 
     # Hash password
-    hashed_pw = hash_password(user_data.password)
+    hashed_pw = hash_password(user_data.password)        
 
     # ✅ Assign relationships properly
     related_to_CEO = (
@@ -99,7 +101,6 @@ def create_user(
     )
     related_to_company = current_user.related_to_company
     profile_pic_url = get_default_avatar(user_data.first_name)
-
 
     # ✅ Create user
     new_user = User(
@@ -169,7 +170,7 @@ def update_user(
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
-    if current_user.role.upper() not in ["CEO", "ADMIN"]:
+    if current_user.role.upper() not in ["CEO", "ADMIN", "GROUP MANAGER", "MANAGER"]:
         raise HTTPException(status_code=403, detail="Permission denied")
 
     if user.related_to_company != current_user.related_to_company:
@@ -232,7 +233,7 @@ def delete_user(
         raise HTTPException(status_code=404, detail="User not found")
 
     # Only CEO/Admin can delete users in same company
-    if current_user.role.upper() not in ["CEO", "ADMIN"]:
+    if current_user.role.upper() not in ["CEO", "ADMIN", "GROUP MANAGER", "MANAGER"]:
         raise HTTPException(status_code=403, detail="Permission denied")
 
     if user.related_to_company != current_user.related_to_company:

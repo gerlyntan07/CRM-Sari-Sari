@@ -188,6 +188,7 @@ export default function AdminUser() {
         const updated = sorted.find((user) => user.id === prev.id);
         return updated || null;
       });
+      console.log(res.data)
     } catch (error) {
       console.error("Error fetching users:", error);
       const message =
@@ -817,23 +818,11 @@ export default function AdminUser() {
                   <div>
                     <p className="font-semibold">Company Number:</p>
                     <p>{selectedUser.company?.company_number || "N/A"}</p>
-                  </div>
+                  </div>                  
                   <div>
-                    <p className="font-semibold">Related to Company ID:</p>
+                    <p className="font-semibold">Related to CEO:</p>
                     <p>
-                      {selectedUser.related_to_company !== null &&
-                      selectedUser.related_to_company !== undefined
-                        ? selectedUser.related_to_company
-                        : "N/A"}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="font-semibold">Related to CEO ID:</p>
-                    <p>
-                      {selectedUser.related_to_CEO !== null &&
-                      selectedUser.related_to_CEO !== undefined
-                        ? selectedUser.related_to_CEO
-                        : "N/A"}
+                      {selectedUser.manager ? `${selectedUser.manager.first_name} ${selectedUser.manager.last_name}` : `N/A`}
                     </p>
                   </div>
                   <div>

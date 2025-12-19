@@ -1,3 +1,4 @@
+// frontend/src/components/SalesHeader.jsx
 import { useState, useRef, useEffect } from "react";
 import { FiBell, FiMenu } from "react-icons/fi";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -36,80 +37,161 @@ export default function SalesHeader({ toggleSidebar }) {
   // Load user
   useEffect(() => {
     fetchUser();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // --- Helpers ---
+  const normalizeNotif = (raw) => {
+    const n = { ...raw };
+
+    // Ensure consistent boolean
+    n.read = Boolean(n.read);
+
+    // Normalize type + title
+    switch (n.type) {
+      case "territory_assignment":
+        n.title = n.title || `You have been assigned to ${n.territoryName || "a territory"}`;
+        break;
+
+      case "lead_assigned":
+        n.type = "lead_assignment";
+        n.title = n.title || `New lead assigned: ${n.leadName || n.company || "Lead"}`;
+        break;
+
+      case "lead_assignment":
+        n.title = n.title || `New lead assigned: ${n.leadName || n.company || "Lead"}`;
+        break;
+
+      case "lead_update":
+        n.title = n.title || `Lead updated: ${n.leadName || n.company || "Lead"}`;
+        break;
+
+      case "task_assignment":
+        // if backend sends title already, keep it; else build
+        n.title = n.title || `New Task Assigned: ${n.taskTitle || "Task"}`;
+        break;
+
+      // ✅ CONTACT NOTIFS
+      case "contact_assignment":
+        n.title = n.title || `New contact assigned: ${n.contactName || "Contact"}`;
+        break;
+
+      case "contact_update":
+        n.title = n.title || `Contact updated: ${n.contactName || "Contact"}`;
+        break;
+
+      default:
+        n.title = n.title || "New Notification";
+    }
+
+    return n;
+  };
+
+  const performNavigation = (notif) => {
+    switch (notif.type) {
+      case "task_assignment":
+        navigate(`/sales/hub/${notif.taskId || notif.task_id || ""}`);
+        break;
+
+      case "lead_assignment":
+      case "lead_update":
+        navigate(`/sales/leads/${notif.leadId || notif.lead_id || ""}`);
+        break;
+
+      // ✅ CONTACT ROUTES
+      case "contact_assignment":
+      case "contact_update":
+        navigate(`/sales/contacts/${notif.contactId || notif.contact_id || ""}`);
+        break;
+
+      default:
+        navigate("/sales/overview");
+    }
+  };
+
+  const handleNotificationClick = async (notif) => {
+    if (notif.read) {
+      performNavigation(notif);
+      return;
+    }
+
+    try {
+      await api.patch(`/logs/mark-read/${notif.id}`);
+
+      setNotifications((prev) =>
+        prev.map((n) => (n.id === notif.id ? { ...n, read: true } : n))
+      );
+      setUnreadCount((prev) => (prev > 0 ? prev - 1 : 0));
+
+      performNavigation(notif);
+    } catch (err) {
+      console.error("Failed to mark notification as read", err);
+      performNavigation(notif);
+    }
+  };
 
   // WebSocket listener
   useEffect(() => {
     if (!user) return;
 
-    const ws = new WebSocket(`ws://localhost:8000/ws/notifications?user_id=${user.id}`);
+    // ✅ NOTE: Use wss:// in production
+    const ws = new WebSocket(
+      `ws://localhost:8000/ws/notifications?user_id=${user.id}`
+    );
 
     ws.onopen = () => console.log("WS Connected");
 
     ws.onmessage = (event) => {
-      const newNotif = JSON.parse(event.data);
+      const incoming = JSON.parse(event.data);
+      const newNotif = normalizeNotif(incoming);
+
       console.log("🔔 New Notification:", newNotif);
-
-      // Normalize notification message types
-      switch (newNotif.type) {
-        case "territory_assignment":
-          newNotif.title = `You have been assigned to ${newNotif.territoryName}`;
-          break;
-
-        case "lead_assignment":
-        case "lead_assigned":
-          newNotif.type = "lead_assignment";
-          newNotif.title = `New lead assigned: ${newNotif.leadName || newNotif.company}`;
-          break;
-
-        case "lead_update":
-          newNotif.title = `Lead updated: ${newNotif.leadName || newNotif.company}`;
-          break;
-
-        // ⭐ NEW TASK NOTIFICATION
-        case "task_assignment":
-          newNotif.title = `New Task Assigned: ${newNotif.title}`;
-          break;
-
-        default:
-          newNotif.title = newNotif.title || "New Notification";
-      }
 
       setNotifications((prev) => [newNotif, ...prev]);
       setUnreadCount((prev) => prev + 1);
     };
 
     ws.onclose = () => console.log("WS Disconnected");
+    ws.onerror = (e) => console.error("WS Error", e);
+
     return () => ws.close();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
-  // Inside SalesHeader component
-useEffect(() => {
-  const fetchInitialNotifications = async () => {
-    try {
-      // Fetch audit logs belonging to the user
-      const res = await api.get("/logs/read-all"); 
-      console.log("🔍 Raw Logs from DB:", res.data);
-      
-      // Filter for specific actions or types if necessary
-      const mappedLogs = res.data.map(log => ({
-        id: log.id,
-        type: "lead_assignment", // Map your audit action to notification type
-        title: log.description,
-        assignedBy: log.name,
-        createdAt: log.timestamp,
-        read: log.is_read || false,
-      }));
+  // Fetch history notifications (from DB logs)
+  useEffect(() => {
+    const fetchInitialNotifications = async () => {
+      try {
+        const res = await api.get("/logs/read-all");
+        console.log("🔍 Raw Logs from DB:", res.data);
 
-      setNotifications(mappedLogs);
-      setUnreadCount(mappedLogs.filter(n => !n.read).length);
-    } catch (err) {
-      console.error("Failed to load history notifications", err);
-    }
-  };
+        // Expect logs to already include:
+        // id, type, description/title, name/assignedBy, timestamp/createdAt, is_read/read, leadId/contactId/taskId etc
+        const mappedLogs = (res.data || []).map((log) =>
+          normalizeNotif({
+            id: log.id,
+            type: log.type || "info",
+            title: log.title || log.description,
+            assignedBy: log.assignedBy || log.name,
+            createdAt: log.createdAt || log.timestamp,
+            read: log.is_read ?? log.read ?? false,
 
-  if (user) fetchInitialNotifications();
-}, [user]);
+            // allow routing if your backend stores these in logs
+            leadId: log.leadId || log.lead_id,
+            taskId: log.taskId || log.task_id,
+            contactId: log.contactId || log.contact_id,
+          })
+        );
+
+        setNotifications(mappedLogs);
+        setUnreadCount(mappedLogs.filter((n) => !n.read).length);
+      } catch (err) {
+        console.error("Failed to load history notifications", err);
+      }
+    };
+
+    if (user) fetchInitialNotifications();
+  }, [user]);
 
   // Close dropdowns when clicking outside
   useEffect(() => {
@@ -124,50 +206,6 @@ useEffect(() => {
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
-
-  // Handle clicking a notification
-  // frontend/src/components/SalesHeader.jsx
-
-const handleNotificationClick = async (notif) => {
-  // 1. If it's already read locally, just navigate
-  if (notif.read) {
-    performNavigation(notif);
-    return;
-  }
-
-  try {
-    // 2. Tell the Backend to mark it as read
-    await api.patch(`/logs/mark-read/${notif.id}`);
-
-    // 3. Update Local State (UI)
-    setNotifications((prev) =>
-      prev.map((n) => (n.id === notif.id ? { ...n, read: true } : n))
-    );
-    setUnreadCount((prev) => (prev > 0 ? prev - 1 : 0));
-
-    // 4. Navigate
-    performNavigation(notif);
-  } catch (err) {
-    console.error("Failed to mark notification as read", err);
-    // Optional: Still navigate even if the API call fails
-    performNavigation(notif);
-  }
-};
-
-// Helper to keep the code clean
-const performNavigation = (notif) => {
-  switch (notif.type) {
-    case "task_assignment":
-      navigate(`/sales/hub/${notif.taskId || notif.task_id || ""}`);
-      break;
-    case "lead_assignment":
-    case "lead_update":
-      navigate(`/sales/leads/${notif.leadId || notif.lead_id || ""}`);
-      break;
-    default:
-      navigate("/sales/overview");
-  }
-};
 
   return (
     <header className="flex justify-between items-center bg-white shadow px-4 sm:px-6 py-3 border-b relative">
@@ -203,7 +241,9 @@ const performNavigation = (notif) => {
           {notifOpen && (
             <div className="absolute right-0 mt-3 w-80 bg-white rounded-xl shadow-lg border z-50 overflow-hidden animate-fade-in">
               <div className="p-3 border-b bg-gray-50 flex justify-between items-center">
-                <h3 className="font-semibold text-gray-800 text-sm">Notifications</h3>
+                <h3 className="font-semibold text-gray-800 text-sm">
+                  Notifications
+                </h3>
                 {notifications.length > 0 && (
                   <button
                     onClick={() => {
@@ -221,7 +261,7 @@ const performNavigation = (notif) => {
                 {notifications.length > 0 ? (
                   notifications.map((n, idx) => (
                     <div
-                      key={idx}
+                      key={n.id ?? idx}
                       onClick={() => handleNotificationClick(n)}
                       className={`p-4 border-b hover:bg-gray-50 cursor-pointer transition ${
                         n.read ? "bg-gray-50" : "bg-white"
@@ -235,6 +275,8 @@ const performNavigation = (notif) => {
                                 ? "bg-purple-100 text-purple-700"
                                 : n.type === "lead_assignment" || n.type === "lead_update"
                                 ? "bg-green-100 text-green-700"
+                                : n.type === "contact_assignment" || n.type === "contact_update"
+                                ? "bg-amber-100 text-amber-700"
                                 : n.type === "territory_assignment"
                                 ? "bg-blue-100 text-blue-700"
                                 : "bg-gray-100 text-gray-700"
@@ -246,9 +288,15 @@ const performNavigation = (notif) => {
                             ? "Lead"
                             : n.type === "lead_update"
                             ? "Lead Update"
+                            : n.type === "contact_assignment"
+                            ? "Contact"
+                            : n.type === "contact_update"
+                            ? "Contact Update"
                             : "Info"}
                         </span>
-                        {!n.read && <span className="w-2 h-2 rounded-full bg-red-500" />}
+                        {!n.read && (
+                          <span className="w-2 h-2 rounded-full bg-red-500" />
+                        )}
                       </div>
 
                       <div className="flex flex-col">
@@ -259,7 +307,9 @@ const performNavigation = (notif) => {
                           {n.assignedBy ? `Assigned by ${n.assignedBy}` : "System"}
                         </span>
                         <span className="text-[11px] text-gray-400 mt-1">
-                          {new Date(n.createdAt).toLocaleString()}
+                          {n.createdAt
+                            ? new Date(n.createdAt).toLocaleString()
+                            : ""}
                         </span>
                       </div>
                     </div>
@@ -304,8 +354,9 @@ const performNavigation = (notif) => {
               </div>
 
               <div className="mt-4 space-y-1 px-4 text-left">
-                <button className="block w-full text-sm text-gray-700 hover:bg-gray-50 py-2 rounded text-left"
-                onClick={() => {
+                <button
+                  className="block w-full text-sm text-gray-700 hover:bg-gray-50 py-2 rounded text-left"
+                  onClick={() => {
                     navigate("/sales/manage-account");
                     setOpen(false);
                   }}

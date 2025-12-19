@@ -21,7 +21,6 @@ import PaginationControls from "../components/PaginationControls.jsx";
 import LoadingSpinner from "../components/LoadingSpinner.jsx";
 import { useNavigate } from "react-router-dom";
 
-
 const STATUS_OPTIONS = [
   { value: "CUSTOMER", label: "Customer" },
   { value: "PROSPECT", label: "Prospect" },
@@ -94,7 +93,7 @@ const getTableBadgeClass = (status) => {
 const ITEMS_PER_PAGE = 10;
 
 export default function AdminAccounts() {
-   const navigate = useNavigate();
+  const navigate = useNavigate();
 
   useEffect(() => {
     document.title = "Accounts | Sari-Sari CRM";
@@ -132,7 +131,7 @@ export default function AdminAccounts() {
           return new Date(bDate) - new Date(aDate);
         });
         setAccounts(sortedData);
-        console.log('Fetch from backend: ', res.data)
+        console.log("Fetch from backend: ", res.data);
 
         if (preserveSelectedId) {
           const updatedSelection = sortedData.find(
@@ -402,7 +401,7 @@ export default function AdminAccounts() {
   const handleEditClick = (account) => {
     // Close the account details modal
     setSelectedAccount(null);
-    console.log("edit: ", account)
+    console.log("edit: ", account);
     setFormData({
       name: account.name || "",
       website: account.website || "",
@@ -456,35 +455,19 @@ export default function AdminAccounts() {
     setConfirmProcessing(true);
 
     try {
-      // ============================================================================
-      // COMMENTED OUT: Create Account Functionality
-      // ============================================================================
-      // This create account functionality has been temporarily commented out.
-      // Reason: Add account functionality in admin panel is currently disabled.
-      // 
-      // Para sa mga kasama: Ni-comment ko muna 'yung create account functionality.
-      // Paki-uncomment lang kapag kailangan na ulit.
-      // ============================================================================
-      // if (type === "create") {
-      //   setIsSubmitting(true);
-      //   const response = await api.post(`/accounts/admin`, payload);
-      //   toast.success(`Account "${name}" created successfully.`);
-      // 
-      //   const preserveId = selectedAccount?.id || null;
-      //   closeModal();
-      //   await fetchAccounts(preserveId);
-      // 
-      //   // After fetching, highlight the newly created account in detail view if requested later.
-      //   if (!selectedAccount && response.data?.id) {
-      //     // no-op: leave list view without auto-select
-      //   }
-      // } else 
       if (type === "create") {
-        toast.error("Add account functionality is currently disabled.");
-        setConfirmProcessing(false);
-        setConfirmModalData(null);
-        setIsSubmitting(false);
-        return;
+        setIsSubmitting(true);
+        const response = await api.post(`/accounts/admin`, payload);
+        toast.success(`Account "${name}" created successfully.`);
+
+        const preserveId = selectedAccount?.id || null;
+        closeModal();
+        await fetchAccounts(preserveId);
+
+        // After fetching, highlight the newly created account in detail view if requested later.
+        if (!selectedAccount && response.data?.id) {
+          // no-op: leave list view without auto-select
+        }
       } else if (type === "update") {
         if (!targetId) {
           throw new Error("Missing account identifier for update.");
@@ -528,8 +511,8 @@ export default function AdminAccounts() {
         type === "create"
           ? "Failed to create account. Please review the details and try again."
           : type === "update"
-            ? "Failed to update account. Please review the details and try again."
-            : "Failed to delete account. Please try again.";
+          ? "Failed to update account. Please review the details and try again."
+          : "Failed to delete account. Please try again.";
 
       const message = err.response?.data?.detail || defaultMessage;
       toast.error(message);
@@ -574,9 +557,11 @@ export default function AdminAccounts() {
       await api.put(`/accounts/admin/${selectedAccount.id}`, {
         status: normalizedNewStatus,
       });
-      
-      toast.success(`Account status updated to ${formatStatusLabel(normalizedNewStatus)}`);
-      
+
+      toast.success(
+        `Account status updated to ${formatStatusLabel(normalizedNewStatus)}`
+      );
+
       // Update accounts list in real-time without reloading
       setAccounts((prevAccounts) => {
         return prevAccounts.map((account) => {
@@ -589,12 +574,14 @@ export default function AdminAccounts() {
           return account;
         });
       });
-      
+
       // Close the details view popup
       setSelectedAccount(null);
     } catch (err) {
       console.error(err);
-      const message = err.response?.data?.detail || "Failed to update account status. Please try again.";
+      const message =
+        err.response?.data?.detail ||
+        "Failed to update account status. Please try again.";
       toast.error(message);
     } finally {
       setUpdatingStatus(false);
@@ -625,20 +612,6 @@ export default function AdminAccounts() {
     };
 
     const actionType = isEditing && currentAccountId ? "update" : "create";
-
-    // ============================================================================
-    // COMMENTED OUT: Create Account Confirmation
-    // ============================================================================
-    // If trying to create (not edit), show error message instead
-    // Reason: Add account functionality in admin panel is currently disabled.
-    // 
-    // Para sa mga kasama: Ni-comment ko muna 'yung create account confirmation.
-    // Paki-uncomment lang kapag kailangan na ulit.
-    // ============================================================================
-    if (actionType === "create") {
-      toast.error("Add account functionality is currently disabled.");
-      return;
-    }
 
     setConfirmModalData({
       title: actionType === "create" ? "Confirm New Account" : "Confirm Update",
@@ -692,29 +665,28 @@ export default function AdminAccounts() {
     ? getDetailBadgeClass(selectedAccount.status)
     : "";
 
- const detailView = selectedAccount ? (
-  <div
-    id="accountModalBackdrop"
-    onClick={handleAccountModalBackdropClick}
-    className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4"
-  >
+  const detailView = selectedAccount ? (
     <div
-      className="bg-white rounded-xl shadow-xl w-full max-w-6xl max-h-[92vh] overflow-y-auto hide-scrollbar animate-scale-in font-inter relative"
-      onClick={(e) => e.stopPropagation()}
+      id="accountModalBackdrop"
+      onClick={handleAccountModalBackdropClick}
+      className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4"
     >
-     {/* 🔵 ONLY TOP */}
-      <div className="bg-tertiary w-full rounded-t-xl flex items-center justify-between p-3 lg:p-3">
-        <h1 className="lg:text-3xl text-xl text-white font-semibold text-center w-full">
-          Account
-        </h1>
-        <button
-          onClick={handleBackToList}
-          className="text-gray-400 hover:text-white cursor-pointer"
-        >
-          <HiX size={25} />
-        </button>
-      </div>
-        
+      <div
+        className="bg-white rounded-xl shadow-xl w-full max-w-6xl max-h-[92vh] overflow-y-auto hide-scrollbar animate-scale-in font-inter relative"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* 🔵 ONLY TOP */}
+        <div className="bg-tertiary w-full rounded-t-xl flex items-center justify-between p-3 lg:p-3">
+          <h1 className="lg:text-3xl text-xl text-white font-semibold text-center w-full">
+            Account
+          </h1>
+          <button
+            onClick={handleBackToList}
+            className="text-gray-400 hover:text-white cursor-pointer"
+          >
+            <HiX size={25} />
+          </button>
+        </div>
 
         {/* Header */}
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between mt-3 gap-2 px-2 lg:gap-4 lg:mx-7">
@@ -757,188 +729,208 @@ export default function AdminAccounts() {
             </button>
           </div>
         </div>
-           
-        
+
         <div className="border-b border-gray-200 my-5"></div>
 
         {/* TABS */}
         <div className="p-6 lg:p-4">
-        <div className="flex w-full bg-[#6A727D] text-white mt-1 overflow-x-auto mb-6">
-          {["Overview", "Notes", "Activities"].map((tab) => (
-            <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
-              className={`flex-1 min-w-[90px] px-4 py-2.5 text-xs sm:text-sm font-medium text-center transition-all duration-200 border-b-2
-        ${activeTab === tab
-                  ? "bg-paper-white text-[#6A727D] border-white"
-                  : "text-white hover:bg-[#5c636d]"
-                }`}
-            >
-              {tab}
-            </button>
-          ))}
-        </div>
-     
+          <div className="flex w-full bg-[#6A727D] text-white mt-1 overflow-x-auto mb-6">
+            {["Overview", "Notes", "Activities"].map((tab) => (
+              <button
+                key={tab}
+                onClick={() => setActiveTab(tab)}
+                className={`flex-1 min-w-[90px] px-4 py-2.5 text-xs sm:text-sm font-medium text-center transition-all duration-200 border-b-2
+        ${
+          activeTab === tab
+            ? "bg-paper-white text-[#6A727D] border-white"
+            : "text-white hover:bg-[#5c636d]"
+        }`}
+              >
+                {tab}
+              </button>
+            ))}
+          </div>
 
-        {/* TAB CONTENT */}
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 items-start">
-          <div className="lg:col-span-3">
-            {activeTab === "Overview" && (
-              <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6 md:p-8 border border-gray-200">
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-4 sm:gap-6 text-sm text-gray-700">
-                  <div>
-                    <p className="font-semibold">Website:</p>
-                    <p>
-                      {selectedAccount.website ? (
-                        <a
-                          href={selectedAccount.website}
-                          className="text-blue-600 hover:underline break-all"
-                          target="_blank"
-                          rel="noopener noreferrer"
-                        >
-                          {selectedAccount.website}
-                        </a>
-                      ) : (
-                        "N/A"
-                      )}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="font-semibold">Industry:</p>
-                    <p>{selectedAccount.industry || "N/A"}</p>
-                  </div>
-                  <div>
-                    <p className="font-semibold">Territory:</p>
-                    <p>{selectedAccount.territory?.name || "N/A"}</p>
-                  </div>
-                  <div>
-                    <p className="font-semibold">Phone Number:</p>
-                    <p>{selectedAccount.phone_number || "N/A"}</p>
-                  </div>
-                  <div>
-                    <p className="font-semibold">Billing Address:</p>
-                    <p>{selectedAccount.billing_address || "N/A"}</p>
-                  </div>
-                  <div>
-                    <p className="font-semibold">Shipping Address:</p>
-                    <p>{selectedAccount.shipping_address || "N/A"}</p>
-                  </div>
-                  <div>
-                    <p className="font-semibold">Assigned To:</p>
-                    <p>
-                      {selectedAccount.assigned_accs
-                        ? `${selectedAccount.assigned_accs.first_name} ${selectedAccount.assigned_accs.last_name}`
-                        : "Unassigned"}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="font-semibold">Created By:</p>
-                    <p>
-                      {selectedAccount.acc_creator
-                        ? `${selectedAccount.acc_creator.first_name} ${selectedAccount.acc_creator.last_name}`
-                        : "N/A"}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="font-semibold">Created At:</p>
-                    <p>{formattedDateTime(selectedAccount.created_at) || "N/A"}</p>
-                  </div>
-                  <div>
-                    <p className="font-semibold">Last Updated:</p>
-                    <p>{formattedDateTime(selectedAccount.updated_at) || "N/A"}</p>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* ------- Notes ------ */}
-            {activeTab === "Notes" && (
-              <div className="mt-4 w-full">
-                <div className="flex flex-wrap items-center justify-between mb-4 gap-2">
-                  <h3 className="text-lg font-semibold text-gray-800 break-words">Account Note</h3>
-                </div>
-
-                <div className="bg-white border border-gray-100 rounded-lg p-4 shadow-sm break-words">
-                  <div className="flex items-start justify-between">
+          {/* TAB CONTENT */}
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 items-start">
+            <div className="lg:col-span-3">
+              {activeTab === "Overview" && (
+                <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6 md:p-8 border border-gray-200">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-4 sm:gap-6 text-sm text-gray-700">
                     <div>
-                      <p className="text-sm font-medium text-gray-800 break-words">
-                        Note
+                      <p className="font-semibold">Website:</p>
+                      <p>
+                        {selectedAccount.website ? (
+                          <a
+                            href={selectedAccount.website}
+                            className="text-blue-600 hover:underline break-all"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
+                            {selectedAccount.website}
+                          </a>
+                        ) : (
+                          "N/A"
+                        )}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="font-semibold">Industry:</p>
+                      <p>{selectedAccount.industry || "N/A"}</p>
+                    </div>
+                    <div>
+                      <p className="font-semibold">Territory:</p>
+                      <p>{selectedAccount.territory?.name || "N/A"}</p>
+                    </div>
+                    <div>
+                      <p className="font-semibold">Phone Number:</p>
+                      <p>{selectedAccount.phone_number || "N/A"}</p>
+                    </div>
+                    <div>
+                      <p className="font-semibold">Billing Address:</p>
+                      <p>{selectedAccount.billing_address || "N/A"}</p>
+                    </div>
+                    <div>
+                      <p className="font-semibold">Shipping Address:</p>
+                      <p>{selectedAccount.shipping_address || "N/A"}</p>
+                    </div>
+                    <div>
+                      <p className="font-semibold">Assigned To:</p>
+                      <p>
+                        {selectedAccount.assigned_accs
+                          ? `${selectedAccount.assigned_accs.first_name} ${selectedAccount.assigned_accs.last_name}`
+                          : "Unassigned"}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="font-semibold">Created By:</p>
+                      <p>
+                        {selectedAccount.acc_creator
+                          ? `${selectedAccount.acc_creator.first_name} ${selectedAccount.acc_creator.last_name}`
+                          : "N/A"}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="font-semibold">Created At:</p>
+                      <p>
+                        {formattedDateTime(selectedAccount.created_at) || "N/A"}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="font-semibold">Last Updated:</p>
+                      <p>
+                        {formattedDateTime(selectedAccount.updated_at) || "N/A"}
                       </p>
                     </div>
                   </div>
-                  <div className="mt-3 text-sm text-gray-700 whitespace-pre-wrap break-words">
-                    {accounts.notes || "No notes available."}
-                  </div>
                 </div>
-              </div>
-            )}
+              )}
 
-            {/* ACTIVITIES */}
-            {activeTab === "Activities" && (
-              <div className="mt-4 space-y-4 w-full">
-                <h3 className="text-lg font-semibold text-gray-800 break-words">Recent Activities</h3>
+              {/* ------- Notes ------ */}
+              {activeTab === "Notes" && (
+                <div className="mt-4 w-full">
+                  <div className="flex flex-wrap items-center justify-between mb-4 gap-2">
+                    <h3 className="text-lg font-semibold text-gray-800 break-words">
+                      Account Note
+                    </h3>
+                  </div>
 
-                {[{
-                  icon: FiPhone,
-                  title: "Schedule Call",
-                  desc: "Discuss implementation timeline and pricing",
-                  user: "Lester James",
-                  date: "December 12, 2025 at 8:00 AM",
-                }, {
-                  icon: FiCalendar,
-                  title: "Meeting regarding Enterprise Software License",
-                  desc: "Discuss implementation timeline and pricing",
-                  user: "Lester James",
-                  date: "December 12, 2025 at 8:00 AM",
-                }].map((act, idx) => (
-                  <div key={idx} className="flex flex-col sm:flex-row justify-between items-start border border-gray-200 rounded-lg p-4 shadow-sm bg-white w-full break-words">
-                    <div className="flex gap-4 mb-2 sm:mb-0 flex-1 min-w-0">
-                      <div className="text-gray-600 mt-1">
-                        <act.icon size={24} />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <h4 className="font-medium text-gray-900 break-words">{act.title}</h4>
-                        <p className="text-sm text-gray-500 break-words">{act.desc}</p>
-                        <div className="flex items-center gap-2 mt-2">
-                          <div className="w-7 h-7 rounded-full bg-gray-200 shrink-0"></div>
-                          <p className="text-sm text-gray-700 break-words">{act.user}</p>
-                        </div>
+                  <div className="bg-white border border-gray-100 rounded-lg p-4 shadow-sm break-words">
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <p className="text-sm font-medium text-gray-800 break-words">
+                          Note
+                        </p>
                       </div>
                     </div>
-                    <p className="text-sm text-gray-500 break-words">{act.date}</p>
+                    <div className="mt-3 text-sm text-gray-700 whitespace-pre-wrap break-words">
+                      {accounts.notes || "No notes available."}
+                    </div>
                   </div>
-                ))}
-              </div>
-            )}
-          </div>
+                </div>
+              )}
 
-           <div className="flex flex-col gap-4">
-            {/* QUICK ACTIONS */}
-            <div className="bg-white border border-gray-100 rounded-lg p-3 sm:p-4 shadow-sm">
-              <h4 className="font-semibold text-gray-800 mb-2 text-sm">
-                Quick Actions
-              </h4>
-          
-              <div className="flex flex-col gap-2 w-full">
+              {/* ACTIVITIES */}
+              {activeTab === "Activities" && (
+                <div className="mt-4 space-y-4 w-full">
+                  <h3 className="text-lg font-semibold text-gray-800 break-words">
+                    Recent Activities
+                  </h3>
+
+                  {[
+                    {
+                      icon: FiPhone,
+                      title: "Schedule Call",
+                      desc: "Discuss implementation timeline and pricing",
+                      user: "Lester James",
+                      date: "December 12, 2025 at 8:00 AM",
+                    },
+                    {
+                      icon: FiCalendar,
+                      title: "Meeting regarding Enterprise Software License",
+                      desc: "Discuss implementation timeline and pricing",
+                      user: "Lester James",
+                      date: "December 12, 2025 at 8:00 AM",
+                    },
+                  ].map((act, idx) => (
+                    <div
+                      key={idx}
+                      className="flex flex-col sm:flex-row justify-between items-start border border-gray-200 rounded-lg p-4 shadow-sm bg-white w-full break-words"
+                    >
+                      <div className="flex gap-4 mb-2 sm:mb-0 flex-1 min-w-0">
+                        <div className="text-gray-600 mt-1">
+                          <act.icon size={24} />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <h4 className="font-medium text-gray-900 break-words">
+                            {act.title}
+                          </h4>
+                          <p className="text-sm text-gray-500 break-words">
+                            {act.desc}
+                          </p>
+                          <div className="flex items-center gap-2 mt-2">
+                            <div className="w-7 h-7 rounded-full bg-gray-200 shrink-0"></div>
+                            <p className="text-sm text-gray-700 break-words">
+                              {act.user}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                      <p className="text-sm text-gray-500 break-words">
+                        {act.date}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="flex flex-col gap-4">
+              {/* QUICK ACTIONS */}
+              <div className="bg-white border border-gray-100 rounded-lg p-3 sm:p-4 shadow-sm">
+                <h4 className="font-semibold text-gray-800 mb-2 text-sm">
+                  Quick Actions
+                </h4>
+
+                <div className="flex flex-col gap-2 w-full">
                   <button
-                  onClick={() =>
-                    navigate("/admin/calls", {
-                      state: {
-                        openCallModal: true,      // <-- this triggers your form
-                        initialCallData: {
-                          relatedType1: "Account", // <-- your custom default
+                    onClick={() =>
+                      navigate("/admin/calls", {
+                        state: {
+                          openCallModal: true, // <-- this triggers your form
+                          initialCallData: {
+                            relatedType1: "Account", // <-- your custom default
+                          },
                         },
-                      },
-                    })
-                  }
-                  className="flex items-center gap-2 border border-gray-100 rounded-md py-1.5 px-2 sm:px-3 hover:bg-gray-50 transition text-sm"
-                >
-                  <FiPhone className="text-gray-600 w-4 h-4" />
-                  Schedule Call
-                </button>
-          
-          
-              <button
+                      })
+                    }
+                    className="flex items-center gap-2 border border-gray-100 rounded-md py-1.5 px-2 sm:px-3 hover:bg-gray-50 transition text-sm"
+                  >
+                    <FiPhone className="text-gray-600 w-4 h-4" />
+                    Schedule Call
+                  </button>
+
+                  <button
                     className="flex items-center gap-2 border border-gray-100 rounded-md py-1.5 px-2 sm:px-3 hover:bg-gray-50 transition text-sm"
                     onClick={() =>
                       navigate("/admin/meetings", {
@@ -954,64 +946,70 @@ export default function AdminAccounts() {
                     <FiCalendar className="text-gray-600 w-4 h-4" />
                     Book Meeting
                   </button>
-                  
-<button
-  onClick={() =>
-    navigate("/admin/tasks", {
-      state: {
-        openTaskModal: true,
-        initialTaskData: {
-          relatedTo: "Account",
-        },
-      },
-    })
-  }
-  className="flex items-center gap-2 border border-gray-100 rounded-md py-1.5 px-2 sm:px-3 hover:bg-gray-50 transition text-sm"
->
-  <FiCheckSquare className="text-gray-600 w-4 h-4" />
-  Tasks
-</button>
+
+                  <button
+                    onClick={() =>
+                      navigate("/admin/tasks", {
+                        state: {
+                          openTaskModal: true,
+                          initialTaskData: {
+                            relatedTo: "Account",
+                          },
+                        },
+                      })
+                    }
+                    className="flex items-center gap-2 border border-gray-100 rounded-md py-1.5 px-2 sm:px-3 hover:bg-gray-50 transition text-sm"
+                  >
+                    <FiCheckSquare className="text-gray-600 w-4 h-4" />
+                    Tasks
+                  </button>
+                </div>
               </div>
-            </div>
 
-            {/* STATUS */}
-            <div className="bg-white border border-gray-100 rounded-lg p-3 sm:p-4 shadow-sm w-full">
-              <h4 className="font-semibold text-gray-800 mb-2 text-sm">
-                Status
-              </h4>
-              <select
-                className="border border-gray-200 rounded-md px-2 sm:px-3 py-1.5 w-full text-sm mb-2 focus:ring-2 focus:ring-indigo-500 outline-none"
-                value={selectedStatus || normalizeStatus(selectedAccount?.status) || "PROSPECT"}
-                onChange={(e) => setSelectedStatus(e.target.value)}
-              >
-                {STATUS_OPTIONS.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
+              {/* STATUS */}
+              <div className="bg-white border border-gray-100 rounded-lg p-3 sm:p-4 shadow-sm w-full">
+                <h4 className="font-semibold text-gray-800 mb-2 text-sm">
+                  Status
+                </h4>
+                <select
+                  className="border border-gray-200 rounded-md px-2 sm:px-3 py-1.5 w-full text-sm mb-2 focus:ring-2 focus:ring-indigo-500 outline-none"
+                  value={
+                    selectedStatus ||
+                    normalizeStatus(selectedAccount?.status) ||
+                    "PROSPECT"
+                  }
+                  onChange={(e) => setSelectedStatus(e.target.value)}
+                >
+                  {STATUS_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
 
-              <button
-                onClick={handleStatusUpdate}
-                disabled={
-                  updatingStatus ||
-                  !selectedStatus ||
-                  normalizeStatus(selectedStatus) === normalizeStatus(selectedAccount?.status)
-                }
-                className={`w-full py-1.5 rounded-md text-sm transition focus:outline-none focus:ring-2 ${
-                  updatingStatus ||
-                  !selectedStatus ||
-                  normalizeStatus(selectedStatus) === normalizeStatus(selectedAccount?.status)
-                    ? "bg-gray-400 cursor-not-allowed text-white"
-                    : "bg-gray-900 text-white hover:bg-gray-800 focus:ring-gray-400"
-                }`}
-              >
-                {updatingStatus ? "Updating..." : "Update"}
-              </button>
+                <button
+                  onClick={handleStatusUpdate}
+                  disabled={
+                    updatingStatus ||
+                    !selectedStatus ||
+                    normalizeStatus(selectedStatus) ===
+                      normalizeStatus(selectedAccount?.status)
+                  }
+                  className={`w-full py-1.5 rounded-md text-sm transition focus:outline-none focus:ring-2 ${
+                    updatingStatus ||
+                    !selectedStatus ||
+                    normalizeStatus(selectedStatus) ===
+                      normalizeStatus(selectedAccount?.status)
+                      ? "bg-gray-400 cursor-not-allowed text-white"
+                      : "bg-gray-900 text-white hover:bg-gray-800 focus:ring-gray-400"
+                  }`}
+                >
+                  {updatingStatus ? "Updating..." : "Update"}
+                </button>
+              </div>
             </div>
           </div>
         </div>
-      </div>
       </div>
     </div>
   ) : null;
@@ -1025,21 +1023,12 @@ export default function AdminAccounts() {
           Accounts Management
         </h2>
 
-        {/* ============================================================================
-            COMMENTED OUT: Add Account Button
-            ============================================================================
-            This button has been temporarily commented out.
-            Reason: Add account functionality in admin panel is currently disabled.
-            
-            Para sa mga kasama: Ni-comment ko muna 'yung Add Account button.
-            Paki-uncomment lang kapag kailangan na ulit.
-            ============================================================================ */}
-        {/* <button
+        <button
           onClick={handleOpenAddModal}
           className="flex items-center bg-black text-white px-3 sm:px-4 py-2 rounded-md hover:bg-gray-800 text-sm sm:text-base ml-auto sm:ml-0 cursor-pointer"
         >
           <FiPlus className="mr-2" /> Add Account
-        </button> */}
+        </button>
       </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 mb-6 w-full break-words overflow-hidden lg:overflow-visible">
@@ -1122,8 +1111,12 @@ export default function AdminAccounts() {
                         {formatStatusLabel(acc.status)}
                       </span>
                     </td>
-                    <td className="py-3 px-4 text-sm">{acc.industry || "--"}</td>
-                    <td className="py-3 px-4 text-sm">{acc.territory?.name || "--"}</td>
+                    <td className="py-3 px-4 text-sm">
+                      {acc.industry || "--"}
+                    </td>
+                    <td className="py-3 px-4 text-sm">
+                      {acc.territory?.name || "--"}
+                    </td>
                     <td className="py-3 px-4">
                       <div className="flex items-center space-x-2 text-sm">
                         <FiPhone className="text-gray-500" />
@@ -1290,8 +1283,8 @@ export default function AdminAccounts() {
               {isSubmitting
                 ? "Saving..."
                 : isEditing
-                  ? "Update Account"
-                  : "Save Account"}
+                ? "Update Account"
+                : "Save Account"}
             </button>
           </div>
         </form>
@@ -1341,7 +1334,7 @@ function MetricCard({
 
   return (
     <div
-className="flex items-center p-4 bg-white rounded-xl shadow-md border border-gray-200 transition-all duration-300"
+      className="flex items-center p-4 bg-white rounded-xl shadow-md border border-gray-200 transition-all duration-300"
       onClick={handleClick}
     >
       <div

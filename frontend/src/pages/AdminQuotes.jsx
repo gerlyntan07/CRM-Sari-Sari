@@ -1298,12 +1298,14 @@ export default function AdminQuotes() {
           <FiFileText className="mr-2 text-blue-600" /> Quotes
         </h2>
 
+         <div className="flex justify-center lg:justify-end w-full sm:w-auto">
         <button
           onClick={handleOpenAddModal}
-          className="flex items-center bg-black text-white px-3 sm:px-4 py-2 rounded-md hover:bg-gray-800 text-sm sm:text-base self-end sm:self-auto cursor-pointer"
+        className="flex items-center bg-black text-white px-3 sm:px-4 py-2 rounded-md hover:bg-gray-800 text-sm sm:text-base mx-auto sm:ml-auto cursor-pointer"
         >
           <FiPlus className="mr-2" /> Add Quote
         </button>
+      </div>
       </div>
 
       <div className="bg-white rounded-xl p-4 shadow-sm mb-6 flex flex-col lg:flex-row items-center justify-between gap-3 w-full">

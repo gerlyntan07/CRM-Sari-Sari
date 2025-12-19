@@ -113,13 +113,7 @@ export default function SalesPanel() {
             <span>Targets</span>
           </NavLink>
 
-          <NavLink
-            to="/sales/reports"
-            className={({ isActive }) => (isActive ? activeLink : normalLink)}
-          >
-            <FiBarChart2 className="text-lg" />
-            <span>Reports</span>
-          </NavLink>     
+        
           <NavLink
             to="/sales/manage-account"
             className={({ isActive }) => (isActive ? activeLink : normalLink)}

@@ -134,25 +134,25 @@ export default function SalesOverview() {
 
       {/* Dashboard Summary */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        <div className="bg-white p-6 rounded-lg shadow-sm flex flex-col items-center">
+        <div className="bg-white p-6 rounded-lg shadow-md flex flex-col items-center">
           <FiUsers className="text-blue-600 text-3xl mb-2" />
           <p className="text-sm text-gray-500">My Contacts</p>
           <p className="text-2xl font-bold text-gray-800">{stats.contacts ?? 0}</p>
         </div>
 
-        <div className="bg-white p-6 rounded-lg shadow-sm flex flex-col items-center">
+        <div className="bg-white p-6 rounded-lg shadow-md flex flex-col items-center">
           <FiTarget className="text-green-600 text-3xl mb-2" />
           <p className="text-sm text-gray-500">My Leads</p>
           <p className="text-2xl font-bold text-gray-800">{stats.leads ?? 0}</p>
         </div>
 
-        <div className="bg-white p-6 rounded-lg shadow-sm flex flex-col items-center">
+        <div className="bg-white p-6 rounded-lg shadow-md flex flex-col items-center">
           <FiPhoneCall className="text-orange-500 text-3xl mb-2" />
           <p className="text-sm text-gray-500">My Calls Today</p>
           <p className="text-2xl font-bold text-gray-800">{stats.calls_today ?? 0}</p>
         </div>
 
-        <div className="bg-white p-6 rounded-lg shadow-sm flex flex-col items-center">
+        <div className="bg-white p-6 rounded-lg shadow-md flex flex-col items-center">
           <FiActivity className="text-purple-600 text-3xl mb-2" />
           <p className="text-sm text-gray-500">My Target Progress</p>
           <p className="text-2xl font-bold text-gray-800">{stats.target_progress ?? 0}%</p>

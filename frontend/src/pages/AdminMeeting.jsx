@@ -409,18 +409,20 @@ const AdminMeeting = () => {
       {meetingsLoading && <LoadingSpinner message="Loading meetings..." />}
       
       {/* HEADER */}
-      <div className="flex flex-col sm:flex-row items-center justify-between mb-6">
-        <h1 className="flex items-center text-xl sm:text-2xl font-semibold text-gray-800">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 sm:mb-6 space-y-2 sm:space-y-0">
+        <h1 className="flex items-center text-xl sm:text-2xl font-semibold text-gray-800 mb-4 lg:mb-0">
           <FiCalendar className="mr-2 text-blue-600" /> Meetings
         </h1>
+        <div className="flex justify-center lg:justify-end w-full sm:w-auto">
         <button onClick={handleOpenAddModal} className="bg-black text-white px-4 py-2 rounded-md flex items-center hover:bg-gray-800">
           <FiPlus className="mr-2" /> Add Meeting
         </button>
       </div>
+      </div>
 
       {/* METRICS & FILTERS (Keep existing markup structure) */}
       <div className="bg-white rounded-xl p-4 shadow-sm mb-6 flex items-center justify-between gap-3">
-         <div className="flex items-center border border-gray-300 rounded-lg px-4 h-11 w-3/4">
+         <div className="flex items-center border border-gray-300 rounded-lg px-4 h-11 w-4/4">
             <FiSearch className="text-gray-400 mr-3" />
             <input type="text" placeholder="Search meetings" value={searchTerm} onChange={handleSearch} className="w-full outline-none" />
          </div>
@@ -434,7 +436,7 @@ const AdminMeeting = () => {
 
       {/* TABLE */}
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[500px] border border-gray-200 rounded-lg bg-white shadow-sm text-sm">
+        <table className="w-full min-w-[500px] border border-gray-200 rounded-lg bg-white shadow-sm text-sm mb-3">
           <thead className="bg-gray-100 text-left text-gray-600 font-semibold">
             <tr>
               <th className="py-3 px-4">Subject</th>

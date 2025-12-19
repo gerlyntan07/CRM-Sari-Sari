@@ -93,6 +93,7 @@ export default function AdminLeads() {
   const [leadsLoading, setLeadsLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("Filter by Status");
+  const [nameSort, setNameSort] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [leadData, setLeadData] = useState(INITIAL_FORM_STATE);
   const [isEditing, setIsEditing] = useState(false);
@@ -265,12 +266,15 @@ export default function AdminLeads() {
 
   const handleSearch = (event) => setSearchTerm(event.target.value);
 
-  const filteredLeads = useMemo(() => {
-    const normalizedQuery = searchTerm.trim().toLowerCase();
-    const normalizedStatusFilter = statusFilter.trim().toUpperCase();
+  // ---------------------------------------------------
 
-    return leads.filter((lead) => {
-      // 1. Search Logic (Keep as is)
+ const filteredLeads = useMemo(() => {
+  let filteredData = [...leads]; // start with all leads
+
+  // 1. Apply search
+  const normalizedQuery = searchTerm.trim().toLowerCase();
+  if (normalizedQuery) {
+    filteredData = filteredData.filter((lead) => {
       const searchFields = [
         lead?.first_name,
         lead?.last_name,
@@ -280,29 +284,43 @@ export default function AdminLeads() {
         lead?.work_phone,
         lead?.assigned_to ? `${lead.assigned_to.first_name} ${lead.assigned_to.last_name}` : "",
       ];
-
-      const matchesSearch =
-        normalizedQuery === "" ||
-        searchFields.some((field) => {
-          if (field === null || field === undefined || field === "")
-            return false;
-          return field.toString().toLowerCase().includes(normalizedQuery);
-        });
-
-      // 2. UPDATED Status Logic
-      let matchesStatus = false;
-
-      if (normalizedStatusFilter === "FILTER BY STATUS") {
-        // DEFAULT VIEW: Show everything EXCEPT 'Converted'
-        matchesStatus = (lead.status ? lead.status.toUpperCase() : "") !== "CONVERTED";
-      } else {
-        // SPECIFIC VIEW: Show only what the user asked for (e.g., if they select Converted, show Converted)
-        matchesStatus = (lead.status ? lead.status.toUpperCase() : "") === normalizedStatusFilter;
-      }
-
-      return matchesSearch && matchesStatus;
+      return searchFields.some(
+        (field) =>
+          field && field.toString().toLowerCase().includes(normalizedQuery)
+      );
     });
-  }, [leads, searchTerm, statusFilter]);
+  }
+
+  // 2. Apply status filter
+  const normalizedStatusFilter = statusFilter.trim().toUpperCase();
+  if (normalizedStatusFilter && normalizedStatusFilter !== "FILTER BY STATUS") {
+    filteredData = filteredData.filter(
+      (lead) =>
+        (lead.status ? lead.status.toUpperCase() : "") === normalizedStatusFilter
+    );
+  } else {
+    // Default: show everything except Converted
+    filteredData = filteredData.filter(
+      (lead) => (lead.status ? lead.status.toUpperCase() : "") !== "CONVERTED"
+    );
+  }
+
+  // 3. Apply name sorting
+  if (nameSort) {
+    filteredData.sort((a, b) => {
+      const nameA = `${a.first_name} ${a.last_name}`;
+      const nameB = `${b.first_name} ${b.last_name}`;
+      return nameSort === "asc"
+        ? nameA.localeCompare(nameB)
+        : nameB.localeCompare(nameA);
+    });
+  }
+
+  return filteredData;
+}, [leads, searchTerm, statusFilter, nameSort]);
+
+// -------------------------------------------------------------------
+
 
   const totalPages = Math.max(
     1,
@@ -656,7 +674,7 @@ export default function AdminLeads() {
           Leads
         </h1>
 
-        <div className="flex justify-end gap-3 w-full sm:w-auto">
+        <div className="flex justify-center lg:justify-end gap-3 w-full sm:w-auto">
           <button
             onClick={() => {
               // TODO: Implement download functionality
@@ -675,7 +693,7 @@ export default function AdminLeads() {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4 mb-6 w-full break-words overflow-hidden lg:overflow-visible">
+      <div className="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-5 gap-4 mb-6 w-full break-words overflow-hidden lg:overflow-visible">
         {metricCards.map((metric) => (
           <MetricCard key={metric.title} {...metric} />
         ))}
@@ -706,6 +724,18 @@ export default function AdminLeads() {
             <option value="Lost">Lost</option>
           </select>
         </div>
+
+        <div className="w-full lg:w-1/4">
+  <select
+    value={nameSort}
+    onChange={(e) => setNameSort(e.target.value)}
+    className="border border-gray-300 rounded-lg px-3 h-11 text-sm text-gray-600 bg-white w-full focus:ring-2 focus:ring-indigo-500 transition"
+  >
+    <option value="">Sort by Name</option>
+    <option value="asc">A-Z</option>
+    <option value="desc">Z-A</option>
+  </select>
+</div>
       </div>
 
       <div className="overflow-x-auto">

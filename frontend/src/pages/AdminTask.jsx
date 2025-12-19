@@ -555,22 +555,24 @@ export default function AdminTask() {
     <div className="p-4 sm:p-6 lg:p-8 min-h-screen font-inter relative">
       {(loading || userLoading) && <LoadingSpinner message="Loading tasks..." />}
       
-      <div className="flex justify-between items-start mb-4">
-        <div>
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 space-y-2 sm:space-y-0">
+      
           <h1 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
             <FiActivity className="text-blue-600" /> Tasks Board
           </h1>
-        </div>
+    
+         <div className="flex justify-center lg:justify-end w-full sm:w-auto">
         <button
           type="button"
           onClick={() => handleOpenModal()}
-          className="flex items-center bg-black text-white px-3 sm:px-4 py-2 rounded-md hover:bg-gray-800 text-sm sm:text-base self-end sm:self-auto mt-8 lg:mt-0 cursor-pointer"
+          className="flex items-center bg-black text-white px-3 sm:px-4 py-2 rounded-md hover:bg-gray-800 text-sm sm:text-base self-end sm:self-auto mt-2 lg:mt-0 cursor-pointer"
         >
           <FiPlus /> Create Task
         </button>
       </div>
+      </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4 mb-6 w-full break-words overflow-hidden lg:overflow-visible">
+      <div className="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-5 gap-4 mb-6 w-full break-words overflow-hidden lg:overflow-visible">
         {METRICS.map((metric) => (
           <MetricCard key={metric.title} {...metric} />
         ))}

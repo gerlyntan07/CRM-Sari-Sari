@@ -1022,16 +1022,18 @@ export default function AdminAccounts() {
           <FiUsers className="mr-2 text-blue-600" />
           Accounts Management
         </h2>
-
+          
+     <div className="flex justify-center lg:justify-end w-full sm:w-auto">
         <button
-          onClick={handleOpenAddModal}
-          className="flex items-center bg-black text-white px-3 sm:px-4 py-2 rounded-md hover:bg-gray-800 text-sm sm:text-base ml-auto sm:ml-0 cursor-pointer"
-        >
-          <FiPlus className="mr-2" /> Add Account
-        </button>
+        onClick={handleOpenAddModal}
+        className="flex items-center bg-black text-white px-3 sm:px-4 py-2 my-1 lg:my-0 rounded-md hover:bg-gray-800 text-sm sm:text-base mx-auto sm:ml-auto cursor-pointer"
+      >
+        <FiPlus className="mr-2" /> Add Account
+      </button>
+      </div>
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 mb-6 w-full break-words overflow-hidden lg:overflow-visible">
+      <div className="grid grid-cols-1 sm:grid-cols-3 md:grid-cols-4 gap-4 mb-6 w-full break-words overflow-hidden lg:overflow-visible">
         {metricCards.map((metric) => (
           <MetricCard key={metric.title} {...metric} />
         ))}

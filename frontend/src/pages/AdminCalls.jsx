@@ -909,6 +909,8 @@ export default function AdminCalls() {
           <h1 className="flex items-center text-xl sm:text-2xl font-semibold text-gray-800">
             <FiPhoneCall className="mr-2 text-blue-600" /> Calls
           </h1>
+
+       <div className="flex justify-center lg:justify-end w-full sm:w-auto">
           <button
             onClick={() => {
               setFormData(INITIAL_FORM_STATE);
@@ -916,13 +918,14 @@ export default function AdminCalls() {
               setCurrentCallId(null);
               setShowModal(true);
             }}
-            className="flex items-center bg-black text-white px-3 sm:px-4 py-2 rounded-md hover:bg-gray-800 text-sm sm:text-base ml-auto sm:ml-0 cursor-pointer"
+        className="flex items-center bg-black text-white px-3 sm:px-4 py-2 my-1 lg:my-0 rounded-md hover:bg-gray-800 text-sm sm:text-base mx-auto sm:ml-auto cursor-pointer"
           >
             <FiPlus className="mr-2" /> Add Call
           </button>
         </div>
+        </div>
 
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 mb-6 w-full break-words overflow-hidden lg:overflow-visible">
           {metricCards.map((m) => (
             <MetricCard key={m.title} {...m} />
           ))}

@@ -34,13 +34,32 @@ export default function SalesHeader({ toggleSidebar }) {
 
   const currentTitle = routeTitles[location.pathname] || "Sales Panel";
 
-  // Load user
+  // Load user once
   useEffect(() => {
     fetchUser();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // --- Helpers ---
+  const deriveTypeFromLog = (log) => {
+    // logs often have: action = CREATE/UPDATE/DELETE and description/title contains "contact/deal/account/lead/task"
+    const action = String(log.action || log.type || "").toLowerCase(); // "create" | "update" | ...
+    const text = String(log.title || log.description || "").toLowerCase();
+
+    const isCreate = action.includes("create");
+    const isUpdate = action.includes("update");
+
+    if (text.includes("task")) return "task_assignment";
+    if (text.includes("territory")) return "territory_assignment";
+
+    if (text.includes("lead")) return isCreate ? "lead_assignment" : isUpdate ? "lead_update" : "lead_update";
+    if (text.includes("contact")) return isCreate ? "contact_assignment" : isUpdate ? "contact_update" : "contact_update";
+    if (text.includes("deal")) return isCreate ? "deal_assignment" : isUpdate ? "deal_update" : "deal_update";
+    if (text.includes("account")) return isCreate ? "account_assignment" : isUpdate ? "account_update" : "account_update";
+
+    return "info";
+  };
+
   const normalizeNotif = (raw) => {
     const n = { ...raw };
 
@@ -68,7 +87,8 @@ export default function SalesHeader({ toggleSidebar }) {
         break;
 
       case "lead_update":
-        n.title = n.title || `Lead updated: ${n.leadName || n.company || "Lead"}`;
+        n.title =
+          n.title || `Lead updated: ${n.leadName || n.company || "Lead"}`;
         break;
 
       // TASKS
@@ -89,13 +109,25 @@ export default function SalesHeader({ toggleSidebar }) {
           `Contact updated: ${n.contactName || n.contact || "Contact"}`;
         break;
 
-      // DEALS ✅ NEW
+      // DEALS
       case "deal_assignment":
-        n.title = n.title || `New deal assigned: ${n.dealName || n.name || "Deal"}`;
+        n.title =
+          n.title || `New deal assigned: ${n.dealName || n.name || "Deal"}`;
         break;
 
       case "deal_update":
         n.title = n.title || `Deal updated: ${n.dealName || n.name || "Deal"}`;
+        break;
+
+      // ACCOUNTS ✅ NEW
+      case "account_assignment":
+        n.title =
+          n.title || `New account assigned: ${n.accountName || n.name || "Account"}`;
+        break;
+
+      case "account_update":
+        n.title =
+          n.title || `Account updated: ${n.accountName || n.name || "Account"}`;
         break;
 
       default:
@@ -121,10 +153,15 @@ export default function SalesHeader({ toggleSidebar }) {
         navigate(`/sales/contacts/${notif.contactId || notif.contact_id || ""}`);
         break;
 
-      // DEALS ✅ NEW
       case "deal_assignment":
       case "deal_update":
         navigate(`/sales/deals/${notif.dealId || notif.deal_id || ""}`);
+        break;
+
+      // ACCOUNTS ✅ NEW
+      case "account_assignment":
+      case "account_update":
+        navigate(`/sales/accounts/${notif.accountId || notif.account_id || ""}`);
         break;
 
       default:
@@ -153,11 +190,10 @@ export default function SalesHeader({ toggleSidebar }) {
     }
   };
 
-  // WebSocket listener
+  // WebSocket listener (use user?.id so it doesn't recreate randomly and reinsert INFO logs)
   useEffect(() => {
-    if (!user) return;
+    if (!user?.id) return;
 
-    // ✅ Use wss:// in production
     const ws = new WebSocket(
       `ws://localhost:8000/ws/notifications?user_id=${user.id}`
     );
@@ -168,8 +204,6 @@ export default function SalesHeader({ toggleSidebar }) {
       const incoming = JSON.parse(event.data);
       const newNotif = normalizeNotif(incoming);
 
-      console.log("🔔 New Notification:", newNotif);
-
       setNotifications((prev) => [newNotif, ...prev]);
       setUnreadCount((prev) => prev + 1);
     };
@@ -179,29 +213,36 @@ export default function SalesHeader({ toggleSidebar }) {
 
     return () => ws.close();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user]);
+  }, [user?.id]);
 
-  // Fetch history notifications (from DB logs)
+  // Fetch history notifications (from DB logs) — also use user?.id to avoid refetch loops
   useEffect(() => {
     const fetchInitialNotifications = async () => {
       try {
         const res = await api.get("/logs/read-all");
-        console.log("🔍 Raw Logs from DB:", res.data);
 
         const mappedLogs = (res.data || []).map((log) =>
           normalizeNotif({
             id: log.id,
-            type: log.type || "info",
+
+            // ✅ IMPORTANT:
+            // Prefer explicit notif type from backend, else derive from action+text
+            type:
+              log.notif_type ||
+              log.notification_type ||
+              log.type ||
+              deriveTypeFromLog(log),
+
             title: log.title || log.description,
             assignedBy: log.assignedBy || log.name,
             createdAt: log.createdAt || log.timestamp,
             read: log.is_read ?? log.read ?? false,
 
-            // allow routing if your backend stores these in logs / payload
             leadId: log.leadId || log.lead_id,
             taskId: log.taskId || log.task_id,
             contactId: log.contactId || log.contact_id,
             dealId: log.dealId || log.deal_id,
+            accountId: log.accountId || log.account_id,
           })
         );
 
@@ -212,8 +253,8 @@ export default function SalesHeader({ toggleSidebar }) {
       }
     };
 
-    if (user) fetchInitialNotifications();
-  }, [user]);
+    if (user?.id) fetchInitialNotifications();
+  }, [user?.id]);
 
   // Close dropdowns when clicking outside
   useEffect(() => {
@@ -304,6 +345,9 @@ export default function SalesHeader({ toggleSidebar }) {
                                 : n.type === "deal_assignment" ||
                                   n.type === "deal_update"
                                 ? "bg-indigo-100 text-indigo-700"
+                                : n.type === "account_assignment" ||
+                                  n.type === "account_update"
+                                ? "bg-cyan-100 text-cyan-700"
                                 : n.type === "territory_assignment"
                                 ? "bg-blue-100 text-blue-700"
                                 : "bg-gray-100 text-gray-700"
@@ -323,10 +367,15 @@ export default function SalesHeader({ toggleSidebar }) {
                             ? "Deal"
                             : n.type === "deal_update"
                             ? "Deal Update"
+                            : n.type === "account_assignment"
+                            ? "Account"
+                            : n.type === "account_update"
+                            ? "Account Update"
                             : n.type === "territory_assignment"
                             ? "Territory"
                             : "Info"}
                         </span>
+
                         {!n.read && (
                           <span className="w-2 h-2 rounded-full bg-red-500" />
                         )}

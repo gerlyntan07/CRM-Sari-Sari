@@ -756,9 +756,10 @@ export default function AdminTask() {
         isOpen={showModal}
         onClose={handleCloseModal}
         onSave={handleSaveTask}
+        onEdit={() => setViewMode(false)} // <-- toggles to edit mode
         setFormData={setFormData}
         formData={formData}
-        isEditing={Boolean(selectedTask) && !viewMode}
+          isEditing={!viewMode && Boolean(selectedTask)}
         viewMode={viewMode}
         users={users}
         currentUser={currentUser}

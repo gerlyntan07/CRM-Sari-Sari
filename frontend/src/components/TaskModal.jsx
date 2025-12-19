@@ -3,11 +3,13 @@ import { Dialog, Transition } from "@headlessui/react";
 import { Fragment, useState, useEffect, useRef } from "react";
 import api from "../api";
 import { useMemo } from "react";
+import { HiX } from "react-icons/hi";
 
 export default function TaskModal({
   isOpen,
   onClose,
   onSave,
+   onEdit, // <-- new prop
   setFormData,
   formData,
   isEditing = false,
@@ -141,30 +143,126 @@ export default function TaskModal({
             <Transition.Child
               as={Fragment}
               enter="ease-out duration-200"
-              enterFrom="opacity-0 scale-95"
-              enterTo="opacity-100 scale-100"
+              enterFrom="opacity-0"
+              enterTo="opacity-100"
               leave="ease-in duration-150"
               leaveFrom="opacity-100 scale-100"
               leaveTo="opacity-0 scale-95"
             >
               <Dialog.Panel className="w-full max-w-full sm:max-w-3xl text-left align-middle transform transition-all">
                 <div className="bg-white w-full min-w-sm md:min-w-lg rounded-2xl shadow-lg p-4 sm:p-6 md:p-8 relative border border-gray-200 overflow-y-auto max-h-[90vh] flex flex-col hide-scrollbar">
-                  <button
-                    onClick={onClose}
-                    aria-label="Close modal"
-                    className="absolute top-4 right-4 text-gray-500 hover:text-black transition"
-                  >
-                    &times;
-                  </button>
+            <button
+              onClick={onClose}
+              className="absolute top-4 right-4 text-gray-500 hover:text-black transition"
+            >
+              <HiX size={25} />
+            </button>
 
                   <h3 className="text-xl sm:text-2xl font-semibold text-gray-800 mb-4 sm:mb-6 flex items-center justify-center">
                     {modalTitle}
                   </h3>
 
-                  <form
-                    onSubmit={handleSubmit}
-                    className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm flex-1"
-                  >
+               
+ {/* here */}
+  {viewMode && (
+  <div
+    className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4"
+    onClick={onClose}
+  >
+    <div
+      className="bg-white rounded-xl shadow-xl w-full max-w-4xl max-h-[92vh] overflow-y-auto hide-scrollbar font-manrope relative"
+      onClick={(e) => e.stopPropagation()}
+    >
+      {/* 🔵 Top Header */}
+      <div className="bg-tertiary w-full flex items-center justify-between p-3 lg:p-4 rounded-t-xl">
+        <h1 className="lg:text-3xl text-xl text-white font-semibold text-center w-full">
+          Tasks
+        </h1>
+          <button
+            onClick={onClose}
+            className="text-gray-500 hover:text-white transition cursor-pointer"
+          >
+            <HiX size={25} />
+          </button>
+      </div>
+
+      {/* Action Buttons */}
+      <div className="p-6 lg:p-4">
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-2 p-2 lg:mx-7">
+          <div className="flex items-center gap-2">
+            <h1 className="text-xl sm:text-2xl font-semibold text-gray-800">
+              {formData.subject || "No Title"}
+            </h1>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+            <button
+              className="inline-flex items-center justify-center w-full sm:w-auto bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 transition text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 cursor-pointer"
+              onClick={() => {
+                if (setFormData) setFormData(formData);
+                if (typeof onEdit === "function") onEdit();
+              }}
+            >
+              Edit
+            </button>
+            {/* <button
+              className="inline-flex items-center justify-center w-full sm:w-auto px-4 py-2 rounded-md text-sm bg-red-500 text-white hover:bg-red-600 transition focus:outline-none focus:ring-2 focus:ring-red-400 cursor-pointer"
+              onClick={onDelete} // <-- call your delete function here
+            >
+              <FiTrash2 className="mr-2" /> {/* Trash icon
+              Delete
+            </button>*/} 
+          </div>
+        </div>
+      </div>
+
+      <div className="border-b border-gray-200 my-5"></div>
+
+      {/* Overview Content */}
+      <div className="p-4 lg:p-6">
+        <div className="flex w-full bg-[#6A727D] text-white overflow-x-auto">
+          <button className="flex-1 min-w-[90px] px-4 py-2 lg:text-lg text-sm font-medium text-center text-white">
+            Overview
+          </button>
+        </div>
+        <div className="bg-white rounded-xl shadow-sm sm:p-6 lg:p-5 border border-gray-200 text-sm text-gray-700">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-2 gap-4 sm:gap-6">
+            <div>
+              <p className="font-semibold">Title:</p>
+              <p>{formData.subject || "—"}</p>
+            </div>
+            <div>
+              <p className="font-semibold">Priority:</p>
+              <p>{formData.priority || "—"}</p>
+            </div>
+            <div>
+              <p className="font-semibold">Status:</p>
+              <p>{formData.status || "—"}</p>
+            </div>
+            <div>
+              <p className="font-semibold">Due Date:</p>
+              <p>{formData.dueDate || "—"}</p>
+            </div>
+            <div className="md:col-span-2">
+              <p className="font-semibold">Description:</p>
+              <p className="whitespace-pre-wrap">{formData.description || "—"}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+)}
+
+
+
+
+ {!viewMode && (
+  <form
+    onSubmit={handleSubmit}
+    className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm flex-1"
+  >
+
                     <div className="md:col-span-2">
                       <label className="block text-gray-700 font-medium mb-1 text-sm">
                         Title
@@ -377,7 +475,8 @@ export default function TaskModal({
                         </button>
                       </div>
                     )}
-                  </form>
+                    </form>
+)}
                 </div>
               </Dialog.Panel>
             </Transition.Child>

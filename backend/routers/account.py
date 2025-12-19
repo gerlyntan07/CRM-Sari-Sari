@@ -1,14 +1,19 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Request
+# backend/routers/account.py
+from __future__ import annotations
+
+from fastapi import APIRouter, Depends, HTTPException, status, Request, BackgroundTasks
 from sqlalchemy.orm import Session
 from sqlalchemy import select
+from typing import Optional
+
 from database import get_db
 from schemas.account import AccountBase, AccountCreate, AccountResponse, AccountUpdate
 from .auth_utils import get_current_user
 from models.auth import User
-from typing import Optional
 from models.account import Account, AccountStatus
 from models.territory import Territory
 from .logs_utils import serialize_instance, create_audit_log
+from .ws_notification import broadcast_notification
 
 
 def normalize_account_status(status: Optional[str]) -> Optional[str]:
@@ -23,20 +28,49 @@ def normalize_account_status(status: Optional[str]) -> Optional[str]:
             return choice.value
     return normalized
 
+
 router = APIRouter(
     prefix="/accounts",
     tags=["Accounts"]
 )
 
-# ✅ CREATE new territory
+ALLOWED_ADMIN_ROLES = {"CEO", "ADMIN", "GROUP MANAGER"}
+
+
+def _push_notif(
+    background_tasks: BackgroundTasks,
+    log_entry,
+    target_user_id: int | None,
+    notif_data: dict,
+):
+    """
+    Standardize notification payload:
+    - id = audit_log id (so /logs/mark-read/{id} works)
+    - read = False for unread badge
+    """
+    if not target_user_id or not log_entry:
+        return
+
+    payload = dict(notif_data)
+    payload["id"] = getattr(log_entry, "id", None)
+    payload["read"] = False
+
+    background_tasks.add_task(
+        broadcast_notification,
+        payload,
+        target_user_id=target_user_id
+    )
+
+
+# ✅ CREATE account from converted lead
 @router.post("/convertedLead", response_model=AccountResponse, status_code=status.HTTP_201_CREATED)
 def create_account(
     data: AccountBase,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
     request: Request = None
-):                    
-
+):
     new_account = Account(
         name=data.name,
         website=data.website,
@@ -44,47 +78,62 @@ def create_account(
         billing_address=data.billing_address,
         shipping_address=data.shipping_address,
         industry=data.industry,
-        status=data.status,
+        status=normalize_account_status(data.status),
         territory_id=data.territory_id,
         assigned_to=data.assigned_to,
-        created_by=data.created_by        
+        created_by=data.created_by
     )
-    
+
     db.add(new_account)
     db.commit()
     db.refresh(new_account)
 
-    new_data = serialize_instance(new_account)    
+    new_data = serialize_instance(new_account)
 
-    create_audit_log(
+    # ✅ Notify assigned user (fallback to creator if unassigned)
+    target_user_id = new_account.assigned_to or new_account.created_by or current_user.id
+
+    log_entry = create_audit_log(
         db=db,
         current_user=current_user,
         instance=new_account,
         action="CREATE",
         request=request,
         new_data=new_data,
-        custom_message=f"add '{data.name}' account from a converted lead"
+        target_user_id=target_user_id,
+        custom_message=f"add '{new_account.name}' account from a converted lead"
+    )
+
+    _push_notif(
+        background_tasks=background_tasks,
+        log_entry=log_entry,
+        target_user_id=target_user_id,
+        notif_data={
+            "type": "account_assignment",
+            "title": f"New account assigned: {new_account.name}",
+            "accountId": new_account.id,
+            "assignedBy": f"{current_user.first_name} {current_user.last_name}",
+            "createdAt": str(getattr(new_account, "created_at", None) or ""),
+        },
     )
 
     return new_account
 
 
 @router.get("/admin/fetch-all", response_model=list[AccountResponse])
-def admin_get_accounts(    
+def admin_get_accounts(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
-):        
-    if current_user.role.upper() not in ['CEO', 'ADMIN', 'GROUP MANAGER']:
+):
+    if current_user.role.upper() not in ALLOWED_ADMIN_ROLES:
         raise HTTPException(status_code=403, detail="Permission denied")
 
-    # Get all users in the same company
     company_users = (
         select(User.id)
         .where(User.related_to_company == current_user.related_to_company)
         .subquery()
     )
 
-    # Fetch all accounts created by OR assigned to those users
     accounts = db.query(Account).filter(
         (Account.created_by.in_(company_users)) | (Account.assigned_to.in_(company_users))
     ).all()
@@ -95,11 +144,12 @@ def admin_get_accounts(
 @router.post("/admin", response_model=AccountResponse, status_code=status.HTTP_201_CREATED)
 def admin_create_account(
     data: AccountCreate,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
     request: Request = None
 ):
-    if current_user.role.upper() not in ['CEO', 'ADMIN', 'GROUP MANAGER']:
+    if current_user.role.upper() not in ALLOWED_ADMIN_ROLES:
         raise HTTPException(status_code=403, detail="Permission denied")
 
     if not current_user.related_to_company:
@@ -150,14 +200,30 @@ def admin_create_account(
     if assigned_user:
         assigned_fragment = f" assigned to '{assigned_user.first_name} {assigned_user.last_name}'"
 
-    create_audit_log(
+    target_user_id = new_account.assigned_to or new_account.created_by
+
+    log_entry = create_audit_log(
         db=db,
         current_user=current_user,
         instance=new_account,
         action="CREATE",
         request=request,
         new_data=new_data,
-        custom_message=f"create account '{data.name}' via admin panel{assigned_fragment}"
+        target_user_id=target_user_id,
+        custom_message=f"create account '{new_account.name}' via admin panel{assigned_fragment}"
+    )
+
+    _push_notif(
+        background_tasks=background_tasks,
+        log_entry=log_entry,
+        target_user_id=target_user_id,
+        notif_data={
+            "type": "account_assignment",
+            "title": f"New account assigned: {new_account.name}",
+            "accountId": new_account.id,
+            "assignedBy": f"{current_user.first_name} {current_user.last_name}",
+            "createdAt": str(getattr(new_account, "created_at", None) or ""),
+        },
     )
 
     return new_account
@@ -167,11 +233,12 @@ def admin_create_account(
 def admin_update_account(
     account_id: int,
     data: AccountUpdate,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
     request: Request = None
 ):
-    if current_user.role.upper() not in ['CEO', 'ADMIN', 'GROUP MANAGER']:
+    if current_user.role.upper() not in ALLOWED_ADMIN_ROLES:
         raise HTTPException(status_code=403, detail="Permission denied")
 
     company_users = (
@@ -190,7 +257,9 @@ def admin_update_account(
 
     update_data = data.model_dump(exclude_unset=True)
 
+    old_assigned_to = account.assigned_to
     assigned_user_name = None
+
     if "assigned_to" in update_data:
         assigned_to = update_data["assigned_to"]
         if assigned_to is not None:
@@ -229,7 +298,9 @@ def admin_update_account(
     if assigned_user_name:
         reassigned_fragment = f" - reassigned to {assigned_user_name}"
 
-    create_audit_log(
+    target_user_id = account.assigned_to or account.created_by
+
+    log_entry = create_audit_log(
         db=db,
         current_user=current_user,
         instance=account,
@@ -237,7 +308,29 @@ def admin_update_account(
         request=request,
         old_data=old_data,
         new_data=new_data,
+        target_user_id=target_user_id,
         custom_message=f"update account '{account.name}' via admin panel{reassigned_fragment}"
+    )
+
+    was_reassigned = ("assigned_to" in update_data) and (old_assigned_to != account.assigned_to)
+    notif_type = "account_assignment" if was_reassigned else "account_update"
+    notif_title = (
+        f"New account assigned: {account.name}"
+        if was_reassigned
+        else f"Account updated: {account.name}"
+    )
+
+    _push_notif(
+        background_tasks=background_tasks,
+        log_entry=log_entry,
+        target_user_id=target_user_id,
+        notif_data={
+            "type": notif_type,
+            "title": notif_title,
+            "accountId": account.id,
+            "assignedBy": f"{current_user.first_name} {current_user.last_name}",
+            "createdAt": str(getattr(account, "updated_at", None) or getattr(account, "created_at", None) or ""),
+        },
     )
 
     return account
@@ -250,7 +343,7 @@ def admin_delete_account(
     current_user: User = Depends(get_current_user),
     request: Request = None
 ):
-    if current_user.role.upper() not in ['CEO', 'ADMIN', 'GROUP MANAGER']:
+    if current_user.role.upper() not in ALLOWED_ADMIN_ROLES:
         raise HTTPException(status_code=403, detail="Permission denied")
 
     company_users = (
@@ -269,6 +362,7 @@ def admin_delete_account(
 
     deleted_data = serialize_instance(account)
     account_name = account.name
+    target_user_id = account.assigned_to or account.created_by
 
     db.delete(account)
     db.commit()
@@ -280,6 +374,7 @@ def admin_delete_account(
         action="DELETE",
         request=request,
         old_data=deleted_data,
+        target_user_id=target_user_id,
         custom_message=f"delete account '{account_name}' via admin panel"
     )
 

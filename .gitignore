@@ -32,6 +32,9 @@ dv_venv_311/
 .dv_venv_311/
 .env
 .env.*
+ive/
+.ive/
+
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

@@ -42,6 +42,8 @@ const INITIAL_FORM_STATE = {
   assigned_to: "",
 };
 
+const MANAGER_ROLES = ["MANAGER"];
+
 const normalizeStatus = (status) => (status ? status.toUpperCase() : "");
 
 const formatStatusLabel = (status) => {
@@ -119,11 +121,17 @@ export default function TManagerAccounts() {
   const [selectedStatus, setSelectedStatus] = useState("");
   const [updatingStatus, setUpdatingStatus] = useState(false);
 
+  const managerUsers = useMemo(() => {
+    return users.filter((user) =>
+      MANAGER_ROLES.includes(user.role?.toUpperCase())
+    );
+  }, [users]);
+
   const fetchAccounts = useCallback(
     async (preserveSelectedId = null) => {
       setAccountsLoading(true);
       try {
-        const res = await api.get(`/accounts/group-manager/fetch-all`);
+        const res = await api.get(`/accounts/admin/fetch-all`);
         const data = Array.isArray(res.data) ? res.data : [];
         const sortedData = [...data].sort((a, b) => {
           const aDate = a?.created_at || a?.updated_at || 0;
@@ -455,41 +463,25 @@ export default function TManagerAccounts() {
     setConfirmProcessing(true);
 
     try {
-      // ============================================================================
-      // COMMENTED OUT: Create Account Functionality
-      // ============================================================================
-      // This create account functionality has been temporarily commented out.
-      // Reason: Add account functionality in admin panel is currently disabled.
-      //
-      // Para sa mga kasama: Ni-comment ko muna 'yung create account functionality.
-      // Paki-uncomment lang kapag kailangan na ulit.
-      // ============================================================================
-      // if (type === "create") {
-      //   setIsSubmitting(true);
-      //   const response = await api.post(`/accounts/admin`, payload);
-      //   toast.success(`Account "${name}" created successfully.`);
-      //
-      //   const preserveId = selectedAccount?.id || null;
-      //   closeModal();
-      //   await fetchAccounts(preserveId);
-      //
-      //   // After fetching, highlight the newly created account in detail view if requested later.
-      //   if (!selectedAccount && response.data?.id) {
-      //     // no-op: leave list view without auto-select
-      //   }
-      // } else
       if (type === "create") {
-        toast.error("Add account functionality is currently disabled.");
-        setConfirmProcessing(false);
-        setConfirmModalData(null);
-        setIsSubmitting(false);
-        return;
+        setIsSubmitting(true);
+        const response = await api.post(`/accounts/admin`, payload);
+        toast.success(`Account "${name}" created successfully.`);
+
+        const preserveId = selectedAccount?.id || null;
+        closeModal();
+        await fetchAccounts(preserveId);
+
+        // After fetching, highlight the newly created account in detail view if requested later.
+        if (!selectedAccount && response.data?.id) {
+          // no-op: leave list view without auto-select
+        }
       } else if (type === "update") {
         if (!targetId) {
           throw new Error("Missing account identifier for update.");
         }
         setIsSubmitting(true);
-        await api.put(`/accounts/group-manager/${targetId}`, payload);
+        await api.put(`/accounts/admin/${targetId}`, payload);
         toast.success(`Account "${name}" updated successfully.`);
 
         const preserveId =
@@ -508,7 +500,7 @@ export default function TManagerAccounts() {
         }
         const currentSelectedId = selectedAccount?.id;
         setDeletingId(targetId);
-        await api.delete(`/accounts/group-manager/${targetId}`);
+        await api.delete(`/accounts/admin/${targetId}`);
         toast.success(`Account "${name}" deleted successfully.`);
 
         const preserveId =
@@ -570,7 +562,7 @@ export default function TManagerAccounts() {
 
     setUpdatingStatus(true);
     try {
-      await api.put(`/accounts/group-manager/${selectedAccount.id}`, {
+      await api.put(`/accounts/admin/${selectedAccount.id}`, {
         status: normalizedNewStatus,
       });
 
@@ -628,20 +620,6 @@ export default function TManagerAccounts() {
     };
 
     const actionType = isEditing && currentAccountId ? "update" : "create";
-
-    // ============================================================================
-    // COMMENTED OUT: Create Account Confirmation
-    // ============================================================================
-    // If trying to create (not edit), show error message instead
-    // Reason: Add account functionality in admin panel is currently disabled.
-    //
-    // Para sa mga kasama: Ni-comment ko muna 'yung create account confirmation.
-    // Paki-uncomment lang kapag kailangan na ulit.
-    // ============================================================================
-    if (actionType === "create") {
-      toast.error("Add account functionality is currently disabled.");
-      return;
-    }
 
     setConfirmModalData({
       title: actionType === "create" ? "Confirm New Account" : "Confirm Update",
@@ -765,7 +743,7 @@ export default function TManagerAccounts() {
         {/* TABS */}
         <div className="p-6 lg:p-4">
           <div className="flex w-full bg-[#6A727D] text-white mt-1 overflow-x-auto mb-6">
-            {["Overview", "Notes", "Activities"].map((tab) => (
+            {["Overview", "Activities"].map((tab) => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
@@ -1053,21 +1031,12 @@ export default function TManagerAccounts() {
           Accounts Management
         </h2>
 
-        {/* ============================================================================
-            COMMENTED OUT: Add Account Button
-            ============================================================================
-            This button has been temporarily commented out.
-            Reason: Add account functionality in admin panel is currently disabled.
-            
-            Para sa mga kasama: Ni-comment ko muna 'yung Add Account button.
-            Paki-uncomment lang kapag kailangan na ulit.
-            ============================================================================ */}
-        {/* <button
+        <button
           onClick={handleOpenAddModal}
           className="flex items-center bg-black text-white px-3 sm:px-4 py-2 rounded-md hover:bg-gray-800 text-sm sm:text-base ml-auto sm:ml-0 cursor-pointer"
         >
           <FiPlus className="mr-2" /> Add Account
-        </button> */}
+        </button>
       </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 mb-6 w-full break-words overflow-hidden lg:overflow-visible">
@@ -1283,13 +1252,14 @@ export default function TManagerAccounts() {
             onChange={handleInputChange}
             options={[
               { value: "", label: "Select assignee" },
-              ...users.map((user) => ({
+              ...managerUsers.map((user) => ({
                 value: String(user.id),
-                label: `${user.first_name} ${user.last_name} (${user.role})`,
+                label: `${user.first_name} ${user.last_name}`,
               })),
             ]}
-            disabled={isSubmitting || users.length === 0}
+            disabled={isSubmitting || managerUsers.length === 0}
           />
+
           <SelectField
             label="Territory"
             name="territory_id"

@@ -34,7 +34,7 @@ router = APIRouter(
     tags=["Accounts"]
 )
 
-ALLOWED_ADMIN_ROLES = {"CEO", "ADMIN", "GROUP MANAGER"}
+ALLOWED_ADMIN_ROLES = {"CEO", "ADMIN", "GROUP MANAGER", "MANAGER"}
 
 
 def _push_notif(

@@ -47,37 +47,55 @@ export default function SalesHeader({ toggleSidebar }) {
     // Ensure consistent boolean
     n.read = Boolean(n.read);
 
-    // Normalize type + title
+    // Normalize title by type
     switch (n.type) {
       case "territory_assignment":
-        n.title = n.title || `You have been assigned to ${n.territoryName || "a territory"}`;
+        n.title =
+          n.title ||
+          `You have been assigned to ${n.territoryName || "a territory"}`;
         break;
 
+      // LEADS
       case "lead_assigned":
         n.type = "lead_assignment";
-        n.title = n.title || `New lead assigned: ${n.leadName || n.company || "Lead"}`;
+        n.title =
+          n.title || `New lead assigned: ${n.leadName || n.company || "Lead"}`;
         break;
 
       case "lead_assignment":
-        n.title = n.title || `New lead assigned: ${n.leadName || n.company || "Lead"}`;
+        n.title =
+          n.title || `New lead assigned: ${n.leadName || n.company || "Lead"}`;
         break;
 
       case "lead_update":
         n.title = n.title || `Lead updated: ${n.leadName || n.company || "Lead"}`;
         break;
 
+      // TASKS
       case "task_assignment":
-        // if backend sends title already, keep it; else build
         n.title = n.title || `New Task Assigned: ${n.taskTitle || "Task"}`;
         break;
 
-      // ✅ CONTACT NOTIFS
+      // CONTACTS
       case "contact_assignment":
-        n.title = n.title || `New contact assigned: ${n.contactName || "Contact"}`;
+        n.title =
+          n.title ||
+          `New contact assigned: ${n.contactName || n.contact || "Contact"}`;
         break;
 
       case "contact_update":
-        n.title = n.title || `Contact updated: ${n.contactName || "Contact"}`;
+        n.title =
+          n.title ||
+          `Contact updated: ${n.contactName || n.contact || "Contact"}`;
+        break;
+
+      // DEALS ✅ NEW
+      case "deal_assignment":
+        n.title = n.title || `New deal assigned: ${n.dealName || n.name || "Deal"}`;
+        break;
+
+      case "deal_update":
+        n.title = n.title || `Deal updated: ${n.dealName || n.name || "Deal"}`;
         break;
 
       default:
@@ -98,10 +116,15 @@ export default function SalesHeader({ toggleSidebar }) {
         navigate(`/sales/leads/${notif.leadId || notif.lead_id || ""}`);
         break;
 
-      // ✅ CONTACT ROUTES
       case "contact_assignment":
       case "contact_update":
         navigate(`/sales/contacts/${notif.contactId || notif.contact_id || ""}`);
+        break;
+
+      // DEALS ✅ NEW
+      case "deal_assignment":
+      case "deal_update":
+        navigate(`/sales/deals/${notif.dealId || notif.deal_id || ""}`);
         break;
 
       default:
@@ -134,7 +157,7 @@ export default function SalesHeader({ toggleSidebar }) {
   useEffect(() => {
     if (!user) return;
 
-    // ✅ NOTE: Use wss:// in production
+    // ✅ Use wss:// in production
     const ws = new WebSocket(
       `ws://localhost:8000/ws/notifications?user_id=${user.id}`
     );
@@ -165,8 +188,6 @@ export default function SalesHeader({ toggleSidebar }) {
         const res = await api.get("/logs/read-all");
         console.log("🔍 Raw Logs from DB:", res.data);
 
-        // Expect logs to already include:
-        // id, type, description/title, name/assignedBy, timestamp/createdAt, is_read/read, leadId/contactId/taskId etc
         const mappedLogs = (res.data || []).map((log) =>
           normalizeNotif({
             id: log.id,
@@ -176,10 +197,11 @@ export default function SalesHeader({ toggleSidebar }) {
             createdAt: log.createdAt || log.timestamp,
             read: log.is_read ?? log.read ?? false,
 
-            // allow routing if your backend stores these in logs
+            // allow routing if your backend stores these in logs / payload
             leadId: log.leadId || log.lead_id,
             taskId: log.taskId || log.task_id,
             contactId: log.contactId || log.contact_id,
+            dealId: log.dealId || log.deal_id,
           })
         );
 
@@ -273,10 +295,15 @@ export default function SalesHeader({ toggleSidebar }) {
                             ${
                               n.type === "task_assignment"
                                 ? "bg-purple-100 text-purple-700"
-                                : n.type === "lead_assignment" || n.type === "lead_update"
+                                : n.type === "lead_assignment" ||
+                                  n.type === "lead_update"
                                 ? "bg-green-100 text-green-700"
-                                : n.type === "contact_assignment" || n.type === "contact_update"
+                                : n.type === "contact_assignment" ||
+                                  n.type === "contact_update"
                                 ? "bg-amber-100 text-amber-700"
+                                : n.type === "deal_assignment" ||
+                                  n.type === "deal_update"
+                                ? "bg-indigo-100 text-indigo-700"
                                 : n.type === "territory_assignment"
                                 ? "bg-blue-100 text-blue-700"
                                 : "bg-gray-100 text-gray-700"
@@ -292,6 +319,12 @@ export default function SalesHeader({ toggleSidebar }) {
                             ? "Contact"
                             : n.type === "contact_update"
                             ? "Contact Update"
+                            : n.type === "deal_assignment"
+                            ? "Deal"
+                            : n.type === "deal_update"
+                            ? "Deal Update"
+                            : n.type === "territory_assignment"
+                            ? "Territory"
                             : "Info"}
                         </span>
                         {!n.read && (

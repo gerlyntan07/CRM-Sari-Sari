@@ -1,72 +1,141 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Request
+# backend/routers/deal.py
+from __future__ import annotations
+
+from fastapi import APIRouter, Depends, HTTPException, status, Request, BackgroundTasks
 from sqlalchemy.orm import Session
-from typing import List
+
 from database import get_db
 from schemas.deal import DealBase, DealResponse, DealCreate, DealUpdate
-from schemas.auth import UserResponse, UserWithTerritories
-from .auth_utils import get_current_user, hash_password, get_default_avatar
+from .auth_utils import get_current_user
 from models.auth import User
 from models.deal import Deal, DealStage, STAGE_PROBABILITY_MAP
 from models.account import Account
 from models.contact import Contact
 from .logs_utils import serialize_instance, create_audit_log
+from .ws_notification import broadcast_notification
 
 router = APIRouter(
     prefix="/deals",
     tags=["Deals"]
 )
 
+ALLOWED_ADMIN_ROLES = {"CEO", "ADMIN", "GROUP MANAGER"}
+
+
+def _push_notif(
+    background_tasks: BackgroundTasks,
+    log_entry,
+    target_user_id: int | None,
+    notif_data: dict,
+):
+    """
+    Standard notification payload:
+    - id = audit_log id (so /logs/mark-read/{id} works)
+    - read = False for unread badge
+    """
+    if not target_user_id or not log_entry:
+        return
+
+    payload = dict(notif_data)
+    payload["id"] = getattr(log_entry, "id", None)
+    payload["read"] = False
+
+    background_tasks.add_task(
+        broadcast_notification,
+        payload,
+        target_user_id=target_user_id
+    )
+
+
+def _validate_amount(amount: float | None):
+    if amount is None:
+        return
+    if amount > 99999999.99:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Deal amount cannot exceed 99,999,999.99"
+        )
+    if amount < 0:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Deal amount cannot be negative"
+        )
+
+
 @router.post("/convertedLead", response_model=DealResponse, status_code=status.HTTP_201_CREATED)
 def create_deal(
     data: DealBase,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
     request: Request = None
 ):
-    # Validate amount - Numeric(10, 2) means max value is 99,999,999.99
-    if data.amount is not None:
-        if data.amount > 99999999.99:
+    _validate_amount(getattr(data, "amount", None))
+
+    # Stage + probability safety (if stage is present)
+    stage_value = getattr(data, "stage", None)
+    stage_upper = stage_value.upper() if isinstance(stage_value, str) else stage_value
+
+    probability = getattr(data, "probability", None)
+    if stage_upper and probability is None:
+        # compute from stage if not provided
+        try:
+            stage_enum = DealStage(stage_upper)
+            probability = STAGE_PROBABILITY_MAP.get(stage_enum, 10)
+        except Exception:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Deal amount cannot exceed 99,999,999.99"
-            )
-        if data.amount < 0:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Deal amount cannot be negative"
+                detail=f"Invalid stage '{stage_value}'. Allowed: {[s.value for s in DealStage]}"
             )
 
     new_deal = Deal(
         name=data.name,
         account_id=data.account_id,
         primary_contact_id=data.primary_contact_id,
-        stage=data.stage,
-        probability=data.probability,
+        stage=stage_upper,
+        probability=probability,
         amount=data.amount,
         currency=data.currency,
         description=data.description,
         assigned_to=data.assigned_to,
-        created_by=current_user.id,  # safer to use current_user
+        created_by=current_user.id,
     )
 
-    # ✅ Single commit approach: flush -> generate_deal_id -> commit
+    # ✅ Single commit approach: flush -> generate_deal_id(db) -> commit
     db.add(new_deal)
-    db.flush()  # assigns new_deal.id without committing
-
-    new_deal.generate_deal_id(db)  # ✅ pass db
+    db.flush()
+    new_deal.generate_deal_id(db)
     db.commit()
     db.refresh(new_deal)
 
-    # Step 3: Log and return
     new_data = serialize_instance(new_deal)
-    create_audit_log(
+
+    # ✅ Notify assigned user (fallback to creator if unassigned)
+    target_user_id = new_deal.assigned_to or new_deal.created_by
+
+    log_entry = create_audit_log(
         db=db,
         current_user=current_user,
         instance=new_deal,
         action="CREATE",
         request=request,
         new_data=new_data,
-        custom_message=f"add '{data.name}' deal from a converted lead"
+        target_user_id=target_user_id,
+        custom_message=f"add '{new_deal.name}' deal from a converted lead"
+    )
+
+    _push_notif(
+        background_tasks=background_tasks,
+        log_entry=log_entry,
+        target_user_id=target_user_id,
+        notif_data={
+            "type": "deal_assignment",
+            "title": f"New deal assigned: {new_deal.name}",
+            "dealId": new_deal.id,
+            "accountId": new_deal.account_id,
+            "assignedBy": f"{current_user.first_name} {current_user.last_name}",
+            "createdAt": str(getattr(new_deal, "created_at", None) or ""),
+        },
     )
 
     return new_deal
@@ -77,11 +146,12 @@ def admin_get_deals(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    if current_user.role.upper() not in ['CEO', 'ADMIN', 'GROUP MANAGER']:
+    if current_user.role.upper() not in ALLOWED_ADMIN_ROLES:
         raise HTTPException(status_code=403, detail="Permission denied")
 
-    # Get all users in the same company
-    company_users = db.query(User.id).filter(User.related_to_company == current_user.related_to_company).subquery()
+    company_users = db.query(User.id).filter(
+        User.related_to_company == current_user.related_to_company
+    ).subquery()
 
     deals = db.query(Deal).filter(
         (Deal.created_by.in_(company_users)) | (Deal.assigned_to.in_(company_users))
@@ -96,8 +166,9 @@ def admin_get_deals_from_acc(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    # Get all users in the same company
-    company_users = db.query(User.id).filter(User.related_to_company == current_user.related_to_company).subquery()
+    company_users = db.query(User.id).filter(
+        User.related_to_company == current_user.related_to_company
+    ).subquery()
 
     deals = db.query(Deal).filter(
         (Deal.created_by.in_(company_users)) | (Deal.assigned_to.in_(company_users))
@@ -109,27 +180,28 @@ def admin_get_deals_from_acc(
 @router.post("/admin/create", response_model=DealResponse, status_code=status.HTTP_201_CREATED)
 def admin_create_deal(
     data: DealCreate,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
     request: Request = None
 ):
-    if current_user.role.upper() not in ['CEO', 'ADMIN', 'GROUP MANAGER']:
+    if current_user.role.upper() not in ALLOWED_ADMIN_ROLES:
         raise HTTPException(status_code=403, detail="Permission denied")
 
     if not current_user.related_to_company:
         raise HTTPException(status_code=400, detail="Current user is not linked to any company.")
 
-    # Validate account exists and belongs to same company
+    # Validate account exists
     account = db.query(Account).filter(Account.id == data.account_id).first()
     if not account:
         raise HTTPException(status_code=404, detail="Account not found.")
 
-    # Check if account belongs to company
+    # Verify account belongs to same company
     account_creator = db.query(User).filter(User.id == account.created_by).first()
     if not account_creator or account_creator.related_to_company != current_user.related_to_company:
         raise HTTPException(status_code=403, detail="Account does not belong to your company.")
 
-    # Validate contact if provided
+    # Validate contact (if provided)
     if data.primary_contact_id:
         contact = db.query(Contact).filter(Contact.id == data.primary_contact_id).first()
         if not contact:
@@ -138,7 +210,8 @@ def admin_create_deal(
         if not contact_creator or contact_creator.related_to_company != current_user.related_to_company:
             raise HTTPException(status_code=403, detail="Contact does not belong to your company.")
 
-    # Validate assigned user if provided
+    # Validate assigned user (if provided)
+    assigned_user = None
     if data.assigned_to:
         assigned_user = db.query(User).filter(
             User.id == data.assigned_to,
@@ -147,20 +220,9 @@ def admin_create_deal(
         if not assigned_user:
             raise HTTPException(status_code=404, detail="Assigned user not found in your company.")
 
-    # Validate amount
-    if data.amount is not None:
-        if data.amount > 99999999.99:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Deal amount cannot exceed 99,999,999.99"
-            )
-        if data.amount < 0:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Deal amount cannot be negative"
-            )
+    _validate_amount(getattr(data, "amount", None))
 
-    # ✅ Validate stage safely (prevents Enum ValueError crash)
+    # Validate stage safely
     stage_upper = (data.stage or "").upper()
     try:
         stage_enum = DealStage(stage_upper)
@@ -170,7 +232,6 @@ def admin_create_deal(
             detail=f"Invalid stage '{data.stage}'. Allowed: {[s.value for s in DealStage]}"
         )
 
-    # Calculate probability from stage
     probability = STAGE_PROBABILITY_MAP.get(stage_enum, 10)
 
     new_deal = Deal(
@@ -180,36 +241,51 @@ def admin_create_deal(
         stage=stage_upper,
         probability=probability,
         amount=data.amount,
-        currency=data.currency or 'PHP',
+        currency=data.currency or "PHP",
         close_date=data.close_date,
         description=data.description,
         assigned_to=data.assigned_to,
         created_by=current_user.id,
     )
 
-    # ✅ Single commit approach + FIX generate_deal_id(db)
     db.add(new_deal)
-    db.flush()  # assigns new_deal.id
-
-    new_deal.generate_deal_id(db)  # ✅ FIXED (was missing db)
+    db.flush()
+    new_deal.generate_deal_id(db)
     db.commit()
     db.refresh(new_deal)
 
     new_data = serialize_instance(new_deal)
-    assigned_fragment = ""
-    if data.assigned_to:
-        assigned_user = db.query(User).filter(User.id == data.assigned_to).first()
-        if assigned_user:
-            assigned_fragment = f" assigned to '{assigned_user.first_name} {assigned_user.last_name}'"
 
-    create_audit_log(
+    assigned_fragment = ""
+    if assigned_user:
+        assigned_fragment = f" assigned to '{assigned_user.first_name} {assigned_user.last_name}'"
+
+    # ✅ Notify assigned user (fallback creator if unassigned)
+    target_user_id = new_deal.assigned_to or new_deal.created_by
+
+    log_entry = create_audit_log(
         db=db,
         current_user=current_user,
         instance=new_deal,
         action="CREATE",
         request=request,
         new_data=new_data,
-        custom_message=f"create deal '{data.name}' via admin panel{assigned_fragment}"
+        target_user_id=target_user_id,
+        custom_message=f"create deal '{new_deal.name}'"
+    )
+
+    _push_notif(
+        background_tasks=background_tasks,
+        log_entry=log_entry,
+        target_user_id=target_user_id,
+        notif_data={
+            "type": "deal_assignment",
+            "title": f"New deal assigned: {new_deal.name}",
+            "dealId": new_deal.id,
+            "accountId": new_deal.account_id,
+            "assignedBy": f"{current_user.first_name} {current_user.last_name}",
+            "createdAt": str(getattr(new_deal, "created_at", None) or ""),
+        },
     )
 
     return new_deal
@@ -219,11 +295,12 @@ def admin_create_deal(
 def admin_update_deal(
     deal_id: int,
     data: DealUpdate,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
     request: Request = None
 ):
-    if current_user.role.upper() not in ['CEO', 'ADMIN', 'GROUP MANAGER']:
+    if current_user.role.upper() not in ALLOWED_ADMIN_ROLES:
         raise HTTPException(status_code=403, detail="Permission denied")
 
     deal = db.query(Deal).filter(Deal.id == deal_id).first()
@@ -236,6 +313,7 @@ def admin_update_deal(
         raise HTTPException(status_code=403, detail="Not authorized to access this deal")
 
     old_data = serialize_instance(deal)
+    old_assigned_to = deal.assigned_to
 
     # Update fields if provided
     if data.name is not None:
@@ -251,7 +329,7 @@ def admin_update_deal(
         deal.account_id = data.account_id
 
     if data.primary_contact_id is not None:
-        if data.primary_contact_id == 0:  # Allow clearing contact
+        if data.primary_contact_id == 0:
             deal.primary_contact_id = None
         else:
             contact = db.query(Contact).filter(Contact.id == data.primary_contact_id).first()
@@ -264,29 +342,18 @@ def admin_update_deal(
 
     if data.stage is not None:
         stage_upper = data.stage.upper()
-        deal.stage = stage_upper
-        # Update probability based on stage
         try:
             stage_enum = DealStage(stage_upper)
-            probability = STAGE_PROBABILITY_MAP.get(stage_enum, deal.probability)
-            deal.probability = probability
         except Exception:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=f"Invalid stage '{data.stage}'. Allowed: {[s.value for s in DealStage]}"
             )
+        deal.stage = stage_upper
+        deal.probability = STAGE_PROBABILITY_MAP.get(stage_enum, deal.probability)
 
     if data.amount is not None:
-        if data.amount > 99999999.99:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Deal amount cannot exceed 99,999,999.99"
-            )
-        if data.amount < 0:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Deal amount cannot be negative"
-            )
+        _validate_amount(data.amount)
         deal.amount = data.amount
 
     if data.currency is not None:
@@ -299,7 +366,7 @@ def admin_update_deal(
         deal.description = data.description
 
     if data.assigned_to is not None:
-        if data.assigned_to == 0:  # Allow clearing assignment
+        if data.assigned_to == 0:
             deal.assigned_to = None
         else:
             assigned_user = db.query(User).filter(
@@ -313,7 +380,10 @@ def admin_update_deal(
     db.commit()
     db.refresh(deal)
 
-    create_audit_log(
+    # ✅ Notify assigned user (fallback creator if unassigned)
+    target_user_id = deal.assigned_to or deal.created_by
+
+    log_entry = create_audit_log(
         db=db,
         current_user=current_user,
         instance=deal,
@@ -321,7 +391,28 @@ def admin_update_deal(
         request=request,
         old_data=old_data,
         new_data=serialize_instance(deal),
+        target_user_id=target_user_id,
         custom_message=f"updated deal '{deal.name}' via admin panel"
+    )
+
+    was_reassigned = (data.assigned_to is not None) and (old_assigned_to != deal.assigned_to)
+    notif_type = "deal_assignment" if was_reassigned else "deal_update"
+    notif_title = (
+        f"New deal assigned: {deal.name}" if was_reassigned else f"Deal updated: {deal.name}"
+    )
+
+    _push_notif(
+        background_tasks=background_tasks,
+        log_entry=log_entry,
+        target_user_id=target_user_id,
+        notif_data={
+            "type": notif_type,
+            "title": notif_title,
+            "dealId": deal.id,
+            "accountId": deal.account_id,
+            "assignedBy": f"{current_user.first_name} {current_user.last_name}",
+            "createdAt": str(getattr(deal, "updated_at", None) or getattr(deal, "created_at", None) or ""),
+        },
     )
 
     return deal
@@ -334,20 +425,20 @@ def admin_delete_deal(
     current_user: User = Depends(get_current_user),
     request: Request = None
 ):
-    if current_user.role.upper() not in ['CEO', 'ADMIN', 'GROUP MANAGER']:
+    if current_user.role.upper() not in ALLOWED_ADMIN_ROLES:
         raise HTTPException(status_code=403, detail="Permission denied")
 
     deal = db.query(Deal).filter(Deal.id == deal_id).first()
     if not deal:
         raise HTTPException(status_code=404, detail="Deal not found")
 
-    # Verify deal belongs to same company
     deal_creator = db.query(User).filter(User.id == deal.created_by).first()
     if not deal_creator or deal_creator.related_to_company != current_user.related_to_company:
         raise HTTPException(status_code=403, detail="Not authorized to access this deal")
 
     old_data = serialize_instance(deal)
     deal_name = deal.name
+    target_user_id = deal.assigned_to or deal.created_by
 
     db.delete(deal)
     db.commit()
@@ -359,6 +450,7 @@ def admin_delete_deal(
         action="DELETE",
         request=request,
         old_data=old_data,
+        target_user_id=target_user_id,
         custom_message=f"deleted deal '{deal_name}' via admin panel"
     )
 

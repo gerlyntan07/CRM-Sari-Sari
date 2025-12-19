@@ -210,7 +210,7 @@ def admin_create_account(
         request=request,
         new_data=new_data,
         target_user_id=target_user_id,
-        custom_message=f"create account '{new_account.name}' via admin panel{assigned_fragment}"
+        custom_message=f"create account '{new_account.name}'"
     )
 
     _push_notif(

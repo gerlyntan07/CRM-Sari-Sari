@@ -13,6 +13,7 @@ from models.contact import Contact
 from models.account import Account
 from .logs_utils import serialize_instance, create_audit_log
 from .ws_notification import broadcast_notification
+from models.territory import Territory
 
 router = APIRouter(
     prefix="/contacts",
@@ -120,17 +121,46 @@ def admin_get_contacts(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    if current_user.role.upper() not in ALLOWED_ADMIN_ROLES:
-        raise HTTPException(status_code=403, detail="Permission denied")
+    if current_user.role.upper() in ["CEO", "ADMIN"]:
+        contacts = (
+            db.query(Contact)
+            .join(User, Contact.assigned_to == User.id)
+            .filter(User.related_to_company == current_user.related_to_company)
+            .all()
+        )
+    elif current_user.role.upper() == "GROUP MANAGER":
+        contacts = (
+            db.query(Contact)
+            .join(User, Contact.assigned_to == User.id)
+            .filter(User.related_to_company == current_user.related_to_company)
+            .filter(~User.role.in_(["CEO", "Admin"]))
+            .all()
+        )
+    elif current_user.role.upper() == "MANAGER":
+        subquery_user_ids = (
+            db.query(Territory.user_id)
+            .filter(Territory.manager_id == current_user.id)
+            .scalar_subquery()
+        )
 
-    # Get all users in the same company
-    company_users = db.query(User.id).filter(
-        User.related_to_company == current_user.related_to_company
-    ).subquery()
-
-    contacts = db.query(Contact).filter(
-        (Contact.created_by.in_(company_users)) | (Contact.assigned_to.in_(company_users))
-    ).all()
+        contacts = (
+            db.query(Contact)
+            .join(User, Contact.assigned_to == User.id)
+            .filter(User.related_to_company == current_user.related_to_company)
+            .filter(
+                (User.id.in_(subquery_user_ids)) | 
+                (Contact.assigned_to == current_user.id) | # Leads owned by manager
+                (Contact.created_by == current_user.id)
+            ).all()
+        )
+    else:
+        contacts = (
+            db.query(Contact)
+            .filter(
+                (Contact.assigned_to == current_user.id) | 
+                (Contact.created_by == current_user.id)
+            ).all()
+        )
 
     return contacts
 
@@ -161,8 +191,10 @@ def admin_create_contact(
     current_user: User = Depends(get_current_user),
     request: Request = None,
 ):
-    if current_user.role.upper() not in ALLOWED_ADMIN_ROLES:
-        raise HTTPException(status_code=403, detail="Permission denied")
+    if current_user.role.upper() == "SALES":
+        assigned_to = current_user.id
+    else:
+        assigned_to = data.assigned_to
 
     if not current_user.related_to_company:
         raise HTTPException(
@@ -202,7 +234,7 @@ def admin_create_contact(
         )
 
     assigned_user = None
-    if data.assigned_to is not None:
+    if assigned_to is not None:
         assigned_user = (
             db.query(User)
             .filter(
@@ -242,7 +274,7 @@ def admin_create_contact(
         mobile_phone_1=_clean_optional_string(data.mobile_phone_1),
         mobile_phone_2=_clean_optional_string(data.mobile_phone_2),
         notes=_clean_optional_string(data.notes),
-        assigned_to=data.assigned_to if assigned_user else None,
+        assigned_to=assigned_to if assigned_user else None,
         created_by=creator_id,
     )
 
@@ -300,7 +332,10 @@ def admin_update_contact(
     current_user: User = Depends(get_current_user),
     request: Request = None,
 ):
-    if current_user.role.upper() not in ALLOWED_ADMIN_ROLES:
+    # if current_user.role.upper() not in ALLOWED_ADMIN_ROLES:
+    #     raise HTTPException(status_code=403, detail="Permission denied")
+    
+    if (current_user.id != data.assigned_to | current_user.id != data.created_by):
         raise HTTPException(status_code=403, detail="Permission denied")
 
     company_users = (

@@ -128,6 +128,11 @@ def create_lead(
     lead_owner = db.query(User).filter(User.id == data.lead_owner).first()
     if not lead_owner:
         raise HTTPException(status_code=404, detail="Assigned user not found")
+        
+    if current_user.role.upper() == "SALES":
+        assigned_to = current_user.id
+    else:
+        assigned_to = data.lead_owner
 
     new_lead = Lead(
         first_name=data.first_name,
@@ -144,12 +149,12 @@ def create_lead(
         status=data.status,
         source=data.source,
         territory_id=data.territory_id,
-        lead_owner=data.lead_owner,
+        lead_owner=assigned_to,
         created_by=current_user.id,
     )
     db.add(new_lead)
     db.commit()
-    db.refresh(new_lead)        
+    db.refresh(new_lead)  
 
     # ✅ Create audit log
     new_data = serialize_instance(new_lead)    

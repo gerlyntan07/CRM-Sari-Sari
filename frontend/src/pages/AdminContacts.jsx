@@ -680,11 +680,8 @@ export default function AdminContacts() {
             <h1 className="text-xl sm:text-2xl font-semibold text-gray-800">
               {getContactFullName(selectedContact) || "Unnamed contact"}
             </h1>
-            {renderAccountStatusBadge(selectedContact.account?.status)}
-            <p className="text-sm text-gray-500">
-              {selectedContact.account?.name || "No associated account"}
-            </p>
-          </div>
+            {renderAccountStatusBadge(selectedContact.account?.status)}                        
+          </div>          
 
           <div className="flex flex-col sm:flex-row sm:space-x-3 space-y-2 sm:space-y-0">
             <button
@@ -716,6 +713,12 @@ export default function AdminContacts() {
           </div>
        
          </div>
+         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-2 px-2 lg:gap-4 lg:mx-7">
+          <p className="text-sm text-gray-500">
+              {selectedContact.account?.name || "No associated account"}
+            </p>
+         </div>
+         
         <div className="border-b border-gray-200 my-5"></div>
 
         {/* TABS */}

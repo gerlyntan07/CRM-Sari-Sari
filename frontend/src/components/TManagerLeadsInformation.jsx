@@ -379,7 +379,8 @@ export default function AdminLeadsInformation({
                 {formatStatusLabel(lead.status || "New")}
               </span>
 
-              <button
+              {(lead.creator?.id === user?.id || lead.assigned_to?.id === user?.id) && (
+                <button
                 onClick={() => {
                   if (lead.status === "Qualified") {
                     handleConvert(lead);
@@ -393,6 +394,7 @@ export default function AdminLeadsInformation({
               >
                 Convert
               </button>
+              )}              
             </div>
 
             {(lead.creator?.id === user?.id ||

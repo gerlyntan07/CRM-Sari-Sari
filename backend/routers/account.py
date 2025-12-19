@@ -125,20 +125,48 @@ def admin_get_accounts(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    if current_user.role.upper() not in ALLOWED_ADMIN_ROLES:
-        raise HTTPException(status_code=403, detail="Permission denied")
+    if current_user.role.upper() in ["CEO", "ADMIN"]:
+        contacts = (
+            db.query(Account)
+            .join(User, Account.assigned_to == User.id)
+            .filter(User.related_to_company == current_user.related_to_company)
+            .all()
+        )
+    elif current_user.role.upper() == "GROUP MANAGER":
+        contacts = (
+            db.query(Account)
+            .join(User, Account.assigned_to == User.id)
+            .filter(User.related_to_company == current_user.related_to_company)
+            .filter(~User.role.in_(["CEO", "Admin"]))
+            .all()
+        )
+    elif current_user.role.upper() == "MANAGER":
+        subquery_user_ids = (
+            db.query(Territory.user_id)
+            .filter(Territory.manager_id == current_user.id)
+            .scalar_subquery()
+        )
 
-    company_users = (
-        select(User.id)
-        .where(User.related_to_company == current_user.related_to_company)
-        .subquery()
-    )
+        contacts = (
+            db.query(Account)
+            .join(User, Account.assigned_to == User.id)
+            .filter(User.related_to_company == current_user.related_to_company)
+            .filter(
+                (User.id.in_(subquery_user_ids)) | 
+                (Account.assigned_to == current_user.id) | # Leads owned by manager
+                (Account.created_by == current_user.id)
+            ).all()
+        )
+    else:
+        contacts = (
+            db.query(Account)
+            .filter(
+                (Account.assigned_to == current_user.id) | 
+                (Account.created_by == current_user.id)
+            ).all()
+        )
 
-    accounts = db.query(Account).filter(
-        (Account.created_by.in_(company_users)) | (Account.assigned_to.in_(company_users))
-    ).all()
-
-    return accounts
+    return contacts
 
 
 @router.post("/admin", response_model=AccountResponse, status_code=status.HTTP_201_CREATED)

@@ -71,6 +71,10 @@ def get_users(
         users = db.query(User).filter(
             User.related_to_company == current_user.related_to_company
         ).all()
+    elif current_user.role.upper() == "SALES":
+        users = db.query(User).filter(
+            User.id == current_user.id
+        ).all()
 
     return users
 

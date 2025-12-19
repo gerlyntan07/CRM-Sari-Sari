@@ -59,7 +59,7 @@ export default function TManagerPanel() {
       >
         {/* Logo */}
         <div className="bg-[#fbbf24] text-gray-900 font-bold text-xl px-6 py-4.5 tracking-wide">
-          Team Manager CRM
+          Group Manager CRM
         </div>
 
         {/* Nav */}

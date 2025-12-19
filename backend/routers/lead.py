@@ -10,6 +10,7 @@ from models.auth import User
 from models.lead import Lead
 from models.account import Account
 from models.contact import Contact
+from models.territory import Territory
 from models.deal import Deal
 from .logs_utils import serialize_instance, create_audit_log
 from sqlalchemy.orm import joinedload
@@ -30,12 +31,46 @@ def get_leads_admin(
     current_user: User = Depends(get_current_user)
 ):
     # ✅ Get all leads whose owners belong to the same company as the current user
-    leads = (
-        db.query(Lead)
-        .join(User, Lead.lead_owner == User.id)
-        .filter(User.related_to_company == current_user.related_to_company)
-        .all()
-    )
+    if current_user.role.upper() in ["CEO", "ADMIN"]:
+        leads = (
+            db.query(Lead)
+            .join(User, Lead.lead_owner == User.id)
+            .filter(User.related_to_company == current_user.related_to_company)
+            .all()
+        )
+    elif current_user.role.upper() == "GROUP MANAGER":
+        leads = (
+            db.query(Lead)
+            .join(User, Lead.lead_owner == User.id)
+            .filter(User.related_to_company == current_user.related_to_company)
+            .filter(~User.role.in_(["CEO", "Admin"]))
+            .all()
+        )
+    elif current_user.role.upper() == "MANAGER":
+        subquery_user_ids = (
+            db.query(Territory.user_id)
+            .filter(Territory.manager_id == current_user.id)
+            .scalar_subquery()
+        )
+
+        leads = (
+            db.query(Lead)
+            .join(User, Lead.lead_owner == User.id)
+            .filter(User.related_to_company == current_user.related_to_company)
+            .filter(
+                (User.id.in_(subquery_user_ids)) | 
+                (Lead.lead_owner == current_user.id) | # Leads owned by manager
+                (Lead.created_by == current_user.id)
+            ).all()
+        )
+    else:
+        leads = (
+            db.query(Lead)
+            .filter(
+                (Lead.lead_owner == current_user.id) | 
+                (Lead.created_by == current_user.id)
+            ).all()
+        )
 
     return leads
 
@@ -45,11 +80,40 @@ def get_users(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    users = db.query(User).options(
-        joinedload(User.assigned_territory)
-    ).filter(
-        User.related_to_company == current_user.related_to_company
-    ).all()
+    if current_user.role.upper() in ["CEO", "ADMIN"]:
+        users = db.query(User).options(
+            joinedload(User.assigned_territory)
+        ).filter(
+            User.related_to_company == current_user.related_to_company
+        ).all()
+    elif current_user.role.upper() == "GROUP MANAGER":
+        users = db.query(User).options(
+            joinedload(User.assigned_territory)
+        ).filter(
+            User.related_to_company == current_user.related_to_company
+        ).filter(~User.role.in_(["CEO", "Admin"])
+        ).all()
+    elif current_user.role.upper() == "MANAGER":
+        subquery_user_ids = (
+            db.query(Territory.user_id)
+            .filter(Territory.manager_id == current_user.id)
+            .scalar_subquery()
+        )
+
+        users = (
+            db.query(User)
+            .filter(User.related_to_company == current_user.related_to_company)
+            .filter(
+                (User.id.in_(subquery_user_ids)) | 
+                (User.id == current_user.id)
+            ).all()
+        )
+    else:
+        users = (
+            db.query(User)
+            .filter(User.id == current_user.id)
+            .all()
+        )
     
     return users
 

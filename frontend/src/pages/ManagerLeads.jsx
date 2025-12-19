@@ -13,7 +13,7 @@ import {
   FiPhone,
   FiXCircle,
 } from "react-icons/fi";
-import AdminLeadsInformation from "../components/AdminLeadsInformation";
+import AdminLeadsInformation from "../components/ManagerLeadsInformation.jsx";
 import PaginationControls from "../components/PaginationControls.jsx";
 import { toast } from "react-toastify";
 import api from "../api";

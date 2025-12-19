@@ -92,84 +92,75 @@ def admin_get_accounts(
     return accounts
 
 
-# ============================================================================
-# COMMENTED OUT: Admin Add Account Functionality
-# ============================================================================
-# This endpoint has been temporarily commented out.
-# Reason: Add account functionality in admin panel is currently disabled.
-# 
-# Para sa mga kasama: Ni-comment ko muna 'yung add account functionality
-# sa admin account. Paki-uncomment lang kapag kailangan na ulit.
-# ============================================================================
-# @router.post("/admin", response_model=AccountResponse, status_code=status.HTTP_201_CREATED)
-# def admin_create_account(
-#     data: AccountCreate,
-#     db: Session = Depends(get_db),
-#     current_user: User = Depends(get_current_user),
-#     request: Request = None
-# ):
-#     if current_user.role.upper() not in ['CEO', 'ADMIN', 'GROUP MANAGER']:
-#         raise HTTPException(status_code=403, detail="Permission denied")
-# 
-#     if not current_user.related_to_company:
-#         raise HTTPException(status_code=400, detail="Current user is not linked to any company.")
-# 
-#     assigned_user = None
-#     if data.assigned_to:
-#         assigned_user = db.query(User).filter(
-#             User.id == data.assigned_to,
-#             User.related_to_company == current_user.related_to_company
-#         ).first()
-#         if not assigned_user:
-#             raise HTTPException(status_code=404, detail="Assigned user not found in your company.")
-# 
-#     if data.territory_id:
-#         territory = db.query(Territory).filter(
-#             Territory.id == data.territory_id,
-#             Territory.company_id == current_user.related_to_company
-#         ).first()
-#         if not territory:
-#             raise HTTPException(status_code=404, detail="Territory not found in your company.")
-# 
-#     created_by_user_id = data.created_by or current_user.id
-#     created_by_user = db.query(User).filter(User.id == created_by_user_id).first()
-#     if not created_by_user or created_by_user.related_to_company != current_user.related_to_company:
-#         raise HTTPException(status_code=404, detail="Creator is not part of your company.")
-# 
-#     new_account = Account(
-#         name=data.name,
-#         website=data.website,
-#         phone_number=data.phone_number,
-#         billing_address=data.billing_address,
-#         shipping_address=data.shipping_address,
-#         industry=data.industry,
-#         status=normalize_account_status(data.status),
-#         territory_id=data.territory_id,
-#         assigned_to=data.assigned_to,
-#         created_by=created_by_user_id
-#     )
-# 
-#     db.add(new_account)
-#     db.commit()
-#     db.refresh(new_account)
-# 
-#     new_data = serialize_instance(new_account)
-# 
-#     assigned_fragment = ""
-#     if assigned_user:
-#         assigned_fragment = f" assigned to '{assigned_user.first_name} {assigned_user.last_name}'"
-# 
-#     create_audit_log(
-#         db=db,
-#         current_user=current_user,
-#         instance=new_account,
-#         action="CREATE",
-#         request=request,
-#         new_data=new_data,
-#         custom_message=f"create account '{data.name}' via admin panel{assigned_fragment}"
-#     )
-# 
-#     return new_account
+@router.post("/admin", response_model=AccountResponse, status_code=status.HTTP_201_CREATED)
+def admin_create_account(
+    data: AccountCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    request: Request = None
+):
+    if current_user.role.upper() not in ['CEO', 'ADMIN', 'GROUP MANAGER']:
+        raise HTTPException(status_code=403, detail="Permission denied")
+
+    if not current_user.related_to_company:
+        raise HTTPException(status_code=400, detail="Current user is not linked to any company.")
+
+    assigned_user = None
+    if data.assigned_to:
+        assigned_user = db.query(User).filter(
+            User.id == data.assigned_to,
+            User.related_to_company == current_user.related_to_company
+        ).first()
+        if not assigned_user:
+            raise HTTPException(status_code=404, detail="Assigned user not found in your company.")
+
+    if data.territory_id:
+        territory = db.query(Territory).filter(
+            Territory.id == data.territory_id,
+            Territory.company_id == current_user.related_to_company
+        ).first()
+        if not territory:
+            raise HTTPException(status_code=404, detail="Territory not found in your company.")
+
+    created_by_user_id = data.created_by or current_user.id
+    created_by_user = db.query(User).filter(User.id == created_by_user_id).first()
+    if not created_by_user or created_by_user.related_to_company != current_user.related_to_company:
+        raise HTTPException(status_code=404, detail="Creator is not part of your company.")
+
+    new_account = Account(
+        name=data.name,
+        website=data.website,
+        phone_number=data.phone_number,
+        billing_address=data.billing_address,
+        shipping_address=data.shipping_address,
+        industry=data.industry,
+        status=normalize_account_status(data.status),
+        territory_id=data.territory_id,
+        assigned_to=data.assigned_to,
+        created_by=created_by_user_id
+    )
+
+    db.add(new_account)
+    db.commit()
+    db.refresh(new_account)
+
+    new_data = serialize_instance(new_account)
+
+    assigned_fragment = ""
+    if assigned_user:
+        assigned_fragment = f" assigned to '{assigned_user.first_name} {assigned_user.last_name}'"
+
+    create_audit_log(
+        db=db,
+        current_user=current_user,
+        instance=new_account,
+        action="CREATE",
+        request=request,
+        new_data=new_data,
+        custom_message=f"create account '{data.name}' via admin panel{assigned_fragment}"
+    )
+
+    return new_account
 
 
 @router.put("/admin/{account_id}", response_model=AccountResponse)

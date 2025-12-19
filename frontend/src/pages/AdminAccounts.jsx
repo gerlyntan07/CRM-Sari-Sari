@@ -735,7 +735,7 @@ export default function AdminAccounts() {
         {/* TABS */}
         <div className="p-6 lg:p-4">
           <div className="flex w-full bg-[#6A727D] text-white mt-1 overflow-x-auto mb-6">
-            {["Overview", "Notes", "Activities"].map((tab) => (
+            {["Overview", "Activities"].map((tab) => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}

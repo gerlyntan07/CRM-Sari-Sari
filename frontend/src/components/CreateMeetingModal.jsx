@@ -152,7 +152,7 @@ const CreateMeetingModal = ({
     <div
       id="modalBackdrop"
       onClick={(e) => e.target.id === "modalBackdrop" && onClose()}
-      className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4"
+      className="fixed inset-0 bg-black/40 flex items-center justify-center z-60 p-4"
     >
       <div className="bg-white w-full max-w-full sm:max-w-3xl rounded-2xl shadow-lg p-4 sm:p-6 md:p-8 relative border border-gray-200 overflow-y-auto max-h-[90vh] hide-scrollbar">
         <button

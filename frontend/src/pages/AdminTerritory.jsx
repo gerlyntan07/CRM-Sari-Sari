@@ -544,16 +544,20 @@ export default function AdminTerritory() {
            <h2 className="flex items-center text-2xl font-semibold text-gray-800">
              <LuMapPin className="mr-2 text-blue-600" /> Territory
            </h2>
+           <div className="flex justify-center lg:justify-end md:justify-end w-full">
            {Array.isArray(users) && users.length > 0 ? (
-             <button onClick={handleOpenCreateModal} className="flex items-center bg-black text-white px-3 py-2 rounded-md hover:bg-gray-800 text-sm ml-auto">
+             <button onClick={handleOpenCreateModal} 
+             className="flex items-center bg-black text-white px-3 py-2 rounded-md hover:bg-gray-800 text-sm">
                <FiPlus /> Create Territory
              </button>
            ) : (
-             <div className="ml-auto text-xs bg-red-50 p-2 rounded-lg ring ring-red-300 text-red-700 flex items-center gap-1">
+             <div className="text-xs bg-red-50 p-2 rounded-lg ring ring-red-300 text-red-700 flex items-center gap-1">
                <IoIosInformationCircleOutline /> Add users to assign territories
              </div>
            )}
         </div>
+        </div>
+        
 
         <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm mt-6 mb-4 flex flex-col lg:flex-row items-center gap-2">
            <div className="flex items-center border border-gray-300 rounded-lg px-4 h-11 w-full lg:w-3/4">
@@ -563,10 +567,10 @@ export default function AdminTerritory() {
                 value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
              />
            </div>
-           <div className="flex gap-2 w-full lg:w-1/2">
-             <select className="border border-gray-300 rounded-lg px-3 h-11 w-full text-sm" value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>
+      <div className="flex flex-col lg:flex-row gap-2 w-full lg:w-1/2">            
+      <select className="border border-gray-300 rounded-lg px-3 h-11 w-full text-sm" value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>
                 {STATUS_FILTER_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-             </select>
+                  </select>
              <select className="border border-gray-300 rounded-lg px-3 h-11 w-full text-sm" value={userFilter} onChange={e => setUserFilter(e.target.value)}>
                 <option value="">Filter by Users</option>
                 {users.map(u => <option key={u.id} value={String(u.id)}>{u.first_name} {u.last_name}</option>)}

@@ -162,7 +162,7 @@ const TopBar = ({ searchQuery, onSearchChange, searchResults, onSearchResultClic
       
       {/* Large Search Bar */}
       <div className="w-full flex justify-center relative" ref={searchRef}>
-        <div className="flex items-center border border-gray-300 rounded-lg lg:mt-3 px-4 py-2 w-full max-w-md md:max-w-lg lg:max-w-2xl focus-within:ring-2 focus-within:ring-blue-500 transition duration-150">
+        <div className="flex items-center border border-gray-300 rounded-lg lg:mt-3 px-4 py-2 w-full max-w-md md:max-w-2xl lg:max-w-2xl focus-within:ring-2 focus-within:ring-blue-500 transition duration-150">
           <IconSearch size={20} className="text-gray-400 mr-3 flex-shrink-0" />
           <input
             type="text"
@@ -530,7 +530,7 @@ const RevenueChart = ({ revenueData, loading }) => {
         </span>
       </div>
       <div className="h-80 relative flex-1 flex items-center justify-center p-6">
-        <div className="w-full h-full flex items-center justify-center">
+<div className="w-full h-full flex items-center justify-start lg:justify-center overflow-x-auto sm:overflow-x-hidden">
           {xAxisData && xAxisData.length > 0 && yAxisData && yAxisData.length > 0 ? (
             <LineChart
               xAxis={[{
@@ -554,10 +554,12 @@ const RevenueChart = ({ revenueData, loading }) => {
               width={undefined}
               grid={{ vertical: true, horizontal: true }}
               margin={{ top: 40, right: 40, bottom: 50, left: 50 }}
-              sx={{
-                width: '100%',
-                maxWidth: '100%',
-              }}
+   sx={{
+  width: '100%',
+  maxWidth: '100%',
+  minWidth: { xs: 600, lg: '100%' },
+}}
+
             />
           ) : (
             <div className="text-center text-gray-500">
@@ -1471,7 +1473,7 @@ const AdminDashboard = () => {
                 />
                 
                 {/* 2. Metrics Container (Inner grid for the 4 cards) */}
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-4 gap-4">
                     {metricsConfig.map((metric) => (
                         <MetricCard 
                           key={metric.title} 

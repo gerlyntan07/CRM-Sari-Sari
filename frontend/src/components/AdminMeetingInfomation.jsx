@@ -83,9 +83,9 @@ const AdminMeetingInfomation = ({ meeting, onClose, onEdit, onDelete, onStatusUp
 
           {/* Header */}
           <div className="mt-4 gap-2 px-2 lg:gap-4 lg:mx-7">
-          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-4 gap-2 sm:gap-4">
-            <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-              <h1 className="text-xl sm:text-2xl font-semibold">
+          <div className="flex flex-col md:flex-row md:justify-between lg:flex-row lg:items-center lg:justify-between mt-3 gap-2 px-2 md:items-center lg:gap-4 md:mx-7">
+  <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+    <h1 className="text-xl sm:text-2xl font-semibold text-gray-800">
                 {meeting.activity || "Meeting"}
               </h1>
               <span

@@ -421,12 +421,14 @@ const AdminMeeting = () => {
       </div>
 
       {/* METRICS & FILTERS (Keep existing markup structure) */}
-      <div className="bg-white rounded-xl p-4 shadow-sm mb-6 flex items-center justify-between gap-3">
-         <div className="flex items-center border border-gray-300 rounded-lg px-4 h-11 w-4/4">
-            <FiSearch className="text-gray-400 mr-3" />
-            <input type="text" placeholder="Search meetings" value={searchTerm} onChange={handleSearch} className="w-full outline-none" />
+      <div className="bg-white rounded-xl p-4 shadow-sm mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+  <div className="flex items-center border border-gray-300 rounded-lg px-4 h-11 w-full sm:w-auto lg:w-4/4 md:w-3/4">
+    <FiSearch className="text-gray-400 mr-3" />
+            <input type="text" placeholder="Search meetings" value={searchTerm} onChange={handleSearch}
+             className="w-full outline-none" />
          </div>
-         <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="border border-gray-300 rounded-lg px-3 h-11 text-sm bg-white">
+         <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} 
+            className="border border-gray-300 rounded-lg px-3 h-11 text-sm bg-white w-full sm:w-auto">
             <option>Filter by Status</option>
             <option value="PLANNED">PLANNED</option>
             <option value="HELD">HELD</option>
@@ -436,7 +438,7 @@ const AdminMeeting = () => {
 
       {/* TABLE */}
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[500px] border border-gray-200 rounded-lg bg-white shadow-sm text-sm mb-3">
+        <table className="w-full min-w-[500px] border border-gray-200 rounded-lg bg-white shadow-sm text-sm mb-4">
           <thead className="bg-gray-100 text-left text-gray-600 font-semibold">
             <tr>
               <th className="py-3 px-4">Subject</th>

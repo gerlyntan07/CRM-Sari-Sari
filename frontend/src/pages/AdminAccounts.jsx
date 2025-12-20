@@ -689,9 +689,9 @@ export default function AdminAccounts() {
         </div>
 
         {/* Header */}
-        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between mt-3 gap-2 px-2 lg:gap-4 lg:mx-7">
-          <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-            <h1 className="text-xl sm:text-2xl font-semibold text-gray-800">
+       <div className="flex flex-col md:flex-row md:justify-between lg:flex-row lg:items-center lg:justify-between mt-3 gap-2 px-2 md:items-center lg:gap-4 md:mx-7 lg:mx-7">
+  <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+    <h1 className="text-xl sm:text-2xl font-semibold text-gray-800">
               {selectedAccount.name}
             </h1>
             <span
@@ -1033,7 +1033,7 @@ export default function AdminAccounts() {
       </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 md:grid-cols-4 gap-4 mb-6 w-full break-words overflow-hidden lg:overflow-visible">
+      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4 mb-6 w-full break-words overflow-hidden lg:overflow-visible">
         {metricCards.map((metric) => (
           <MetricCard key={metric.title} {...metric} />
         ))}

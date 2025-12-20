@@ -105,7 +105,7 @@ export default function AdminHeader({ toggleSidebar }) {
               alt="Profile"
               className="w-8 aspect-square object-cover rounded-full"
             />
-            <span className="text-sm font-medium text-gray-700">
+          <span className="hidden lg:inline text-sm font-medium text-gray-700">
               {user?.first_name} {user?.last_name}
             </span>
           </button>

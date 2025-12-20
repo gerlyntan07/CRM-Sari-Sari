@@ -18,7 +18,7 @@ from .logs_utils import serialize_instance, create_audit_log
 
 router = APIRouter(prefix="/quotes", tags=["Quotes"])
 
-ALLOWED_ADMIN_ROLES = {"CEO", "ADMIN", "GROUP MANAGER"}
+ALLOWED_ADMIN_ROLES = {"CEO", "ADMIN", "GROUP MANAGER", "MANAGER", "SALES"}
 
 
 def normalize_status(status_value: str | None) -> str:

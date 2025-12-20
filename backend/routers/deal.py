@@ -19,7 +19,7 @@ router = APIRouter(
     tags=["Deals"]
 )
 
-ALLOWED_ADMIN_ROLES = {"CEO", "ADMIN", "GROUP MANAGER"}
+ALLOWED_ADMIN_ROLES = {"CEO", "ADMIN", "GROUP MANAGER", "MANAGER", "SALES"}
 
 
 def _push_notif(

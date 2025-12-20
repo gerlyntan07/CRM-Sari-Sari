@@ -505,9 +505,9 @@ export default function TManagerCalls() {
         </div>
 
         <div className="mt-4 gap-2 px-2 lg:gap-4 lg:mx-7">
-          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-4 gap-2 sm:gap-4">
-            <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-              <h1 className="text-xl sm:text-2xl font-semibold text-gray-800">
+   <div className="flex flex-col md:flex-row md:justify-between lg:flex-row lg:items-center lg:justify-between mt-3 gap-2 px-2 md:items-center lg:gap-4 md:mx-7 lg:mx-7">
+  <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+    <h1 className="text-xl sm:text-2xl font-semibold text-gray-800">
                 {selectedCall.subject}
               </h1>
               <span
@@ -1035,7 +1035,7 @@ export default function TManagerCalls() {
               defaultValue={searchQuery}
             />
           </div>
-          <div className="flex gap-3 w-full lg:w-auto">
+             <div className="flex flex-col sm:flex-row w-full lg:w-1/2 gap-2">
             <select
               defaultValue={statusFilter}
               className="border border-gray-300 rounded-lg px-3 h-11 text-sm bg-white w-full"
@@ -1063,7 +1063,7 @@ export default function TManagerCalls() {
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[500px] border border-gray-200 rounded-lg bg-white shadow-sm text-sm">
+          <table className="w-full min-w-[500px] border border-gray-200 rounded-lg bg-white shadow-sm text-sm mb-4">
             <thead className="bg-gray-100 text-left text-gray-600 font-semibold">
               <tr>
                 <th className="py-3 px-4">Subject</th>

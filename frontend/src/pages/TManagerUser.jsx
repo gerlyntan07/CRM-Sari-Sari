@@ -557,11 +557,12 @@ export default function AdminUser() {
   const listView = (
     <div className="p-4 sm:p-6 lg:p-8 font-inter relative">
       {(loading || userLoading || !shouldShowContent) && <LoadingSpinner />}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 sm:mb-6 space-y-2 sm:space-y-0">
         <h1 className="flex items-center text-xl sm:text-2xl font-semibold text-gray-800">
           <FiShield className="mr-2 text-blue-600" />
           User Management
         </h1>
+        <div className="flex justify-center lg:justify-end w-full sm:w-auto">
         <button
           type="button"
           onClick={handleOpenCreate}
@@ -569,6 +570,7 @@ export default function AdminUser() {
         >
           <FiUserPlus className="mr-2" /> Add User
         </button>
+      </div>
       </div>
 
       <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm mb-6 flex flex-col lg:flex-row items-center justify-between gap-3 w-full">
@@ -708,8 +710,8 @@ export default function AdminUser() {
         </div>
 
         {/* Header */}
-        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-4 gap-2 sm:gap-4">
-          <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+ <div className="flex flex-col md:flex-row md:justify-between lg:flex-row lg:items-center lg:justify-between mt-3 gap-2 px-2 md:items-center lg:gap-4 md:mx-7 lg:mx-7 mb-4 lg:mb-6 md:mb-4">      
+      <div className="flex flex-wrap items-center gap-2 sm:gap-3">
             <div className="flex items-center gap-3">
               {selectedUser.profile_picture ? (
                 <img

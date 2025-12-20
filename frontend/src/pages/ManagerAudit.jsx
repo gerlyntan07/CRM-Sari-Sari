@@ -214,6 +214,7 @@ export default function AdminAudit() {
             Audit Logs
           </h2>
         </div>
+          <div className="flex justify-center lg:justify-end w-full sm:w-auto">
         <button
           className="flex items-center bg-black text-white px-3 sm:px-4 py-2 rounded-md hover:bg-gray-800 text-sm sm:text-base self-end sm:self-auto cursor-pointer"
           onClick={exportToExcel}
@@ -221,6 +222,7 @@ export default function AdminAudit() {
           <FiDownload className="mr-2" />
           Export Logs
         </button>
+      </div>
       </div>
 
       {/* Search and Filter */}

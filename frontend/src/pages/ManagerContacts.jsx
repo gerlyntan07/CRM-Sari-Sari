@@ -675,8 +675,7 @@ export default function AdminContacts() {
         </div>
 
         {/* Header */}
-        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between mt-4 gap-2 px-2 lg:gap-4 lg:mx-7">
-          <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+  <div className="flex flex-col md:flex-row md:justify-between lg:flex-row lg:items-center lg:justify-between mt-3 gap-2 px-2 md:items-center lg:gap-4 md:mx-7 lg:mx-7">          <div className="flex flex-wrap items-center gap-2 sm:gap-3">
             <h1 className="text-xl sm:text-2xl font-semibold text-gray-800">
               {getContactFullName(selectedContact) || "Unnamed contact"}
             </h1>
@@ -714,7 +713,7 @@ export default function AdminContacts() {
        
          </div>
 
-         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-2 px-2 lg:gap-4 lg:mx-7">
+         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-2 px-2 lg:gap-4 md:mx-7 lg:mx-7">
           <p className="text-sm text-gray-500">
               {selectedContact.account?.name || "No associated account"}
             </p>
@@ -1018,12 +1017,14 @@ export default function AdminContacts() {
     <FiUsers className="mr-2 text-blue-600" /> Contacts Management
   </h2>
 
+       <div className="flex justify-center lg:justify-end w-full sm:w-auto">
   <button
     onClick={handleOpenAddModal}
     className="flex items-center bg-black text-white px-3 sm:px-4 py-2 rounded-md hover:bg-gray-800 text-sm sm:text-base self-end sm:self-auto cursor-pointer"
   >
     <FiPlus className="mr-2" /> Add Contact
   </button>
+</div>
 </div>
 
       <div className="bg-white rounded-xl p-4 shadow-sm mb-6 flex flex-col lg:flex-row items-center justify-between gap-3 w-full">

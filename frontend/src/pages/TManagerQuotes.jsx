@@ -1010,9 +1010,9 @@ export default function TManagerQuotes() {
         </div>
 
         <div className="p-6 lg:p-4">
-          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-2 mt-3 p-2 sm:gap-4 lg:mx-7">
-            <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-              <h1 className="text-xl sm:text-2xl font-semibold text-gray-800">
+                <div className="flex flex-col md:flex-row md:justify-between lg:flex-row lg:items-center lg:justify-between mt-3 gap-2 px-2 md:items-center lg:gap-4 md:mx-7 lg:mx-7">
+  <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+    <h1 className="text-xl sm:text-2xl font-semibold text-gray-800">
                 {resolveDealLabel(selectedQuote)}
               </h1>
               <span

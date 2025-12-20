@@ -656,7 +656,7 @@ export default function AdminLeads() {
           Leads
         </h1>
 
-        <div className="flex justify-end gap-3 w-full sm:w-auto">
+        <div className="flex justify-center lg:justify-end gap-3 w-full sm:w-auto">
           <button
             onClick={() => {
               // TODO: Implement download functionality
@@ -675,7 +675,7 @@ export default function AdminLeads() {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4 mb-6 w-full break-words overflow-hidden lg:overflow-visible">
+      <div className="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-5 gap-4 mb-6 w-full break-words overflow-hidden lg:overflow-visible">
         {metricCards.map((metric) => (
           <MetricCard key={metric.title} {...metric} />
         ))}

@@ -196,7 +196,7 @@ export default function AdminManageAccount() {
   };
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 font-inter relative">
+    <div className="p-2 lg:p-8 font-inter relative">
       {(userLoading || !currentUser) && <LoadingSpinner />}
       {currentUser && (
       <div>
@@ -212,11 +212,12 @@ export default function AdminManageAccount() {
 
         {/* Profile Section */}
         <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6 mb-6">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xl font-semibold text-gray-800 flex items-center gap-2">
+ <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 sm:mb-6 space-y-2 sm:space-y-0">          
+    <h2 className="text-xl font-semibold text-gray-800 flex items-center gap-2">
               <FiUser className="text-blue-600" />
               Profile Information
             </h2>
+                     <div className="flex justify-center lg:justify-end w-full sm:w-auto">
             {!isEditing && (
               <button
                 onClick={() => setIsEditing(true)}
@@ -226,6 +227,7 @@ export default function AdminManageAccount() {
                 Edit Profile
               </button>
             )}
+          </div>
           </div>
 
           {/* Profile Picture and Basic Info */}
@@ -402,8 +404,8 @@ export default function AdminManageAccount() {
 
         {/* Change Password Section */}
         <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
-          <h2 className="text-xl font-semibold text-gray-800 flex items-center gap-2 mb-6">
-            <FiLock className="text-blue-600" />
+   <h2 className="text-xl font-semibold text-gray-800 flex items-center gap-2 mb-6 justify-center lg:justify-start">          
+      <FiLock className="text-blue-600" />
             Change Password
           </h2>
 
@@ -458,7 +460,7 @@ export default function AdminManageAccount() {
               </div>
             </div>
 
-            <div className="pt-4 border-t border-gray-200">
+             <div className="pt-4 border-t border-gray-200 flex justify-center lg:justify-start">
               <button
                 type="submit"
                 className="flex items-center justify-center gap-2 px-4 py-2 bg-gray-900 text-white rounded-md hover:bg-gray-800 transition disabled:opacity-70"
@@ -473,7 +475,7 @@ export default function AdminManageAccount() {
 
           {/* Account Info Section */}
           <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6 mt-6">
-            <h2 className="text-xl font-semibold text-gray-800 flex items-center gap-2 mb-4">
+<h2 className="text-xl font-semibold text-gray-800 flex items-center gap-2 mb-6 justify-center lg:justify-start">
               <FiInfo className="text-blue-600" />
               Account Information
             </h2>

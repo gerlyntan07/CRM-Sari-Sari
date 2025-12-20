@@ -58,7 +58,7 @@ export default function AdminHeader({ toggleSidebar }) {
   }, []);
 
   return (
-    <header className="flex justify-between items-center bg-white shadow px-4 sm:px-6 py-3 border-b relative">
+      <header className="flex justify-between z-50 items-center bg-white shadow px-4 sm:px-6 py-3 border-b relative">
       {/* Left Side - Hamburger & Title */}
       <div className="flex items-center gap-3">
         {/* Hamburger Button - Mobile Only */}

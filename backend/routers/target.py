@@ -15,7 +15,7 @@ router = APIRouter(
     tags=["Targets"]
 )
 
-ALLOWED_ADMIN_ROLES = {"CEO", "ADMIN", "GROUP MANAGER"}
+ALLOWED_ADMIN_ROLES = {"CEO", "ADMIN", "GROUP MANAGER", "MANAGER", "SALES"}
 
 
 # =====================================================

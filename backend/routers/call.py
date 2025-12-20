@@ -100,7 +100,7 @@ def admin_get_calls(
     current_user: User = Depends(get_current_user),
 ):
     """Get all calls for admin users"""
-    if current_user.role.upper() not in ['CEO', 'ADMIN', 'GROUP MANAGER']:
+    if current_user.role.upper() not in ['CEO', 'ADMIN', 'GROUP MANAGER', 'MANAGER', 'SALES']:
         raise HTTPException(status_code=403, detail="Permission denied")
     
     # Get all calls created by users in the same company
@@ -140,7 +140,7 @@ def update_call(
     )
     if not call:
         raise HTTPException(status_code=404, detail="Call not found")
-    if current_user.role.upper() not in ['CEO', 'ADMIN', 'GROUP MANAGER']:
+    if current_user.role.upper() not in ['CEO', 'ADMIN', 'GROUP MANAGER', 'MANAGER', 'SALES']:
         if call.assigned_to != current_user.id and call.created_by != current_user.id:
             raise HTTPException(status_code=403, detail="Permission denied")
     old_data = serialize_instance(call)

@@ -11,6 +11,7 @@ import {
   FiBarChart2,
   FiGrid,
   FiX,
+  FiClipboard,
 } from "react-icons/fi";
 import SalesHeader from "./SalesHeader"; 
 import useFetchUser from "../hooks/useFetchUser";
@@ -112,6 +113,13 @@ export default function SalesPanel() {
             <FiTarget className="text-lg" />
             <span>Targets</span>
           </NavLink>
+
+          <NavLink
+               to="/sales/audit"
+              className={({ isActive }) => (isActive ? activeLink : normalLink)}
+                  >
+            <FiClipboard /> Audit
+            </NavLink>
 
         
           <NavLink

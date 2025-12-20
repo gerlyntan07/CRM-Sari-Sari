@@ -54,6 +54,8 @@ import SalesDealsInformation from "./components/SalesDealsInformation";
 import SalesDealsQuickAction from "./components/SalesDealsQuickAction";
 import SalesQuotes from "./pages/SalesQuotes";
 import SalesTargets from "./pages/SalesTargets";
+import SalesAudit from "./pages/SalesAudit";
+
 
 // 🔹 Manager layout + pages
 import ManagerPanel from "./components/ManagerPanel";
@@ -170,6 +172,7 @@ function App() {
           <Route path="deals/quickaction" element={<SalesDealsQuickAction />} />
           <Route path="quotes" element={<SalesQuotes />} />
           <Route path="targets" element={<SalesTargets />} />
+          <Route path="audit" element={<SalesAudit />} />
           <Route path="manage-account" element={<PublicManageAccount />} />
           <Route path="hub/*" element={<SalesHub />}>
             <Route index element={<Navigate to="mytasks" replace />} />

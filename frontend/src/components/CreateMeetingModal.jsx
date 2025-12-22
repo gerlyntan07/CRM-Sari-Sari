@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useMemo } from "react";
 import { FiX } from "react-icons/fi";
 import api from "../api";
 import {toast} from 'react-toastify';
+import { useAuth } from '../hooks/useAuth'
 
 const CreateMeetingModal = ({
   onClose,
@@ -33,6 +34,7 @@ const CreateMeetingModal = ({
 
   const formData = externalFormData !== undefined ? externalFormData : internalFormData;
   const setFormData = setExternalFormData || setInternalFormData;
+  const {userRole} = useAuth();
 
   // --- EFFECT 1: Fetch Level 1 Options (Leads or Accounts) ---
   useEffect(() => {
@@ -42,16 +44,44 @@ const CreateMeetingModal = ({
 
         let res;
         if (formData.relatedType1 === 'Lead') {
-          res = await api.get(`/leads/admin/getLeads`);
+          if(userRole === 'Manager') {
+            res = await api.get(`/leads/manager/leads/getLeads`);
+          } else{
+            res = await api.get(`/leads/admin/getLeads`);
+          }
         } else if (formData.relatedType1 === 'Account') {
           res = await api.get(`/accounts/admin/fetch-all`);
         }
 
+        let items = [];
         if (res && Array.isArray(res.data)) {
-          setRelatedTo1Values(res.data);
-        } else {
-          setRelatedTo1Values([]);
+          items = res.data;
         }
+
+        // If in edit mode and have a relatedTo1 value, fetch that specific item 
+        // so it appears in the list even if user doesn't normally have access to it
+        if (isEditing && formData.relatedTo1) {
+          try {
+            let specificRes;
+            if (formData.relatedType1 === 'Lead') {
+              specificRes = await api.get(`/leads/get/${formData.relatedTo1}`);
+            } else if (formData.relatedType1 === 'Account') {
+              specificRes = await api.get(`/accounts/get/${formData.relatedTo1}`);
+            }
+
+            if (specificRes && specificRes.data) {
+              // Check if item already exists in list (by id)
+              const exists = items.some(item => String(item.id) === String(formData.relatedTo1));
+              if (!exists) {
+                items = [specificRes.data, ...items];
+              }
+            }
+          } catch (err) {
+            console.error("Error fetching specific related item:", err);
+          }
+        }
+
+        setRelatedTo1Values(items);
       } catch (error) {
         console.error("Error fetching relatedTo1 data:", error);
         setRelatedTo1Values([]);
@@ -61,7 +91,7 @@ const CreateMeetingModal = ({
     if (formData.relatedType1) {
       fetchData();
     }
-  }, [formData.relatedType1]);
+  }, [formData.relatedType1, userRole, isEditing, formData.relatedTo1]);
 
   // --- EFFECT 2: Fetch Level 2 Options (Contacts or Deals FROM Account) ---
   useEffect(() => {
@@ -185,8 +215,8 @@ const CreateMeetingModal = ({
               name="relatedType1"
               onChange={handleInputChange}
               value={formData.relatedType1 || "Lead"}
-              className="outline-none w-23 cursor-pointer mb-1 rounded p-1 text-gray-700 disabled:text-gray-200"
-              disabled={isSubmitting}
+              className="outline-none w-23 cursor-pointer mb-1 rounded p-1 text-gray-700 disabled:text-gray-400"
+              disabled={isSubmitting || isEditing}
             >
               <option value="Lead">Lead</option>
               <option value="Account">Account</option>
@@ -208,6 +238,7 @@ const CreateMeetingModal = ({
                   relatedTo1: newId, // keep string
                 }))
               }
+              disabled={isEditing}
             />            
           </div>
 
@@ -216,15 +247,14 @@ const CreateMeetingModal = ({
               name="relatedType2"
               onChange={handleInputChange}
               value={formData.relatedType2 || "Contact"}
-              className="outline-none cursor-pointer mb-1 w-23 rounded p-1 text-gray-700 disabled:text-gray-200 disabled:cursor-not-allowed"
-              disabled={isSubmitting || formData.relatedType1 === 'Lead'}
+              className="outline-none cursor-pointer mb-1 w-23 rounded p-1 text-gray-700 disabled:text-gray-400 disabled:cursor-not-allowed"
+              disabled={isSubmitting || isEditing || formData.relatedType1 === 'Lead'}
             >
               <option value="Contact">Contact</option>
               <option value="Deal">Deal</option>
             </select>
 
             <SearchableSelect
-              disabled={formData.relatedType1 === "Lead"}
               items={Array.isArray(relatedTo2Values) ? relatedTo2Values : []}
               value={formData.relatedTo2 ?? ""}
               placeholder={
@@ -245,6 +275,7 @@ const CreateMeetingModal = ({
                   relatedTo2: newId, // keep string
                 }))
               }
+              disabled={isEditing || formData.relatedType1 === 'Lead'}
             />            
           </div>
           {/* -------------------------------------------------------- */}

@@ -14,276 +14,12 @@ from models.deal import Deal
 from schemas.meeting import MeetingCreate, MeetingUpdate, MeetingResponse
 from .auth_utils import get_current_user
 from .logs_utils import serialize_instance, create_audit_log
+from models.territory import Territory
 
 router = APIRouter(
     prefix="/meetings",
     tags=["Meetings"]
 )
-
-# def meeting_to_response(meeting: Meeting) -> dict:
-#     assigned_name = None
-#     if meeting.meet_assign_to:
-#         assigned_name = f"{meeting.meet_assign_to.first_name} {meeting.meet_assign_to.last_name}"
-
-#     # Existing "single" related display (keep for backward compatibility)
-#     related_to = (
-#         (f"{meeting.contact.first_name} {meeting.contact.last_name}") if meeting.contact else
-#         (meeting.deal.name) if meeting.deal else
-#         (meeting.lead.title or f"{meeting.lead.first_name} {meeting.lead.last_name}") if meeting.lead else
-#         (meeting.account.name) if meeting.account else None
-#     )
-
-#     related_type = (
-#         "Contact" if meeting.related_to_contact else
-#         "Deal" if meeting.related_to_deal else
-#         "Account" if meeting.related_to_account else
-#         "Lead" if meeting.related_to_lead else None
-#     )
-
-#     duration = None
-#     if meeting.start_time and meeting.end_time:
-#         duration = int((meeting.end_time - meeting.start_time).total_seconds() / 60)
-
-#     due_date_str = None
-#     if meeting.start_time:
-#         due_date_str = meeting.start_time.strftime("%Y-%m-%d")
-
-#     status_mapping = {
-#         MeetingStatus.PLANNED: "PENDING",
-#         MeetingStatus.HELD: "COMPLETED",
-#         MeetingStatus.NOT_HELD: "CANCELLED",
-#     }
-#     frontend_status = status_mapping.get(meeting.status, "PENDING")
-
-#     # ✅ NEW: return separate entities so UI can show Account + Contact/Deal
-#     account_name = meeting.account.name if meeting.account else None
-#     contact_name = (
-#         f"{meeting.contact.first_name} {meeting.contact.last_name}".strip()
-#         if meeting.contact else None
-#     )
-#     deal_name = meeting.deal.name if meeting.deal else None
-#     lead_name = None
-#     if meeting.lead:
-#         lead_name = (meeting.lead.title or f"{meeting.lead.first_name} {meeting.lead.last_name}").strip()
-
-#     return {
-#         "id": meeting.id,
-#         "activity": meeting.subject,
-#         "subject": meeting.subject,
-#         "location": meeting.location,
-#         "duration": duration,
-#         "startTime": meeting.start_time.isoformat() if meeting.start_time else None,
-#         "endTime": meeting.end_time.isoformat() if meeting.end_time else None,
-#         "meetingLink": None,
-#         "description": meeting.notes or "",
-#         "agenda": meeting.notes or "",
-#         "dueDate": due_date_str,
-#         "assignedTo": assigned_name,
-
-#         # ✅ NEW (IDs + names)
-#         "assignedToId": meeting.assigned_to,
-
-#         "accountId": meeting.related_to_account,
-#         "accountName": account_name,
-
-#         "contactId": meeting.related_to_contact,
-#         "contactName": contact_name,
-
-#         "dealId": meeting.related_to_deal,
-#         "dealName": deal_name,
-
-#         "leadId": meeting.related_to_lead,
-#         "leadName": lead_name,
-
-#         # keep old single-related fields
-#         "relatedType": related_type,
-#         "relatedTo": related_to,
-
-#         "priority": None,
-#         "status": frontend_status,
-#         "createdAt": meeting.created_at.isoformat() if meeting.created_at else None,
-#         "updatedAt": meeting.updated_at.isoformat() if meeting.updated_at else None,
-#     }
-
-#     assigned_name = None
-#     if meeting.meet_assign_to:
-#         assigned_name = f"{meeting.meet_assign_to.first_name} {meeting.meet_assign_to.last_name}"
-
-#     related_to = (
-#         (f"{meeting.contact.first_name} {meeting.contact.last_name}") if meeting.contact else
-#         (meeting.deal.name) if meeting.deal else
-#         (meeting.lead.title or f"{meeting.lead.first_name} {meeting.lead.last_name}") if meeting.lead else
-#         (meeting.account.name) if meeting.account else None
-#     )
-
-#     related_type = (
-#         "Contact" if meeting.related_to_contact else
-#         "Deal" if meeting.related_to_deal else
-#         "Account" if meeting.related_to_account else
-#         "Lead" if meeting.related_to_lead else None
-#     )
-    
-#     # Calculate duration from start_time and end_time if available
-#     duration = None
-#     if meeting.start_time and meeting.end_time:
-#         duration = int((meeting.end_time - meeting.start_time).total_seconds() / 60)
-    
-#     # Format due date
-#     due_date_str = None
-#     if meeting.start_time:
-#         due_date_str = meeting.start_time.strftime("%Y-%m-%d")
-    
-#     # Map backend status to frontend status
-#     status_mapping = {
-#         MeetingStatus.PLANNED: "PENDING",
-#         MeetingStatus.HELD: "COMPLETED",
-#         MeetingStatus.NOT_HELD: "CANCELLED",
-#     }
-#     frontend_status = status_mapping.get(meeting.status, "PENDING")
-    
-#     return {
-#         "id": meeting.id,
-#         "activity": meeting.subject,
-#         "subject": meeting.subject,
-#         "location": meeting.location,
-#         "duration": duration,
-#         "startTime": meeting.start_time.isoformat() if meeting.start_time else None,
-#         "endTime": meeting.end_time.isoformat() if meeting.end_time else None,
-#         "meetingLink": None,
-#         "description": meeting.notes or "",
-#         "agenda": meeting.notes or "",
-#         "dueDate": due_date_str,
-#         "assignedTo": assigned_name,
-#         "relatedType": related_type,
-#         "relatedTo": related_to,
-#         "priority": None,
-#         "status": frontend_status,
-#         "createdAt": meeting.created_at.isoformat() if meeting.created_at else None,
-#         "updatedAt": meeting.updated_at.isoformat() if meeting.updated_at else None,
-#     }
-
-# @router.post("/create", response_model=MeetingResponse, status_code=status.HTTP_201_CREATED)
-# def create_meeting(
-#     data: MeetingCreate,
-#     db: Session = Depends(get_db),
-#     current_user: User = Depends(get_current_user),
-#     request: Request = None
-# ):
-#     """Create a new meeting with audit logging"""
-    
-#     # Validate assigned user if provided
-#     assigned_user = None
-#     if data.assigned_to:
-#         assigned_user = db.query(User).filter(User.id == data.assigned_to).first()
-#         if not assigned_user:
-#             raise HTTPException(status_code=404, detail="Assigned user not found")
-    
-#     # Parse due_date to start_time
-#     start_time = None
-#     if data.due_date:
-#         try:
-#             # Try parsing ISO format
-#             if 'T' in data.due_date:
-#                 start_time = datetime.fromisoformat(data.due_date.replace('Z', '+00:00'))
-#             else:
-#                 # Try parsing date only
-#                 start_time = datetime.strptime(data.due_date, '%Y-%m-%d')
-#         except (ValueError, AttributeError):
-#             raise HTTPException(status_code=400, detail="Invalid date format for due_date")
-    
-#     # Calculate end_time from start_time + duration
-#     end_time = None
-#     if start_time and data.duration:
-#         end_time = start_time + timedelta(minutes=data.duration)
-    
-#     # Map frontend status to backend MeetingStatus enum
-#     status_mapping = {
-#         "PENDING": MeetingStatus.PLANNED,
-#         "COMPLETED": MeetingStatus.HELD,
-#         "DONE": MeetingStatus.HELD,
-#         "CANCELLED": MeetingStatus.NOT_HELD,
-#         "IN PROGRESS": MeetingStatus.PLANNED,
-#     }
-#     meeting_status = status_mapping.get(data.status or "PENDING", MeetingStatus.PLANNED)
-    
-#     # Determine related_to fields based on related_type
-#     related_to_account = None
-#     related_to_contact = None
-#     related_to_lead = None
-#     related_to_deal = None
-#     related_to_text = None
-    
-#     # Set the appropriate foreign key based on related_type
-#     if data.related_type and data.related_to:
-#         related_to_id = data.related_to
-        
-#         if data.related_type == "Account":
-#             # Verify account exists
-#             account = db.query(Account).filter(Account.id == related_to_id).first()
-#             if account:
-#                 related_to_account = related_to_id
-#                 related_to_text = account.name
-#             else:
-#                 raise HTTPException(status_code=404, detail="Account not found")
-#         elif data.related_type == "Contact":
-#             # Verify contact exists
-#             contact = db.query(Contact).filter(Contact.id == related_to_id).first()
-#             if contact:
-#                 related_to_contact = related_to_id
-#                 related_to_account = contact.account_id
-#                 related_to_text = f"{contact.first_name} {contact.last_name}"
-#             else:
-#                 raise HTTPException(status_code=404, detail="Contact not found")
-#         elif data.related_type == "Lead":
-#             # Verify lead exists
-#             lead = db.query(Lead).filter(Lead.id == related_to_id).first()
-#             if lead:
-#                 related_to_lead = related_to_id
-#                 related_to_text = f"{lead.first_name} {lead.last_name}"
-#             else:
-#                 raise HTTPException(status_code=404, detail="Lead not found")
-#         elif data.related_type == "Deal":
-#             # Verify deal exists
-#             deal = db.query(Deal).filter(Deal.id == related_to_id).first()
-#             if deal:
-#                 related_to_deal = related_to_id
-#                 related_to_account = deal.account_id
-#                 related_to_text = deal.name
-#             else:
-#                 raise HTTPException(status_code=404, detail="Deal not found")
-    
-#     new_meeting = Meeting(
-#         subject=data.subject,
-#         start_time=start_time,
-#         end_time=end_time,
-#         location=data.location,
-#         status=meeting_status,
-#         notes=data.agenda or "",
-#         related_to_account=related_to_account,
-#         related_to_contact=related_to_contact,
-#         related_to_lead=related_to_lead,
-#         related_to_deal=related_to_deal,
-#         created_by=current_user.id,
-#         assigned_to=data.assigned_to,
-#     )
-    
-#     db.add(new_meeting)
-#     db.commit()
-#     db.refresh(new_meeting)
-    
-#     # Create audit log
-#     new_data = serialize_instance(new_meeting)
-#     create_audit_log(
-#         db=db,
-#         current_user=current_user,
-#         instance=new_meeting,
-#         action="CREATE",
-#         request=request,
-#         new_data=new_data,
-#         custom_message=f"add meeting '{data.subject}'"
-#     )
-    
-#     return meeting_to_response(new_meeting)
 
 @router.post("/create", response_model=MeetingResponse, status_code=status.HTTP_201_CREATED)
 async def create_task(
@@ -364,22 +100,100 @@ def admin_get_meetings(
     current_user: User = Depends(get_current_user),
 ):
     """Get all meetings for admin users"""
-    if current_user.role.upper() not in ['CEO', 'ADMIN', 'GROUP MANAGER']:
-        raise HTTPException(status_code=403, detail="Permission denied")
-    
-    # Get all meetings created by users in the same company
-    company_users = db.query(User.id).filter(
-        User.related_to_company == current_user.related_to_company
-    ).subquery()
-    
-    meetings = (
-        db.query(Meeting)
-        .filter(Meeting.created_by.in_(company_users))
-        .order_by(Meeting.created_at.desc())
-        .all()
-    )
-    
+    if current_user.role.upper() in ["CEO", "ADMIN"]:
+        meetings = (
+            db.query(Meeting)
+            .join(User, Meeting.assigned_to == User.id)
+            .filter(User.related_to_company == current_user.related_to_company)
+            .all()
+        )
+    elif current_user.role.upper() == "GROUP MANAGER":
+        meetings = (
+            db.query(Meeting)
+            .join(User, Meeting.assigned_to == User.id)
+            .filter(User.related_to_company == current_user.related_to_company)
+            .filter(~User.role.in_(["CEO", "Admin"]))
+            .all()
+        )
+    elif current_user.role.upper() == "MANAGER":
+        subquery_user_ids = (
+            db.query(Territory.user_id)
+            .filter(Territory.manager_id == current_user.id)
+            .scalar_subquery()
+        )
+
+        meetings = (
+            db.query(Meeting)
+            .join(User, Meeting.assigned_to == User.id)
+            .filter(User.related_to_company == current_user.related_to_company)
+            .filter(
+                (User.id.in_(subquery_user_ids)) | 
+                (Meeting.assigned_to == current_user.id) | # Leads owned by manager
+                (Meeting.created_by == current_user.id)
+            ).all()
+        )
+    else:
+        meetings = (
+            db.query(Meeting)
+            .filter(
+                (Meeting.assigned_to == current_user.id) | 
+                (Meeting.created_by == current_user.id)
+            ).all()
+        )
+
     return meetings
+
+@router.get("/manager/leads/fetch-all", response_model=list[MeetingResponse])
+def admin_get_accounts(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    query = db.query(Account).join(User, Account.assigned_to == User.id)
+    
+    current_role = current_user.role.upper()
+
+    if current_role in ["CEO", "ADMIN"]:
+        return query.filter(User.related_to_company == current_user.related_to_company).all()
+
+    if current_role == "GROUP MANAGER":
+        return query.filter(
+            User.related_to_company == current_user.related_to_company,
+            ~User.role.in_(["CEO", "Admin"])
+        ).all()
+
+    # For MANAGERS and SALES:
+    # We need to find accounts linked to deals they are assigned to
+    from models.lead import Lead # Ensure Deal model is imported
+    
+    # Subquery for accounts linked via Deals
+    lead_account_ids = (
+        db.query(Lead.account_id)
+        .filter(Lead.lead_owner == current_user.id)
+        .scalar_subquery()
+    )
+
+    if current_role == "MANAGER":
+        subquery_user_ids = (
+            db.query(Territory.user_id)
+            .filter(Territory.manager_id == current_user.id)
+            .scalar_subquery()
+        )
+
+        return query.filter(
+            User.related_to_company == current_user.related_to_company
+        ).filter(
+            (User.id.in_(subquery_user_ids)) | 
+            (Lead.lead_owner == current_user.id) | 
+            (Lead.created_by == current_user.id) |
+            (Lead.id.in_(lead_account_ids)) # <--- NEW: Accounts linked to their deals
+        ).all()
+    
+    else: # SALES
+        return db.query(Lead).filter(
+            (Lead.assigned_to == current_user.id) | 
+            (Lead.created_by == current_user.id) |
+            (Lead.id.in_(lead_account_ids)) # <--- NEW: Accounts linked to their deals
+        ).all()
 
 @router.put("/{meeting_id}", response_model=MeetingResponse)
 def update_meeting(

@@ -121,6 +121,31 @@ def create_account(
     return new_account
 
 
+@router.get("/get/{account_id}", response_model=AccountResponse)
+def get_account(
+    account_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Get a single account by ID - accessible if user is in same company"""
+    account = db.query(Account).filter(Account.id == account_id).first()
+    if not account:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Account not found"
+        )
+    
+    # Check if current_user is in the same company
+    account_user = db.query(User).filter(User.id == account.assigned_to).first()
+    if account_user and account_user.related_to_company != current_user.related_to_company:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not authorized to access this account"
+        )    
+
+    return account
+
+
 @router.get("/admin/fetch-all", response_model=list[AccountResponse])
 def admin_get_accounts(
     db: Session = Depends(get_db),

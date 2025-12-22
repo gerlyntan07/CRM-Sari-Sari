@@ -173,7 +173,7 @@ export default function AdminContacts() {
 
   const fetchAccounts = useCallback(async () => {
     try {
-      const res = await api.get(`/accounts/admin/fetch-all`);
+      const res = await api.get(`/accounts/sales/contact/fetch-all`);
       const data = Array.isArray(res.data) ? res.data : [];
       const sorted = [...data].sort((a, b) =>
         (a?.name || "").localeCompare(b?.name || "")
@@ -1244,7 +1244,7 @@ export default function AdminContacts() {
               })),
             ]}
             required
-            disabled={isSubmitting || accounts.length === 0}
+            disabled={isSubmitting || accounts.length === 0 || isEditing}
           />
           {isEditing && formData.account_id ? (
             <SelectField
@@ -1274,7 +1274,7 @@ export default function AdminContacts() {
                   label: `${user.first_name} ${user.last_name} (${user.role})`,
                 })),
               ]}
-              disabled={isSubmitting || users.length === 0}
+              disabled={isSubmitting || users.length === 0 || isEditing}
             />
           )}
           {isEditing && (
@@ -1290,7 +1290,7 @@ export default function AdminContacts() {
                   label: `${user.first_name} ${user.last_name} (${user.role})`,
                 })),
               ]}
-              disabled={isSubmitting || users.length === 0}
+              disabled={isSubmitting || users.length === 0 || isEditing}
             />
           )}
           <InputField

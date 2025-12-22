@@ -8,7 +8,7 @@ import { FiCalendar } from "react-icons/fi";
 
 const ITEMS_PER_PAGE = 10;
 
-export default function SalesAudit() {
+export default function AdminAudit() {
   useEffect(() => {
     document.title = "Audit | Sari-Sari CRM";
   }, []);
@@ -214,7 +214,7 @@ export default function SalesAudit() {
             Audit Logs
           </h2>
         </div>
-               <div className="flex justify-center lg:justify-end w-full sm:w-auto">
+          <div className="flex justify-center lg:justify-end w-full sm:w-auto">
         <button
           className="flex items-center bg-black text-white px-3 sm:px-4 py-2 rounded-md hover:bg-gray-800 text-sm sm:text-base self-end sm:self-auto cursor-pointer"
           onClick={exportToExcel}

@@ -503,8 +503,6 @@ def admin_delete_contact(
     current_user: User = Depends(get_current_user),
     request: Request = None,
 ):
-    if current_user.role.upper() not in ALLOWED_ADMIN_ROLES:
-        raise HTTPException(status_code=403, detail="Permission denied")
 
     company_users = (
         select(User.id)

@@ -13,6 +13,8 @@ from models.account import Account
 from models.contact import Contact
 from .logs_utils import serialize_instance, create_audit_log
 from .ws_notification import broadcast_notification
+from sqlalchemy.orm import joinedload
+from models.territory import Territory
 
 router = APIRouter(
     prefix="/deals",
@@ -146,16 +148,46 @@ def admin_get_deals(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    if current_user.role.upper() not in ALLOWED_ADMIN_ROLES:
-        raise HTTPException(status_code=403, detail="Permission denied")
+    if current_user.role.upper() in ["CEO", "ADMIN"]:
+        deals = (
+            db.query(Deal)
+            .join(User, Deal.assigned_to == User.id)
+            .filter(User.related_to_company == current_user.related_to_company)
+            .all()
+        )
+    elif current_user.role.upper() == "GROUP MANAGER":
+        deals = (
+            db.query(Deal)
+            .join(User, Deal.assigned_to == User.id)
+            .filter(User.related_to_company == current_user.related_to_company)
+            .filter(~User.role.in_(["CEO", "Admin"]))
+            .all()
+        )
+    elif current_user.role.upper() == "MANAGER":
+        subquery_user_ids = (
+            db.query(Territory.user_id)
+            .filter(Territory.manager_id == current_user.id)
+            .scalar_subquery()
+        )
 
-    company_users = db.query(User.id).filter(
-        User.related_to_company == current_user.related_to_company
-    ).subquery()
-
-    deals = db.query(Deal).filter(
-        (Deal.created_by.in_(company_users)) | (Deal.assigned_to.in_(company_users))
-    ).all()
+        deals = (
+            db.query(Deal)
+            .join(User, Deal.assigned_to == User.id)
+            .filter(User.related_to_company == current_user.related_to_company)
+            .filter(
+                (User.id.in_(subquery_user_ids)) | 
+                (Deal.assigned_to == current_user.id) |
+                (Deal.created_by == current_user.id)
+            ).all()
+        )
+    else:
+        deals = (
+            db.query(Deal)
+            .filter(
+                (Deal.assigned_to == current_user.id) | 
+                (Deal.created_by == current_user.id)
+            ).all()
+        )
 
     return deals
 

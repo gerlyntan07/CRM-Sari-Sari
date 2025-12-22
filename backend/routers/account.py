@@ -12,6 +12,7 @@ from .auth_utils import get_current_user
 from models.auth import User
 from models.account import Account, AccountStatus
 from models.territory import Territory
+from models.contact import Contact
 from .logs_utils import serialize_instance, create_audit_log
 from .ws_notification import broadcast_notification
 
@@ -126,14 +127,14 @@ def admin_get_accounts(
     current_user: User = Depends(get_current_user),
 ):
     if current_user.role.upper() in ["CEO", "ADMIN"]:
-        contacts = (
+        accounts = (
             db.query(Account)
             .join(User, Account.assigned_to == User.id)
             .filter(User.related_to_company == current_user.related_to_company)
             .all()
         )
     elif current_user.role.upper() == "GROUP MANAGER":
-        contacts = (
+        accounts = (
             db.query(Account)
             .join(User, Account.assigned_to == User.id)
             .filter(User.related_to_company == current_user.related_to_company)
@@ -147,7 +148,7 @@ def admin_get_accounts(
             .scalar_subquery()
         )
 
-        contacts = (
+        accounts = (
             db.query(Account)
             .join(User, Account.assigned_to == User.id)
             .filter(User.related_to_company == current_user.related_to_company)
@@ -158,7 +159,7 @@ def admin_get_accounts(
             ).all()
         )
     else:
-        contacts = (
+        accounts = (
             db.query(Account)
             .filter(
                 (Account.assigned_to == current_user.id) | 
@@ -166,7 +167,111 @@ def admin_get_accounts(
             ).all()
         )
 
-    return contacts
+    return accounts
+
+@router.get("/sales/fetch-all", response_model=list[AccountResponse])
+def admin_get_accounts(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    query = db.query(Account).join(User, Account.assigned_to == User.id)
+    
+    current_role = current_user.role.upper()
+
+    if current_role in ["CEO", "ADMIN"]:
+        return query.filter(User.related_to_company == current_user.related_to_company).all()
+
+    if current_role == "GROUP MANAGER":
+        return query.filter(
+            User.related_to_company == current_user.related_to_company,
+            ~User.role.in_(["CEO", "Admin"])
+        ).all()
+
+    # For MANAGERS and SALES:
+    # We need to find accounts linked to deals they are assigned to
+    from models import Deal # Ensure Deal model is imported
+    
+    # Subquery for accounts linked via Deals
+    deal_account_ids = (
+        db.query(Deal.account_id)
+        .filter(Deal.assigned_to == current_user.id)
+        .scalar_subquery()
+    )
+
+    if current_role == "MANAGER":
+        subquery_user_ids = (
+            db.query(Territory.user_id)
+            .filter(Territory.manager_id == current_user.id)
+            .scalar_subquery()
+        )
+
+        return query.filter(
+            User.related_to_company == current_user.related_to_company
+        ).filter(
+            (User.id.in_(subquery_user_ids)) | 
+            (Account.assigned_to == current_user.id) | 
+            (Account.created_by == current_user.id) |
+            (Account.id.in_(deal_account_ids)) # <--- NEW: Accounts linked to their deals
+        ).all()
+    
+    else: # SALES
+        return db.query(Account).filter(
+            (Account.assigned_to == current_user.id) | 
+            (Account.created_by == current_user.id) |
+            (Account.id.in_(deal_account_ids)) # <--- NEW: Accounts linked to their deals
+        ).all()
+
+@router.get("/sales/contact/fetch-all", response_model=list[AccountResponse])
+def admin_get_accounts(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    query = db.query(Account).join(User, Account.assigned_to == User.id)
+    
+    current_role = current_user.role.upper()
+
+    if current_role in ["CEO", "ADMIN"]:
+        return query.filter(User.related_to_company == current_user.related_to_company).all()
+
+    if current_role == "GROUP MANAGER":
+        return query.filter(
+            User.related_to_company == current_user.related_to_company,
+            ~User.role.in_(["CEO", "Admin"])
+        ).all()
+
+    # For MANAGERS and SALES:
+    # We need to find accounts linked to deals they are assigned to
+    from models import Deal # Ensure Deal model is imported
+    
+    # Subquery for accounts linked via Deals
+    contact_account_ids = (
+        db.query(Contact.account_id)
+        .filter(Contact.assigned_to == current_user.id)
+        .scalar_subquery()
+    )
+
+    if current_role == "MANAGER":
+        subquery_user_ids = (
+            db.query(Territory.user_id)
+            .filter(Territory.manager_id == current_user.id)
+            .scalar_subquery()
+        )
+
+        return query.filter(
+            User.related_to_company == current_user.related_to_company
+        ).filter(
+            (User.id.in_(subquery_user_ids)) | 
+            (Account.assigned_to == current_user.id) | 
+            (Account.created_by == current_user.id) |
+            (Account.id.in_(contact_account_ids)) # <--- NEW: Accounts linked to their deals
+        ).all()
+    
+    else: # SALES
+        return db.query(Account).filter(
+            (Account.assigned_to == current_user.id) | 
+            (Account.created_by == current_user.id) |
+            (Account.id.in_(contact_account_ids)) # <--- NEW: Accounts linked to their deals
+        ).all()
 
 
 @router.post("/admin", response_model=AccountResponse, status_code=status.HTTP_201_CREATED)
@@ -266,8 +371,6 @@ def admin_update_account(
     current_user: User = Depends(get_current_user),
     request: Request = None
 ):
-    if current_user.role.upper() not in ALLOWED_ADMIN_ROLES:
-        raise HTTPException(status_code=403, detail="Permission denied")
 
     company_users = (
         select(User.id)

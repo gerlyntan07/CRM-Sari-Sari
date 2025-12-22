@@ -85,6 +85,6 @@ class Quote(Base):
             next_number = 1
 
         # Format: D25-3-00001
-        self.quote_id = f"D{year}-{company_id}-{next_number:05d}"
+        self.quote_id = f"Q{year}-{company_id}-{next_number:05d}"
 
         return self.quote_id

@@ -63,7 +63,7 @@ def get_audit_logs(
             db.query(Auditlog)
             .filter(Auditlog.user_id == current_user.id)
             .all()
-        )
+        )    
 
     return logs
 

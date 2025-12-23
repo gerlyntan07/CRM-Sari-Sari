@@ -1,17 +1,22 @@
 import { useEffect, useState } from "react";
 import { NavLink, Outlet } from "react-router-dom";
 import {
-  FiHome,
+   FiHome,
   FiUsers,
   FiUser,
   FiUserPlus,
   FiBriefcase,
   FiFileText,
   FiTarget,
-  FiBarChart2,
+  FiChevronDown,
+  FiCheckSquare,
+  FiCalendar,
+  FiPhoneCall,
+  FiClipboard,
+  FiSettings,
+  FiShield,
   FiGrid,
   FiX,
-  FiClipboard,
 } from "react-icons/fi";
 import SalesHeader from "./SalesHeader"; 
 import useFetchUser from "../hooks/useFetchUser";
@@ -19,6 +24,7 @@ import useFetchUser from "../hooks/useFetchUser";
 export default function SalesPanel() {
   const { fetchUser } = useFetchUser();
   const [sidebarOpen, setSidebarOpen] = useState(false); // ✅ Sidebar toggle state
+  const [activityOpen, setActivityOpen] = useState(false);
 
   useEffect(() => {
     fetchUser();
@@ -28,6 +34,7 @@ export default function SalesPanel() {
     "flex items-center gap-3 px-3 py-2 rounded-lg bg-white text-[#1e293b] font-semibold shadow-sm";
   const normalLink =
     "flex items-center gap-3 px-3 py-2 rounded-lg text-gray-300 hover:bg-[#334155] hover:text-white transition";
+
 
   return (
     <div className="flex h-screen bg-gray-100 overflow-hidden">
@@ -49,7 +56,7 @@ export default function SalesPanel() {
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 overflow-y-auto p-4 space-y-2">
+        <nav className="flex-1 overflow-y-auto p-4 space-y-2 hide-scrollbar">
           <NavLink
             to="/sales/overview"
             className={({ isActive }) => (isActive ? activeLink : normalLink)}
@@ -114,12 +121,50 @@ export default function SalesPanel() {
             <span>Targets</span>
           </NavLink>
 
-          <NavLink
-               to="/sales/audit"
+            {/* Activity Dropdown */}
+                    <div>
+                      <button
+                        className="w-full px-3 py-2 flex justify-between items-center text-sm font-medium text-gray-300 hover:bg-[#334155] rounded-lg transition"
+                        onClick={() => setActivityOpen(!activityOpen)}
+                      >
+                        <span className="flex items-center gap-2">
+                          <FiClipboard className="text-lg" />
+                          Activity
+                        </span>
+                        <FiChevronDown
+                          className={`transition-transform ${activityOpen ? "rotate-180" : ""}`}
+                        />
+                      </button>
+          
+                      {activityOpen && (
+                        <div className="ml-6 mt-2 space-y-1">
+                          <NavLink
+                            to="/sales/tasks"
+                            className={({ isActive }) => (isActive ? activeLink : normalLink)}
+                          >
+                            <FiCheckSquare /> Tasks
+                          </NavLink>
+                          <NavLink
+                            to="/sales/meetings"
+                            className={({ isActive }) => (isActive ? activeLink : normalLink)}
+                          >
+                            <FiCalendar /> Meetings
+                          </NavLink>
+                          <NavLink
+                            to="/sales/calls"
+                            className={({ isActive }) => (isActive ? activeLink : normalLink)}
+                          >
+                            <FiPhoneCall /> Calls
+                          </NavLink>
+                          <NavLink
+                            to="/sales/audit"
               className={({ isActive }) => (isActive ? activeLink : normalLink)}
-                  >
-            <FiClipboard /> Audit
-            </NavLink>
+                          >
+                            <FiClipboard /> Audit
+                          </NavLink>
+                        </div>
+                      )}
+                    </div>
 
         
           <NavLink
@@ -152,7 +197,7 @@ export default function SalesPanel() {
 
         {/* Page Content */}
         <main
-          className="flex-1 p-6 overflow-auto"
+          className="flex-1 p-6 overflow-auto hide-scrollbar"
           style={{ backgroundColor: "#fffeee" }}
         >
           <Outlet />

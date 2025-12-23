@@ -65,7 +65,7 @@ export default function ManagerPanel() {
         </div>
 
         {/* Nav */}
-        <nav className="flex-1 overflow-y-auto p-4 space-y-2">
+        <nav className="flex-1 overflow-y-auto p-4 space-y-2 hide-scrollbar">
           {/* Dashboard */}
           <NavLink
             to="/manager/dashboard"
@@ -229,7 +229,7 @@ export default function ManagerPanel() {
       <div className="flex-1 flex flex-col lg:ml-64 overflow-hidden">
         <ManagerHeader toggleSidebar={() => setSidebarOpen(!sidebarOpen)} />
         <main
-          className="flex-1 p-6 overflow-auto"
+          className="flex-1 p-6 overflow-auto hide-scrollbar"
           style={{ backgroundColor: "#fffeee" }}
         >
           <Outlet />

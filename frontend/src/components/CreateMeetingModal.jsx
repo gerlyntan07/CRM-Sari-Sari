@@ -44,11 +44,7 @@ const CreateMeetingModal = ({
 
         let res;
         if (formData.relatedType1 === 'Lead') {
-          if(userRole === 'Manager') {
-            res = await api.get(`/leads/manager/leads/getLeads`);
-          } else{
-            res = await api.get(`/leads/admin/getLeads`);
-          }
+            res = await api.get(`/leads/admin/getLeads`);          
         } else if (formData.relatedType1 === 'Account') {
           res = await api.get(`/accounts/admin/fetch-all`);
         }

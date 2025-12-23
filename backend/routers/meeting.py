@@ -143,7 +143,7 @@ def admin_get_meetings(
 
     return meetings
 
-@router.get("/manager/leads/fetch-all", response_model=list[MeetingResponse])
+@router.get("/manager/leads/getLeads", response_model=list[MeetingResponse])
 def admin_get_accounts(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
@@ -167,7 +167,7 @@ def admin_get_accounts(
     
     # Subquery for accounts linked via Deals
     lead_account_ids = (
-        db.query(Lead.account_id)
+        db.query(Lead.id)
         .filter(Lead.lead_owner == current_user.id)
         .scalar_subquery()
     )

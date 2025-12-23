@@ -16,9 +16,9 @@ const AdminMeetingInfomation = ({ meeting, onClose, onEdit, onDelete, onStatusUp
   };
   const toBackendStatus = (adminStatus) => {
     const s = (adminStatus || "").toUpperCase();
-    if (s === "PLANNED") return "PENDING";
-    if (s === "HELD") return "COMPLETED";
-    if (s === "NOT HELD") return "CANCELLED";
+    if (s === "PLANNED") return "PLANNED";
+    if (s === "HELD") return "HELD";
+    if (s === "NOT HELD" || s === "NOT_HELD") return "NOT HELD";
     return "PENDING";
   };
   const [selectedStatus, setSelectedStatus] = useState(toAdminStatus(meeting?.status || "PENDING"));

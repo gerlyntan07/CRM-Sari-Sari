@@ -268,12 +268,21 @@ const AdminMeeting = () => {
        }
     }
 
+    // Convert status to match select options (title case)
+    const statusMapping = {
+      "PLANNED": "Planned",
+      "HELD": "Held",
+      "NOT_HELD": "Not held"
+    };
+    const adminStatus = toAdminStatus(meeting.status);
+    const displayStatus = statusMapping[adminStatus] || "Planned";
+
     setFormData({
       subject: meeting.subject || meeting.activity || "",
       location: meeting.location || "",
       startTime: toLocalInput(meeting.start_time || meeting.startTime),
       endTime: toLocalInput(meeting.end_time || meeting.endTime),
-      status: toAdminStatus(meeting.status),
+      status: displayStatus,
       notes: meeting.description || meeting.notes || "",
       assignedTo: assignedToId,
       relatedType1,

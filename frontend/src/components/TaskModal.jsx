@@ -4,6 +4,7 @@ import { Fragment, useState, useEffect, useRef } from "react";
 import api from "../api";
 import { useMemo } from "react";
 import { HiX } from "react-icons/hi";
+import { FiTrash2 } from "react-icons/fi";
 
 export default function TaskModal({
   isOpen,
@@ -15,6 +16,7 @@ export default function TaskModal({
   isEditing = false,
   viewMode = false,
   users = [],
+  onDelete
 }) {
   // Local state for the dropdown options
   const [relatedTo1Values, setRelatedTo1Values] = useState([]);
@@ -61,11 +63,34 @@ export default function TaskModal({
           res = await api.get(`/accounts/admin/fetch-all`);
         }
 
+        let items = [];
         if (res && Array.isArray(res.data)) {
-          setRelatedTo1Values(res.data);
-        } else {
-          setRelatedTo1Values([]);
+          items = res.data;
         }
+
+        // If in edit mode and have a selected value, fetch that specific item
+        if (isEditing && formData.relatedTo1) {
+          try {
+            let specificRes;
+            if (formData.relatedType1 === "Lead") {
+              specificRes = await api.get(`/leads/get/${formData.relatedTo1}`);
+            } else if (formData.relatedType1 === "Account") {
+              specificRes = await api.get(`/accounts/get/${formData.relatedTo1}`);
+            }
+
+            if (specificRes && specificRes.data) {
+              // Check if item already exists in list (by id)
+              const exists = items.some(item => String(item.id) === String(formData.relatedTo1));
+              if (!exists) {
+                items = [specificRes.data, ...items];
+              }
+            }
+          } catch (err) {
+            console.error("Error fetching specific related item:", err);
+          }
+        }
+
+        setRelatedTo1Values(items);
       } catch (error) {
         console.error("Error fetching related 1 data:", error);
         setRelatedTo1Values([]);
@@ -73,11 +98,12 @@ export default function TaskModal({
     };
 
     fetchRelated1();
-  }, [formData.relatedType1, isOpen]);
+  }, [formData.relatedType1, isOpen, isEditing, formData.relatedTo1]);
 
   // --- Effect 2: Fetch Level 2 Options (Contacts or Deals) when Account is selected ---
   useEffect(() => {
     if (!isOpen) return;
+    if (viewMode) return;
 
     const fetchRelated2 = async () => {
       try {
@@ -92,11 +118,34 @@ export default function TaskModal({
             res = await api.get(`/deals/from-acc/${formData.relatedTo1}`);
           }
 
+          let items = [];
           if (res && Array.isArray(res.data)) {
-            setRelatedTo2Values(res.data);
-          } else {
-            setRelatedTo2Values([]);
+            items = res.data;
           }
+
+          // If in edit mode and have a selected value, fetch that specific item
+          if (isEditing && formData.relatedTo2) {
+            try {
+              let specificRes;
+              if (formData.relatedType2 === "Contact") {
+                specificRes = await api.get(`/contacts/get/${formData.relatedTo2}`);
+              } else if (formData.relatedType2 === "Deal") {
+                specificRes = await api.get(`/deals/get/${formData.relatedTo2}`);
+              }
+
+              if (specificRes && specificRes.data) {
+                // Check if item already exists in list (by id)
+                const exists = items.some(item => String(item.id) === String(formData.relatedTo2));
+                if (!exists) {
+                  items = [specificRes.data, ...items];
+                }
+              }
+            } catch (err) {
+              console.error("Error fetching specific related item:", err);
+            }
+          }
+
+          setRelatedTo2Values(items);
         }
       } catch (error) {
         console.error("Error fetching related 2 data:", error);
@@ -109,7 +158,10 @@ export default function TaskModal({
     formData.relatedType1,
     formData.relatedTo1,
     formData.relatedType2,
+    formData.relatedTo2,
     isOpen,
+    viewMode,
+    isEditing,
   ]);
 
   const handleSubmit = (e) => {
@@ -205,13 +257,13 @@ export default function TaskModal({
             >
               Edit
             </button>
-            {/* <button
+            <button
               className="inline-flex items-center justify-center w-full sm:w-auto px-4 py-2 rounded-md text-sm bg-red-500 text-white hover:bg-red-600 transition focus:outline-none focus:ring-2 focus:ring-red-400 cursor-pointer"
-              onClick={onDelete} // <-- call your delete function here
+              onClick={() => onDelete(formData)} // <-- call your delete function here
             >
-              <FiTrash2 className="mr-2" /> {/* Trash icon
+              <FiTrash2 className="mr-2" />
               Delete
-            </button>*/} 
+            </button>
           </div>
         </div>
       </div>
@@ -231,6 +283,18 @@ export default function TaskModal({
               <p className="font-semibold">Title:</p>
               <p>{formData.subject || "—"}</p>
             </div>
+            {formData.relatedType1Text && formData.relatedTo1Text && (
+              <div>
+                <p className="font-semibold">{formData.relatedType1Text}:</p>
+                <p>{formData.relatedTo1Text}</p>
+              </div>
+            )}
+            {formData.relatedType2Text && formData.relatedTo2Text && (
+              <div>
+                <p className="font-semibold">{formData.relatedType2}:</p>
+                <p>{formData.relatedTo2Text}</p>
+              </div>
+            )}
             <div>
               <p className="font-semibold">Priority:</p>
               <p>{formData.priority || "—"}</p>
@@ -287,9 +351,9 @@ export default function TaskModal({
                         name="relatedType1"
                         onChange={handleChange}
                         value={formData.relatedType1}
-                        disabled={viewMode}
-                        className={`w-23 rounded-md text-sm focus:ring-2 focus:ring-blue-400 outline-none mb-2 ${
-                          viewMode ? "bg-gray-50" : ""
+                        disabled={viewMode || isEditing}
+                        className={`w-23 rounded-md text-sm focus:ring-2 focus:ring-blue-400 outline-none mb-2 disabled:text-gray-400 ${
+                          viewMode || isEditing ? "cursor-not-allowed" : ""
                         }`}
                       >
                         <option value="Lead">Lead</option>
@@ -297,6 +361,7 @@ export default function TaskModal({
                       </select>
 
                       <SearchableSelect
+                        disabled={isEditing}
                         items={
                           Array.isArray(relatedTo1Values)
                             ? relatedTo1Values
@@ -325,15 +390,15 @@ export default function TaskModal({
                         name="relatedType2"
                         onChange={handleChange}
                         value={formData.relatedType2 ?? "Contact"}
-                        className={`w-23 rounded-md text-sm focus:ring-2 focus:ring-blue-400 outline-none mb-2 disabled:text-gray-400 disabled:bg-gray-100 disabled:cursor-not-allowed`}
-                        disabled={viewMode || formData.relatedType1 === "Lead"}
+                        className={`w-23 rounded-md text-sm focus:ring-2 focus:ring-blue-400 outline-none mb-2 disabled:text-gray-400 disabled:cursor-not-allowed`}
+                        disabled={viewMode || formData.relatedType1 === "Lead" || isEditing}
                       >
                         <option value="Contact">Contact</option>
                         <option value="Deal">Deal</option>
                       </select>
 
                       <SearchableSelect
-                        disabled={formData.relatedType1 === "Lead"}
+                        disabled={formData.relatedType1 === "Lead" || isEditing}
                         items={
                           Array.isArray(relatedTo2Values)
                             ? relatedTo2Values

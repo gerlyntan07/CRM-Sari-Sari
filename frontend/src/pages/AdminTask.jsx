@@ -83,9 +83,6 @@ const buildTaskPayload = (data) => {
   // Default to "Not started" if the map lookup fails
   const cleanStatus = STATUS_MAP[rawStatus] || "Not started";
 
-  // --- DEBUGGING: CHECK CONSOLE IF THIS PRINTS "Normal" ---
-  console.log(`[Payload Builder] Raw: ${rawPriority} -> Clean: ${cleanPriority}`);
-
   // Initialize specific foreign keys
   let lead_id = null;
   let account_id = null;
@@ -155,6 +152,12 @@ const mapBackendTaskToFrontend = (task) => {
   const dueDate = task.due_date || task.dueDate || null;
   const dateAssigned = task.date_assigned || task.created_at || null;
 
+  const assignedToContact = task.contact
+    ? `${task.contact.first_name} ${task.contact.last_name}`
+    : task.assigned_to
+    ? String(task.assigned_to.id)
+    : "Unassigned";
+
   // --- FIX START: ROBUST ID EXTRACTION ---
   // Helper to get ID from either nested object or flat field
   const getLeadId = () => task.lead?.id || task.lead_id;
@@ -162,32 +165,54 @@ const mapBackendTaskToFrontend = (task) => {
   const getContactId = () => task.contact?.id || task.contact_id;
   const getDealId = () => task.deal?.id || task.deal_id;
   const getAssignedToId = () => task.task_assign_to?.id || task.assigned_to;
+
+  const getLeadName = () => task.lead?.title || task.lead_id;
+  const getAccountName = () => task.account?.name || task.account_id;
+  const getContactName = () => assignedToContact || task.contact_id;
+  const getDealName = () => task.deal?.name || task.deal_id;
   // --- FIX END ---
 
   // Reverse Map for Edit Form: Attempt to detect relationship
   let relatedType1 = "Lead";
   let relatedTo1 = "";
-  let relatedType2 = "Contact";
+  let relatedType2 = "";
   let relatedTo2 = "";
 
+  let relatedType1Text = "Lead";
+  let relatedTo1Text = "";
+  let relatedType2Text = "";
+  let relatedTo2Text = "";
+
   const activeAccountId = getAccountId();
+  const activeAccountName = getAccountName();
   const activeLeadId = getLeadId();
+  const activeLeadName = getLeadName();
 
   if (activeAccountId) {
     relatedType1 = "Account";
+    relatedType1Text = "Account";
+    relatedTo1Text = activeAccountName;
     relatedTo1 = String(activeAccountId);
 
     const activeContactId = getContactId();
     const activeDealId = getDealId();
+    const activeContactName = getContactName();
+    const activeDealName = getDealName();
 
     if (activeContactId) {
       relatedType2 = "Contact";
+      relatedType2Text = "Contact";
+      relatedTo2Text = activeContactName;
       relatedTo2 = String(activeContactId);
     } else if (activeDealId) {
+      relatedType2Text = "Deal";
       relatedType2 = "Deal";
+      relatedTo2Text = activeDealName;
       relatedTo2 = String(activeDealId);
     }
   } else if (activeLeadId) {
+    relatedType1Text = "Lead";
+    relatedTo1Text = activeLeadName;
     relatedType1 = "Lead";
     relatedTo1 = String(activeLeadId);
   } else if (task.related_type === "Account") {
@@ -213,6 +238,11 @@ const mapBackendTaskToFrontend = (task) => {
     createdBy: createdByName,
     notes: task.notes || "",
     isPersonal: Boolean(task.is_personal),
+
+    relatedType1Text,
+    relatedTo1Text,
+    relatedType2Text,
+    relatedTo2Text,
 
     // Mapped for Edit Form
     subject: task.title,
@@ -247,6 +277,7 @@ export default function AdminTask() {
   const location = useLocation();
 
   const [formData, setFormData] = useState({
+    id: "",
     subject: "",
     description: "",
     priority: "",
@@ -293,7 +324,6 @@ export default function AdminTask() {
     try {
       setLoading(true);
       const res = await api.get("/tasks/all");      
-      console.log(res.data);
       const rawTasks = Array.isArray(res.data) ? res.data : [];
       const formattedTasks = rawTasks.map(mapBackendTaskToFrontend);
 
@@ -302,6 +332,8 @@ export default function AdminTask() {
         const bDate = b.createdAt ? new Date(b.createdAt) : 0;
         return bDate - aDate; 
       });
+
+      console.log("Fetched Tasks:", formattedTasks);
       
       setTasks(formattedTasks);
       if (view === "list") setCurrentPage(1);
@@ -323,6 +355,7 @@ export default function AdminTask() {
   const resetForm = () => {
     setSelectedTask(null);
     setFormData({
+        id: "",
         subject: "",
         description: "",
         priority: "Normal",
@@ -342,8 +375,8 @@ export default function AdminTask() {
     setViewMode(isViewOnly);
     
     if (task) {
-      console.log(task)
       setFormData({
+        id: task.id,
         subject: task.title || "",
         description: task.description || "",
         priority: task.priority || "Normal",
@@ -351,6 +384,11 @@ export default function AdminTask() {
         dueDate: toDateTimeInputValue(task.dueDate),
         assignedTo: task.assignedToId ? String(task.assignedToId) : "",
         notes: task.notes || "",
+        
+        relatedType1Text: task.relatedType1Text || "",
+        relatedTo1Text: task.relatedTo1Text || "",
+        relatedType2Text: task.relatedType2Text || "",
+        relatedTo2Text: task.relatedTo2Text || "",
         // Populate from the mapping function
         relatedType1: task.relatedType1 || "",
         relatedTo1: task.relatedTo1 || "",
@@ -372,7 +410,6 @@ export default function AdminTask() {
 
   const handleSaveTask = async (newTaskData) => { 
       const requestPayload = buildTaskPayload(newTaskData);
-      console.log("Saving Task Payload:", requestPayload); // Debuging
       
       try {
           if (selectedTask && !viewMode) {
@@ -394,6 +431,7 @@ export default function AdminTask() {
 
   const handleDeleteTask = (task) => {
     if (!task) return;
+
     setConfirmModalData({
       title: "Delete Task",
       message: (
@@ -714,7 +752,9 @@ export default function AdminTask() {
                   <tr
                     key={task.id}
                     className="hover:bg-gray-50 transition-colors text-sm cursor-pointer"
-                    onClick={() => handleOpenModal(task, true)}
+                    onClick={() => {
+                      console.log("Opening task in view mode:", task);
+                      handleOpenModal(task, true)}}
                   >
                     <td className="py-3 px-4 text-gray-700 whitespace-nowrap font-medium">{task.title}</td>
                     <td className="py-3 px-4 whitespace-nowrap">
@@ -765,6 +805,7 @@ export default function AdminTask() {
         viewMode={viewMode}
         users={users}
         currentUser={currentUser}
+        onDelete={handleDeleteTask}
       />
 
       {confirmModalData && (

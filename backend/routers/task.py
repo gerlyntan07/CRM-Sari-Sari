@@ -14,6 +14,7 @@ from models.contact import Contact
 from models.lead import Lead
 from .logs_utils import serialize_instance, create_audit_log
 from models.deal import Deal
+from models.territory import Territory
 
 router = APIRouter(prefix="/tasks", tags=["Tasks"])
 
@@ -151,15 +152,48 @@ async def create_task(
 # -----------------------------------------
 @router.get("/all", response_model=List[TaskFetch])
 def get_all_tasks(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    company_users = (
-        db.query(User.id)
-        .filter(User.related_to_company == current_user.related_to_company)
-    )
+    """Get all meetings for admin users"""
+    if current_user.role.upper() in ["CEO", "ADMIN"]:
+        tasks = (
+            db.query(Task)
+            .join(User, Task.assigned_to == User.id)
+            .filter(User.related_to_company == current_user.related_to_company)
+            .all()
+        )
+    elif current_user.role.upper() == "GROUP MANAGER":
+        tasks = (
+            db.query(Task)
+            .join(User, Task.assigned_to == User.id)
+            .filter(User.related_to_company == current_user.related_to_company)
+            .filter(~User.role.in_(["CEO", "Admin"]))
+            .all()
+        )
+    elif current_user.role.upper() == "MANAGER":
+        subquery_user_ids = (
+            db.query(Territory.user_id)
+            .filter(Territory.manager_id == current_user.id)
+            .scalar_subquery()
+        )
 
-    if current_user.role in ['CEO', 'Admin', 'Group Manager']:
-        tasks = db.query(Task).filter(or_(Task.created_by.in_(company_users),Task.assigned_to.in_(company_users))).all()
-    elif current_user.role in ['Manager', 'Sales']:
-        tasks = db.query(Task).filter(or_(Task.created_by == current_user.id,Task.assigned_to == current_user.id)).all()
+        tasks = (
+            db.query(Task)
+            .join(User, Task.assigned_to == User.id)
+            .filter(User.related_to_company == current_user.related_to_company)
+            .filter(
+                (User.id.in_(subquery_user_ids)) | 
+                (Task.assigned_to == current_user.id) | # Leads owned by manager
+                (Task.created_by == current_user.id)
+            ).all()
+        )
+    else:
+        tasks = (
+            db.query(Task)
+            .filter(
+                (Task.assigned_to == current_user.id) | 
+                (Task.created_by == current_user.id)
+            ).all()
+        )
+
     return tasks
 
 

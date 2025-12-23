@@ -72,6 +72,11 @@ def create_account(
     current_user: User = Depends(get_current_user),
     request: Request = None
 ):
+    if current_user.role.upper() == "SALES":
+        assigned_to = current_user.id
+    else:
+        assigned_to = data.assigned_to
+
     new_account = Account(
         name=data.name,
         website=data.website,
@@ -81,7 +86,7 @@ def create_account(
         industry=data.industry,
         status=normalize_account_status(data.status),
         territory_id=data.territory_id,
-        assigned_to=data.assigned_to,
+        assigned_to=assigned_to,
         created_by=data.created_by
     )
 
@@ -321,6 +326,11 @@ def admin_create_account(
         ).first()
         if not assigned_user:
             raise HTTPException(status_code=404, detail="Assigned user not found in your company.")
+    
+    if current_user.role.upper() == "SALES":
+        assigned_to = current_user.id
+    else:
+        assigned_to = data.assigned_to
 
     if data.territory_id:
         territory = db.query(Territory).filter(
@@ -344,7 +354,7 @@ def admin_create_account(
         industry=data.industry,
         status=normalize_account_status(data.status),
         territory_id=data.territory_id,
-        assigned_to=data.assigned_to,
+        assigned_to=assigned_to,
         created_by=created_by_user_id
     )
 

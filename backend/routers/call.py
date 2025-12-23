@@ -14,6 +14,7 @@ from models.deal import Deal
 from schemas.call import CallCreate, CallResponse, CallUpdate
 from .auth_utils import get_current_user
 from .logs_utils import serialize_instance, create_audit_log
+from models.territory import Territory
 
 router = APIRouter(
     prefix="/calls",
@@ -100,22 +101,48 @@ def admin_get_calls(
     current_user: User = Depends(get_current_user),
 ):
     """Get all calls for admin users"""
-    if current_user.role.upper() not in ['CEO', 'ADMIN', 'GROUP MANAGER', 'MANAGER', 'SALES']:
-        raise HTTPException(status_code=403, detail="Permission denied")
-    
-    # Get all calls created by users in the same company
-    company_users = db.query(User.id).filter(
-        User.related_to_company == current_user.related_to_company
-    ).subquery()
-    
-    calls = (
-        db.query(Call)        
-        .filter(Call.created_by.in_(company_users))
-        .order_by(Call.created_at.desc())
-        .all()
-    )
-    
-    return calls
+    if current_user.role.upper() in ["CEO", "ADMIN"]:
+        call = (
+            db.query(Call)
+            .join(User, Call.assigned_to == User.id)
+            .filter(User.related_to_company == current_user.related_to_company)
+            .all()
+        )
+    elif current_user.role.upper() == "GROUP MANAGER":
+        call = (
+            db.query(Call)
+            .join(User, Call.assigned_to == User.id)
+            .filter(User.related_to_company == current_user.related_to_company)
+            .filter(~User.role.in_(["CEO", "Admin"]))
+            .all()
+        )
+    elif current_user.role.upper() == "MANAGER":
+        subquery_user_ids = (
+            db.query(Territory.user_id)
+            .filter(Territory.manager_id == current_user.id)
+            .scalar_subquery()
+        )
+
+        call = (
+            db.query(Call)
+            .join(User, Call.assigned_to == User.id)
+            .filter(User.related_to_company == current_user.related_to_company)
+            .filter(
+                (User.id.in_(subquery_user_ids)) | 
+                (Call.assigned_to == current_user.id) | # Calls assigned to manager
+                (Call.created_by == current_user.id)
+            ).all()
+        )
+    else:
+        call = (
+            db.query(Call)
+            .filter(
+                (Call.assigned_to == current_user.id) | 
+                (Call.created_by == current_user.id)
+            ).all()
+        )
+
+    return call
 
 
 @router.put("/{call_id}", response_model=CallResponse)

@@ -1,3 +1,4 @@
+// frontend/src/pages/AdminCalls.jsx
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   FiSearch,
@@ -261,8 +262,33 @@ export default function AdminCalls() {
           res = await api.get(`/accounts/admin/fetch-all`);
         }
 
-        if (res && Array.isArray(res.data)) setRelatedTo1Values(res.data);
-        else setRelatedTo1Values([]);
+        let items = [];
+        if (res && Array.isArray(res.data)) items = res.data;
+        else items = [];
+
+        // If in edit mode and have a selected value, fetch that specific item
+        if (isEditing && formData.relatedTo1) {
+          try {
+            let specificRes;
+            if (formData.relatedType1 === "Lead") {
+              specificRes = await api.get(`/leads/get/${formData.relatedTo1}`);
+            } else if (formData.relatedType1 === "Account") {
+              specificRes = await api.get(`/accounts/get/${formData.relatedTo1}`);
+            }
+
+            if (specificRes && specificRes.data) {
+              // Check if item already exists in list (by id)
+              const exists = items.some(item => String(item.id) === String(formData.relatedTo1));
+              if (!exists) {
+                items = [specificRes.data, ...items];
+              }
+            }
+          } catch (err) {
+            console.error("Error fetching specific related item:", err);
+          }
+        }
+
+        setRelatedTo1Values(items);
       } catch (error) {
         console.error("Error fetching data:", error);
         setRelatedTo1Values([]);
@@ -270,7 +296,7 @@ export default function AdminCalls() {
     };
 
     if (formData.relatedType1) fetchData();
-  }, [formData.relatedType1]);
+  }, [formData.relatedType1, isEditing, formData.relatedTo1]);
 
   // Fetch RelatedTo2 options (Contact / Deal from Account)
   useEffect(() => {
@@ -737,7 +763,8 @@ export default function AdminCalls() {
               name="relatedType1"
               onChange={handleInputChange}
               value={formData.relatedType1}
-              className="outline-none cursor-pointer mb-1 w-22 text-gray-700"
+              className="outline-none cursor-pointer mb-1 w-22 text-gray-700 disabled:text-gray-400 disabled:cursor-not-allowed"
+              disabled={isSubmitting || isEditing}
             >
               <option value="Lead">Lead</option>
               <option value="Account">Account</option>
@@ -759,6 +786,7 @@ export default function AdminCalls() {
                   relatedTo1: newId, // keep string
                 }))
               }
+              disabled={isSubmitting || isEditing}
             />            
           </div>
 
@@ -769,14 +797,14 @@ export default function AdminCalls() {
               onChange={handleInputChange}
               value={formData.relatedType2 ?? "Contact"}
               className="text-gray-700 outline-none cursor-pointer mb-1 w-22 disabled:text-gray-400 disabled:cursor-not-allowed"
-              disabled={formData.relatedType1 === "Lead"}
+              disabled={formData.relatedType1 === "Lead" || isSubmitting || isEditing}
             >
               <option value="Contact">Contact</option>
               <option value="Deal">Deal</option>
             </select>
 
             <SearchableSelect
-              disabled={formData.relatedType1 === "Lead"}
+              disabled={formData.relatedType1 === "Lead" || isSubmitting || isEditing}
               items={Array.isArray(relatedTo2Values) ? relatedTo2Values : []}
               value={formData.relatedTo2 ?? ""}
               placeholder={

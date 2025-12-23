@@ -68,23 +68,23 @@ class Quote(Base):
 
         company_id = creator.related_to_company
 
-        # Get last deal for this company
+        # Get last quote for this company
         last_quote = (
             db.query(Quote)
             .join(User, Quote.created_by == User.id)
             .filter(User.related_to_company == company_id)
-            .filter(Quote.quote_id.like(f"D{year}-{company_id}-%"))
+            .filter(Quote.quote_id.like(f"Q{year}-{company_id}-%"))
             .order_by(Quote.quote_id.desc())
             .first()
         )
 
-        if last_quote and last_quote.deal_id:
+        if last_quote:
             last_number = int(last_quote.quote_id.split("-")[-1])
             next_number = last_number + 1
         else:
             next_number = 1
 
-        # Format: D25-3-00001
+        # Format: Q25-1-00001
         self.quote_id = f"Q{year}-{company_id}-{next_number:05d}"
 
         return self.quote_id

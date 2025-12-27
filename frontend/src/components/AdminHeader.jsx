@@ -29,7 +29,7 @@ export default function AdminHeader({ toggleSidebar }) {
 
   useEffect(() => {
     fetchUser();
-  }, []);
+  }, [fetchUser]);
 
   // Listen for profile update events to refresh user data
   useEffect(() => {

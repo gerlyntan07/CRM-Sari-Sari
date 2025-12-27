@@ -14,11 +14,8 @@ const getUserInitials = (firstName, lastName) => {
 
 export default function AdminManageAccount() {
   const { user: currentUser, loading: userLoading, fetchUser } = useFetchUser();
-  const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
-  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [changingPassword, setChangingPassword] = useState(false);
@@ -94,15 +91,6 @@ export default function AdminManageAccount() {
       setProfilePicturePreview(reader.result); // Show the new picture
     };
     reader.readAsDataURL(file);
-  };
-
-  const handleRemoveProfilePicture = () => {
-    // Remove the uploaded picture and go back to original
-    setProfilePicture(null);
-    setProfilePicturePreview(currentUser?.profile_picture || null);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
   };
 
   const handleSaveProfile = async (e) => {
@@ -268,7 +256,8 @@ export default function AdminManageAccount() {
             </div>
             <div className="flex-1">
               <h3 className="text-lg font-semibold text-gray-800">
-                {currentUser.first_name} {currentUser.last_name}
+                {isEditing ? formData.firstName : currentUser.first_name}{" "}
+                {isEditing ? formData.lastName : currentUser.last_name}
               </h3>
               <p className="text-gray-600 text-sm">{currentUser.email}</p>
               <span className="inline-block mt-2 px-3 py-1 bg-blue-100 text-blue-700 text-xs font-semibold rounded-md">

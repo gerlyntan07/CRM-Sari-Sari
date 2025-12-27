@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from typing import List
 from database import get_db
 from schemas.auth import UserCreate, UserUpdate, UserResponse, UserMeUpdate
-from .auth_utils import get_current_user, hash_password,get_default_avatar
+from .auth_utils import get_current_user, hash_password, get_default_avatar, DEFAULT_AVATAR_BASE
 from models.auth import User
 from .logs_utils import serialize_instance, create_audit_log
 from .aws_ses_utils import send_welcome_email
@@ -335,6 +335,18 @@ def update_current_user(
         raise HTTPException(status_code=404, detail="User not found")
     
     old_data = serialize_instance(user)
+    old_profile_picture = user.profile_picture
+    old_first_name = (user.first_name or "").strip()
+
+    def _is_default_avatar_url(url: str | None) -> bool:
+        if not url:
+            return False
+        if not url.startswith(f"{DEFAULT_AVATAR_BASE}/"):
+            return False
+        filename = url.rsplit("/", 1)[-1].lower()
+        if filename == "default.png":
+            return True
+        return len(filename) == 5 and filename[1:] == ".png" and filename[0].isalpha()
     
     # Update first_name if provided
     if user_data.first_name is not None:
@@ -359,6 +371,17 @@ def update_current_user(
     # Ensure profile picture exists (set default if not)
     if not user.profile_picture:
         user.profile_picture = get_default_avatar(user.first_name)
+    else:
+        new_first_name = (user.first_name or "").strip()
+        first_name_changed = (
+            user_data.first_name is not None and new_first_name != old_first_name
+        )
+        if (
+            first_name_changed
+            and user_data.profile_picture is None
+            and _is_default_avatar_url(old_profile_picture)
+        ):
+            user.profile_picture = get_default_avatar(user.first_name)
     
     db.commit()
     db.refresh(user)

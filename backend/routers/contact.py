@@ -332,12 +332,6 @@ def admin_update_contact(
     current_user: User = Depends(get_current_user),
     request: Request = None,
 ):
-    # if current_user.role.upper() not in ALLOWED_ADMIN_ROLES:
-    #     raise HTTPException(status_code=403, detail="Permission denied")
-    
-    if (current_user.id != data.assigned_to | current_user.id != data.created_by):
-        raise HTTPException(status_code=403, detail="Permission denied")
-
     company_users = (
         select(User.id)
         .where(User.related_to_company == current_user.related_to_company)
@@ -358,6 +352,11 @@ def admin_update_contact(
 
     if not contact:
         raise HTTPException(status_code=404, detail="Contact not found.")
+
+    current_role = (current_user.role or "").upper()
+    if current_role not in ALLOWED_ADMIN_ROLES:
+        if contact.assigned_to != current_user.id and contact.created_by != current_user.id:
+            raise HTTPException(status_code=403, detail="Permission denied")
 
     update_data = data.model_dump(exclude_unset=True)
 

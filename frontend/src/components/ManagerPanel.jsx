@@ -25,11 +25,11 @@ export default function ManagerPanel() {
   const [userMgmtOpen, setUserMgmtOpen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false); // mobile sidebar
   const location = useLocation();
-  const { fetchUser } = useFetchUser();
+  const { user } = useFetchUser();
 
   useEffect(() => {
-    fetchUser();
-  }, []);
+    user && console.log("Fetched user:", user);
+  }, [user]);
 
   useEffect(() => {
     document.title = `Panel | Sari-Sari CRM`;
@@ -60,8 +60,13 @@ export default function ManagerPanel() {
           ${sidebarOpen ? "translate-x-0" : "-translate-x-full"} lg:translate-x-0`}
       >
         {/* Logo */}
-        <div className="bg-[#fbbf24] text-gray-900 font-bold text-xl px-6 py-4.5 tracking-wide">
-          Manager CRM
+        <div className="px-4 py-3 bg-[#fbbf24] leading-none">
+          <p className="text-gray-900 font-bold text-lg m-0 p-0">Manager CRM</p>
+          {user && user.company && (
+            <p className="text-[12px] text-gray-600 font-medium w-full truncate">
+              {user.company.company_name}
+            </p>
+          )}
         </div>
 
         {/* Nav */}

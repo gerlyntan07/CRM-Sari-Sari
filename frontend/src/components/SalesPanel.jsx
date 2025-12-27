@@ -22,13 +22,13 @@ import SalesHeader from "./SalesHeader";
 import useFetchUser from "../hooks/useFetchUser";
 
 export default function SalesPanel() {
-  const { fetchUser } = useFetchUser();
   const [sidebarOpen, setSidebarOpen] = useState(false); // ✅ Sidebar toggle state
   const [activityOpen, setActivityOpen] = useState(false);
+  const { user } = useFetchUser();
 
   useEffect(() => {
-    fetchUser();
-  }, []);
+    user && console.log("Fetched user:", user);
+  }, [user]);
 
   const activeLink =
     "flex items-center gap-3 px-3 py-2 rounded-lg bg-white text-[#1e293b] font-semibold shadow-sm";
@@ -44,15 +44,13 @@ export default function SalesPanel() {
         ${sidebarOpen ? "translate-x-0" : "-translate-x-full"} lg:translate-x-0`}
       >
         {/* Logo */}
-        <div className="bg-[#fbbf24] text-gray-900 font-bold text-xl px-6 py-4.5 tracking-wide flex justify-between items-center">
-          <span>Sales CRM</span>
-          {/* Close button for mobile */}
-          <button
-            className="lg:hidden text-gray-900"
-            onClick={() => setSidebarOpen(false)}
-          >
-            <FiX className="text-xl" />
-          </button>
+        <div className="px-4 py-3 bg-[#fbbf24] leading-none">
+          <p className="text-gray-900 font-bold text-lg m-0 p-0">Sales CRM</p>
+          {user && user.company && (
+            <p className="text-[12px] text-gray-600 font-medium w-full truncate">
+              {user.company.company_name}
+            </p>
+          )}
         </div>
 
         {/* Navigation */}

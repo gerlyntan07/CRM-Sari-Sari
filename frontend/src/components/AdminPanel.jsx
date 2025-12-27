@@ -26,11 +26,11 @@ export default function AdminPanel() {
   const [userMgmtOpen, setUserMgmtOpen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false); // mobile sidebar
   const location = useLocation();
-  const { fetchUser } = useFetchUser();
+  const { user } = useFetchUser();
 
   useEffect(() => {
-    fetchUser();
-  }, []);
+    user && console.log("Fetched user:", user);
+  }, [user]);
 
   useEffect(() => {
     document.title = `Admin Panel | Sari-Sari CRM`;
@@ -63,11 +63,18 @@ export default function AdminPanel() {
       {/* Sidebar */}
       <div
         className={`fixed top-0 left-0 h-screen w-64 bg-[#1e293b] text-white flex flex-col shadow-lg transform transition-transform duration-300 z-50
-          ${sidebarOpen ? "translate-x-0" : "-translate-x-full"} lg:translate-x-0`}
+          ${
+            sidebarOpen ? "translate-x-0" : "-translate-x-full"
+          } lg:translate-x-0`}
       >
         {/* Logo */}
-        <div className="bg-[#fbbf24] text-gray-900 font-bold text-xl px-6 py-4.5 tracking-wide">
-          Admin CRM
+        <div className="px-4 py-3 bg-[#fbbf24] leading-none">
+          <p className="text-gray-900 font-bold text-lg m-0 p-0">Admin CRM</p>
+          {user && user.company && (
+            <p className="text-[12px] text-gray-600 font-medium w-full truncate">
+              {user.company.company_name}
+            </p>
+          )}
         </div>
 
         {/* Nav */}
@@ -92,7 +99,9 @@ export default function AdminPanel() {
                 Sales
               </span>
               <FiChevronDown
-                className={`transition-transform ${salesOpen ? "rotate-180" : ""}`}
+                className={`transition-transform ${
+                  salesOpen ? "rotate-180" : ""
+                }`}
               />
             </button>
 
@@ -100,37 +109,49 @@ export default function AdminPanel() {
               <div className="ml-6 mt-2 space-y-1">
                 <NavLink
                   to="/admin/accounts"
-                  className={({ isActive }) => (isActive ? activeLink : normalLink)}
+                  className={({ isActive }) =>
+                    isActive ? activeLink : normalLink
+                  }
                 >
                   <FiUsers /> Accounts
                 </NavLink>
                 <NavLink
                   to="/admin/contacts"
-                  className={({ isActive }) => (isActive ? activeLink : normalLink)}
+                  className={({ isActive }) =>
+                    isActive ? activeLink : normalLink
+                  }
                 >
                   <FiUser /> Contacts
                 </NavLink>
                 <NavLink
                   to="/admin/leads"
-                  className={({ isActive }) => (isActive ? activeLink : normalLink)}
+                  className={({ isActive }) =>
+                    isActive ? activeLink : normalLink
+                  }
                 >
                   <FiUserPlus /> Leads
                 </NavLink>
                 <NavLink
                   to="/admin/deals"
-                  className={({ isActive }) => (isActive ? activeLink : normalLink)}
+                  className={({ isActive }) =>
+                    isActive ? activeLink : normalLink
+                  }
                 >
                   <FiBriefcase /> Deals
                 </NavLink>
                 <NavLink
                   to="/admin/quotes"
-                  className={({ isActive }) => (isActive ? activeLink : normalLink)}
+                  className={({ isActive }) =>
+                    isActive ? activeLink : normalLink
+                  }
                 >
                   <FiFileText /> Quotes
                 </NavLink>
                 <NavLink
                   to="/admin/targets"
-                  className={({ isActive }) => (isActive ? activeLink : normalLink)}
+                  className={({ isActive }) =>
+                    isActive ? activeLink : normalLink
+                  }
                 >
                   <FiTarget /> Targets
                 </NavLink>
@@ -149,7 +170,9 @@ export default function AdminPanel() {
                 Activity
               </span>
               <FiChevronDown
-                className={`transition-transform ${activityOpen ? "rotate-180" : ""}`}
+                className={`transition-transform ${
+                  activityOpen ? "rotate-180" : ""
+                }`}
               />
             </button>
 
@@ -157,25 +180,33 @@ export default function AdminPanel() {
               <div className="ml-6 mt-2 space-y-1">
                 <NavLink
                   to="/admin/tasks"
-                  className={({ isActive }) => (isActive ? activeLink : normalLink)}
+                  className={({ isActive }) =>
+                    isActive ? activeLink : normalLink
+                  }
                 >
                   <FiCheckSquare /> Tasks
                 </NavLink>
                 <NavLink
                   to="/admin/meetings"
-                  className={({ isActive }) => (isActive ? activeLink : normalLink)}
+                  className={({ isActive }) =>
+                    isActive ? activeLink : normalLink
+                  }
                 >
                   <FiCalendar /> Meetings
                 </NavLink>
                 <NavLink
                   to="/admin/calls"
-                  className={({ isActive }) => (isActive ? activeLink : normalLink)}
+                  className={({ isActive }) =>
+                    isActive ? activeLink : normalLink
+                  }
                 >
                   <FiPhoneCall /> Calls
                 </NavLink>
                 <NavLink
                   to="/admin/audit"
-                  className={({ isActive }) => (isActive ? activeLink : normalLink)}
+                  className={({ isActive }) =>
+                    isActive ? activeLink : normalLink
+                  }
                 >
                   <FiClipboard /> Audit
                 </NavLink>
@@ -206,7 +237,9 @@ export default function AdminPanel() {
                 User Management
               </span>
               <FiChevronDown
-                className={`transition-transform ${userMgmtOpen ? "rotate-180" : ""}`}
+                className={`transition-transform ${
+                  userMgmtOpen ? "rotate-180" : ""
+                }`}
               />
             </button>
 
@@ -214,13 +247,17 @@ export default function AdminPanel() {
               <div className="ml-6 mt-2 space-y-1">
                 <NavLink
                   to="/admin/users"
-                  className={({ isActive }) => (isActive ? activeLink : normalLink)}
+                  className={({ isActive }) =>
+                    isActive ? activeLink : normalLink
+                  }
                 >
                   <FiUsers /> Users
                 </NavLink>
                 <NavLink
                   to="/admin/manage-account"
-                  className={({ isActive }) => (isActive ? activeLink : normalLink)}
+                  className={({ isActive }) =>
+                    isActive ? activeLink : normalLink
+                  }
                 >
                   <FiUser /> Manage Account
                 </NavLink>
@@ -231,7 +268,7 @@ export default function AdminPanel() {
 
         {/* Footer */}
         <div className="px-4 py-3 text-xs text-gray-400 border-t border-gray-700">
-          © {new Date().getFullYear()} Sari-Sari CRM 
+          © {new Date().getFullYear()} Sari-Sari CRM
         </div>
       </div>
 

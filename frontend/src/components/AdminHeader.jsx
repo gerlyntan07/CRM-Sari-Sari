@@ -1,12 +1,19 @@
+// frontend/src/components/AdminHeader.jsx
 import { useState, useRef, useEffect } from "react";
-import { FiBell, FiUser } from "react-icons/fi";
+import { FiBell, FiMenu } from "react-icons/fi";
 import { useLocation, useNavigate } from "react-router-dom";
 import useAuth from '../hooks/useAuth.js';
 import useFetchUser from "../hooks/useFetchUser.js";
+import api from "../api.js"; // Ensure this import exists for marking notifications read
 
 export default function AdminHeader({ toggleSidebar }) {
   const [open, setOpen] = useState(false);
+  const [notifOpen, setNotifOpen] = useState(false);
+  const [notifications, setNotifications] = useState([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+
   const dropdownRef = useRef(null);
+  const notifRef = useRef(null);
   const location = useLocation();
   const navigate = useNavigate();
   const { logout } = useAuth();
@@ -27,30 +34,55 @@ export default function AdminHeader({ toggleSidebar }) {
     "/admin/deals": "Deals",
   };
 
+  const currentTitle = routeTitles[location.pathname] || "Admin Panel";
+
+  // Load user once
   useEffect(() => {
     fetchUser();
   }, [fetchUser]);
 
-  // Listen for profile update events to refresh user data
+  // Listen for profile update events
   useEffect(() => {
     const handleProfileUpdate = () => {
       fetchUser();
     };
-
     window.addEventListener('userProfileUpdated', handleProfileUpdate);
-    
     return () => {
       window.removeEventListener('userProfileUpdated', handleProfileUpdate);
     };
   }, [fetchUser]);
 
-  const currentTitle = routeTitles[location.pathname] || "Admin Panel";
+  // --- WebSocket Automatic Environment Detection ---
+  useEffect(() => {
+    if (!user?.id) return;
 
-  // Close dropdown if clicked outside
+    const isLocalhost = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
+    const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+    const host = isLocalhost ? "localhost:8000" : window.location.host;
+
+    const wsUrl = `${protocol}//${host}/ws/notifications?user_id=${user.id}`;
+    const ws = new WebSocket(wsUrl);
+
+    ws.onopen = () => console.log("Admin WS Connected");
+    ws.onmessage = (event) => {
+      const incoming = JSON.parse(event.data);
+      // You can add your normalizeNotif logic here if needed
+      setNotifications((prev) => [incoming, ...prev]);
+      setUnreadCount((prev) => prev + 1);
+    };
+    ws.onclose = () => console.log("Admin WS Disconnected");
+    
+    return () => ws.close();
+  }, [user?.id]);
+
+  // Close dropdowns when clicking outside
   useEffect(() => {
     function handleClickOutside(event) {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
         setOpen(false);
+      }
+      if (notifRef.current && !notifRef.current.contains(event.target)) {
+        setNotifOpen(false);
       }
     }
     document.addEventListener("mousedown", handleClickOutside);
@@ -61,38 +93,52 @@ export default function AdminHeader({ toggleSidebar }) {
     <header className="flex justify-between items-center bg-white shadow px-4 sm:px-6 py-3 border-b relative">
       {/* Left Side - Hamburger & Title */}
       <div className="flex items-center gap-3">
-        {/* Hamburger Button - Mobile Only */}
         <button
           onClick={toggleSidebar}
           className="lg:hidden text-gray-700 hover:text-gray-900"
         >
-          <svg
-            className="w-6 h-6"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="M4 6h16M4 12h16M4 18h16"
-            />
-          </svg>
+          <FiMenu className="text-2xl" />
         </button>
-
         <h1 className="text-lg font-semibold text-gray-800">{currentTitle}</h1>
       </div>
 
       {/* Right Side */}
       <div className="flex items-center space-x-4">
-        {/* Notification */}
-        <button className="relative text-gray-600 hover:text-gray-800">
-          <FiBell className="text-xl" />
-          <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs w-4 h-4 flex items-center justify-center rounded-full">
-            3
-          </span>
-        </button>
+        {/* Notifications */}
+        <div className="relative" ref={notifRef}>
+          <button 
+            onClick={() => setNotifOpen(!notifOpen)}
+            className="relative text-gray-600 hover:text-gray-800 transition"
+          >
+            <FiBell className="text-xl" />
+            {unreadCount > 0 && (
+              <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] w-4 h-4 flex items-center justify-center rounded-full font-semibold">
+                {unreadCount}
+              </span>
+            )}
+          </button>
+
+          {/* Notification Dropdown (Optional: Same style as SalesHeader) */}
+          {notifOpen && (
+             <div className="absolute right-0 mt-3 w-80 bg-white rounded-xl shadow-lg border z-50 overflow-hidden animate-fade-in">
+                <div className="p-3 border-b bg-gray-50 flex justify-between items-center">
+                  <h3 className="font-semibold text-gray-800 text-sm">Notifications</h3>
+                  <button onClick={() => {setNotifications([]); setUnreadCount(0);}} className="text-xs text-blue-600 hover:underline">Clear</button>
+                </div>
+                <div className="max-h-60 overflow-y-auto">
+                  {notifications.length > 0 ? (
+                    notifications.map((n, i) => (
+                      <div key={i} className="p-3 border-b text-sm hover:bg-gray-50 cursor-pointer">
+                        {n.title || n.message || "New Update"}
+                      </div>
+                    ))
+                  ) : (
+                    <div className="p-4 text-center text-gray-500 text-xs">No notifications</div>
+                  )}
+                </div>
+             </div>
+          )}
+        </div>
 
         {/* User Dropdown */}
         <div className="relative" ref={dropdownRef}>
@@ -105,7 +151,7 @@ export default function AdminHeader({ toggleSidebar }) {
               alt="Profile"
               className="w-8 aspect-square object-cover rounded-full"
             />
-          <span className="hidden lg:inline text-sm font-medium text-gray-700">
+            <span className="hidden lg:inline text-sm font-medium text-gray-700">
               {user?.first_name} {user?.last_name}
             </span>
           </button>
@@ -113,35 +159,26 @@ export default function AdminHeader({ toggleSidebar }) {
           {open && (
             <div className="absolute right-0 mt-2 w-64 bg-white shadow-xl rounded-xl border border-gray-200 z-50 p-4">
               <div className="flex flex-col items-center text-center space-y-3">
-                {/* Profile Picture */}
                 <img
                   src={user?.profile_picture || "https://via.placeholder.com/80"}
                   alt="Profile"
                   className="w-16 h-16 rounded-full object-cover"
                 />
-
-                {/* Name */}
                 <h2 className="text-gray-800 font-semibold text-sm">
                   {user?.first_name} {user?.middle_name} {user?.last_name}
                 </h2>
               </div>
 
-              {/* Menu Options */}
               <div className="mt-4 space-y-1 px-4 text-left">
                 <button 
-                onClick={() => {
-                    navigate("/admin/users");
-                    setOpen(false);
-                  }}
-                className="block w-full text-sm text-gray-700 hover:bg-gray-50 py-1 rounded text-left">
+                  onClick={() => { navigate("/admin/users"); setOpen(false); }}
+                  className="block w-full text-sm text-gray-700 hover:bg-gray-50 py-1 rounded text-left"
+                >
                   Invite Your Team
                 </button>
 
                 <button 
-                  onClick={() => {
-                    navigate("/admin/manage-account");
-                    setOpen(false);
-                  }}
+                  onClick={() => { navigate("/admin/manage-account"); setOpen(false); }}
                   className="block w-full text-sm text-gray-700 hover:bg-gray-50 py-1 rounded text-left"
                 >
                   Manage Your Account

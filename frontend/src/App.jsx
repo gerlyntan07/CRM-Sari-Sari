@@ -7,6 +7,7 @@ import {
 } from "react-router-dom";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import PrivateRoute from "./hooks/protectedRoute.jsx";
 
 // 🔹 Public pages
 import Landing from "./pages/Landing";
@@ -135,7 +136,7 @@ function App() {
         <Route path="/forgot-password" element={<ForgotPass />} />        
 
         {/* ================= Admin Layout ================= */}
-        <Route path="/admin" element={<AdminPanel />}>
+        <Route path="/admin" element={<PrivateRoute requiredRole="ceo"><AdminPanel /></PrivateRoute>}>
           <Route index element={<Navigate to="dashboard" replace />} />
           <Route path="dashboard" element={<AdminDashboard />} />
           <Route path="accounts" element={<AdminAccounts />} />
@@ -162,7 +163,7 @@ function App() {
         </Route>
 
         {/* ================= Sales Layout ================= */}
-        <Route path="/sales" element={<SalesPanel />}>
+        <Route path="/sales" element={<PrivateRoute requiredRole="sales"><SalesPanel /></PrivateRoute>}>
           <Route index element={<Navigate to="overview" replace />} />
           <Route path="overview" element={<SalesOverview />} />
           <Route path="accounts" element={<SalesAccounts />} />
@@ -192,7 +193,7 @@ function App() {
         </Route>
 
         {/* ================= Manager Layout ================= */}
-        <Route path="/manager" element={<ManagerPanel />}>
+        <Route path="/manager" element={<PrivateRoute requiredRole="manager"><ManagerPanel /></PrivateRoute>}>
           <Route index element={<Navigate to="dashboard" replace />} />
           <Route path="dashboard" element={<ManagerDashboard />} />
           <Route path="accounts" element={<ManagerAccounts />} />
@@ -218,7 +219,7 @@ function App() {
 
         {/* ================= Marketing Layout ================= */}
         <Route>
-          <Route path="/marketing" element={<MarketingPanel />}>
+          <Route path="/marketing" element={<PrivateRoute requiredRole="marketing"><MarketingPanel /></PrivateRoute>}>
             <Route index element={<Navigate to="dashboard" replace />} />
             <Route path="dashboard" element={<MarketingDashboard />} />
             <Route path="accounts" element={<MarketingAccounts />} />
@@ -234,7 +235,7 @@ function App() {
         </Route>
 
         {/* ================= Team Manager Layout ================= */}
-        <Route path="/group-manager" element={<TManagerPanel />}>
+        <Route path="/group-manager" element={<PrivateRoute requiredRole="group manager"><TManagerPanel /></PrivateRoute>}>
           <Route index element={<Navigate to="dashboard" replace />} />
           <Route path="dashboard" element={<TManagerDashboard />} />
           <Route path="accounts" element={<TManagerAccounts />} />

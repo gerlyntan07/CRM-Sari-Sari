@@ -47,10 +47,12 @@ import routers.ws_notification as ws_notification
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Startup: Start the scheduler
-    print("Starting background scheduler...")
-    start_scheduler()
+    print("[Startup] Starting background scheduler...")
+    scheduler = start_scheduler()
     yield
+    print("[Shutdown] Stopping background scheduler...")
+    scheduler.shutdown(wait=False)
+
 
 app = FastAPI(lifespan=lifespan)
 

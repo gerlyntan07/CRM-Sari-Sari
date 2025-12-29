@@ -203,7 +203,7 @@ export default function AdminAudit() {
         <FiCalendar className="text-blue-600 mr-3 flex-shrink-0" size={20} />
         <p className="text-sm text-blue-700">
           <span className="font-semibold">Data Retention Policy:</span> Audit
-          logs are automatically purged after 30 days to optimize system
+          logs are automatically purged after 6 months to optimize system
           performance.
         </p>
       </div>

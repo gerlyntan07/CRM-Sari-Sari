@@ -1,83 +1,86 @@
 # backend/services/scheduler.py
+
 from apscheduler.schedulers.background import BackgroundScheduler
 from sqlalchemy.orm import Session
 from datetime import datetime, timedelta
 import pytz
 
-# Import your DB session and Model
-from database import SessionLocal 
+from database import SessionLocal
 from models.lead import Lead, LeadStatus
 from models.auditlog import Auditlog
 
+
 def delete_old_converted_leads():
     """
-    Hard deletes leads that have been 'Converted' for more than 30 days
-    based on their last 'updated_at' timestamp.
+    Hard deletes leads that have been CONVERTED for more than 7 days
+    based on their last updated_at timestamp.
     """
     db: Session = SessionLocal()
     try:
-        # Calculate the cutoff date (30 days ago from now)
-        # Ensure we use timezone-aware datetime if your DB uses it (recommended)
-        cutoff_date = datetime.now(pytz.utc) - timedelta(days=30)
-        
-        # Find leads that match BOTH criteria
-        leads_to_delete = db.query(Lead).filter(
-            Lead.status == LeadStatus.CONVERTED.value,  # Status is 'Converted'
-            Lead.updated_at < cutoff_date               # Last update was > 30 days ago
-        ).all()
-        
-        count = len(leads_to_delete)
-        
-        if count > 0:
-            for lead in leads_to_delete:
-                db.delete(lead)
-            db.commit()
-            print(f"[Auto-Cleanup] Deleted {count} converted leads older than 30 days.")
-        else:
-            # Optional: Print log just to know it ran
-            # print("[Auto-Cleanup] No old converted leads found.")
-            pass
-            
+        cutoff_date = datetime.now(pytz.utc) - timedelta(days=7)
+
+        deleted_count = db.query(Lead).filter(
+            Lead.status == LeadStatus.CONVERTED.value,
+            Lead.updated_at < cutoff_date
+        ).delete(synchronize_session=False)
+
+        db.commit()
+
+        if deleted_count > 0:
+            print(f"[Auto-Cleanup] Deleted {deleted_count} converted leads.")
+
     except Exception as e:
-        print(f"[Auto-Cleanup Error] {e}")
+        print(f"[Auto-Cleanup Leads Error] {e}")
         db.rollback()
     finally:
         db.close()
-    
+
+
 def delete_old_audit_logs():
     """
-    Hard deletes all audit logs older than 30 days based on the 'timestamp' column.
+    Hard deletes all audit logs older than 6 months.
     """
     db: Session = SessionLocal()
     try:
-        # Calculate the cutoff date (30 days ago)
-        cutoff_date = datetime.now(pytz.utc) - timedelta(days=30)
-        
-        # Filter logs where the creation timestamp is older than the cutoff
-        logs_to_delete = db.query(Auditlog).filter(
+        cutoff_date = datetime.now(pytz.utc) - timedelta(days=180)
+
+        deleted_count = db.query(Auditlog).filter(
             Auditlog.timestamp < cutoff_date
-        ).all()
-        
-        count = len(logs_to_delete)
-        
-        if count > 0:
-            for log in logs_to_delete:
-                db.delete(log)
-            db.commit()
-            print(f"[Auto-Cleanup] Purged {count} audit logs older than 30 days.")
-        else:
-            # print("[Auto-Cleanup] No old audit logs found to purge.")
-            pass
-            
+        ).delete(synchronize_session=False)
+
+        db.commit()
+
+        if deleted_count > 0:
+            print(f"[Auto-Cleanup] Purged {deleted_count} audit logs.")
+
     except Exception as e:
         print(f"[Auto-Cleanup Audit Error] {e}")
         db.rollback()
     finally:
         db.close()
 
-def start_scheduler():
-    scheduler = BackgroundScheduler()
-    # Run this job once every day (interval)
-    scheduler.add_job(delete_old_converted_leads, 'interval', days=1)
-    scheduler.add_job(delete_old_audit_logs, 'interval', days=1)
+
+def start_scheduler() -> BackgroundScheduler:
+    """
+    Starts and returns the APScheduler instance.
+    """
+    scheduler = BackgroundScheduler(timezone=pytz.utc)
+
+    scheduler.add_job(
+        delete_old_converted_leads,
+        trigger="interval",
+        days=1,
+        id="cleanup_converted_leads",
+        replace_existing=True
+    )
+
+    scheduler.add_job(
+        delete_old_audit_logs,
+        trigger="interval",
+        days=1,
+        id="cleanup_audit_logs",
+        replace_existing=True
+    )
+
     scheduler.start()
+    return scheduler

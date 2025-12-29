@@ -36,11 +36,6 @@ export default function AdminHeader({ toggleSidebar }) {
 
   const currentTitle = routeTitles[location.pathname] || "Admin Panel";
 
-  // Load user once
-  useEffect(() => {
-    fetchUser();
-  }, [fetchUser]);
-
   // Listen for profile update events
   useEffect(() => {
     const handleProfileUpdate = () => {

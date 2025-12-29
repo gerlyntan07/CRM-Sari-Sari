@@ -7,8 +7,8 @@ const IS_LOGGED_IN = 'isLoggedIn';
 const USER_ROLE = 'userRole';
 
 export const useAuth = () => {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);  
-  const [userRole, setUserRole] = useState('');
+  const [isLoggedIn, setIsLoggedIn] = useState(!!localStorage.getItem(USER_ROLE));  
+  const [userRole, setUserRole] = useState(localStorage.getItem(USER_ROLE) || '');
   const navigate = useNavigate();
 
   useEffect(() => {    

@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   FiSearch,
   FiEdit,
@@ -1547,19 +1547,20 @@ export default function AdminQuotes() {
             disabled={isSubmitting}
           />
 
-          <SelectField
+          <SearchableSelectField
             label="Assigned To"
-            name="assigned_to"
-            value={formData.assigned_to}
-            onChange={handleInputChange}
-            options={[
-              { value: "", label: "Select assignee" },
-              ...users.map((u) => ({
-                value: String(u.id),
-                label: `${u.first_name} ${u.last_name} (${u.role})`,
-              })),
-            ]}
-            disabled={isSubmitting || users.length === 0}
+            value={formData.assigned_to || ""}
+            onChange={(newId) =>
+              setFormData((prev) => ({ ...prev, assigned_to: newId }))
+            }
+            items={Array.isArray(users) ? users : []}
+            getLabel={(item) => {
+              const name = `${item?.first_name ?? ""} ${item?.last_name ?? ""}`.trim();
+              if (!name) return item?.email || "";
+              return item?.role ? `${name} (${item.role})` : name;
+            }}
+            placeholder="Search assignee..."
+            disabled={isSubmitting}
           />
 
           <SelectField
@@ -1719,6 +1720,127 @@ function SelectField({
           </option>
         ))}
       </select>
+    </div>
+  );
+}
+
+function SearchableSelectField({
+  label,
+  items = [],
+  value = "",
+  onChange,
+  getLabel,
+  placeholder = "Search...",
+  disabled = false,
+  className = "",
+}) {
+  return (
+    <div className={className}>
+      <label className="block text-gray-700 font-medium mb-1 text-sm">
+        {label}
+      </label>
+      <SearchableSelect
+        items={items}
+        value={value ?? ""}
+        onChange={onChange}
+        getLabel={getLabel}
+        placeholder={placeholder}
+        disabled={disabled}
+      />
+    </div>
+  );
+}
+
+function SearchableSelect({
+  items = [],
+  value = "",
+  onChange,
+  getLabel,
+  placeholder = "Search...",
+  disabled = false,
+  maxRender = 200,
+}) {
+  const [open, setOpen] = useState(false);
+  const [q, setQ] = useState("");
+  const wrapRef = useRef(null);
+
+  const selectedItem = items.find((it) => String(it.id) === String(value));
+  const selectedLabel = selectedItem ? getLabel(selectedItem) : "";
+
+  const filtered = useMemo(() => {
+    const query = q.trim().toLowerCase();
+    const base = query
+      ? items.filter((it) =>
+          (getLabel(it) || "").toLowerCase().includes(query)
+        )
+      : items;
+
+    return base.slice(0, maxRender);
+  }, [items, q, getLabel, maxRender]);
+
+  useEffect(() => {
+    const onDoc = (e) => {
+      if (wrapRef.current && !wrapRef.current.contains(e.target)) setOpen(false);
+    };
+    document.addEventListener("mousedown", onDoc);
+    return () => document.removeEventListener("mousedown", onDoc);
+  }, []);
+
+  useEffect(() => {
+    if (!open) setQ("");
+  }, [open]);
+
+  return (
+    <div ref={wrapRef} className="relative w-full">
+      <input
+        disabled={disabled}
+        value={open ? q : selectedLabel}
+        placeholder={placeholder}
+        onFocus={() => !disabled && setOpen(true)}
+        onChange={(e) => {
+          setQ(e.target.value);
+          if (!open) setOpen(true);
+        }}
+        className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-400 outline-none disabled:bg-gray-100"
+      />
+
+      {open && !disabled && (
+        <div className="absolute z-50 mt-1 w-full bg-white border border-gray-200 rounded-md shadow-lg overflow-hidden">
+          <div className="max-h-56 overflow-y-auto hide-scrollbar">
+            {filtered.length > 0 ? (
+              filtered.map((it) => {
+                const id = String(it.id);
+                const label = getLabel(it);
+                const active = String(value) === id;
+
+                return (
+                  <button
+                    key={id}
+                    type="button"
+                    onClick={() => {
+                      onChange(id);
+                      setOpen(false);
+                    }}
+                    className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-50 ${
+                      active ? "bg-blue-50" : ""
+                    }`}
+                  >
+                    {label || "--"}
+                  </button>
+                );
+              })
+            ) : (
+              <div className="px-3 py-2 text-sm text-gray-500">No results</div>
+            )}
+          </div>
+
+          {items.length > maxRender && (
+            <div className="px-3 py-2 text-[11px] text-gray-400 border-t">
+              Showing first {maxRender} results — keep typing to narrow.
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

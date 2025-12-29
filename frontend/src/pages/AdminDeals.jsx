@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import {
     FiSearch,
     FiEdit,
@@ -313,6 +313,10 @@ export default function AdminDeals() {
         const trimmedName = formDataFromModal.name.trim();
         if (!trimmedName) {
             toast.error("Deal name is required.");
+            return;
+        }
+        if (!formDataFromModal.account_id) {
+            toast.error("Account is required.");
             return;
         }
 
@@ -841,6 +845,50 @@ function CreateDealModal({
         }
     };
 
+    const filteredContacts = useMemo(() => {
+        const selectedAccountId = String(externalFormData.account_id || "").trim();
+        const base = Array.isArray(contacts) ? contacts : [];
+
+        if (!selectedAccountId) return base;
+
+        return base.filter((c) => {
+            const candidates = [
+                c?.account_id,
+                c?.accountId,
+                c?.account?.id,
+                c?.account?.account_id,
+                c?.account?.accountId,
+            ];
+            const found = candidates.find(
+                (v) => v !== null && v !== undefined && String(v).trim() !== ""
+            );
+            return found ? String(found) === selectedAccountId : false;
+        });
+    }, [contacts, externalFormData.account_id]);
+
+    useEffect(() => {
+        const selectedAccountId = String(externalFormData.account_id || "").trim();
+        const selectedContactId = String(
+            externalFormData.primary_contact_id || ""
+        ).trim();
+
+        if (!selectedContactId) return;
+        if (!selectedAccountId) return;
+
+        const stillValid = filteredContacts.some(
+            (c) => String(c?.id) === selectedContactId
+        );
+
+        if (!stillValid) {
+            setExternalFormData((prev) => ({ ...prev, primary_contact_id: "" }));
+        }
+    }, [
+        externalFormData.account_id,
+        externalFormData.primary_contact_id,
+        filteredContacts,
+        setExternalFormData,
+    ]);
+
     return (
         <div
             id="modalBackdrop"
@@ -876,30 +924,35 @@ function CreateDealModal({
                         disabled={isSubmitting}
                         className="md:col-span-2"
                     />
-                    <SelectField
+                    <SearchableSelectField
                         label="Account"
-                        name="account_id"
                         value={externalFormData.account_id || ""}
-                        onChange={(e) => setExternalFormData({ ...externalFormData, account_id: e.target.value })}
-                        options={[
-                            { value: "", label: "Select Account" },
-                            ...accounts.map(acc => ({ value: acc.id.toString(), label: acc.name }))
-                        ]}
-                        required
+                        onChange={(newId) =>
+                            setExternalFormData({
+                                ...externalFormData,
+                                account_id: newId,
+                            })
+                        }
+                        items={accounts || []}
+                        getLabel={(item) => item?.name ?? ""}
+                        placeholder="Search account..."
                         disabled={isSubmitting}
                     />
-                    <SelectField
+                    <SearchableSelectField
                         label="Primary Contact"
-                        name="primary_contact_id"
                         value={externalFormData.primary_contact_id || ""}
-                        onChange={(e) => setExternalFormData({ ...externalFormData, primary_contact_id: e.target.value })}
-                        options={[
-                            { value: "", label: "Select Contact (Optional)" },
-                            ...contacts.map(contact => ({ 
-                                value: contact.id.toString(), 
-                                label: `${contact.first_name} ${contact.last_name}`.trim() || contact.email
-                            }))
-                        ]}
+                        onChange={(newId) =>
+                            setExternalFormData({
+                                ...externalFormData,
+                                primary_contact_id: newId,
+                            })
+                        }
+                        items={filteredContacts || []}
+                        getLabel={(item) => {
+                            const name = `${item?.first_name ?? ""} ${item?.last_name ?? ""}`.trim();
+                            return name || item?.email || "";
+                        }}
+                        placeholder="Search contact..."
                         disabled={isSubmitting}
                     />
                     <SelectField
@@ -946,18 +999,21 @@ function CreateDealModal({
                         onChange={(e) => setExternalFormData({ ...externalFormData, close_date: e.target.value })}
                         disabled={isSubmitting}
                     />
-                    <SelectField
+                    <SearchableSelectField
                         label="Assign To"
-                        name="assigned_to"
                         value={externalFormData.assigned_to || ""}
-                        onChange={(e) => setExternalFormData({ ...externalFormData, assigned_to: e.target.value })}
-                        options={[
-                            { value: "", label: "Assign To (Optional)" },
-                            ...users.map(user => ({ 
-                                value: user.id.toString(), 
-                                label: `${user.first_name} ${user.last_name}`.trim() || user.email
-                            }))
-                        ]}
+                        onChange={(newId) =>
+                            setExternalFormData({
+                                ...externalFormData,
+                                assigned_to: newId,
+                            })
+                        }
+                        items={users || []}
+                        getLabel={(item) => {
+                            const name = `${item?.first_name ?? ""} ${item?.last_name ?? ""}`.trim();
+                            return name || item?.email || "";
+                        }}
+                        placeholder="Search assignee..."
                         disabled={isSubmitting}
                         className="md:col-span-2"
                     />
@@ -1058,6 +1114,124 @@ function SelectField({
                     </option>
                 ))}
             </select>
+        </div>
+    );
+}
+
+function SearchableSelectField({
+    label,
+    items = [],
+    value = "",
+    onChange,
+    getLabel,
+    placeholder = "Search...",
+    disabled = false,
+    className = "",
+}) {
+    return (
+        <div className={className}>
+            <label className="block text-gray-700 font-medium mb-1 text-sm">
+                {label}
+            </label>
+            <SearchableSelect
+                items={items}
+                value={value ?? ""}
+                onChange={onChange}
+                getLabel={getLabel}
+                placeholder={placeholder}
+                disabled={disabled}
+            />
+        </div>
+    );
+}
+
+function SearchableSelect({
+    items = [],
+    value = "",
+    onChange,
+    getLabel,
+    placeholder = "Search...",
+    disabled = false,
+    maxRender = 200,
+}) {
+    const [open, setOpen] = useState(false);
+    const [q, setQ] = useState("");
+    const wrapRef = useRef(null);
+
+    const selectedItem = items.find((it) => String(it.id) === String(value));
+    const selectedLabel = selectedItem ? getLabel(selectedItem) : "";
+
+    const filtered = useMemo(() => {
+        const query = q.trim().toLowerCase();
+        const base = query
+            ? items.filter((it) => (getLabel(it) || "").toLowerCase().includes(query))
+            : items;
+
+        return base.slice(0, maxRender);
+    }, [items, q, getLabel, maxRender]);
+
+    useEffect(() => {
+        const onDoc = (e) => {
+            if (wrapRef.current && !wrapRef.current.contains(e.target)) setOpen(false);
+        };
+        document.addEventListener("mousedown", onDoc);
+        return () => document.removeEventListener("mousedown", onDoc);
+    }, []);
+
+    useEffect(() => {
+        if (!open) setQ("");
+    }, [open]);
+
+    return (
+        <div ref={wrapRef} className="relative w-full">
+            <input
+                disabled={disabled}
+                value={open ? q : selectedLabel}
+                placeholder={placeholder}
+                onFocus={() => !disabled && setOpen(true)}
+                onChange={(e) => {
+                    setQ(e.target.value);
+                    if (!open) setOpen(true);
+                }}
+                className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-400 outline-none disabled:bg-gray-100"
+            />
+
+            {open && !disabled && (
+                <div className="absolute z-50 mt-1 w-full bg-white border border-gray-200 rounded-md shadow-lg overflow-hidden">
+                    <div className="max-h-56 overflow-y-auto hide-scrollbar">
+                        {filtered.length > 0 ? (
+                            filtered.map((it) => {
+                                const id = String(it.id);
+                                const label = getLabel(it);
+                                const active = String(value) === id;
+
+                                return (
+                                    <button
+                                        key={id}
+                                        type="button"
+                                        onClick={() => {
+                                            onChange(id);
+                                            setOpen(false);
+                                        }}
+                                        className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-50 ${active ? "bg-blue-50" : ""
+                                            }`}
+                                    >
+                                        {label || "--"}
+                                    </button>
+                                );
+                            })
+                        ) : (
+                            <div className="px-3 py-2 text-sm text-gray-500">No results</div>
+                        )}
+                    </div>
+
+                    {items.length > maxRender && (
+                        <div className="px-3 py-2 text-[11px] text-gray-400 border-t">
+                            Showing first {maxRender} results — keep typing to narrow.
+                        </div>
+                    )}
+                </div>
+            )}
         </div>
     );
 }

@@ -42,8 +42,7 @@ export default function SalesHeader({ toggleSidebar }) {
 
   // --- Helpers ---
   const deriveTypeFromLog = (log) => {
-    // logs often have: action = CREATE/UPDATE/DELETE and description/title contains "contact/deal/account/lead/task"
-    const action = String(log.action || log.type || "").toLowerCase(); // "create" | "update" | ...
+    const action = String(log.action || log.type || "").toLowerCase();
     const text = String(log.title || log.description || "").toLowerCase();
 
     const isCreate = action.includes("create");
@@ -62,78 +61,46 @@ export default function SalesHeader({ toggleSidebar }) {
 
   const normalizeNotif = (raw) => {
     const n = { ...raw };
-
-    // Ensure consistent boolean
     n.read = Boolean(n.read);
 
-    // Normalize title by type
     switch (n.type) {
       case "territory_assignment":
-        n.title =
-          n.title ||
-          `You have been assigned to ${n.territoryName || "a territory"}`;
+        n.title = n.title || `You have been assigned to ${n.territoryName || "a territory"}`;
         break;
-
-      // LEADS
       case "lead_assigned":
         n.type = "lead_assignment";
-        n.title =
-          n.title || `New lead assigned: ${n.leadName || n.company || "Lead"}`;
+        n.title = n.title || `New lead assigned: ${n.leadName || n.company || "Lead"}`;
         break;
-
       case "lead_assignment":
-        n.title =
-          n.title || `New lead assigned: ${n.leadName || n.company || "Lead"}`;
+        n.title = n.title || `New lead assigned: ${n.leadName || n.company || "Lead"}`;
         break;
-
       case "lead_update":
-        n.title =
-          n.title || `Lead updated: ${n.leadName || n.company || "Lead"}`;
+        n.title = n.title || `Lead updated: ${n.leadName || n.company || "Lead"}`;
         break;
-
-      // TASKS
       case "task_assignment":
         n.title = n.title || `New Task Assigned: ${n.taskTitle || "Task"}`;
         break;
-
-      // CONTACTS
       case "contact_assignment":
-        n.title =
-          n.title ||
-          `New contact assigned: ${n.contactName || n.contact || "Contact"}`;
+        n.title = n.title || `New contact assigned: ${n.contactName || n.contact || "Contact"}`;
         break;
-
       case "contact_update":
-        n.title =
-          n.title ||
-          `Contact updated: ${n.contactName || n.contact || "Contact"}`;
+        n.title = n.title || `Contact updated: ${n.contactName || n.contact || "Contact"}`;
         break;
-
-      // DEALS
       case "deal_assignment":
-        n.title =
-          n.title || `New deal assigned: ${n.dealName || n.name || "Deal"}`;
+        n.title = n.title || `New deal assigned: ${n.dealName || n.name || "Deal"}`;
         break;
-
       case "deal_update":
         n.title = n.title || `Deal updated: ${n.dealName || n.name || "Deal"}`;
         break;
-
-      // ACCOUNTS ✅ NEW
       case "account_assignment":
-        n.title =
-          n.title || `New account assigned: ${n.accountName || n.name || "Account"}`;
+        n.title = n.title || `New account assigned: ${n.accountName || n.name || "Account"}`;
         break;
-
       case "account_update":
-        n.title =
-          n.title || `Account updated: ${n.accountName || n.name || "Account"}`;
+        n.title = n.title || `Account updated: ${n.accountName || n.name || "Account"}`;
         break;
-
       default:
         n.title = n.title || "New Notification";
     }
-
     return n;
   };
 
@@ -142,28 +109,22 @@ export default function SalesHeader({ toggleSidebar }) {
       case "task_assignment":
         navigate(`/sales/hub/${notif.taskId || notif.task_id || ""}`);
         break;
-
       case "lead_assignment":
       case "lead_update":
         navigate(`/sales/leads/${notif.leadId || notif.lead_id || ""}`);
         break;
-
       case "contact_assignment":
       case "contact_update":
         navigate(`/sales/contacts/${notif.contactId || notif.contact_id || ""}`);
         break;
-
       case "deal_assignment":
       case "deal_update":
         navigate(`/sales/deals/${notif.dealId || notif.deal_id || ""}`);
         break;
-
-      // ACCOUNTS ✅ NEW
       case "account_assignment":
       case "account_update":
         navigate(`/sales/accounts/${notif.accountId || notif.account_id || ""}`);
         break;
-
       default:
         navigate("/sales/overview");
     }
@@ -174,15 +135,12 @@ export default function SalesHeader({ toggleSidebar }) {
       performNavigation(notif);
       return;
     }
-
     try {
       await api.patch(`/logs/mark-read/${notif.id}`);
-
       setNotifications((prev) =>
         prev.map((n) => (n.id === notif.id ? { ...n, read: true } : n))
       );
       setUnreadCount((prev) => (prev > 0 ? prev - 1 : 0));
-
       performNavigation(notif);
     } catch (err) {
       console.error("Failed to mark notification as read", err);
@@ -190,20 +148,27 @@ export default function SalesHeader({ toggleSidebar }) {
     }
   };
 
-  // WebSocket listener (use user?.id so it doesn't recreate randomly and reinsert INFO logs)
+  // ✅ UPDATED: Automatic Local/Production WebSocket Logic
   useEffect(() => {
     if (!user?.id) return;
 
-    const ws = new WebSocket(
-      `ws://localhost:8000/ws/notifications?user_id=${user.id}`
-    );
+    // Determine if we are running on localhost or a live server
+    const isLocalhost = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
+    
+    // Use current page protocol (wss: for https, ws: for http)
+    const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+    
+    // Set host: use localhost:8000 for dev, or the current browser host for prod
+    const host = isLocalhost ? "localhost:8000" : window.location.host;
 
-    ws.onopen = () => console.log("WS Connected");
+    const wsUrl = `${protocol}//${host}/ws/notifications?user_id=${user.id}`;
+    const ws = new WebSocket(wsUrl);
+
+    ws.onopen = () => console.log("WS Connected to:", wsUrl);
 
     ws.onmessage = (event) => {
       const incoming = JSON.parse(event.data);
       const newNotif = normalizeNotif(incoming);
-
       setNotifications((prev) => [newNotif, ...prev]);
       setUnreadCount((prev) => prev + 1);
     };
@@ -215,29 +180,19 @@ export default function SalesHeader({ toggleSidebar }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id]);
 
-  // Fetch history notifications (from DB logs) — also use user?.id to avoid refetch loops
+  // Fetch history notifications
   useEffect(() => {
     const fetchInitialNotifications = async () => {
       try {
         const res = await api.get("/logs/read-all");
-
         const mappedLogs = (res.data || []).map((log) =>
           normalizeNotif({
             id: log.id,
-
-            // ✅ IMPORTANT:
-            // Prefer explicit notif type from backend, else derive from action+text
-            type:
-              log.notif_type ||
-              log.notification_type ||
-              log.type ||
-              deriveTypeFromLog(log),
-
+            type: log.notif_type || log.notification_type || log.type || deriveTypeFromLog(log),
             title: log.title || log.description,
             assignedBy: log.assignedBy || log.name,
             createdAt: log.createdAt || log.timestamp,
             read: log.is_read ?? log.read ?? false,
-
             leadId: log.leadId || log.lead_id,
             taskId: log.taskId || log.task_id,
             contactId: log.contactId || log.contact_id,
@@ -245,14 +200,12 @@ export default function SalesHeader({ toggleSidebar }) {
             accountId: log.accountId || log.account_id,
           })
         );
-
         setNotifications(mappedLogs);
         setUnreadCount(mappedLogs.filter((n) => !n.read).length);
       } catch (err) {
         console.error("Failed to load history notifications", err);
       }
     };
-
     if (user?.id) fetchInitialNotifications();
   }, [user?.id]);
 
@@ -272,7 +225,6 @@ export default function SalesHeader({ toggleSidebar }) {
 
   return (
     <header className="flex justify-between items-center bg-white shadow px-4 sm:px-6 py-3 border-b relative">
-      {/* Left: Title + Burger */}
       <div className="flex items-center gap-3">
         <button
           onClick={toggleSidebar}
@@ -285,9 +237,7 @@ export default function SalesHeader({ toggleSidebar }) {
         </h1>
       </div>
 
-      {/* Right: Notifications + Profile */}
       <div className="flex items-center space-x-3 sm:space-x-4">
-        {/* Notifications */}
         <div className="relative" ref={notifRef}>
           <button
             onClick={() => setNotifOpen(!notifOpen)}
@@ -406,7 +356,6 @@ export default function SalesHeader({ toggleSidebar }) {
           )}
         </div>
 
-        {/* User Dropdown */}
         <div className="relative" ref={dropdownRef}>
           <button
             onClick={() => setOpen(!open)}
@@ -417,7 +366,7 @@ export default function SalesHeader({ toggleSidebar }) {
               alt="Profile"
               className="w-8 aspect-square object-cover rounded-full"
             />
-              <span className="hidden lg:inline text-sm font-medium text-gray-700">
+            <span className="hidden lg:inline text-sm font-medium text-gray-700">
               {user?.first_name} {user?.last_name}
             </span>
           </button>

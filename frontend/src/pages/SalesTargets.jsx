@@ -17,6 +17,7 @@ import {
 import { HiX } from "react-icons/hi";
 import { toast } from "react-toastify";
 import PaginationControls from "../components/PaginationControls.jsx";
+import SalesTargetCharts from "../components/SalesTargetCharts.jsx";
 import LoadingSpinner from "../components/LoadingSpinner.jsx";
 import api from "../api";
 
@@ -369,6 +370,7 @@ export default function SalesTargets() {
             value={`₱${totalTargetAmount.toLocaleString()}`}
           />
         </div>
+        <SalesTargetCharts />
 
         <div className="bg-white rounded-xl p-4 shadow-sm mb-6 flex flex-col lg:flex-row items-center justify-between gap-3 w-full">
           <div className="flex items-center border border-gray-300 rounded-lg px-4 h-11 w-full lg:w-4/4 focus-within:ring-2 focus-within:ring-indigo-500 transition">

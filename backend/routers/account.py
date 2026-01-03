@@ -311,10 +311,7 @@ def admin_create_account(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
     request: Request = None
-):
-    if current_user.role.upper() not in ALLOWED_ADMIN_ROLES:
-        raise HTTPException(status_code=403, detail="Permission denied")
-
+):    
     if not current_user.related_to_company:
         raise HTTPException(status_code=400, detail="Current user is not linked to any company.")
 

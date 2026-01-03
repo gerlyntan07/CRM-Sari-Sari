@@ -20,6 +20,7 @@ import PaginationControls from "../components/PaginationControls.jsx";
 import SalesTargetCharts from "../components/SalesTargetCharts.jsx";
 import LoadingSpinner from "../components/LoadingSpinner.jsx";
 import api from "../api";
+import useAuth from "../hooks/useAuth.js";
 
 /* ======================================================
    CONSTANTS
@@ -139,6 +140,7 @@ export default function SalesTargets() {
   const [confirmProcessing, setConfirmProcessing] = useState(false);
 
   const [currentUser, setCurrentUser] = useState(null);
+  const {userRole} = useAuth();
 
   useEffect(() => {
     async function fetchCurrentUser() {
@@ -353,7 +355,8 @@ export default function SalesTargets() {
           <h1 className="flex items-center text-xl sm:text-2xl font-semibold">
             <FiTarget className="mr-2 text-blue-600" /> Targets
           </h1>
-          <div className="flex justify-center lg:justify-end w-full sm:w-auto">
+          {userRole.toLowerCase() !== 'sales' && (
+            <div className="flex justify-center lg:justify-end w-full sm:w-auto">
             <button
               onClick={handleOpenAddModal}
               className="flex items-center bg-black text-white px-3 sm:px-4 py-2 my-1 lg:my-0 rounded-md hover:bg-gray-800 text-sm sm:text-base mx-auto sm:ml-auto cursor-pointer"
@@ -361,6 +364,7 @@ export default function SalesTargets() {
               <FiPlus className="mr-2" /> Add Target
             </button>
           </div>
+          )}          
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">

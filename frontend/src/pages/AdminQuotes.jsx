@@ -145,6 +145,17 @@ const computeExpiryDate = (presented_date, validity_days) => {
   return base.toISOString().slice(0, 10);
 };
 
+// --------- Format deal_id to hide company ID ----------
+const formatDealId = (dealId) => {
+  if (!dealId) return "";
+  // Convert D25-1-00001 to D25-00001 (remove middle company ID)
+  const parts = String(dealId).split("-");
+  if (parts.length === 3) {
+    return `${parts[0]}-${parts[2]}`;
+  }
+  return String(dealId);
+};
+
 // --------- Current user id helpers ----------
 const tryExtractUserId = (obj) => {
   if (!obj) return null;
@@ -313,7 +324,7 @@ export default function AdminQuotes() {
     (dealId) => {
       if (!dealId) return "--";
       const found = deals.find((d) => String(d.id) === String(dealId));
-      return found?.deal_name || found?.name || `Deal #${dealId}`;
+      return found?.deal_name || found?.name || `Deal #${formatDealId(dealId)}`;
     },
     [deals]
   );
@@ -1482,19 +1493,26 @@ export default function AdminQuotes() {
           className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm"
           onSubmit={handleSubmit}
         >
-          <SelectField
+          <SearchableSelectField
             label="Deal"
             name="deal_id"
             value={formData.deal_id}
-            onChange={handleInputChange}
-            options={[
-              { value: "", label: "Select deal" },
-              ...deals.map((d) => ({
-                value: String(d.id),
-                label: d.deal_name || d.name || `Deal #${d.id}`,
-              })),
-            ]}
-            required
+            onChange={(newId) =>
+              {const { accountId, contactId } = deriveAccountAndContactFromDealId(newId);
+      setFormData((prev) => ({
+        ...prev,
+        deal_id: newId,
+        account_id: accountId,
+        contact_id: contactId,
+      }));
+      return;}
+            }
+            items={Array.isArray(deals) ? deals : []}
+            getLabel={(item) => {
+              const name = `${formatDealId(item?.deal_id ?? "")} ${item?.name ?? ""}`.trim();
+              return name;
+            }}
+            placeholder="Search deal..."
             disabled={isSubmitting || deals.length === 0}
             className="md:col-span-2"
           />

@@ -658,15 +658,6 @@ export default function AdminLeads() {
 
         <div className="flex justify-center lg:justify-end gap-3 w-full sm:w-auto">
           <button
-            onClick={() => {
-              // TODO: Implement download functionality
-              toast.info("Download functionality coming soon");
-            }}
-    className="flex items-center bg-black text-white px-3 sm:px-4 py-2 rounded-md hover:bg-gray-800 text-sm sm:text-base self-end sm:self-auto cursor-pointer"
-          >
-            <FiDownload className="mr-2" /> Download
-          </button>
-          <button
             onClick={handleOpenAddModal}
     className="flex items-center bg-black text-white px-3 sm:px-4 py-2 rounded-md hover:bg-gray-800 text-sm sm:text-base self-end sm:self-auto cursor-pointer"
           >

@@ -209,7 +209,7 @@ export default function AdminLeads() {
       };
 
       const workPhone = parsePhone(leadToConvert.work_phone);
-      
+
       // Combine all three phone numbers from lead into one string for account
       const phoneNumbers = [];
       if (leadToConvert.work_phone) phoneNumbers.push(`Work: ${leadToConvert.work_phone}`);
@@ -343,7 +343,7 @@ export default function AdminLeads() {
       navigate(`/admin/leads`, { replace: true });
     }
   };
-  
+
   const closeModal = () => {
     setShowModal(false);
     setLeadData(INITIAL_FORM_STATE);
@@ -373,10 +373,10 @@ export default function AdminLeads() {
       console.error("handleEditClick: lead is null or undefined");
       return;
     }
-    
+
     console.log("handleEditClick called with lead:", lead);
     console.log("Current state - leadID:", leadID, "selectedLead:", selectedLead, "showModal:", showModal);
-    
+
     // Parse phone numbers to extract country code and number
     const parsePhone = (phone) => {
       if (!phone) return { code: "+63", number: "" };
@@ -422,7 +422,7 @@ export default function AdminLeads() {
     });
     setIsEditing(true);
     setCurrentLeadId(lead.id);
-    
+
     // If coming from detail view, close detail modal and show edit form
     if (selectedLead) {
       console.log("Coming from detail view - closing detail modal and showing edit form");
@@ -442,7 +442,7 @@ export default function AdminLeads() {
       console.error("handleDelete: lead is null or undefined");
       return;
     }
-    
+
     console.log("handleDelete called with lead:", lead);
     const name = `${lead.first_name} ${lead.last_name}` || "this lead";
     setConfirmModalData({
@@ -480,7 +480,7 @@ export default function AdminLeads() {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    
+
     // Validation
     if (!leadData.first_name?.trim() || !leadData.last_name?.trim()) {
       toast.error("First name and last name are required.");
@@ -555,12 +555,12 @@ export default function AdminLeads() {
         setIsSubmitting(true);
         const res = await api.put(`/leads/${targetId}`, payload);
         toast.success(`Lead "${name}" updated successfully.`);
-        
+
         // Update selectedLead if it's the one being edited
         if (selectedLead && selectedLead.id === targetId) {
           setSelectedLead(null);
         }
-        
+
         closeModal();
         await fetchLeads();
       } else if (type === "delete") {
@@ -580,8 +580,8 @@ export default function AdminLeads() {
         type === "create"
           ? "Failed to create lead. Please review the details and try again."
           : type === "update"
-          ? "Failed to update lead. Please review the details and try again."
-          : "Failed to delete lead. Please try again.";
+            ? "Failed to update lead. Please review the details and try again."
+            : "Failed to delete lead. Please try again.";
       const message = err.response?.data?.detail || defaultMessage;
       toast.error(message);
     } finally {
@@ -658,17 +658,8 @@ export default function AdminLeads() {
 
         <div className="flex justify-center lg:justify-end gap-3 w-full sm:w-auto">
           <button
-            onClick={() => {
-              // TODO: Implement download functionality
-              toast.info("Download functionality coming soon");
-            }}
-    className="flex items-center bg-black text-white px-3 sm:px-4 py-2 rounded-md hover:bg-gray-800 text-sm sm:text-base self-end sm:self-auto cursor-pointer"
-          >
-            <FiDownload className="mr-2" /> Download
-          </button>
-          <button
             onClick={handleOpenAddModal}
-    className="flex items-center bg-black text-white px-3 sm:px-4 py-2 rounded-md hover:bg-gray-800 text-sm sm:text-base self-end sm:self-auto cursor-pointer"
+            className="flex items-center bg-black text-white px-3 sm:px-4 py-2 rounded-md hover:bg-gray-800 text-sm sm:text-base self-end sm:self-auto cursor-pointer"
           >
             <FiPlus className="mr-2" /> Add Lead
           </button>
@@ -973,7 +964,7 @@ export default function AdminLeads() {
                 <label className="block text-gray-700 font-medium mb-1 text-sm">
                   Assign To
                 </label>
-                <SearchableSelect               
+                <SearchableSelect
                   items={Array.isArray(users) ? users : []}
                   value={leadData.lead_owner ?? ""}
                   placeholder={`Search a user...`}
@@ -981,11 +972,11 @@ export default function AdminLeads() {
                   onChange={(newId) => {
                     const user = users.find((u) => String(u.id) === String(newId));
                     setSelectedUser(user);
-                    
+
                     // Auto-select territory if user has exactly one, otherwise reset
                     let newTerritoryId = null;
                     if (user && user.assigned_territory && user.assigned_territory.length === 1) {
-                        newTerritoryId = user.assigned_territory[0].id;
+                      newTerritoryId = user.assigned_territory[0].id;
                     }
 
                     setLeadData((prev) => ({
@@ -1011,21 +1002,21 @@ export default function AdminLeads() {
                   className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm bg-white focus:ring-2 focus:ring-blue-400 outline-none disabled:bg-gray-100 disabled:text-gray-500"
                 >
                   <option value="" disabled>
-                    {!selectedUser 
-                      ? "Select a user first" 
+                    {!selectedUser
+                      ? "Select a user first"
                       : (selectedUser.assigned_territory && selectedUser.assigned_territory.length > 0)
                         ? "Select Territory"
                         : "No territories assigned to this user"
                     }
                   </option>
-                  
-                  {selectedUser && 
-                   selectedUser.assigned_territory && 
-                   selectedUser.assigned_territory.map((t) => (
-                    <option key={t.id} value={t.id}>
-                      {t.name}
-                    </option>
-                  ))}
+
+                  {selectedUser &&
+                    selectedUser.assigned_territory &&
+                    selectedUser.assigned_territory.map((t) => (
+                      <option key={t.id} value={t.id}>
+                        {t.name}
+                      </option>
+                    ))}
                 </select>
               </div>
 
@@ -1084,8 +1075,8 @@ export default function AdminLeads() {
                   {isSubmitting || confirmProcessing
                     ? "Processing..."
                     : isEditing
-                    ? "Update Lead"
-                    : "Save Lead"}
+                      ? "Update Lead"
+                      : "Save Lead"}
                 </button>
               </div>
             </form>
@@ -1116,9 +1107,9 @@ export default function AdminLeads() {
           fetchLeads={fetchLeads}
           setSelectedLead={setSelectedLead}
           onEdit={handleEditClick}
-          onDelete={handleDelete} 
+          onDelete={handleDelete}
         />
-      )}      
+      )}
     </div>
   );
 }
@@ -1190,7 +1181,7 @@ function MetricCard({
 
   return (
     <div
-className="flex items-center p-4 bg-white rounded-xl shadow-md border border-gray-200 transition-all duration-300"
+      className="flex items-center p-4 bg-white rounded-xl shadow-md border border-gray-200 transition-all duration-300"
       onClick={handleClick}
     >
       <div
@@ -1274,9 +1265,8 @@ function SearchableSelect({
                       onChange(id);
                       setOpen(false);
                     }}
-                    className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-50 ${
-                      active ? "bg-blue-50" : ""
-                    }`}
+                    className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-50 ${active ? "bg-blue-50" : ""
+                      }`}
                   >
                     {label || "--"}
                   </button>

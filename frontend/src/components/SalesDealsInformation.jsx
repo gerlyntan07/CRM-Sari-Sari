@@ -5,7 +5,7 @@ import AdminDealsQuickAction from "../components/TManagerDealsQuickAction";
 import api from "../api";
 import useFetchUser from "../hooks/useFetchUser";
 
-export default function AdminDealsInformation({
+export default function SalesDealsInformation({
   selectedDeal: selectedDealProp,
   show,
   onClose,
@@ -23,7 +23,7 @@ export default function AdminDealsInformation({
   const {user} = useFetchUser();
 
   useEffect(() => {
-    console.log('AdminDealsInformation mounted', selectedDeal);
+    console.log('SalesDealsInformation mounted', selectedDeal);
     console.log('User:', user);
   }, [selectedDeal, user])
   

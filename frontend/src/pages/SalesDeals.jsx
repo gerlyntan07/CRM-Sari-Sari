@@ -19,7 +19,7 @@ import LoadingSpinner from "../components/LoadingSpinner.jsx";
 
 const ITEMS_PER_PAGE = 10;
 
-export default function AdminDeals() {
+export default function SalesDeals() {
     useEffect(() => {
         document.title = "Deals | Sari-Sari CRM";
     }, []);
@@ -160,10 +160,18 @@ export default function AdminDeals() {
     const handleNextPage = () =>
         setCurrentPage((prev) => Math.min(prev + 1, totalPages));
 
+    const getAutoAssignedUser = () => {
+        if (users.length === 0) return null;
+        const sortedUsers = [...users].sort((a, b) => a.assigned_deals_count - b.assigned_deals_count);
+        return sortedUsers[0]; // assign to user with least deals
+    };
+
+
 
 
     // Handlers
     const openNewDealModal = () => {
+        const autoUser = getAutoAssignedUser();
         setDealForm({
             id: null,
             name: "",
@@ -172,7 +180,7 @@ export default function AdminDeals() {
             stage: "PROPOSAL",
             amount: "",
             close_date: "",
-            assigned_to: "",
+            assigned_to: autoUser ? autoUser.id.toString() : "", // auto-assign
             currency: "PHP",
             description: "",
         });
@@ -180,6 +188,7 @@ export default function AdminDeals() {
         setCurrentDealId(null);
         setShowDealModal(true);
     };
+
 
     const fetchDeals = async () => {
         setDealsLoading(true);
@@ -967,15 +976,15 @@ function CreateDealModal({
                         value={externalFormData.assigned_to || ""}
                         onChange={(e) => setExternalFormData({ ...externalFormData, assigned_to: e.target.value })}
                         options={[
-                            { value: "", label: "Assign To (Optional)" },
                             ...users.map(user => ({
                                 value: user.id.toString(),
                                 label: `${user.first_name} ${user.last_name}`.trim() || user.email
                             }))
                         ]}
-                        disabled={isSubmitting || isEditing}
+                        disabled={isEditing ? false : true} // optional: allow auto-assign when creating
                         className="md:col-span-2"
                     />
+
                     <TextareaField
                         label="Description"
                         name="description"

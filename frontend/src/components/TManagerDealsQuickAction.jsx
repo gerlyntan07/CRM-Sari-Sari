@@ -34,6 +34,8 @@ export default function AdminDealsQuickAction({
     { value: "NEGOTIATION", label: "Negotiation" },
     { value: "CLOSED_WON", label: "Closed Won" },
     { value: "CLOSED_LOST", label: "Closed Lost" },
+    { value: "CLOSED_CANCELLED", label: "Closed Cancelled" },
+
   ];
 
   // Update selectedStage when selectedDeal changes
@@ -204,18 +206,18 @@ export default function AdminDealsQuickAction({
 
         {(selectedDeal.created_by === user?.id ||
           selectedDeal.assigned_to === user?.id) && (
-          <button
-            className="w-full bg-gray-900 text-white py-1.5 rounded-md text-sm hover:bg-gray-800 transition disabled:opacity-50 disabled:cursor-not-allowed"
-            onClick={handleUpdateStatus}
-            disabled={
-              isUpdating ||
-              !selectedStage ||
-              selectedStage === selectedDeal.stage
-            }
-          >
-            {isUpdating ? "Updating..." : "Update"}
-          </button>
-        )}
+            <button
+              className="w-full bg-gray-900 text-white py-1.5 rounded-md text-sm hover:bg-gray-800 transition disabled:opacity-50 disabled:cursor-not-allowed"
+              onClick={handleUpdateStatus}
+              disabled={
+                isUpdating ||
+                !selectedStage ||
+                selectedStage === selectedDeal.stage
+              }
+            >
+              {isUpdating ? "Updating..." : "Update"}
+            </button>
+          )}
       </div>
     </div>
   );

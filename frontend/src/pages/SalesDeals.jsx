@@ -64,6 +64,7 @@ export default function AdminDeals() {
         "Negotiation Stage": "NEGOTIATION",
         "Closed Won Stage": "CLOSED_WON",
         "Closed Lost Stage": "CLOSED_LOST",
+        "Close Cancelled Stage": "CLOSED_CANCELLED",
     };
 
     const formatStageName = (stage) => {
@@ -74,6 +75,7 @@ export default function AdminDeals() {
             "NEGOTIATION": "Negotiation",
             "CLOSED_WON": "Closed Won",
             "CLOSED_LOST": "Closed Lost",
+            "CLOSED_CANCELLED": "Closed Cancelled",
         };
         return stageNames[stage] || stage || "--";
     };
@@ -287,10 +289,10 @@ export default function AdminDeals() {
                 const bDate = b?.created_at ? new Date(b.created_at).getTime() : 0;
                 return bDate - aDate;
             });
-            
+
             // Update the deals list with sorted data
             setDeals(sorted);
-            
+
             // Only update selectedDeal if modal should stay open (not when closing)
             if (!keepModalClosed && selectedDeal && selectedDeal.id) {
                 const updatedDeal = sorted.find(d => d.id === selectedDeal.id);
@@ -438,8 +440,8 @@ export default function AdminDeals() {
                 type === "create"
                     ? "Failed to create deal. Please review the details and try again."
                     : type === "update"
-                    ? "Failed to update deal. Please review the details and try again."
-                    : "Failed to delete deal. Please try again.";
+                        ? "Failed to update deal. Please review the details and try again."
+                        : "Failed to delete deal. Please try again.";
             const message = err.response?.data?.detail || defaultMessage;
             toast.error(message);
         } finally {
@@ -485,6 +487,8 @@ export default function AdminDeals() {
     const negotiation = (deals ?? []).filter((d) => d.stage === "NEGOTIATION").length;
     const closedWon = (deals ?? []).filter((d) => d.stage === "CLOSED_WON").length;
     const closedLost = (deals ?? []).filter((d) => d.stage === "CLOSED_LOST").length;
+    const closedCancelled = (deals ?? []).filter((d) => d.stage === "CLOSED_CANCELLED").length;
+
 
     const metricCards = [
         {
@@ -529,6 +533,13 @@ export default function AdminDeals() {
             color: "text-red-600",
             bgColor: "bg-red-100",
         },
+        {
+            title: "Closed Cancelled",
+            value: closedCancelled,
+            icon: FiXCircle,
+            color: "text-red-600",
+            bgColor: "bg-red-100",
+        }
     ];
 
     return (
@@ -540,14 +551,14 @@ export default function AdminDeals() {
                     Deals
                 </h1>
 
-                 <div className="flex justify-center lg:justify-end w-full sm:w-auto">
-                <button
-                    onClick={openNewDealModal}
-        className="flex items-center bg-black text-white px-3 sm:px-4 py-2 lg:my-0 rounded-md hover:bg-gray-800 text-sm sm:text-base mx-auto sm:ml-auto cursor-pointer"
-                >
-                    <FiPlus className="mr-2" /> Add Deal
-                </button>
-            </div>
+                <div className="flex justify-center lg:justify-end w-full sm:w-auto">
+                    <button
+                        onClick={openNewDealModal}
+                        className="flex items-center bg-black text-white px-3 sm:px-4 py-2 lg:my-0 rounded-md hover:bg-gray-800 text-sm sm:text-base mx-auto sm:ml-auto cursor-pointer"
+                    >
+                        <FiPlus className="mr-2" /> Add Deal
+                    </button>
+                </div>
             </div>
 
             <div className="grid grid-cols-1 p-2 sm:grid-cols-3 gap-4 mb-6 w-full break-words overflow-hidden">
@@ -581,6 +592,8 @@ export default function AdminDeals() {
                         <option value="Negotiation Stage">Negotiation</option>
                         <option value="Closed Won Stage">Closed Won</option>
                         <option value="Closed Lost Stage">Closed Lost</option>
+                        <option value="Closed Cancelled Stage">Closed Cancelled</option>
+
                     </select>
                     <select
                         value={ownerFilter}
@@ -624,8 +637,8 @@ export default function AdminDeals() {
                                     }}
                                 >
                                     <td className="py-3 px-4 text-gray-800 font-medium text-sm">
-  {deal.deal_id ? deal.deal_id.replace(/D(\d+)-\d+-/, "D$1-") : "--"}
-</td>
+                                        {deal.deal_id ? deal.deal_id.replace(/D(\d+)-\d+-/, "D$1-") : "--"}
+                                    </td>
 
                                     <td className="py-3 px-4">
                                         <div>
@@ -801,7 +814,7 @@ function MetricCard({
 
     return (
         <div
-className="flex items-center p-4 bg-white rounded-xl shadow-md border border-gray-200 transition-all duration-300"
+            className="flex items-center p-4 bg-white rounded-xl shadow-md border border-gray-200 transition-all duration-300"
             onClick={handleClick}
         >
             <div
@@ -895,8 +908,8 @@ function CreateDealModal({
                         onChange={(e) => setExternalFormData({ ...externalFormData, primary_contact_id: e.target.value })}
                         options={[
                             { value: "", label: "Select Contact (Optional)" },
-                            ...contacts.map(contact => ({ 
-                                value: contact.id.toString(), 
+                            ...contacts.map(contact => ({
+                                value: contact.id.toString(),
                                 label: `${contact.first_name} ${contact.last_name}`.trim() || contact.email
                             }))
                         ]}
@@ -914,6 +927,8 @@ function CreateDealModal({
                             { value: "NEGOTIATION", label: "Negotiation" },
                             { value: "CLOSED_WON", label: "Closed Won" },
                             { value: "CLOSED_LOST", label: "Closed Lost" },
+                            { value: "CLOSED_CANCELLED", label: "Closed Cancelled" },
+
                         ]}
                         disabled={isSubmitting}
                     />
@@ -953,8 +968,8 @@ function CreateDealModal({
                         onChange={(e) => setExternalFormData({ ...externalFormData, assigned_to: e.target.value })}
                         options={[
                             { value: "", label: "Assign To (Optional)" },
-                            ...users.map(user => ({ 
-                                value: user.id.toString(), 
+                            ...users.map(user => ({
+                                value: user.id.toString(),
                                 label: `${user.first_name} ${user.last_name}`.trim() || user.email
                             }))
                         ]}
@@ -989,8 +1004,8 @@ function CreateDealModal({
                             {isSubmitting
                                 ? "Saving..."
                                 : isEditing
-                                ? "Update Deal"
-                                : "Save Deal"}
+                                    ? "Update Deal"
+                                    : "Save Deal"}
                         </button>
                     </div>
                 </form>

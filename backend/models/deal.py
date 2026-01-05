@@ -14,6 +14,7 @@ class DealStage(str, Enum):
     NEGOTIATION = 'NEGOTIATION'
     CLOSED_WON = 'CLOSED_WON'
     CLOSED_LOST = 'CLOSED_LOST'
+    CLOSED_CANCELLED ='CLOSED_CANCELLED'
 
 
 # Mapping probabilities similar to Django's STAGE_PROBABILITY_MAP
@@ -24,6 +25,8 @@ STAGE_PROBABILITY_MAP = {
     DealStage.NEGOTIATION: 80,
     DealStage.CLOSED_WON: 100,
     DealStage.CLOSED_LOST: 0,
+    DealStage.CLOSED_CANCELLED: 0, 
+
 }
 
 

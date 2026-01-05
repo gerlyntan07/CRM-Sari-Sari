@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { HiX } from "react-icons/hi";
-import { FiPhone, FiMail, FiCalendar, FiEdit2, FiTrash2,FiCheckSquare } from "react-icons/fi";
+import { FiPhone, FiMail, FiCalendar, FiEdit2, FiTrash2, FiCheckSquare } from "react-icons/fi";
 import { toast } from "react-toastify";
 import { useNavigate, useParams } from "react-router-dom";
 import api from "../api";
@@ -27,6 +27,8 @@ export default function AdminLeadsInformation({
   const [lead, setLead] = useState(leadProp || null);
   const [activeTab, setActiveTab] = useState("Overview");
   const [selectedStatus, setSelectedStatus] = useState("");
+  const canConvert = lead?.status?.toUpperCase() === "QUALIFIED";
+
 
   const [accountData, setAccountData] = useState({
     name: "",
@@ -140,33 +142,37 @@ export default function AdminLeadsInformation({
       fetchLead();
     }
   }, [leadID, leadProp]);
-
   const updateStatus = async () => {
     try {
+      if (
+        selectedStatus === "Converted" &&
+        lead?.status?.toUpperCase() !== "QUALIFIED"
+      ) {
+        toast.error("Lead must be Qualified before it can be converted.");
+        return;
+      }
+
       const res = await api.put(`/leads/${lead.id}/update/status`, {
         status: selectedStatus,
       });
-      console.log(res.data);
+
       toast.success("Lead status updated successfully");
 
-      // Update the lead state with new status
       const updatedLead = {
         ...lead,
         status: res.data.status,
       };
+
       setLead(updatedLead);
 
-      // Update the parent's selectedLead if setSelectedLead is provided
       if (setSelectedLead) {
         setSelectedLead(updatedLead);
       }
 
-      // Update the parent's leads list in real-time
       if (fetchLeads) {
         fetchLeads();
       }
 
-      // Close the popup
       if (onBack) {
         onBack();
       }
@@ -175,6 +181,7 @@ export default function AdminLeadsInformation({
       toast.error("Failed to update lead status");
     }
   };
+
 
   const handleConvert = async (lead) => {
     const newAccount = {
@@ -281,9 +288,8 @@ export default function AdminLeadsInformation({
       state: {
         openCallModal: true,
         initialCallData: {
-          subject: `Call with ${lead.first_name || ""} ${
-            lead.last_name || ""
-          }`.trim(),
+          subject: `Call with ${lead.first_name || ""} ${lead.last_name || ""
+            }`.trim(),
           phone_number: lead.work_phone || lead.mobile_phone_1 || "",
           assigned_to: lead.assigned_to ? String(lead.assigned_to.id) : "",
           related_type: "Lead",
@@ -326,33 +332,33 @@ export default function AdminLeadsInformation({
     <>
       <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
         {/* MODAL */}
-  <div className="bg-white rounded-xl shadow-lg w-full max-w-full sm:max-w-6xl max-h-[90vh] overflow-y-auto hide-scrollbar relative box-border">
-           
-           {/* TOP SECTION*/}
+        <div className="bg-white rounded-xl shadow-lg w-full max-w-full sm:max-w-6xl max-h-[90vh] overflow-y-auto hide-scrollbar relative box-border">
+
+          {/* TOP SECTION*/}
           <div className="bg-tertiary w-full rounded-t-xl p-3 lg:p-3">
             <div className="flex items-start justify-between w-full">
               <h1 className="lg:text-3xl text-xl text-white font-semibold text-center w-full">
-              Lead
-            </h1>
-            <button
-              onClick={() => {
-                if (onBack) {
-                  onBack();
-                } else {
-                  // Navigate back to previous page (dashboard or leads page)
-                  navigate(-1);
-                }
-              }}
-              className="text-gray-400 hover:text-white mt-1 cursor-pointer">
-              <HiX size={25} />
-            </button>
-          </div>
+                Lead
+              </h1>
+              <button
+                onClick={() => {
+                  if (onBack) {
+                    onBack();
+                  } else {
+                    // Navigate back to previous page (dashboard or leads page)
+                    navigate(-1);
+                  }
+                }}
+                className="text-gray-400 hover:text-white mt-1 cursor-pointer">
+                <HiX size={25} />
+              </button>
+            </div>
           </div>
 
           {/* Header */}
           <div className="flex flex-col md:flex-row md:justify-between lg:flex-row lg:items-center lg:justify-between mt-3 gap-2 px-2 md:items-center lg:gap-4 md:mx-7 lg:mx-7">
-  <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-    <h1 className="text-xl sm:text-2xl font-semibold text-gray-800">
+            <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+              <h1 className="text-xl sm:text-2xl font-semibold text-gray-800">
                 {lead.first_name} {lead.last_name}
               </h1>
               <span
@@ -363,20 +369,26 @@ export default function AdminLeadsInformation({
                 {formatStatusLabel(lead.status || "New")}
               </span>
 
-              <button
-                onClick={() => {
-                  if (lead.status === "Qualified") {
-                    handleConvert(lead);
-                  } else {
-                    toast.warn(
-                      "Cannot convert lead. Only leads with 'Qualified' status can be converted."
-                    );
+              <div className="flex flex-col">
+                <button
+                  onClick={() => handleConvert(lead)}
+                  disabled={!canConvert}
+                  title={
+                    !canConvert
+                      ? "Lead must be Qualified before converting"
+                      : "Convert Lead"
                   }
-                }}
-                className="bg-green-600 hover:bg-green-700 text-white px-3 sm:px-4 py-1.5 sm:py-2 rounded-md font-medium text-xs sm:text-sm transition focus:outline-none focus:ring-2 focus:ring-green-400"
-              >
-                Convert
-              </button>
+                  className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-md font-medium text-xs sm:text-sm transition focus:outline-none focus:ring-2
+      ${canConvert
+                      ? "bg-green-600 hover:bg-green-700 text-white focus:ring-green-400"
+                      : "bg-gray-200 text-gray-400 cursor-not-allowed"
+                    }
+    `}
+                >
+                  Convert
+                </button>
+              </div>
+
             </div>
 
             <div className="flex flex-col sm:flex-row sm:space-x-3 space-y-2 sm:space-y-0">
@@ -410,292 +422,295 @@ export default function AdminLeadsInformation({
 
           {/* TABS */}
           <div className="p-4 lg:p-4">
-          <div className="flex w-full bg-[#6A727D] text-white mt-1 overflow-x-auto mb-6">
-            {["Overview", "Notes", "Activities"].map((tab) => (
-              <button
-                key={tab}
-                onClick={() => setActiveTab(tab)}
-                className={`flex-1 min-w-[90px] px-4 py-2.5 text-xs sm:text-sm font-medium text-center transition-all duration-200 border-b-2
-        ${
-          activeTab === tab
-            ? "bg-paper-white text-[#6A727D] border-white"
-            : "text-white hover:bg-[#5c636d]"
-        }`}
-              >
-                {tab}
-              </button>
-            ))}
-          </div>
+            <div className="flex w-full bg-[#6A727D] text-white mt-1 overflow-x-auto mb-6">
+              {["Overview", "Notes", "Activities"].map((tab) => (
+                <button
+                  key={tab}
+                  onClick={() => setActiveTab(tab)}
+                  className={`flex-1 min-w-[90px] px-4 py-2.5 text-xs sm:text-sm font-medium text-center transition-all duration-200 border-b-2
+        ${activeTab === tab
+                      ? "bg-paper-white text-[#6A727D] border-white"
+                      : "text-white hover:bg-[#5c636d]"
+                    }`}
+                >
+                  {tab}
+                </button>
+              ))}
+            </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 items-start">
-            {/* ------- TAB CONTENT ------ */}
-            <div className="lg:col-span-3">
-              {activeTab === "Overview" && (
-                <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6 md:p-8 border border-gray-200">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-4 sm:gap-6 text-sm text-gray-700">
-                    <div>
-                      <p className="font-semibold">Name:</p>
-                      <p>
-                        {lead.first_name} {lead.last_name || "N/A"}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="font-semibold">Company:</p>
-                      <p>{lead.company_name || "N/A"}</p>
-                    </div>
-                    <div>
-                      <p className="font-semibold">Title:</p>
-                      <p>{lead.title || "N/A"}</p>
-                    </div>
-                    <div>
-                      <p className="font-semibold">Department:</p>
-                      <p>{lead.department || "N/A"}</p>
-                    </div>
-                    <div>
-                      <p className="font-semibold">Email:</p>
-                      <p>{lead.email || "N/A"}</p>
-                    </div>
-                    <div>
-                      <p className="font-semibold">Territory:</p>
-                      <p>{lead.territory?.name || "N/A"}</p>
-                    </div>
-                    <div>
-                      <p className="font-semibold">Assigned To:</p>
-                      <p>
-                        {lead.assigned_to
-                          ? `${lead.assigned_to.first_name} ${lead.assigned_to.last_name}`
-                          : "N/A"}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="font-semibold">Created By:</p>
-                      <p>
-                        {lead.creator
-                          ? `${lead.creator.first_name} ${lead.creator.last_name}`
-                          : "N/A"}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="font-semibold">Work Phone:</p>
-                      <p>{lead.work_phone || "N/A"}</p>
-                    </div>
-                    <div>
-                      <p className="font-semibold">Mobile Phone 1:</p>
-                      <p>{lead.mobile_phone_1 || "N/A"}</p>
-                    </div>
-                    <div>
-                      <p className="font-semibold">Mobile Phone 2:</p>
-                      <p>{lead.mobile_phone_2 || "N/A"}</p>
-                    </div>
-                    <div>
-                      <p className="font-semibold">Source:</p>
-                      <p>{lead.source || "N/A"}</p>
-                    </div>
-                    <div>
-                      <p className="font-semibold">Address:</p>
-                      <p>{lead.address || "N/A"}</p>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* ------- Notes ------ */}
-              {activeTab === "Notes" && (
-                <div className="mt-4 w-full">
-                  <div className="flex flex-wrap items-center justify-between mb-4 gap-2">
-                    <h3 className="text-lg font-semibold text-gray-800 break-words">
-                      Lead Note
-                    </h3>
-                  </div>
-
-                  <div className="bg-white border border-gray-100 rounded-lg p-4 shadow-sm break-words">
-                    <div className="flex items-start justify-between">
+            <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 items-start">
+              {/* ------- TAB CONTENT ------ */}
+              <div className="lg:col-span-3">
+                {activeTab === "Overview" && (
+                  <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6 md:p-8 border border-gray-200">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-4 sm:gap-6 text-sm text-gray-700">
                       <div>
-                        <p className="text-sm font-medium text-gray-800 break-words">
-                          Note
+                        <p className="font-semibold">Name:</p>
+                        <p>
+                          {lead.first_name} {lead.last_name || "N/A"}
                         </p>
                       </div>
-                    </div>
-                    <div className="mt-3 text-sm text-gray-700 whitespace-pre-wrap break-words">
-                      {lead.notes || "No notes available."}
+                      <div>
+                        <p className="font-semibold">Company:</p>
+                        <p>{lead.company_name || "N/A"}</p>
+                      </div>
+                      <div>
+                        <p className="font-semibold">Title:</p>
+                        <p>{lead.title || "N/A"}</p>
+                      </div>
+                      <div>
+                        <p className="font-semibold">Department:</p>
+                        <p>{lead.department || "N/A"}</p>
+                      </div>
+                      <div>
+                        <p className="font-semibold">Email:</p>
+                        <p>{lead.email || "N/A"}</p>
+                      </div>
+                      <div>
+                        <p className="font-semibold">Territory:</p>
+                        <p>{lead.territory?.name || "N/A"}</p>
+                      </div>
+                      <div>
+                        <p className="font-semibold">Assigned To:</p>
+                        <p>
+                          {lead.assigned_to
+                            ? `${lead.assigned_to.first_name} ${lead.assigned_to.last_name}`
+                            : "N/A"}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="font-semibold">Created By:</p>
+                        <p>
+                          {lead.creator
+                            ? `${lead.creator.first_name} ${lead.creator.last_name}`
+                            : "N/A"}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="font-semibold">Work Phone:</p>
+                        <p>{lead.work_phone || "N/A"}</p>
+                      </div>
+                      <div>
+                        <p className="font-semibold">Mobile Phone 1:</p>
+                        <p>{lead.mobile_phone_1 || "N/A"}</p>
+                      </div>
+                      <div>
+                        <p className="font-semibold">Mobile Phone 2:</p>
+                        <p>{lead.mobile_phone_2 || "N/A"}</p>
+                      </div>
+                      <div>
+                        <p className="font-semibold">Source:</p>
+                        <p>{lead.source || "N/A"}</p>
+                      </div>
+                      <div>
+                        <p className="font-semibold">Address:</p>
+                        <p>{lead.address || "N/A"}</p>
+                      </div>
                     </div>
                   </div>
-                </div>
-              )}
+                )}
 
-              {/* ACTIVITIES */}
-              {activeTab === "Activities" && (
-                <div className="mt-4 space-y-4 w-full">
-                  <h3 className="text-lg font-semibold text-gray-800 break-words">
-                    Recent Activities
-                  </h3>
+                {/* ------- Notes ------ */}
+                {activeTab === "Notes" && (
+                  <div className="mt-4 w-full">
+                    <div className="flex flex-wrap items-center justify-between mb-4 gap-2">
+                      <h3 className="text-lg font-semibold text-gray-800 break-words">
+                        Lead Note
+                      </h3>
+                    </div>
 
-                  {[
-                    {
-                      icon: FiPhone,
-                      title: "Schedule Call",
-                      desc: "Discuss implementation timeline and pricing",
-                      user: "Lester James",
-                      date: "December 12, 2025 at 8:00 AM",
-                    },
-                    {
-                      icon: FiCalendar,
-                      title: "Meeting regarding Enterprise Software License",
-                      desc: "Discuss implementation timeline and pricing",
-                      user: "Lester James",
-                      date: "December 12, 2025 at 8:00 AM",
-                    },
-                  ].map((act, idx) => (
-                    <div
-                      key={idx}
-                      className="flex flex-col sm:flex-row justify-between items-start border border-gray-200 rounded-lg p-4 shadow-sm bg-white w-full break-words"
-                    >
-                      <div className="flex gap-4 mb-2 sm:mb-0 flex-1 min-w-0">
-                        <div className="text-gray-600 mt-1">
-                          <act.icon size={24} />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <h4 className="font-medium text-gray-900 break-words">
-                            {act.title}
-                          </h4>
-                          <p className="text-sm text-gray-500 break-words">
-                            {act.desc}
+                    <div className="bg-white border border-gray-100 rounded-lg p-4 shadow-sm break-words">
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <p className="text-sm font-medium text-gray-800 break-words">
+                            Note
                           </p>
-                          <div className="flex items-center gap-2 mt-2">
-                            <div className="w-7 h-7 rounded-full bg-gray-200 shrink-0"></div>
-                            <p className="text-sm text-gray-700 break-words">
-                              {act.user}
-                            </p>
-                          </div>
                         </div>
                       </div>
-                      <p className="text-sm text-gray-500 break-words">
-                        {act.date}
-                      </p>
+                      <div className="mt-3 text-sm text-gray-700 whitespace-pre-wrap break-words">
+                        {lead.notes || "No notes available."}
+                      </div>
                     </div>
-                  ))}
-                </div>
-              )}
-            </div>
+                  </div>
+                )}
 
-            <div className="flex flex-col gap-4">
-              {/* QUICK ACTIONS */}
-              <div className="bg-white border border-gray-100 rounded-lg p-3 sm:p-4 shadow-sm">
-                <h4 className="font-semibold text-gray-800 mb-2 text-sm">
-                  Quick Actions
-                </h4>
-            
-                <div className="flex flex-col gap-2 w-full">
-            
-                  {/* --- SCHEDULE CALL BUTTON (updated) --- */}
-                  <button
-                    onClick={() =>
-                      navigate("/admin/calls", {
-                        state: {
-                          openCallModal: true,      // <-- this triggers your form
-                          initialCallData: {
-                            relatedType1: "Lead", // <-- your custom default
-                          },
-                        },
-                      })
-                    }
-                    className="flex items-center gap-2 border border-gray-100 rounded-md py-1.5 px-2 sm:px-3 hover:bg-gray-50 transition text-sm"
-                  >
-                    <FiPhone className="text-gray-600 w-4 h-4" />
-                    Schedule Call
-                  </button>
-            
-    <button
-  type="button"
-  onClick={() => {
-    if (!lead?.email) {
-      alert("No email address available");
-      return;
-    }
+                {/* ACTIVITIES */}
+                {activeTab === "Activities" && (
+                  <div className="mt-4 space-y-4 w-full">
+                    <h3 className="text-lg font-semibold text-gray-800 break-words">
+                      Recent Activities
+                    </h3>
 
-    const to = encodeURIComponent(lead.email);
-    const subject = encodeURIComponent("");
-    const body = encodeURIComponent("");
-
-    // Gmail web compose URL
-    const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${to}&su=${subject}&body=${body}`;
-
-    // Open Gmail in a new tab
-    window.open(gmailUrl, "_blank");
-  }}
-  className="flex items-center gap-2 border border-gray-100 rounded-md py-1.5 px-2 sm:px-3 hover:bg-gray-50 transition text-sm"
->
-  <FiMail className="text-gray-600 w-4 h-4" />
-  Send E-mail
-</button>
-
-           
-                 <button
-                    className="flex items-center gap-2 border border-gray-100 rounded-md py-1.5 px-2 sm:px-3 hover:bg-gray-50 transition text-sm"
-                    onClick={() =>
-                      navigate("/admin/meetings", {
-                        state: {
-                          openMeetingModal: true,
-                          initialMeetingData: {
-                            relatedType: "Lead",
-                          },
-                        },
-                      })
-                    }
-                  >
-                    <FiCalendar className="text-gray-600 w-4 h-4" />
-                    Book Meeting
-                  </button>
-
-                  <button
-                  onClick={() =>
-                    navigate("/admin/tasks", {
-                      state: {
-                        openTaskModal: true,
-                        initialTaskData: {
-                          relatedTo: "Lead",
-                        },
+                    {[
+                      {
+                        icon: FiPhone,
+                        title: "Schedule Call",
+                        desc: "Discuss implementation timeline and pricing",
+                        user: "Lester James",
+                        date: "December 12, 2025 at 8:00 AM",
                       },
-                    })
-                  }
-                  className="flex items-center gap-2 border border-gray-100 rounded-md py-1.5 px-2 sm:px-3 hover:bg-gray-50 transition text-sm"
-                >
-                  <FiCheckSquare className="text-gray-600 w-4 h-4" />
-                   Tasks
-                  </button>
-                </div>
+                      {
+                        icon: FiCalendar,
+                        title: "Meeting regarding Enterprise Software License",
+                        desc: "Discuss implementation timeline and pricing",
+                        user: "Lester James",
+                        date: "December 12, 2025 at 8:00 AM",
+                      },
+                    ].map((act, idx) => (
+                      <div
+                        key={idx}
+                        className="flex flex-col sm:flex-row justify-between items-start border border-gray-200 rounded-lg p-4 shadow-sm bg-white w-full break-words"
+                      >
+                        <div className="flex gap-4 mb-2 sm:mb-0 flex-1 min-w-0">
+                          <div className="text-gray-600 mt-1">
+                            <act.icon size={24} />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <h4 className="font-medium text-gray-900 break-words">
+                              {act.title}
+                            </h4>
+                            <p className="text-sm text-gray-500 break-words">
+                              {act.desc}
+                            </p>
+                            <div className="flex items-center gap-2 mt-2">
+                              <div className="w-7 h-7 rounded-full bg-gray-200 shrink-0"></div>
+                              <p className="text-sm text-gray-700 break-words">
+                                {act.user}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                        <p className="text-sm text-gray-500 break-words">
+                          {act.date}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
 
-              {/* STATUS */}
-              <div className="bg-white border border-gray-100 rounded-lg p-3 sm:p-4 shadow-sm w-full">
-                <h4 className="font-semibold text-gray-800 mb-2 text-sm">
-                  Status
-                </h4>
-                <select
-                  className="border border-gray-200 rounded-md px-2 sm:px-3 py-1.5 w-full text-sm mb-2 focus:ring-2 focus:ring-indigo-500 outline-none"
-                  value={selectedStatus}
-                  onChange={(e) => setSelectedStatus(e.target.value)}
-                >
-                  <option value="New">New</option>
-                  <option value="Contacted">Contacted</option>
-                  <option value="Qualified">Qualified</option>
-                  <option value="Converted">Converted</option>
-                  <option value="Lost">Lost</option>
-                </select>
+              <div className="flex flex-col gap-4">
+                {/* QUICK ACTIONS */}
+                <div className="bg-white border border-gray-100 rounded-lg p-3 sm:p-4 shadow-sm">
+                  <h4 className="font-semibold text-gray-800 mb-2 text-sm">
+                    Quick Actions
+                  </h4>
 
-                <button
-                  onClick={updateStatus}
-                  disabled={selectedStatus === lead.status}
-                  className={`w-full py-1.5 rounded-md text-sm transition focus:outline-none focus:ring-2 ${
-                    selectedStatus === lead.status
+                  <div className="flex flex-col gap-2 w-full">
+
+                    {/* --- SCHEDULE CALL BUTTON (updated) --- */}
+                    <button
+                      onClick={() =>
+                        navigate("/admin/calls", {
+                          state: {
+                            openCallModal: true,      // <-- this triggers your form
+                            initialCallData: {
+                              relatedType1: "Lead", // <-- your custom default
+                            },
+                          },
+                        })
+                      }
+                      className="flex items-center gap-2 border border-gray-100 rounded-md py-1.5 px-2 sm:px-3 hover:bg-gray-50 transition text-sm"
+                    >
+                      <FiPhone className="text-gray-600 w-4 h-4" />
+                      Schedule Call
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (!lead?.email) {
+                          alert("No email address available");
+                          return;
+                        }
+
+                        const to = encodeURIComponent(lead.email);
+                        const subject = encodeURIComponent("");
+                        const body = encodeURIComponent("");
+
+                        // Gmail web compose URL
+                        const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${to}&su=${subject}&body=${body}`;
+
+                        // Open Gmail in a new tab
+                        window.open(gmailUrl, "_blank");
+                      }}
+                      className="flex items-center gap-2 border border-gray-100 rounded-md py-1.5 px-2 sm:px-3 hover:bg-gray-50 transition text-sm"
+                    >
+                      <FiMail className="text-gray-600 w-4 h-4" />
+                      Send E-mail
+                    </button>
+
+
+                    <button
+                      className="flex items-center gap-2 border border-gray-100 rounded-md py-1.5 px-2 sm:px-3 hover:bg-gray-50 transition text-sm"
+                      onClick={() =>
+                        navigate("/admin/meetings", {
+                          state: {
+                            openMeetingModal: true,
+                            initialMeetingData: {
+                              relatedType: "Lead",
+                            },
+                          },
+                        })
+                      }
+                    >
+                      <FiCalendar className="text-gray-600 w-4 h-4" />
+                      Book Meeting
+                    </button>
+
+                    <button
+                      onClick={() =>
+                        navigate("/admin/tasks", {
+                          state: {
+                            openTaskModal: true,
+                            initialTaskData: {
+                              relatedTo: "Lead",
+                            },
+                          },
+                        })
+                      }
+                      className="flex items-center gap-2 border border-gray-100 rounded-md py-1.5 px-2 sm:px-3 hover:bg-gray-50 transition text-sm"
+                    >
+                      <FiCheckSquare className="text-gray-600 w-4 h-4" />
+                      Tasks
+                    </button>
+                  </div>
+                </div>
+
+                {/* STATUS */}
+                <div className="bg-white border border-gray-100 rounded-lg p-3 sm:p-4 shadow-sm w-full">
+                  <h4 className="font-semibold text-gray-800 mb-2 text-sm">
+                    Status
+                  </h4>
+                  <select
+                    className="border border-gray-200 rounded-md px-2 sm:px-3 py-1.5 w-full text-sm mb-2 focus:ring-2 focus:ring-indigo-500 outline-none"
+                    value={selectedStatus}
+                    onChange={(e) => setSelectedStatus(e.target.value)}
+                  >
+                    <option value="New">New</option>
+                    <option value="Contacted">Contacted</option>
+                    <option value="Qualified">Qualified</option>
+
+                    {lead?.status?.toUpperCase() === "QUALIFIED" && (
+                      <option value="Converted">Converted</option>
+                    )}
+
+                    <option value="Lost">Lost</option>
+
+                  </select>
+
+                  <button
+                    onClick={updateStatus}
+                    disabled={selectedStatus === lead.status}
+                    className={`w-full py-1.5 rounded-md text-sm transition focus:outline-none focus:ring-2 ${selectedStatus === lead.status
                       ? "bg-gray-400 cursor-not-allowed text-white"
                       : "bg-gray-900 text-white hover:bg-gray-800 focus:ring-gray-400"
-                  }`}
-                >
-                  Update
-                </button>
+                      }`}
+                  >
+                    Update
+                  </button>
+                </div>
               </div>
-            </div>
             </div>
           </div>
         </div>

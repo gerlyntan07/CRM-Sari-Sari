@@ -156,6 +156,16 @@ const formatDealId = (dealId) => {
   return String(dealId);
 };
 
+const formatQuoteId = (quoteId) => {
+  if (!quoteId) return "";
+  // Convert D25-1-00001 to D25-00001 (remove middle company ID)
+  const parts = String(quoteId).split("-");
+  if (parts.length === 3) {
+    return `${parts[0]}-${parts[2]}`;
+  }
+  return String(quoteId);
+};
+
 // --------- Current user id helpers ----------
 const tryExtractUserId = (obj) => {
   if (!obj) return null;
@@ -1093,7 +1103,7 @@ export default function AdminQuotes() {
                     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-4 sm:gap-6 text-sm text-gray-700">
                       <div>
                         <p className="font-semibold">Quote ID:</p>
-                        <p>{selectedQuote.quote_id || "N/A"}</p>
+                        <p>{formatQuoteId(selectedQuote.quote_id) || "N/A"}</p>
                       </div>
 
                       <div>
@@ -1385,7 +1395,7 @@ export default function AdminQuotes() {
                   >
                     <td className="py-3 px-4 align-top">
                       <div className="font-medium text-blue-600 hover:underline whitespace-nowrap">
-                        {quote.quote_id || "--"}
+                        {formatQuoteId(quote.quote_id) || "--"}
                       </div>
                     </td>
 

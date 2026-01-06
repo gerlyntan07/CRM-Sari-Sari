@@ -65,7 +65,7 @@ const AdminMeetingInfomation = ({ meeting, onClose, onEdit, onDelete, onStatusUp
     <>
       <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
         {/* MODAL */}
-          <div className="bg-white rounded-xl shadow-lg w-full max-w-full sm:max-w-6xl max-h-[90vh] overflow-y-auto hide-scrollbar relative box-border">
+          <div className="bg-white rounded-xl shadow-lg w-full max-w-full lg:max-w-4xl max-h-[95vh] overflow-y-auto hide-scrollbar relative box-border">
         {/* TOP SECTION */}
         <div className="bg-tertiary w-full rounded-t-xl p-3 lg:p-3 relative">
           <h1 className="lg:text-3xl text-xl text-white font-semibold text-center w-full">
@@ -131,7 +131,7 @@ const AdminMeetingInfomation = ({ meeting, onClose, onEdit, onDelete, onStatusUp
           {/* TABS */}
            <div className="p-6 lg:p-4">
           <div className="flex w-full bg-[#6A727D] text-white mt-1 overflow-x-auto mb-6">
-            {["Overview", "Notes", "Activities"].map((tab) => (
+            {["Overview", "Notes"].map((tab) => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
@@ -267,70 +267,6 @@ const AdminMeetingInfomation = ({ meeting, onClose, onEdit, onDelete, onStatusUp
                           )}
                         </div>
 
-              <div className="flex flex-col gap-4">
-                     {/* QUICK ACTIONS */}
-                     <div className="bg-white border border-gray-100 rounded-lg p-3 sm:p-4 shadow-sm">
-                       <h4 className="font-semibold text-gray-800 mb-2 text-sm">
-                         Quick Actions
-                       </h4>
-                   
-                       <div className="flex flex-col gap-2 w-full">
-                   
-                      
-                         <button
-                           onClick={() =>
-                             navigate("/admin/calls", {
-                               state: {
-                                 openCallModal: true,      // <-- this triggers your form
-                                 initialCallData: {
-                                   relatedType1: "Meeting", // <-- your custom default
-                                 },
-                               },
-                             })
-                           }
-                           className="flex items-center gap-2 border border-gray-100 rounded-md py-1.5 px-2 sm:px-3 hover:bg-gray-50 transition text-sm"
-                         >
-                           <FiPhone className="text-gray-600 w-4 h-4" />
-                           Schedule Call
-                         </button>
-                   
-                   
-                         <button
-                    className="flex items-center gap-2 border border-gray-100 rounded-md py-1.5 px-2 sm:px-3 hover:bg-gray-50 transition text-sm"
-                    onClick={() =>
-                      navigate("/admin/meetings", {
-                        state: {
-                          openMeetingModal: true,
-                          initialMeetingData: {
-                            relatedType: "Meeting",
-                          },
-                        },
-                      })
-                    }
-                  >
-                    <FiCalendar className="text-gray-600 w-4 h-4" />
-                    Book Meeting
-                  </button>
-
-                           <button
-                        onClick={() =>
-                          navigate("/admin/tasks", {
-                            state: {
-                              openTaskModal: true,
-                              initialTaskData: {
-                                relatedTo: "Meeting",
-                              },
-                            },
-                          })
-                        }
-                        className="flex items-center gap-2 border border-gray-100 rounded-md py-1.5 px-2 sm:px-3 hover:bg-gray-50 transition text-sm"
-                      >
-                        <FiCheckSquare className="text-gray-600 w-4 h-4" />
-                        Tasks
-                      </button>
-                       </div>
-                     </div>
-
               {/* STATUS */}
               <div className="bg-white border border-gray-100 rounded-lg p-3 sm:p-4 shadow-sm w-full">
                 <h4 className="font-semibold text-gray-800 mb-2 text-sm">
@@ -374,7 +310,6 @@ const AdminMeetingInfomation = ({ meeting, onClose, onEdit, onDelete, onStatusUp
             </div>
           </div>
         </div>
-      </div>
       </div>
     </>
   );

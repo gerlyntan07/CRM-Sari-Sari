@@ -160,11 +160,11 @@ export default function ManagerHeader({ toggleSidebar }) {
                   <h2 className="text-gray-800 font-semibold text-sm">
                     {user?.first_name} {user?.middle_name} {user?.last_name}
                   </h2>
-                  <p className="text-[10px] text-gray-500 uppercase tracking-wider font-bold">Manager</p>
+                 <p className="text-[11px] text-gray-600 font-light w-full truncate">Manager</p>
                 </div>
               </div>
 
-              <div className="mt-4 space-y-1 px-2">
+              <div className="mt-6 space-y-1 px-2">
                 <button 
                   onClick={() => { navigate("/manager/users"); setOpen(false); }}
                   className="block w-full text-sm text-gray-700 hover:bg-gray-50 p-2 rounded text-left transition"

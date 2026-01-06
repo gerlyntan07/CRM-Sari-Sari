@@ -222,7 +222,7 @@ export default function TaskModal({
     onClick={onClose}
   >
     <div
-      className="bg-white rounded-xl shadow-xl w-full max-w-4xl max-h-[92vh] overflow-y-auto hide-scrollbar font-manrope relative"
+      className="bg-white rounded-xl shadow-lg w-full max-w-full lg:max-w-4xl max-h-[90vh] overflow-y-auto hide-scrollbar font-manrope relative"
       onClick={(e) => e.stopPropagation()}
     >
       {/* 🔵 Top Header */}
@@ -271,13 +271,13 @@ export default function TaskModal({
       <div className="border-b border-gray-200 my-5"></div>
 
       {/* Overview Content */}
-      <div className="p-4 lg:p-6">
+      <div className="p-4">
         <div className="flex w-full bg-[#6A727D] text-white overflow-x-auto">
           <button className="flex-1 min-w-[90px] px-4 py-2 lg:text-lg text-sm font-medium text-center text-white">
             Overview
           </button>
         </div>
-        <div className="bg-white rounded-xl shadow-sm sm:p-6 lg:p-5 border border-gray-200 text-sm text-gray-700">
+        <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6 lg:p-5 border border-gray-200 text-sm text-gray-700">
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-2 gap-4 sm:gap-6">
             <div>
               <p className="font-semibold">Title:</p>

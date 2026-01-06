@@ -159,12 +159,17 @@ export default function AdminHeader({ toggleSidebar }) {
                   alt="Profile"
                   className="w-16 h-16 rounded-full object-cover"
                 />
+                 <div>
                 <h2 className="text-gray-800 font-semibold text-sm">
                   {user?.first_name} {user?.middle_name} {user?.last_name}
                 </h2>
+                  <p className="text-[11px] text-gray-600 font-light w-full truncate">
+                    Admin
+               </p>
+              </div>
               </div>
 
-              <div className="mt-4 space-y-1 px-4 text-left">
+              <div className="mt-6 space-y-1 px-4 text-left">
                 <button 
                   onClick={() => { navigate("/admin/users"); setOpen(false); }}
                   className="block w-full text-sm text-gray-700 hover:bg-gray-50 py-1 rounded text-left"

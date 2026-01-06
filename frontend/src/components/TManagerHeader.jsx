@@ -121,13 +121,18 @@ export default function AdminHeader({ toggleSidebar }) {
                 />
 
                 {/* Name */}
+                <div>
                 <h2 className="text-gray-800 font-semibold text-sm">
                   {user?.first_name} {user?.middle_name} {user?.last_name}
                 </h2>
+                <p className="text-[11px] text-gray-600 font-light w-full truncate">
+                    Group Manager
+               </p>
+              </div>
               </div>
 
               {/* Menu Options */}
-              <div className="mt-4 space-y-1 px-4 text-left">
+              <div className="mt-6 space-y-1 px-4 text-left">
                 <button 
                 onClick={() => {
                     navigate("/group-manager/users");

@@ -451,7 +451,7 @@ export default function AdminCalls() {
     >
       {callsLoading && <LoadingSpinner message="Loading call details..." />}
 
-      <div className="bg-white rounded-xl shadow-lg w-full max-w-full sm:max-w-6xl max-h-[90vh] overflow-y-auto hide-scrollbar relative box-border">
+      <div className="bg-white rounded-xl shadow-lg w-full max-w-full lg:max-w-4xl max-h-[95vh] overflow-y-auto hide-scrollbar relative box-border">
         <div className="bg-tertiary w-full rounded-t-xl p-3 lg:p-3 relative">
           <h1 className="lg:text-3xl text-xl text-white font-semibold text-center w-full">Calls</h1>
           <button
@@ -579,7 +579,7 @@ export default function AdminCalls() {
 
         <div className="p-6 lg:p-4">
           <div className="flex w-full bg-[#6A727D] text-white mt-1 overflow-x-auto mb-6">
-            {["Overview", "Notes", "Activities"].map((tab) => (
+            {["Overview", "Notes"].map((tab) => (
               <button
                 key={tab}
                 className={`flex-1 min-w-[90px] px-4 py-2.5 text-xs sm:text-sm font-medium border-b-2 ${
@@ -638,52 +638,6 @@ export default function AdminCalls() {
               )}
             </div>
 
-            <div className="flex flex-col gap-4">
-              <div className="bg-white border border-gray-100 rounded-lg p-3 sm:p-4 shadow-sm">
-                <h4 className="font-semibold text-gray-800 mb-2 text-sm">Quick Actions</h4>
-
-                <div className="flex flex-col gap-2 w-full">
-                  <button
-                    onClick={() =>
-                      navigate("/admin/calls", {
-                        state: {
-                          openCallModal: true,
-                          initialCallData: {
-                            relatedType1: "Calls",
-                          },
-                        },
-                      })
-                    }
-                    className="flex items-center gap-2 border border-gray-100 rounded-md py-1.5 px-2 sm:px-3 hover:bg-gray-50 transition text-sm"
-                  >
-                    <FiPhone className="text-gray-600 w-4 h-4" />
-                    Schedule Call
-                  </button>
-
-                  <button
-                    className="flex items-center gap-2 border border-gray-100 rounded-md py-1.5 px-2 sm:px-3 hover:bg-gray-50 transition text-sm"
-                    onClick={() =>
-                      navigate("/admin/meetings", {
-                        state: {
-                          openMeetingModal: true,
-                          initialMeetingData: {
-                            relatedType: "Calls",
-                          },
-                        },
-                      })
-                    }
-                  >
-                    <FiCalendar className="text-gray-600 w-4 h-4" />
-                    Book Meeting
-                  </button>
-
-                  <button className="flex items-center gap-2 border border-gray-100 rounded-md py-1.5 px-2 sm:px-3 hover:bg-gray-50 transition text-sm">
-                    <FiCheckSquare className="text-gray-600 w-4 h-4" />
-                    Tasks
-                  </button>
-                </div>
-              </div>
-
               <div className="bg-white border border-gray-100 rounded-lg p-3 sm:p-4 shadow-sm w-full">
                 <h4 className="font-semibold text-gray-800 mb-2 text-sm">Status</h4>
                 <select
@@ -707,7 +661,6 @@ export default function AdminCalls() {
           </div>
         </div>
       </div>
-    </div>
   ) : null;
 
   // --- Form Modal ---

@@ -61,7 +61,11 @@ export default function ManagerPanel() {
       >
         {/* Logo */}
         <div className="px-4 py-3 bg-[#fbbf24] leading-none">
-          <p className="text-gray-900 font-bold text-lg m-0 p-0">Manager CRM</p>
+          <p className="text-gray-900 font-bold text-lg m-0 p-0"> Sari-Sari.CRM{" "}
+          <span className="text-[12px] text-gray-700 font-medium align-bottom">
+            v2
+          </span>
+        </p>
           {user && user.company && (
             <p className="text-[12px] text-gray-600 font-medium w-full truncate">
               {user.company.company_name}

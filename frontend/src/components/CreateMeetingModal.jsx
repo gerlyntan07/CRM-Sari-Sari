@@ -14,10 +14,24 @@ const CreateMeetingModal = ({
   users = [],
 }) => {
   // Internal state if external is not provided
+  const getDefaultTimes = () => {
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    const date = String(today.getDate()).padStart(2, '0');
+    
+    return {
+      startTime: `${year}-${month}-${date}T08:00`,
+      endTime: `${year}-${month}-${date}T09:00`,
+    };
+  };
+
+  const defaultTimes = getDefaultTimes();
+  
   const [internalFormData, setInternalFormData] = useState({
     subject: "",
-    startTime: "",
-    endTime: "",
+    startTime: defaultTimes.startTime,
+    endTime: defaultTimes.endTime,
     location: "",
     status: "Planned",
     notes: "",
@@ -31,6 +45,19 @@ const CreateMeetingModal = ({
   // State for dynamic dropdown options
   const [relatedTo1Values, setRelatedTo1Values] = useState([]);
   const [relatedTo2Values, setRelatedTo2Values] = useState([]);
+
+  // Ensure external form data has default times if empty
+  useEffect(() => {
+    if (externalFormData !== undefined && setExternalFormData) {
+      if (!externalFormData.startTime || !externalFormData.endTime) {
+        setExternalFormData((prev) => ({
+          ...prev,
+          startTime: prev.startTime || defaultTimes.startTime,
+          endTime: prev.endTime || defaultTimes.endTime,
+        }));
+      }
+    }
+  }, []);
 
   const formData = externalFormData !== undefined ? externalFormData : internalFormData;
   const setFormData = setExternalFormData || setInternalFormData;

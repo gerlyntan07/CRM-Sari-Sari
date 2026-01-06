@@ -117,9 +117,17 @@ export default function AdminCalls() {
   const location = useLocation();
 
   // Form State
+  const getDefaultCallTime = () => {
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    const date = String(today.getDate()).padStart(2, '0');
+    return `${year}-${month}-${date}T08:00`;
+  };
+
   const INITIAL_FORM_STATE = {
     subject: "",
-    call_time: "",
+    call_time: getDefaultCallTime(),
     duration_minutes: "",
     direction: "Outgoing",
     status: "Planned",

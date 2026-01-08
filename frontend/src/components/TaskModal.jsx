@@ -278,7 +278,7 @@ export default function TaskModal({
           </button>
         </div>
         <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6 lg:p-5 border border-gray-200 text-sm text-gray-700">
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-2 gap-4 sm:gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
             <div>
               <p className="font-semibold">Title:</p>
               <p>{formData.subject || "—"}</p>

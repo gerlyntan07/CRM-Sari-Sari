@@ -138,12 +138,13 @@ const Login = () => {
       const user = jwtDecode(response.credential);      
 
       // Send the ID token to backend for verification
-      const res = await api.post("/auth/google", { id_token: response.credential });
+      const res = await api.post("/auth/google/login", { id_token: response.credential });
 
       login(res.data); // use your existing login hook    
     } catch (error) {
       console.error("Google login failed:", error);
-      setLoginErr("Google login failed. Please try again.");
+      const errorDetail = error.response?.data?.detail || "Google login failed. Please try again.";
+      setLoginErr(errorDetail);
     } finally {
       setIsLoading(false);
     }

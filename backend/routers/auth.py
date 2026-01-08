@@ -55,7 +55,7 @@ def emailcheck(user: EmailCheck, response: Response, db: Session = Depends(get_d
     if db_user:
         raise HTTPException(status_code=400, detail="Account with this email already exists. Please enter another email.")
     else:
-        return JSONResponse(content={"detail": "No existing email"})    
+        return JSONResponse(content={"detail": "No existing email"})
 
 # Manual signup
 @router.post("/signup", response_model=UserResponse)
@@ -135,7 +135,7 @@ def login(user: UserLogin, response: Response, db: Session = Depends(get_db)):
     return db_user
 
 # Google OAuth login
-@router.post("/google", response_model=UserResponse)
+@router.post("/google/login", response_model=UserResponse)
 def google_login(token: dict, response: Response, db: Session = Depends(get_db)):
     id_token = token.get("id_token")
     company_id = token.get("company_id")
@@ -152,6 +152,69 @@ def google_login(token: dict, response: Response, db: Session = Depends(get_db))
     first_name = user_info.get("given_name", "")
     last_name = user_info.get("family_name", "")
     picture = user_info.get("picture")  # 👈 fetch Google profile picture
+
+    db_user = db.query(User).filter(User.email == email).first()
+    if not db_user:
+        raise HTTPException(status_code=400, detail="No account found. Please sign up first.")
+
+    db_user = db.query(User).filter(User.email == email).first()
+    if not db_user:
+        db_user = User(
+            first_name=first_name,
+            last_name=last_name,
+            email=email,
+            profile_picture=picture,   # 👈 save picture
+            auth_provider="google",
+            hashed_password=None,
+            related_to_company=company_id,
+        )
+        db.add(db_user)
+        db.commit()
+        db.refresh(db_user)
+    
+    # Check if user is active
+    if not db_user.is_active:
+        raise HTTPException(status_code=403, detail="Your account has been deactivated. Please contact your administrator.")
+
+    token = create_access_token({"sub": str(db_user.id)})
+
+    cookie_secure = os.getenv("COOKIE_SECURE", "False") == "True"
+    samesite_mode = os.getenv("COOKIE_SAMESITE", "lax")  
+
+    response.set_cookie(
+        key="access_token",
+        value=token,
+        httponly=True,
+        samesite=samesite_mode,
+        secure=cookie_secure,
+        max_age=60 * 60 * 24 * 7,
+        path="/"
+    )
+
+    return db_user
+
+# Google OAuth signup
+@router.post("/google/signup", response_model=UserResponse)
+def google_signup(token: dict, response: Response, db: Session = Depends(get_db)):
+    id_token = token.get("id_token")
+    company_id = token.get("company_id")
+    if not id_token:
+        raise HTTPException(status_code=400, detail="No id_token provided")
+
+    google_verify_url = f"https://oauth2.googleapis.com/tokeninfo?id_token={id_token}"
+    res = requests.get(google_verify_url)
+    if res.status_code != 200:
+        raise HTTPException(status_code=400, detail="Invalid Google token")
+
+    user_info = res.json()
+    email = user_info["email"]
+    first_name = user_info.get("given_name", "")
+    last_name = user_info.get("family_name", "")
+    picture = user_info.get("picture")  # 👈 fetch Google profile picture
+
+    db_user = db.query(User).filter(User.email == email).first()
+    if db_user:
+        raise HTTPException(status_code=400, detail="Email already exists. Please enter another.")
 
     db_user = db.query(User).filter(User.email == email).first()
     if not db_user:

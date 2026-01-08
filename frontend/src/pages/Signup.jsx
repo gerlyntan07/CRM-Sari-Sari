@@ -110,7 +110,7 @@ const StepIndicator = React.memo(({ currentStep, totalSteps }) => (
 
 
 // Step 1 Content
-const Step1Content = React.memo(({ formData, handleChange, handleCodeChange, handleTogglePass, isPassVisible, formError, termsAccepted, handleTerms, isButtonDisabled, handleSubmit, handleGoogleLogin }) => (
+const Step1Content = React.memo(({ formData, handleChange, handleCodeChange, handleTogglePass, isPassVisible, formError, signupError, termsAccepted, handleTerms, isButtonDisabled, handleSubmit, handleGoogleLogin }) => (
   <>    
 
     <div className="flex items-center my-6">
@@ -138,6 +138,12 @@ const Step1Content = React.memo(({ formData, handleChange, handleCodeChange, han
       <Input label="Email Address" id="email" type="email" placeholder="you@company.com" value={formData.email} onChange={handleChange} />
       <Input label="Password" id="password" placeholder="Min 8 characters" value={formData.password} onChange={handleChange} isVisible={isPassVisible.password} onTogglePass={handleTogglePass} />
       <Input label="Confirm Password" id="confirmPassword" placeholder="Confirm your password" value={formData.confirmPassword} onChange={handleChange} isVisible={isPassVisible.confirmPassword} onTogglePass={handleTogglePass} error={formError} />
+
+      {signupError && (
+        <div className="bg-red-100 border border-red-300 py-2 px-3 text-red-600">
+          {signupError}
+        </div>
+      )}
 
       <div className="flex items-start pt-2">
         <input id="terms" type="checkbox" checked={termsAccepted} onChange={handleTerms} className="size-4 mt-1 rounded text-amber-500 border-gray-300 focus:ring-amber-500 cursor-pointer" />
@@ -231,6 +237,7 @@ const Signup = () => {
     price: 0.00,    
   })
   const [isLoading, setIsLoading] = React.useState(false);
+  const [signupError, setSignupError] = React.useState(null);
 
   React.useEffect(() => {
     document.title = "Sign Up | Sari-Sari CRM";
@@ -269,32 +276,45 @@ const Signup = () => {
   }, []);
 
   // ✅ When user signs up with Google
-  const handleGoogleCallback = (response) => {
+  const handleGoogleCallback = async (response) => {
     setIsLoading(true);
-  try {
-    const userObject = jwtDecode(response.credential);
-    console.log("Google user:", userObject);
+    try {
+      const userObject = jwtDecode(response.credential);
+      console.log("Google user:", userObject);
 
-    setFormData((prev) => ({
-      ...prev,
-      email: userObject.email,
-      first_name: userObject.given_name || "",
-      last_name: userObject.family_name || "",
-      password: userObject.password || "",
-      profilePicture: userObject.picture || "",
-      googleId: userObject.sub,
-      auth_provider: "google",  // 👈 important flag
-      id_token: response.credential,
-    }));
+      // Verify the account doesn't already exist with backend
+      try {
+        await api.post("/auth/google/signup", { id_token: response.credential });
+      } catch (error) {
+        const errorDetail = error.response?.data?.detail || "An error occurred.";
+        setSignupError(errorDetail);
+        setIsLoading(false);
+        return;
+      }
 
-    // Go to Step 2 automatically
-    setStep(2);
-  } catch (error) {
-    console.error("Google login error:", error);
-  } finally{
-    setIsLoading(false);
-  }
-};
+      setFormData((prev) => ({
+        ...prev,
+        email: userObject.email,
+        first_name: userObject.given_name || "",
+        last_name: userObject.family_name || "",
+        password: userObject.password || "",
+        profilePicture: userObject.picture || "",
+        googleId: userObject.sub,
+        auth_provider: "google",  // 👈 important flag
+        id_token: response.credential,
+      }));
+
+      // Go to Step 2 automatically
+      setStep(2);
+    } catch (error) {
+      console.error("Google signup error:", error);
+      setFormError("Failed to process Google account. Please try again.");
+    } finally {
+      setSignupError(null);
+      setFormError(null);
+      setIsLoading(false);
+    }
+  };
 
 
   const handleChange = React.useCallback((e) => {
@@ -395,7 +415,7 @@ const Signup = () => {
 
         if(cleanedFormData.auth_provider === 'google'){                    
 
-          const resGoogle = await api.post(`/auth/google`, finalFormData);          
+          const resGoogle = await api.post(`/auth/google/signup`, finalFormData);          
 
           const subsPayload = {
             ...subscription,
@@ -548,6 +568,7 @@ const handleGoogleLogin = React.useCallback(() => {
                 handleTogglePass={handleTogglePass}
                 isPassVisible={isPassVisible}
                 formError={formError}
+                signupError={signupError}
                 termsAccepted={termsAccepted}
                 handleTerms={handleTerms}
                 isButtonDisabled={isButtonDisabled}

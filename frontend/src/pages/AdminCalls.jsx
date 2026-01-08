@@ -229,7 +229,7 @@ export default function AdminCalls() {
     { title: "Not Held", value: notHeldCalls, icon: FiXCircle, color: "text-gray-600", bgColor: "bg-gray-100" },
   ];
 
-  const activeTab = "Overview";
+  const [activeTab, setActiveTab] = useState("Overview");
 
   // Handlers
   const handleInputChange = (e) => {
@@ -582,6 +582,7 @@ export default function AdminCalls() {
             {["Overview", "Notes"].map((tab) => (
               <button
                 key={tab}
+                onClick={() => setActiveTab(tab)}
                 className={`flex-1 min-w-[90px] px-4 py-2.5 text-xs sm:text-sm font-medium border-b-2 ${
                   activeTab === tab
                     ? "bg-paper-white text-[#6A727D] border-white"
@@ -597,7 +598,7 @@ export default function AdminCalls() {
             <div className="lg:col-span-3">
               {activeTab === "Overview" && (
                 <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6 md:p-8 border border-gray-200">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 text-sm text-gray-700">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-4 sm:gap-6 text-sm text-gray-700">
                     <DetailRow label="Call Time" value={formattedDateTime(selectedCall.call_time)} />
                     <DetailRow
                       label="Duration"
@@ -624,20 +625,29 @@ export default function AdminCalls() {
                 </div>
               )}
 
-              {activeTab === "Notes" && (
-                <div className="bg-white border border-gray-100 rounded-lg p-4 shadow-sm break-words mt-4">
-                  <p className="text-sm font-medium text-gray-800 mb-2">Note</p>
-                  <div className="text-sm text-gray-700 whitespace-pre-wrap">
-                    {selectedCall.notes?.trim() || "No notes available."}
+                {/* ------- Notes ------ */}
+            {activeTab === "Notes" && (
+              <div className="mt-4 w-full">
+                <div className="flex flex-wrap items-center justify-between mb-4 gap-2">
+                  <h3 className="text-lg font-semibold text-gray-800 break-words">Call Note</h3>
+                </div>
+
+                <div className="bg-white border border-gray-100 rounded-lg p-4 shadow-sm break-words">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-gray-800 break-words">
+                        Note
+                      </p>
+                    </div>
+                  </div>
+                  <div className="mt-3 text-sm text-gray-700 whitespace-pre-wrap break-words">
+                    {selectedCall.notes || "No notes available."}
                   </div>
                 </div>
-              )}
-
-              {activeTab === "Activities" && (
-                <div className="p-4 text-gray-500">Activity timeline placeholder</div>
-              )}
-            </div>
-
+              </div>
+            )}
+    </div>
+        
               <div className="bg-white border border-gray-100 rounded-lg p-3 sm:p-4 shadow-sm w-full">
                 <h4 className="font-semibold text-gray-800 mb-2 text-sm">Status</h4>
                 <select

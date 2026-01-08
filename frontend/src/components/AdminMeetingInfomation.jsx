@@ -226,46 +226,7 @@ const AdminMeetingInfomation = ({ meeting, onClose, onEdit, onDelete, onStatusUp
                 </div>
               </div>
             )}
-
-
-              {/* ACTIVITIES */}
-                          {activeTab === "Activities" && (
-                            <div className="mt-4 space-y-4 w-full">
-                              <h3 className="text-lg font-semibold text-gray-800 break-words">Recent Activities</h3>
-              
-                              {[{
-                                icon: FiPhone,
-                                title: "Schedule Call",
-                                desc: "Discuss implementation timeline and pricing",
-                                user: "Lester James",
-                                date: "December 12, 2025 at 8:00 AM",
-                              }, {
-                                icon: FiCalendar,
-                                title: "Meeting regarding Enterprise Software License",
-                                desc: "Discuss implementation timeline and pricing",
-                                user: "Lester James",
-                                date: "December 12, 2025 at 8:00 AM",
-                              }].map((act, idx) => (
-                                <div key={idx} className="flex flex-col sm:flex-row justify-between items-start border border-gray-200 rounded-lg p-4 shadow-sm bg-white w-full break-words">
-                                  <div className="flex gap-4 mb-2 sm:mb-0 flex-1 min-w-0">
-                                    <div className="text-gray-600 mt-1">
-                                      <act.icon size={24} />
-                                    </div>
-                                    <div className="flex-1 min-w-0">
-                                      <h4 className="font-medium text-gray-900 break-words">{act.title}</h4>
-                                      <p className="text-sm text-gray-500 break-words">{act.desc}</p>
-                                      <div className="flex items-center gap-2 mt-2">
-                                        <div className="w-7 h-7 rounded-full bg-gray-200 shrink-0"></div>
-                                        <p className="text-sm text-gray-700 break-words">{act.user}</p>
-                                      </div>
-                                    </div>
-                                  </div>
-                                  <p className="text-sm text-gray-500 break-words">{act.date}</p>
-                                </div>
-                              ))}
-                            </div>
-                          )}
-                        </div>
+    </div>
 
               {/* STATUS */}
               <div className="bg-white border border-gray-100 rounded-lg p-3 sm:p-4 shadow-sm w-full">

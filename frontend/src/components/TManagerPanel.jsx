@@ -16,6 +16,7 @@ import {
   FiSettings,
   FiShield,
 } from "react-icons/fi";
+import { LuMapPin } from "react-icons/lu";
 import TManagerHeader from "./TManagerHeader"; 
 import useFetchUser from "../hooks/useFetchUser";
 
@@ -188,6 +189,18 @@ export default function TManagerPanel() {
               </div>
             )}
           </div>
+          {/* Territory */}
+                    <div>
+                      <NavLink
+                        to="/group-manager/territory"
+                        className={({ isActive }) => (isActive ? activeLink : normalLink)}
+                      >
+                        <span className="flex items-center gap-2">
+                          <LuMapPin className="text-lg" />
+                          Territory
+                        </span>
+                      </NavLink>
+                    </div>
 
           {/* User Management Dropdown */}
           <div>

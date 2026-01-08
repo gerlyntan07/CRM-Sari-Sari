@@ -179,6 +179,10 @@ function App() {
           <Route path="targets" element={<SalesTargets />} />
           <Route path="audit" element={<SalesAudit />} />
           <Route path="manage-account" element={<PublicManageAccount />} />
+          <Route path="/sales/territory">
+            <Route index element={<AdminTerritory />} />
+            <Route path=":id" element={<AdminTerritory />} />
+          </Route>
 
             <Route path="meetings" element={<SalesMeetings />} />
           <Route path="calls" element={<SalesCalls />} />
@@ -214,6 +218,10 @@ function App() {
           <Route path="audit" element={<ManagerAudit />} />
           <Route path="calls" element={<ManagerCalls />} />
           <Route path="tasks" element={<ManagerTask />} />
+          <Route path="/manager/territory">
+            <Route index element={<AdminTerritory />} />
+            <Route path=":id" element={<AdminTerritory />} />
+          </Route>
           <Route path="users" element={<ManagerUser />} />
           <Route path="manage-account" element={<PublicManageAccount />} />
         </Route>
@@ -253,6 +261,10 @@ function App() {
           <Route path="quotes" element={<TManagerQuotes />} />
           <Route path="targets" element={<TManagerTargets />} />
           <Route path="tasks" element={<TManagerTask />} />
+          <Route path="/group-manager/territory">
+            <Route index element={<AdminTerritory />} />
+            <Route path=":id" element={<AdminTerritory />} />
+          </Route>
           <Route path="meetings" element={<TManagerMeetings />} />
           <Route path="calls" element={<TManagerCalls />} />
           <Route path="audit" element={<TManagerAudit />} />

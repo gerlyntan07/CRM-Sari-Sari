@@ -23,10 +23,48 @@ def get_territories(
     if not current_user.related_to_company:
         return []
 
-    territories = db.query(Territory).filter(
-        Territory.company_id == current_user.related_to_company
-    ).all()
-    return territories
+    if current_user.role.upper() in ["CEO", "ADMIN"]:
+        territory = (
+            db.query(Territory)
+            .join(User, Territory.user_id == User.id)
+            .filter(User.related_to_company == current_user.related_to_company)
+            .all()
+        )
+    elif current_user.role.upper() == "GROUP MANAGER":
+        territory = (
+            db.query(Territory)
+            .join(User, Territory.user_id == User.id)
+            .filter(User.related_to_company == current_user.related_to_company)
+            .filter(~User.role.in_(["CEO", "Admin"]))
+            .all()
+        )
+    elif current_user.role.upper() == "MANAGER":
+        subquery_user_ids = (
+            db.query(Territory.user_id)
+            .filter(Territory.manager_id == current_user.id)
+            .scalar_subquery()
+        )
+
+        territory = (
+            db.query(Territory)
+            .join(User, Territory.user_id == User.id)
+            .filter(User.related_to_company == current_user.related_to_company)
+            .filter(
+                (User.id.in_(subquery_user_ids)) | 
+                (Territory.user_id == current_user.id) |
+                (Territory.manager_id == current_user.id)
+            ).all()
+        )
+    else:
+        territory = (
+            db.query(Territory)
+            .filter(
+                (Territory.user_id == current_user.id) | 
+                (Territory.manager_id == current_user.id)
+            ).all()
+        )
+
+    return territory
 
 
 
@@ -38,7 +76,7 @@ async def assign_territory(
     current_user: User = Depends(get_current_user),
     request: Request = None
 ):
-    if current_user.role.upper() not in ["CEO", "ADMIN"]:
+    if current_user.role.upper() not in ["CEO", "ADMIN", "GROUP MANAGER", "GROUP_MANAGER"]:
         raise HTTPException(status_code=403, detail="Permission denied")   
 
     # 1. Validate Manager
@@ -102,6 +140,86 @@ async def assign_territory(
 
     return {"message": "Territories assigned", "count": len(created_territories)}
 
+
+@router.put("/{territory_id}")
+async def update_territory(
+    territory_id: int,
+    data: TerritoryCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    request: Request = None
+):
+    """
+    Update a territory by its ID. Handles:
+    - Updating territory name, description, manager
+    - Adding/removing users from the territory
+    - Deletes old rows and creates new ones for the updated user list
+    """
+    if current_user.role.upper() not in ["CEO", "ADMIN", "GROUP MANAGER", "GROUP_MANAGER"]:
+        raise HTTPException(status_code=403, detail="Permission denied")
+
+    # Get the representative territory row
+    representative = db.query(Territory).filter(Territory.id == territory_id).first()
+    if not representative:
+        raise HTTPException(status_code=404, detail="Territory not found")
+
+    # Validate manager if provided
+    if data.manager_id:
+        managed_by_user = db.query(User).filter(User.id == data.manager_id).first()
+        if not managed_by_user:
+            raise HTTPException(status_code=404, detail="Assigned manager not found")
+
+    old_data = serialize_instance(representative)
+
+    # Delete all rows with the same name and company
+    db.query(Territory).filter(
+        Territory.company_id == data.company_id,
+        Territory.name == representative.name
+    ).delete()
+    db.commit()
+
+    # Create new rows with updated user list
+    created_territories = []
+    if data.user_ids:
+        for uid in data.user_ids:
+            new_territory = Territory(
+                name=data.name,
+                description=data.description,
+                manager_id=data.manager_id,
+                user_id=uid,
+                company_id=data.company_id,
+            )
+            db.add(new_territory)
+            created_territories.append(new_territory)
+    else:
+        new_territory = Territory(
+            name=data.name,
+            description=data.description,
+            manager_id=data.manager_id,
+            user_id=None,
+            company_id=data.company_id,
+        )
+        db.add(new_territory)
+        created_territories.append(new_territory)
+
+    db.commit()
+
+    # Refresh and create audit log
+    for terr in created_territories:
+        db.refresh(terr)
+
+    create_audit_log(
+        db=db,
+        current_user=current_user,
+        instance=representative,
+        action="UPDATE",
+        request=request,
+        old_data=old_data,
+        new_data={"name": data.name, "description": data.description, "manager_id": data.manager_id, "user_ids": data.user_ids},
+        custom_message=f"updated territory '{data.name}' with {len(data.user_ids) if data.user_ids else 0} assigned users",
+    )
+
+    return {"message": "Territory updated", "count": len(created_territories)}
 
 
 # @router.get("/myterritory", response_model=List[TerritoryResponse])

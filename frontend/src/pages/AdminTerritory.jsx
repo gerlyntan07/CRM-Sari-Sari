@@ -18,6 +18,7 @@ import { toast } from "react-toastify";
 import PaginationControls from "../components/PaginationControls.jsx";
 import LoadingSpinner from "../components/LoadingSpinner.jsx";
 import { IoIosInformationCircleOutline } from "react-icons/io";
+import useAuth from "../hooks/useAuth.js";
 
 const INITIAL_TERRITORY_STATE = {
   name: "",
@@ -185,6 +186,7 @@ export default function AdminTerritory() {
   const [deletingId, setDeletingId] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
   const justUpdatedRef = useRef(false);
+  const {userRole} = useAuth();
 
   // Grouping territories logic
   const groupedTerritories = useMemo(() => {
@@ -309,7 +311,7 @@ export default function AdminTerritory() {
 
   const fetchUsers = async () => {
     try {
-      const response = await api.get("/users/sales/read");
+      const response = await api.get("/users/read/territory");
       setUsers(response.data);      
     } catch (error) {
       console.error("Error fetching users:", error);
@@ -475,10 +477,8 @@ export default function AdminTerritory() {
         handleCloseFormModal(false);
       } else if (type === "update") {
         setIsSubmitting(true);
-        // Warning: Backend PUT logic needs to handle re-creating rows or updating logic
-        // If your backend endpoint is strictly 1 row update, this might need backend adjustment.
-        // Assuming your backend handles "replace users for this territory group".
-        await api.post(`/territories/assign`, payload); // Often simpler to just "Re-assign" / Overwrite
+        // Use PUT endpoint to update the territory
+        await api.put(`/territories/${targetId}`, payload);
         
         toast.success(`Territory "${name}" updated.`);
         justUpdatedRef.current = true;
@@ -545,7 +545,8 @@ export default function AdminTerritory() {
              <LuMapPin className="mr-2 text-blue-600" /> Territory
            </h2>
            <div className="flex justify-center lg:justify-end md:justify-end w-full">
-           {Array.isArray(users) && users.length > 0 ? (
+            {(['ceo', 'admin', 'group manager', 'group_manager'].includes(userRole.toLowerCase())) &&
+              (Array.isArray(users) && users.length > 0 ? (
              <button onClick={handleOpenCreateModal} 
              className="flex items-center bg-black text-white px-3 py-2 rounded-md hover:bg-gray-800 text-sm">
                <FiPlus /> Create Territory
@@ -554,28 +555,29 @@ export default function AdminTerritory() {
              <div className="text-xs bg-red-50 p-2 rounded-lg ring ring-red-300 text-red-700 flex items-center gap-1">
                <IoIosInformationCircleOutline /> Add users to assign territories
              </div>
-           )}
+           ))
+            }           
         </div>
         </div>
         
 
-        <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm mt-6 mb-4 flex flex-col lg:flex-row items-center gap-2">
-           <div className="flex items-center border border-gray-300 rounded-lg px-4 h-11 w-full lg:w-3/4">
+        <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm mt-6 mb-4 flex flex-col md:flex-row items-center gap-2">
+           <div className="flex items-center border border-gray-300 rounded-lg px-4 h-11 w-full md:w-4/4">
              <FiSearch className="text-gray-400 mr-3" />
              <input 
                 type="text" placeholder="Search territory" className="focus:outline-none w-full"
                 value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
              />
            </div>
-      <div className="flex flex-col lg:flex-row gap-2 w-full lg:w-1/2">            
-      <select className="border border-gray-300 rounded-lg px-3 h-11 w-full text-sm" value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>
-                {STATUS_FILTER_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-                  </select>
+           
+           {userRole.toLowerCase() !== 'sales' && (
+            <div className="flex flex-col md:flex-row gap-2 w-full md:w-1/2">                  
              <select className="border border-gray-300 rounded-lg px-3 h-11 w-full text-sm" value={userFilter} onChange={e => setUserFilter(e.target.value)}>
                 <option value="">Filter by Users</option>
                 {users.map(u => <option key={u.id} value={String(u.id)}>{u.first_name} {u.last_name}</option>)}
              </select>
            </div>
+           )}      
         </div>
 
         <div className="flex items-center gap-3 mb-6">
@@ -586,7 +588,22 @@ export default function AdminTerritory() {
         {viewMode === "board" && (
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
               {hasResults ? paginatedTerritories.map(t => (
-                 <div key={t.id} onClick={() => { setSelectedTerritory(t); navigate(`/admin/territory/${t.id}`); }} 
+                 <div key={t.id} onClick={() => { 
+                  setSelectedTerritory(t);
+                  
+                  let role;
+
+                  if (userRole.toLowerCase() === 'ceo' || userRole.toLowerCase() === 'admin') {
+                    role = 'admin';
+                  } else if(userRole.toLowerCase() === 'group manager' || userRole.toLowerCase() === 'group_manager') {
+                    role = 'group-manager';
+                  } else if(userRole.toLowerCase() === 'manager') {
+                    role = 'manager';
+                  } else {
+                    role = 'sales';
+                  }
+
+                  navigate(`/${role}/territory/${t.id}`); }} 
                       className="bg-white p-4 shadow border border-gray-200 flex flex-col relative cursor-pointer hover:shadow-md transition">
                     <div className="absolute top-0 left-0 w-full h-5 bg-secondary rounded-t-md" />
                     <h3 className="font-medium text-gray-900 mb-2 pt-7">{t.name}</h3>
@@ -617,7 +634,22 @@ export default function AdminTerritory() {
                 </thead>
                 <tbody>
                   {hasResults ? paginatedTerritories.map(t => (
-                    <tr key={t.id} onClick={() => { setSelectedTerritory(t); navigate(`/admin/territory/${t.id}`); }} className="hover:bg-gray-50 cursor-pointer">
+                    <tr key={t.id} onClick={() => { 
+                      setSelectedTerritory(t);
+
+                      let role;
+
+                  if (userRole.toLowerCase() === 'ceo' || userRole.toLowerCase() === 'admin') {
+                    role = 'admin';
+                  } else if(userRole.toLowerCase() === 'group manager' || userRole.toLowerCase() === 'group_manager') {
+                    role = 'group-manager';
+                  } else if(userRole.toLowerCase() === 'manager') {
+                    role = 'manager';
+                  } else {
+                    role = 'sales';
+                  }
+                      navigate(`/${role}/territory/${t.id}`); 
+                      }} className="hover:bg-gray-50 cursor-pointer">
                       <td className="py-3 px-4 font-medium">{t.name}</td>
                       <td className="py-3 px-4">{renderAssignedUsers(t.assigned_users_list)}</td>
                       <td className="py-3 px-4">{t.managed_by ? `${t.managed_by.first_name}` : "—"}</td>
@@ -631,7 +663,22 @@ export default function AdminTerritory() {
         {selectedTerritory && (
            <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
              <div className="bg-white rounded-lg shadow-lg w-full max-w-xl p-8 relative">
-               <button className="absolute top-2 right-4 text-gray-500 hover:text-black" onClick={() => { setSelectedTerritory(null); navigate("/admin/territory"); }}>
+               <button className="absolute top-2 right-4 text-gray-500 hover:text-black" onClick={() => { 
+                setSelectedTerritory(null); 
+
+                let role;
+
+                  if (userRole.toLowerCase() === 'ceo' || userRole.toLowerCase() === 'admin') {
+                    role = 'admin';
+                  } else if(userRole.toLowerCase() === 'group manager' || userRole.toLowerCase() === 'group_manager') {
+                    role = 'group-manager';
+                  } else if(userRole.toLowerCase() === 'manager') {
+                    role = 'manager';
+                  } else {
+                    role = 'sales';
+                  }
+                
+                navigate(`/${role}/territory`); }}>
                  <FiX size={24} />
                </button>
                <h2 className="text-3xl font-semibold mb-1">{selectedTerritory.name}</h2>
@@ -659,10 +706,12 @@ export default function AdminTerritory() {
                  </div>                 
                </div>                             
                
-               <div className="flex justify-end gap-2">
+               {(!['sales', 'manager'].includes(userRole.toLowerCase())) && (
+                <div className="flex justify-end gap-2">
                  <button onClick={() => handleEditTerritory(selectedTerritory)} className="bg-blue-500 text-white px-4 py-2 rounded flex items-center gap-2"><FiEdit2 /> Edit</button>
                  <button onClick={() => handleDelete(selectedTerritory)} className="bg-red-500 text-white px-4 py-2 rounded flex items-center gap-2"><FiTrash2 /> Delete</button>
                </div>
+               )}               
              </div>
            </div>
         )}

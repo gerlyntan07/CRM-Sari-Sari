@@ -9,6 +9,7 @@ from .logs_utils import serialize_instance, create_audit_log
 from .aws_ses_utils import send_welcome_email
 from models.auth import UserRole
 from sqlalchemy import or_
+from models.territory import Territory
 
 router = APIRouter(
     prefix="/users",
@@ -70,58 +71,104 @@ def get_sales(
 
     return users
 
+@router.get("/read/territory", response_model=List[UserResponse])
+def admin_get_calls(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Get all calls for admin users"""
+    if current_user.role.upper() in ["CEO", "ADMIN"]:
+        users = (
+            db.query(User)            
+            .filter(User.related_to_company == current_user.related_to_company)
+            .all()
+        )
+    elif current_user.role.upper() == "GROUP MANAGER":
+        users = (
+            db.query(User)
+            .filter(User.related_to_company == current_user.related_to_company)
+            .filter(~User.role.in_(["CEO", "Admin"]))
+            .all()
+        )
+    elif current_user.role.upper() == "MANAGER":
+        # Get sales users assigned to territories managed by this manager
+        subquery_user_ids = (
+            db.query(Territory.user_id)
+            .filter(Territory.manager_id == current_user.id)
+            .distinct()
+        )
+
+        users = (
+            db.query(User)            
+            .filter(
+                User.related_to_company == current_user.related_to_company,
+                or_(
+                    User.id.in_(subquery_user_ids),  # Sales in managed territories
+                    User.id == current_user.id  # Themselves
+                ),
+                User.is_active == True
+            ).all()
+        )
+    else:
+        users = (
+            db.query(User)
+            .filter(
+                (User.id == current_user.id)
+            ).all()
+        )
+
+    return users
+
 @router.get("/all", response_model=List[UserResponse])
 def get_users(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    # CEO → see all users related to their company
-    # Admin → see all users under same company
-    # Others → only themselves
-    allowed_roles = {"CEO", "ADMIN"}    
-    current_user_role_upper = (current_user.role or "").upper()
+    """Get all calls for admin users"""
+    if current_user.role.upper() in ["CEO", "ADMIN"]:
+        users = (
+            db.query(User)            
+            .filter(
+                User.related_to_company == current_user.related_to_company,
+                User.is_active == True)
+            .all()
+        )
+    elif current_user.role.upper() == "GROUP MANAGER":
+        users = (
+            db.query(User)
+            .filter(
+                User.related_to_company == current_user.related_to_company,
+                User.is_active == True)
+            .filter(~User.role.in_(["CEO", "Admin"]))
+            .all()
+        )
+    elif current_user.role.upper() == "MANAGER":
+        # Get sales users assigned to territories managed by this manager
+        subquery_user_ids = (
+            db.query(Territory.user_id)
+            .filter(Territory.manager_id == current_user.id)
+            .distinct()
+        )
 
-    target_roles1 = [UserRole.SALES.value, UserRole.MANAGER.value]
-    target_roles2 = [UserRole.SALES.value]
-    
-    if current_user_role_upper in allowed_roles:
-        users = db.query(User).filter(
-            User.related_to_company == current_user.related_to_company,
-            User.is_active == True
-        ).all()
-    elif current_user_role_upper == 'GROUP MANAGER':
-        users = db.query(User).filter(
-            or_(
-                # Condition A: Team members criteria
-                (
-                    (User.related_to_company == current_user.related_to_company) &
-                    (User.role.in_(target_roles1)) &
-                    (User.is_active == True)
+        users = (
+            db.query(User)            
+            .filter(
+                User.related_to_company == current_user.related_to_company,
+                or_(
+                    User.id.in_(subquery_user_ids),  # Sales in managed territories
+                    User.id == current_user.id  # Themselves
                 ),
-                # Condition B: Themselves
-                (User.id == current_user.id)
-            )
-        ).all()
-    elif (current_user.role).upper() == 'MANAGER':
-        users = db.query(User).filter(
-            or_(
-                # Condition A: Team members criteria
-                (
-                    (User.related_to_company == current_user.related_to_company) &
-                    (User.role.in_(target_roles2)) &
-                    (User.is_active == True)
-                ),
-                # Condition B: Themselves
-                (User.id == current_user.id)
-            )
-        ).all()
+                User.is_active == True
+            ).all()
+        )
     else:
-        # For non-admin users, only return themselves if they have Sales role
-        users = db.query(User).filter(
-            User.id == current_user.id,
-            User.role.in_(target_roles2),
-            User.is_active == True
-        ).all()
+        users = (
+            db.query(User)
+            .filter(
+                (User.id == current_user.id),
+                User.is_active == True
+            ).all()
+        )
 
     return users
 

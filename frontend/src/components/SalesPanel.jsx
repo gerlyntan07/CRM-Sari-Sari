@@ -18,6 +18,7 @@ import {
   FiGrid,
   FiX,
 } from "react-icons/fi";
+import { LuMapPin } from "react-icons/lu";
 import SalesHeader from "./SalesHeader"; 
 import useFetchUser from "../hooks/useFetchUser";
 
@@ -167,6 +168,19 @@ export default function SalesPanel() {
                         </div>
                       )}
                     </div>
+
+                    {/* Territory */}
+                              <div>
+                                <NavLink
+                                  to="/sales/territory"
+                                  className={({ isActive }) => (isActive ? activeLink : normalLink)}
+                                >
+                                  <span className="flex items-center gap-2">
+                                    <LuMapPin className="text-lg" />
+                                    Territory
+                                  </span>
+                                </NavLink>
+                              </div>
 
         
           <NavLink

@@ -465,7 +465,7 @@ export default function AdminLeadsInformation({
                         <p>{lead.company_name || "N/A"}</p>
                       </div>
                       <div>
-                        <p className="font-semibold">Title:</p>
+                        <p className="font-semibold">Job Title:</p>
                         <p>{lead.title || "N/A"}</p>
                       </div>
                       <div>

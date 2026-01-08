@@ -714,7 +714,7 @@ export default function AdminLeads() {
             <tr>
               <th className="py-3 px-4">Name</th>
               <th className="py-3 px-4">Company</th>
-              <th className="py-3 px-4">Title</th>
+              <th className="py-3 px-4">Job Title</th>
               <th className="py-3 px-4">Email</th>
               <th className="py-3 px-4">Assigned To</th>
               <th className="py-3 px-4">Status</th>
@@ -852,7 +852,7 @@ export default function AdminLeads() {
 
               {/* Title */}
               <div className="flex flex-col">
-                <label className="block text-gray-700 font-medium mb-1 text-sm">Title</label>
+                <label className="block text-gray-700 font-medium mb-1 text-sm">Job Title</label>
                 <input
                   type="text"
                   placeholder="ABC Agenda"

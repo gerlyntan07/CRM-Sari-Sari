@@ -570,7 +570,7 @@ export default function SalesDeals() {
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 p-2 sm:grid-cols-3 gap-4 mb-6 w-full break-words overflow-hidden">
+            <div className="grid grid-cols-1 p-2 lg:grid-cols-4 gap-4 mb-6 w-full break-words overflow-hidden">
                 {metricCards.map((metric) => (
                     <MetricCard key={metric.title} {...metric} />
                 ))}

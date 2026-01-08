@@ -202,204 +202,205 @@ const CreateMeetingModal = ({
   };
 
   return (
-    <div
-      id="modalBackdrop"
-      onClick={(e) => e.target.id === "modalBackdrop" && onClose()}
-      className="fixed inset-0 bg-black/40 flex items-center justify-center z-60 p-4"
-    >
-      <div className="bg-white w-full max-w-full sm:max-w-3xl rounded-2xl shadow-lg p-4 sm:p-6 md:p-8 relative border border-gray-200 overflow-y-auto max-h-[90vh] hide-scrollbar">
-        <button
-          onClick={onClose}
-          className="absolute top-4 right-4 text-gray-500 hover:text-black transition"
-        >
-          <FiX size={22} />
-        </button>
+  <div
+    id="modalBackdrop"
+    onClick={(e) => e.target.id === "modalBackdrop" && onClose()}
+    className="fixed inset-0 bg-black/40 flex items-center justify-center z-60 p-2 sm:p-4"
+  >
+    <div className="bg-white w-full max-w-full sm:max-w-3xl rounded-2xl shadow-lg p-3 sm:p-6 md:p-8 relative border border-gray-200 overflow-y-auto max-h-[90vh] hide-scrollbar">
+      
+      <button
+        onClick={onClose}
+        className="absolute top-3 right-3 sm:top-4 sm:right-4 text-gray-500 hover:text-black transition"
+      >
+        <FiX size={22} />
+      </button>
 
-        <h2 className="text-xl sm:text-2xl font-semibold text-gray-800 mb-4 sm:mb-6 flex items-center justify-center">
-          {isEditing ? "Edit Meeting" : "Schedule Meeting"}
-        </h2>
+      <h2 className="text-lg sm:text-2xl font-semibold text-gray-800 mb-4 sm:mb-6 text-center">
+        {isEditing ? "Edit Meeting" : "Schedule Meeting"}
+      </h2>
 
-        <form className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm" onSubmit={handleSubmit}>
-          
-          <InputField
-            label="Subject"
-            name="subject"
-            value={formData.subject}
+      <form
+        className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4 text-sm"
+        onSubmit={handleSubmit}
+      >
+        <InputField
+          label="Subject"
+          name="subject"
+          value={formData.subject}
+          onChange={handleInputChange}
+          placeholder="e.g. Meeting with Client"
+          required
+          disabled={isSubmitting}
+          className="md:col-span-2"
+        />
+
+        {/* RELATED TO 1 */}
+        <div className="flex flex-col w-full">
+          <select
+            name="relatedType1"
             onChange={handleInputChange}
-            placeholder="e.g. Meeting with Client"
+            value={formData.relatedType1 || "Lead"}
+            className="w-full outline-none cursor-pointer mb-1 rounded p-2 text-gray-700 disabled:text-gray-400"
+            disabled={isSubmitting || isEditing}
+          >
+            <option value="Lead">Lead</option>
+            <option value="Account">Account</option>
+          </select>
+
+          <SearchableSelect
+            items={Array.isArray(relatedTo1Values) ? relatedTo1Values : []}
+            value={formData.relatedTo1 ?? ""}
+            placeholder={`Search ${formData.relatedType1 || "here"}...`}
+            getLabel={(item) =>
+              formData.relatedType1 === "Lead"
+                ? item.title
+                : item.name ?? ""
+            }
+            onChange={(newId) =>
+              setFormData((prev) => ({
+                ...prev,
+                relatedTo1: newId,
+              }))
+            }
+            disabled={isEditing}
+          />
+        </div>
+
+        {/* RELATED TO 2 */}
+        <div className="flex flex-col w-full">
+          <select
+            name="relatedType2"
+            onChange={handleInputChange}
+            value={formData.relatedType2 || "Contact"}
+            className="w-full outline-none cursor-pointer mb-1 rounded p-2 text-gray-700 disabled:text-gray-400 disabled:cursor-not-allowed"
+            disabled={isSubmitting || isEditing || formData.relatedType1 === "Lead"}
+          >
+            <option value="Contact">Contact</option>
+            <option value="Deal">Deal</option>
+          </select>
+
+          <SearchableSelect
+            items={Array.isArray(relatedTo2Values) ? relatedTo2Values : []}
+            value={formData.relatedTo2 ?? ""}
+            placeholder={
+              formData.relatedType1 === "Lead"
+                ? ""
+                : relatedTo2Values?.length
+                ? `Search ${formData.relatedType2}...`
+                : `No ${formData.relatedType2} data found`
+            }
+            getLabel={(item) =>
+              formData.relatedType2 === "Contact"
+                ? `${item.first_name ?? ""} ${item.last_name ?? ""}`.trim()
+                : item.name ?? ""
+            }
+            onChange={(newId) =>
+              setFormData((prev) => ({
+                ...prev,
+                relatedTo2: newId,
+              }))
+            }
+            disabled={isEditing || formData.relatedType1 === "Lead"}
+          />
+        </div>
+
+        <InputField
+          label="Location"
+          name="location"
+          className="md:col-span-2"
+          value={formData.location}
+          onChange={handleInputChange}
+          disabled={isSubmitting}
+        />
+
+        <div className="md:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+          <InputField
+            label="Start Time"
+            name="startTime"
+            type="datetime-local"
+            value={formData.startTime}
+            onChange={handleInputChange}
             required
             disabled={isSubmitting}
-            className="md:col-span-2"
           />
-
-          {/* --- RELATED TO SECTION (Refactored to match AdminCalls) --- */}
-          <div className="w-full flex flex-col">
-            <select
-              name="relatedType1"
-              onChange={handleInputChange}
-              value={formData.relatedType1 || "Lead"}
-              className="outline-none w-23 cursor-pointer mb-1 rounded p-1 text-gray-700 disabled:text-gray-400"
-              disabled={isSubmitting || isEditing}
-            >
-              <option value="Lead">Lead</option>
-              <option value="Account">Account</option>
-            </select>
-
-            <SearchableSelect              
-              items={Array.isArray(relatedTo1Values) ? relatedTo1Values : []}
-              value={formData.relatedTo1 ?? ""}
-              placeholder={`Search ${formData.relatedType1 || 'here'}...`
-              }
-              getLabel={(item) =>
-                formData.relatedType1 === "Lead"
-                  ? item.title
-                  : item.name ?? ""
-              }
-              onChange={(newId) =>
-                setFormData((prev) => ({
-                  ...prev,
-                  relatedTo1: newId, // keep string
-                }))
-              }
-              disabled={isEditing}
-            />            
-          </div>
-
-          <div className="w-full flex flex-col">
-            <select
-              name="relatedType2"
-              onChange={handleInputChange}
-              value={formData.relatedType2 || "Contact"}
-              className="outline-none cursor-pointer mb-1 w-23 rounded p-1 text-gray-700 disabled:text-gray-400 disabled:cursor-not-allowed"
-              disabled={isSubmitting || isEditing || formData.relatedType1 === 'Lead'}
-            >
-              <option value="Contact">Contact</option>
-              <option value="Deal">Deal</option>
-            </select>
-
-            <SearchableSelect
-              items={Array.isArray(relatedTo2Values) ? relatedTo2Values : []}
-              value={formData.relatedTo2 ?? ""}
-              placeholder={
-                formData.relatedType1 === "Lead"
-                  ? ""
-                  : Array.isArray(relatedTo2Values) && relatedTo2Values.length > 0
-                  ? `Search ${formData.relatedType2 || "Contact"}...`
-                  : `No ${formData.relatedType2 || ""} data found`
-              }
-              getLabel={(item) =>
-                formData.relatedType2 === "Contact"
-                  ? `${item.first_name ?? ""} ${item.last_name ?? ""}`.trim()
-                  : item.name ?? ""
-              }
-              onChange={(newId) =>
-                setFormData((prev) => ({
-                  ...prev,
-                  relatedTo2: newId, // keep string
-                }))
-              }
-              disabled={isEditing || formData.relatedType1 === 'Lead'}
-            />            
-          </div>
-          {/* -------------------------------------------------------- */}
-
           <InputField
-            label="Location"
-            name="location"
-            className="col-span-2"
-            value={formData.location}
+            label="End Time"
+            name="endTime"
+            type="datetime-local"
+            value={formData.endTime}
             onChange={handleInputChange}
+            required
             disabled={isSubmitting}
           />
-          
-          <div className="md:col-span-2 grid grid-cols-2 gap-4">
-            <InputField
-                label="Start Time"
-                name="startTime"
-                type="datetime-local"
-                value={formData.startTime}
-                onChange={handleInputChange}
-                required
-                disabled={isSubmitting}
-            />
-            <InputField
-                label="End Time"
-                name="endTime"
-                type="datetime-local"
-                value={formData.endTime}
-                onChange={handleInputChange}
-                required
-                disabled={isSubmitting}
-            />
-          </div>
+        </div>
 
-          
-
-          <div>
-                      <label className="block text-gray-700 font-medium mb-1 text-sm">
-                        Assign To
-                      </label>
-                      <SearchableSelect              
-              items={Array.isArray(users) ? users : []}
-              value={formData.assignedTo ?? ""}
-              placeholder={`Search an account...`
-              }
-              getLabel={(item) =>
-                `${item.first_name} ${item.last_name}`
-              }
-              onChange={(newId) =>
-                setFormData((prev) => ({
-                  ...prev,
-                  assignedTo: newId, // keep string
-                }))
-              }
-            /> 
-                    </div>   
-
-          <SelectField
-            label="Status"
-            name="status"
-            value={formData.status}
-            onChange={handleInputChange}
-            options={["--", "Planned", "Held", "Not held"].map((opt) => ({ value: opt, label: opt.replace('_', ' ') }))}
-            disabled={isSubmitting}
+        <div className="flex flex-col">
+          <label className="block text-gray-700 font-medium mb-1 text-sm">
+            Assign To
+          </label>
+          <SearchableSelect
+            items={Array.isArray(users) ? users : []}
+            value={formData.assignedTo ?? ""}
+            placeholder="Search an account..."
+            getLabel={(item) => `${item.first_name} ${item.last_name}`}
+            onChange={(newId) =>
+              setFormData((prev) => ({
+                ...prev,
+                assignedTo: newId,
+              }))
+            }
           />
+        </div>
 
-          <TextareaField
-            label="Notes"
-            name="notes"
-            value={formData.notes}
-            onChange={handleInputChange}
-            rows={3}
-            className="md:col-span-2"
+        <SelectField
+          label="Status"
+          name="status"
+          value={formData.status}
+          onChange={handleInputChange}
+          options={["--", "Planned", "Held", "Not held"].map((opt) => ({
+            value: opt,
+            label: opt.replace("_", " "),
+          }))}
+          disabled={isSubmitting}
+        />
+
+        <TextareaField
+          label="Notes"
+          name="notes"
+          value={formData.notes}
+          onChange={handleInputChange}
+          rows={3}
+          className="md:col-span-2"
+          disabled={isSubmitting}
+        />
+
+        <div className="md:col-span-2 flex flex-col sm:flex-row justify-end gap-2 mt-4">
+          <button
+            type="button"
+            onClick={onClose}
+            className="w-full sm:w-auto px-4 py-2 text-white bg-red-400 border border-red-300 rounded hover:bg-red-500 transition disabled:opacity-70"
             disabled={isSubmitting}
-          />
+          >
+            Cancel
+          </button>
 
-          <div className="flex flex-col sm:flex-row justify-end space-y-2 sm:space-y-0 sm:space-x-2 md:col-span-2 mt-4">
-            <button
-              type="button"
-              onClick={onClose}
-              className="w-full sm:w-auto px-4 py-2 text-white bg-red-400 border border-red-300 rounded hover:bg-red-500 transition disabled:opacity-70"
-              disabled={isSubmitting}
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              className="w-full sm:w-auto px-4 py-2 text-white border border-tertiary bg-tertiary rounded hover:bg-secondary transition disabled:opacity-70"
-              disabled={isSubmitting}
-            >
-              {isSubmitting
-                ? "Saving..."
-                : isEditing
-                ? "Update Meeting"
-                : "Save Meeting"}
-            </button>
-          </div>
-        </form>
-      </div>
+          <button
+            type="submit"
+            className="w-full sm:w-auto px-4 py-2 text-white border border-tertiary bg-tertiary rounded hover:bg-secondary transition disabled:opacity-70"
+            disabled={isSubmitting}
+          >
+            {isSubmitting
+              ? "Saving..."
+              : isEditing
+              ? "Update Meeting"
+              : "Save Meeting"}
+          </button>
+        </div>
+      </form>
     </div>
-  );
+  </div>
+);
 };
 
 // ... InputField, SelectField, TextareaField (Same as before) ...

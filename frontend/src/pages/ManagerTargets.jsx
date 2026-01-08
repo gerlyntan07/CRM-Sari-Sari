@@ -68,7 +68,7 @@ function SearchableSelect({
   }, []);
 
   return (
-    <div ref={ref} className="flex justify-center w-full">
+    <div ref={ref} className="relative flex justify-center w-full">
       <input
         value={open ? q : selectedLabel}
         placeholder={placeholder}
@@ -81,8 +81,8 @@ function SearchableSelect({
       />
 
       {open && (
-        <div className="absolute z-50 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-48 overflow-y-auto">
-          {filtered.length ? (
+<div className="absolute top-full left-0 z-50 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-48 overflow-y-auto">     
+       {filtered.length ? (
             filtered.map((item) => (
               <button
                 key={item.id}
@@ -569,7 +569,7 @@ function FormModal({
 }) {
   return (
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-      <div className="bg-white w-full max-w-md rounded-2xl p-8 relative min-h-[50vh]">
+      <div className="bg-white w-full max-w-md rounded-2xl p-8 relative overflow-y-auto min-h-[50vh]">
         <button onClick={onClose} className="absolute top-5 right-5">
           <FiX size={24} />
         </button>
@@ -579,7 +579,7 @@ function FormModal({
         </h2>
 
         <form onSubmit={onSubmit} className="grid gap-5 text-base">
-          <div className="flex flex-col gap-1">
+          <div className="flex flex-col gap-1 relative">
             <label className="text-sm font-medium text-gray-700">
               Assign User
             </label>

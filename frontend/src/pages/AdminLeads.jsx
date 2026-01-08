@@ -1088,7 +1088,7 @@ export default function AdminLeads() {
                   value={leadData.territory_id || ""}
                   onChange={handleLeadChange}
                   disabled={!selectedUser || !selectedUser.assigned_territory || selectedUser.assigned_territory.length === 0}
-                  className="w-full border border-gray-300 rounded-md px-2 py-2 text-sm bg-white focus:ring-2 focus:ring-blue-400 outline-none disabled:bg-gray-100 disabled:text-gray-500"
+                  className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm bg-white focus:ring-2 focus:ring-blue-400 outline-none disabled:bg-gray-100 disabled:text-gray-500"
                 >
                   <option value="" disabled>
                     {!selectedUser
@@ -1115,7 +1115,7 @@ export default function AdminLeads() {
                   Source
                 </label>
                 <select
-                  className="w-full border border-gray-300 rounded-md px-2 py-2 text-sm focus:ring-2 focus:ring-blue-400 outline-none"
+                  className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-400 outline-none"
                   defaultValue=""
                   name="source"
                   value={leadData.source}
@@ -1340,7 +1340,7 @@ function SearchableSelect({
           setQ(e.target.value);
           if (!open) setOpen(true);
         }}
-        className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-400 outline-none disabled:bg-gray-100"
+        className="w-full rounded-md px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-400 outline-none disabled:bg-gray-100"
       />
 
       {open && !disabled && (

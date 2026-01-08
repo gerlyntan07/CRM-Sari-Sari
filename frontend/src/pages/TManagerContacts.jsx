@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   FiSearch,
   FiEdit,
@@ -24,25 +24,6 @@ import { useNavigate } from "react-router-dom";
 
 const ITEMS_PER_PAGE = 10;
 
-const STATUS_OPTIONS = [
-  { value: "CUSTOMER", label: "Customer" },
-  { value: "PROSPECT", label: "Prospect" },
-  { value: "PARTNER", label: "Partner" },
-  { value: "ACTIVE", label: "Active" },
-  { value: "INACTIVE", label: "Inactive" },
-  { value: "FORMER", label: "Former" },
-];
-
-const normalizeStatus = (status) => (status ? status.toUpperCase() : "");
-
-const formatStatusLabel = (status) => {
-  if (!status) return "--";
-  return status
-    .toString()
-    .toLowerCase()
-    .replace(/\b\w/g, (char) => char.toUpperCase());
-};
-
 const INITIAL_FORM_STATE = {
   first_name: "",
   last_name: "",
@@ -55,7 +36,6 @@ const INITIAL_FORM_STATE = {
   mobile_phone_2: "",
   notes: "",
   assigned_to: "",
-  status: "",
 };
 
 const getContactFullName = (contact) =>
@@ -81,39 +61,6 @@ export default function AdminContacts() {
   useEffect(() => {
     document.title = "Contacts | Sari-Sari CRM";
   }, []);
-  const renderAccountStatusBadge = (status) => {
-    if (!status) return null;
-
-    const normalized = status.toString().toLowerCase();
-    const label = normalized.replace(/\b\w/g, (char) => char.toUpperCase());
-
-    const badgeClass = (() => {
-      switch (normalized) {
-        case "customer":
-          return "bg-green-100 text-green-700";
-        case "prospect":
-          return "bg-purple-100 text-purple-700";
-        case "partner":
-          return "bg-pink-100 text-pink-700";
-        case "active":
-          return "bg-blue-100 text-blue-700";
-        case "inactive":
-          return "bg-gray-200 text-gray-700";
-        case "former":
-          return "bg-orange-100 text-orange-700";
-        default:
-          return "bg-gray-100 text-gray-700";
-      }
-    })();
-
-    return (
-      <span
-        className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${badgeClass}`}
-      >
-        {label}
-      </span>
-    );
-  };
 
   const [contacts, setContacts] = useState([]);
   const [contactsLoading, setContactsLoading] = useState(false);
@@ -132,8 +79,6 @@ export default function AdminContacts() {
   const [deletingId, setDeletingId] = useState(null);
   const [activeTab, setActiveTab] = useState("Overview");
   const [currentPage, setCurrentPage] = useState(1);
-  const [selectedStatus, setSelectedStatus] = useState("");
-  const [updatingStatus, setUpdatingStatus] = useState(false);
 
   const fetchContacts = useCallback(
     async (preserveSelectedId = null) => {
@@ -147,7 +92,6 @@ export default function AdminContacts() {
           return new Date(bDate) - new Date(aDate);
         });
         setContacts(sorted);
-        console.log(res.data)
         if (preserveSelectedId) {
           const updatedSelection = sorted.find(
             (contact) => contact.id === preserveSelectedId
@@ -210,38 +154,6 @@ export default function AdminContacts() {
     fetchAccounts();
     fetchUsers();
   }, [fetchContacts, fetchAccounts, fetchUsers]);
-
-  // Sync selectedStatus with selectedContact account status
-  useEffect(() => {
-    if (selectedContact?.account?.status) {
-      setSelectedStatus(normalizeStatus(selectedContact.account.status) || "PROSPECT");
-    } else {
-      setSelectedStatus("PROSPECT");
-    }
-  }, [selectedContact]);
-
-  // Sync formData status when account_id changes in edit form
-  useEffect(() => {
-    if (isEditing && formData.account_id && accounts.length > 0) {
-      const selectedAccount = accounts.find(
-        (acc) => String(acc.id) === formData.account_id
-      );
-      if (selectedAccount?.status) {
-        const accountStatus = normalizeStatus(selectedAccount.status) || "PROSPECT";
-        setFormData((prev) => {
-          // Only update if status is empty or different to avoid unnecessary updates
-          if (!prev.status || normalizeStatus(prev.status) !== accountStatus) {
-            return {
-              ...prev,
-              status: accountStatus,
-            };
-          }
-          return prev;
-        });
-      }
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [formData.account_id, isEditing]);
 
   const accountOptions = useMemo(() => {
     const map = new Map();
@@ -325,13 +237,6 @@ export default function AdminContacts() {
     return filteredContacts.slice(startIndex, startIndex + ITEMS_PER_PAGE);
   }, [filteredContacts, currentPage]);
 
-  const pageStart =
-    filteredContacts.length === 0 ? 0 : (currentPage - 1) * ITEMS_PER_PAGE + 1;
-  const pageEnd = Math.min(
-    currentPage * ITEMS_PER_PAGE,
-    filteredContacts.length
-  );
-
   const handlePrevPage = () => setCurrentPage((prev) => Math.max(prev - 1, 1));
   const handleNextPage = () =>
     setCurrentPage((prev) => Math.min(prev + 1, totalPages));
@@ -383,7 +288,6 @@ export default function AdminContacts() {
       mobile_phone_2: contact.mobile_phone_2 || "",
       notes: contact.notes || "",
       assigned_to: contact.assigned_to ? String(contact.assigned_to) : "",
-      status: normalizeStatus(contact.account?.status) || "PROSPECT",
     });
     setIsEditing(true);
     setCurrentContactId(contact.id);
@@ -447,13 +351,6 @@ export default function AdminContacts() {
     const actionType = isEditing && currentContactId ? "update" : "create";
     const contactName = `${trimmedFirstName} ${trimmedLastName}`.trim();
 
-    // Get the original contact to check if status changed
-    const originalContact = isEditing ? contacts.find(c => c.id === currentContactId) : null;
-    const originalAccountStatus = originalContact?.account?.status;
-    const newStatus = formData.status ? normalizeStatus(formData.status) : null;
-    const statusChanged = isEditing && originalContact?.account?.id && 
-      newStatus && normalizeStatus(originalAccountStatus) !== newStatus;
-
     setConfirmModalData({
       title: actionType === "create" ? "Confirm New Contact" : "Confirm Update",
       message:
@@ -479,8 +376,6 @@ export default function AdminContacts() {
         targetId: currentContactId || null,
         name: contactName,
       },
-      accountStatusUpdate: statusChanged ? newStatus : null,
-      accountId: isEditing && originalContact?.account?.id ? originalContact.account.id : (payload.account_id || null),
     });
   };
 
@@ -509,20 +404,6 @@ export default function AdminContacts() {
         }
         setIsSubmitting(true);
         await api.put(`/contacts/admin/${targetId}`, payload);
-        
-        // Update account status if it was changed in the form
-        if (confirmModalData.accountStatusUpdate && confirmModalData.accountId) {
-          try {
-            await api.put(`/accounts/admin/${confirmModalData.accountId}`, {
-              status: normalizeStatus(confirmModalData.accountStatusUpdate),
-            });
-            toast.success(`Account status updated to ${formatStatusLabel(confirmModalData.accountStatusUpdate)}`);
-          } catch (err) {
-            console.error("Failed to update account status:", err);
-            toast.warn("Contact updated but failed to update account status.");
-          }
-        }
-        
         toast.success(`Contact "${name}" updated successfully.`);
         const preserveId =
           selectedContact?.id && selectedContact.id === targetId
@@ -583,52 +464,6 @@ export default function AdminContacts() {
     setActiveTab("Overview");
   };
 
-  const handleStatusUpdate = async () => {
-    if (!selectedContact?.account?.id || !selectedStatus) return;
-
-    const normalizedNewStatus = normalizeStatus(selectedStatus);
-    const normalizedCurrentStatus = normalizeStatus(selectedContact?.account?.status);
-
-    // Don't update if status hasn't changed
-    if (normalizedNewStatus === normalizedCurrentStatus) {
-      return;
-    }
-
-    setUpdatingStatus(true);
-    try {
-      await api.put(`/accounts/admin/${selectedContact.account.id}`, {
-        status: normalizedNewStatus,
-      });
-      
-      toast.success(`Account status updated to ${formatStatusLabel(normalizedNewStatus)}`);
-      
-      // Update contacts list in real-time without reloading
-      setContacts((prevContacts) => {
-        return prevContacts.map((contact) => {
-          if (contact.account_id === selectedContact.account.id) {
-            return {
-              ...contact,
-              account: {
-                ...contact.account,
-                status: normalizedNewStatus,
-              },
-            };
-          }
-          return contact;
-        });
-      });
-      
-      // Close the details view popup
-      setSelectedContact(null);
-    } catch (err) {
-      console.error(err);
-      const message = err.response?.data?.detail || "Failed to update account status. Please try again.";
-      toast.error(message);
-    } finally {
-      setUpdatingStatus(false);
-    }
-  };
-
   const handleBackToList = () => setSelectedContact(null);
 
   const handleContactModalBackdropClick = (e) => {
@@ -675,13 +510,12 @@ export default function AdminContacts() {
         </div>
 
         {/* Header */}
-  <div className="flex flex-col md:flex-row md:justify-between lg:flex-row lg:items-center lg:justify-between mt-3 gap-2 px-2 md:items-center lg:gap-4 md:mx-7 lg:mx-7">     
-        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-                <h1 className="text-xl sm:text-2xl font-semibold text-gray-800">
+       <div className="flex flex-col md:flex-row md:justify-between lg:flex-row lg:items-center lg:justify-between mt-3 gap-2 px-2 md:items-center lg:gap-4 md:mx-7 lg:mx-7">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+            <h1 className="text-xl sm:text-2xl font-semibold text-gray-800">
               {getContactFullName(selectedContact) || "Unnamed contact"}
             </h1>
-            {renderAccountStatusBadge(selectedContact.account?.status)}            
-          </div>
+          </div>          
 
           <div className="flex flex-col sm:flex-row sm:space-x-3 space-y-2 sm:space-y-0">
             <button
@@ -713,12 +547,12 @@ export default function AdminContacts() {
           </div>
        
          </div>
-
-<div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-2 px-2 lg:gap-4 md:mx-7 lg:mx-7">
+         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-2 px-2 lg:gap-4 md:mx-7 lg:mx-7">
           <p className="text-sm text-gray-500">
               {selectedContact.account?.name || "No associated account"}
             </p>
          </div>
+         
         <div className="border-b border-gray-200 my-5"></div>
 
         {/* TABS */}
@@ -964,45 +798,6 @@ export default function AdminContacts() {
 </button>
     </div>
   </div>
-
-            {/* STATUS */}
-            <div className="bg-white border border-gray-100 rounded-lg p-3 sm:p-4 shadow-sm w-full">
-              <h4 className="font-semibold text-gray-800 mb-2 text-sm">
-                Status
-              </h4>
-              <select
-                className="border border-gray-200 rounded-md px-2 sm:px-3 py-1.5 w-full text-sm mb-2 focus:ring-2 focus:ring-indigo-500 outline-none"
-                value={selectedStatus || normalizeStatus(selectedContact?.account?.status) || "PROSPECT"}
-                onChange={(e) => setSelectedStatus(e.target.value)}
-                disabled={updatingStatus || !selectedContact?.account?.id}
-              >
-                {STATUS_OPTIONS.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-
-              <button
-                onClick={handleStatusUpdate}
-                disabled={
-                  updatingStatus ||
-                  !selectedStatus ||
-                  !selectedContact?.account?.id ||
-                  normalizeStatus(selectedStatus) === normalizeStatus(selectedContact?.account?.status)
-                }
-                className={`w-full py-1.5 rounded-md text-sm transition focus:outline-none focus:ring-2 ${
-                  updatingStatus ||
-                  !selectedStatus ||
-                  !selectedContact?.account?.id ||
-                  normalizeStatus(selectedStatus) === normalizeStatus(selectedContact?.account?.status)
-                    ? "bg-gray-400 cursor-not-allowed text-white"
-                    : "bg-gray-900 text-white hover:bg-gray-800 focus:ring-gray-400"
-                }`}
-              >
-                {updatingStatus ? "Updating..." : "Update"}
-              </button>
-            </div>
           </div>
         </div>
       </div>
@@ -1017,7 +812,7 @@ export default function AdminContacts() {
   <h2 className="flex items-center text-xl sm:text-2xl font-semibold text-gray-800">
     <FiUsers className="mr-2 text-blue-600" /> Contacts Management
   </h2>
-  <div className="flex justify-center lg:justify-end w-full sm:w-auto">
+   <div className="flex justify-center lg:justify-end w-full sm:w-auto">
   <button
     onClick={handleOpenAddModal}
     className="flex items-center bg-black text-white px-3 sm:px-4 py-2 rounded-md hover:bg-gray-800 text-sm sm:text-base self-end sm:self-auto cursor-pointer"
@@ -1121,15 +916,21 @@ export default function AdminContacts() {
                     <td className="py-3 px-4 align-top">
                       {contactInfoItems.length > 0 ? (
                         <div className="space-y-1 text-gray-700">
-                          {contactInfoItems.map(({ Icon, value, key }) => (
-                            <div
-                              key={key}
-                              className="flex items-center space-x-2 break-all text-sm"
-                            >
-                              <Icon className="text-gray-500 flex-shrink-0" />
-                              <span>{value}</span>
-                            </div>
-                          ))}
+                          {contactInfoItems.map(({ Icon, value, key }) => {
+                            const iconNode = React.createElement(Icon, {
+                              className: "text-gray-500 flex-shrink-0",
+                            });
+
+                            return (
+                              <div
+                                key={key}
+                                className="flex items-center space-x-2 break-all text-sm"
+                              >
+                                {iconNode}
+                                <span>{value}</span>
+                              </div>
+                            );
+                          })}
                         </div>
                       ) : (
                         <span className="text-gray-400 text-sm">--</span>
@@ -1231,68 +1032,36 @@ export default function AdminContacts() {
             required
             disabled={isSubmitting}
           />
-          <SelectField
+          <SearchableSelectField
             label="Account"
-            name="account_id"
             value={formData.account_id}
-            onChange={handleInputChange}
-            options={[
-              { value: "", label: "Select account" },
-              ...accounts.map((acc) => ({
-                value: String(acc.id),
-                label: acc.name,
-              })),
-            ]}
-            required
-            disabled={isSubmitting || accounts.length === 0}
+            onChange={(newId) =>
+              setFormData((prev) => ({
+                ...prev,
+                account_id: newId,
+              }))
+            }
+            items={accounts || []}
+            getLabel={(item) => item?.name ?? ""}
+            placeholder="Search account..."
+            disabled={isSubmitting || isEditing || accounts.length === 0}
           />
-          {isEditing && formData.account_id ? (
-            <SelectField
-              label="Status"
-              name="status"
-              value={formData.status || normalizeStatus(
-                accounts.find((acc) => String(acc.id) === formData.account_id)
-                  ?.status || ""
-              ) || "PROSPECT"}
-              onChange={handleInputChange}
-              options={STATUS_OPTIONS.map((option) => ({
-                value: option.value,
-                label: option.label,
-              }))}
-              disabled={isSubmitting || !formData.account_id}
-            />
-          ) : (
-            <SelectField
-              label="Assigned To"
-              name="assigned_to"
-              value={formData.assigned_to}
-              onChange={handleInputChange}
-              options={[
-                { value: "", label: "Select assignee" },
-                ...users.map((user) => ({
-                  value: String(user.id),
-                  label: `${user.first_name} ${user.last_name} (${user.role})`,
-                })),
-              ]}
-              disabled={isSubmitting || users.length === 0}
-            />
-          )}
-          {isEditing && (
-            <SelectField
-              label="Assigned To"
-              name="assigned_to"
-              value={formData.assigned_to}
-              onChange={handleInputChange}
-              options={[
-                { value: "", label: "Select assignee" },
-                ...users.map((user) => ({
-                  value: String(user.id),
-                  label: `${user.first_name} ${user.last_name} (${user.role})`,
-                })),
-              ]}
-              disabled={isSubmitting || users.length === 0}
-            />
-          )}
+          <SearchableSelectField
+            label="Assigned To"
+            value={formData.assigned_to}
+            onChange={(newId) =>
+              setFormData((prev) => ({
+                ...prev,
+                assigned_to: newId,
+              }))
+            }
+            items={users || []}
+            getLabel={(item) =>
+              `${item?.first_name ?? ""} ${item?.last_name ?? ""} (${item?.role ?? ""})`.trim()
+            }
+            placeholder="Search assignee..."
+            disabled={isSubmitting || isEditing || users.length === 0}
+          />
           <InputField
             label="Title"
             name="title"
@@ -1461,6 +1230,125 @@ function SelectField({
           </option>
         ))}
       </select>
+    </div>
+  );
+}
+
+function SearchableSelectField({
+  label,
+  items = [],
+  value = "",
+  onChange,
+  getLabel,
+  placeholder = "Search...",
+  disabled = false,
+  className = "",
+}) {
+  return (
+    <div className={className}>
+      <label className="block text-gray-700 font-medium mb-1 text-sm">
+        {label}
+      </label>
+      <SearchableSelect
+        items={items}
+        value={value ?? ""}
+        onChange={onChange}
+        getLabel={getLabel}
+        placeholder={placeholder}
+        disabled={disabled}
+      />
+    </div>
+  );
+}
+
+function SearchableSelect({
+  items = [],
+  value = "",
+  onChange,
+  getLabel,
+  placeholder = "Search...",
+  disabled = false,
+  maxRender = 200,
+}) {
+  const [open, setOpen] = useState(false);
+  const [q, setQ] = useState("");
+  const wrapRef = useRef(null);
+
+  const selectedItem = items.find((it) => String(it.id) === String(value));
+  const selectedLabel = selectedItem ? getLabel(selectedItem) : "";
+
+  const filtered = useMemo(() => {
+    const query = q.trim().toLowerCase();
+    const base = query
+      ? items.filter((it) => (getLabel(it) || "").toLowerCase().includes(query))
+      : items;
+
+    return base.slice(0, maxRender);
+  }, [items, q, getLabel, maxRender]);
+
+  useEffect(() => {
+    const onDoc = (e) => {
+      if (wrapRef.current && !wrapRef.current.contains(e.target)) setOpen(false);
+    };
+    document.addEventListener("mousedown", onDoc);
+    return () => document.removeEventListener("mousedown", onDoc);
+  }, []);
+
+  useEffect(() => {
+    if (!open) setQ("");
+  }, [open]);
+
+  return (
+    <div ref={wrapRef} className="relative w-full">
+      <input
+        disabled={disabled}
+        value={open ? q : selectedLabel}
+        placeholder={placeholder}
+        onFocus={() => !disabled && setOpen(true)}
+        onChange={(e) => {
+          setQ(e.target.value);
+          if (!open) setOpen(true);
+        }}
+        className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-400 outline-none disabled:bg-gray-100"
+      />
+
+      {open && !disabled && (
+        <div className="absolute z-50 mt-1 w-full bg-white border border-gray-200 rounded-md shadow-lg overflow-hidden">
+          <div className="max-h-56 overflow-y-auto">
+            {filtered.length > 0 ? (
+              filtered.map((it) => {
+                const id = String(it.id);
+                const label = getLabel(it);
+                const active = String(value) === id;
+
+                return (
+                  <button
+                    key={id}
+                    type="button"
+                    onClick={() => {
+                      onChange(id);
+                      setOpen(false);
+                    }}
+                    className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-50 ${
+                      active ? "bg-blue-50" : ""
+                    }`}
+                  >
+                    {label || "--"}
+                  </button>
+                );
+              })
+            ) : (
+              <div className="px-3 py-2 text-sm text-gray-500">No results</div>
+            )}
+          </div>
+
+          {items.length > maxRender && (
+            <div className="px-3 py-2 text-[11px] text-gray-400 border-t">
+              Showing first {maxRender} results — keep typing to narrow.
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

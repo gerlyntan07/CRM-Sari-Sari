@@ -92,7 +92,6 @@ export default function AdminContacts() {
           return new Date(bDate) - new Date(aDate);
         });
         setContacts(sorted);
-        console.log(res.data)
         if (preserveSelectedId) {
           const updatedSelection = sorted.find(
             (contact) => contact.id === preserveSelectedId

@@ -109,6 +109,7 @@ export default function AdminAccounts() {
   const [accounts, setAccounts] = useState([]);
   const [accountsLoading, setAccountsLoading] = useState(false);
   const [users, setUsers] = useState([]);
+  const [selectedUser, setSelectedUser] = useState(null);
   const [territories, setTerritories] = useState([]);
   const [stageFilter, setStageFilter] = useState("Filter by Status");
   const [searchQuery, setSearchQuery] = useState("");
@@ -363,6 +364,7 @@ export default function AdminAccounts() {
     setCurrentAccountId(null);
     setFormData(INITIAL_FORM_STATE);
     setIsSubmitting(false);
+    setSelectedUser(null);
   };
 
   const handleBackdropClick = (e) => {
@@ -402,6 +404,14 @@ export default function AdminAccounts() {
     // Close the account details modal
     setSelectedAccount(null);
     console.log("edit: ", account);
+    
+    // Set the selected user if the account has an assigned user
+    if (account.assigned_accs) {
+      setSelectedUser(account.assigned_accs);
+    } else {
+      setSelectedUser(null);
+    }
+    
     setFormData({
       name: account.name || "",
       website: account.website || "",
@@ -1242,12 +1252,22 @@ export default function AdminAccounts() {
           <SearchableSelectField
             label="Assigned To"
             value={formData.assigned_to}
-            onChange={(newId) =>
+            onChange={(newId) => {
+              const user = users.find((u) => String(u.id) === String(newId));
+              setSelectedUser(user);
+
+              // Auto-select territory if user has exactly one, otherwise reset
+              let newTerritoryId = null;
+              if (user && user.assigned_territory && user.assigned_territory.length === 1) {
+                newTerritoryId = user.assigned_territory[0].id;
+              }
+
               setFormData((prev) => ({
                 ...prev,
                 assigned_to: newId,
-              }))
-            }
+                territory_id: newTerritoryId, // Reset or Auto-select
+              }));
+            }}
             items={users || []}
             getLabel={(item) =>
               `${item?.first_name ?? ""} ${item?.last_name ?? ""} (${item?.role ?? ""})`.trim()
@@ -1258,16 +1278,18 @@ export default function AdminAccounts() {
           <SelectField
             label="Territory"
             name="territory_id"
-            value={formData.territory_id}
+            value={formData.territory_id || ""}
             onChange={handleInputChange}
             options={[
-              { value: "", label: "No Territory" },
-              ...territories.map((territory) => ({
-                value: String(territory.id),
-                label: territory.name,
-              })),
+              { value: "", label: !selectedUser ? "Select a user first" : (selectedUser.assigned_territory && selectedUser.assigned_territory.length > 0) ? "Select Territory" : "No territories assigned to this user" },
+              ...(selectedUser &&
+                selectedUser.assigned_territory &&
+                selectedUser.assigned_territory.map((t) => ({
+                  value: String(t.id),
+                  label: t.name,
+                }))) || [],
             ]}
-            disabled={isSubmitting || territories.length === 0}
+            disabled={isSubmitting || !selectedUser || !selectedUser.assigned_territory || selectedUser.assigned_territory.length === 0}
           />
 
           <div className="flex flex-col sm:flex-row justify-end sm:justify-end space-y-2 sm:space-y-0 sm:space-x-2 col-span-1 md:col-span-2 mt-4 w-full">

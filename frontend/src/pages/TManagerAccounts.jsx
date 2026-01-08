@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   FiSearch,
   FiEdit,
@@ -41,8 +41,6 @@ const INITIAL_FORM_STATE = {
   territory_id: "",
   assigned_to: "",
 };
-
-const MANAGER_ROLES = ["MANAGER"];
 
 const normalizeStatus = (status) => (status ? status.toUpperCase() : "");
 
@@ -94,7 +92,7 @@ const getTableBadgeClass = (status) => {
 
 const ITEMS_PER_PAGE = 10;
 
-export default function TManagerAccounts() {
+export default function AdminAccounts() {
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -111,6 +109,7 @@ export default function TManagerAccounts() {
   const [accounts, setAccounts] = useState([]);
   const [accountsLoading, setAccountsLoading] = useState(false);
   const [users, setUsers] = useState([]);
+  const [selectedUser, setSelectedUser] = useState(null);
   const [territories, setTerritories] = useState([]);
   const [stageFilter, setStageFilter] = useState("Filter by Status");
   const [searchQuery, setSearchQuery] = useState("");
@@ -120,12 +119,6 @@ export default function TManagerAccounts() {
   const [activeTab, setActiveTab] = useState("Overview");
   const [selectedStatus, setSelectedStatus] = useState("");
   const [updatingStatus, setUpdatingStatus] = useState(false);
-
-  const managerUsers = useMemo(() => {
-    return users.filter((user) =>
-      MANAGER_ROLES.includes(user.role?.toUpperCase())
-    );
-  }, [users]);
 
   const fetchAccounts = useCallback(
     async (preserveSelectedId = null) => {
@@ -371,6 +364,7 @@ export default function TManagerAccounts() {
     setCurrentAccountId(null);
     setFormData(INITIAL_FORM_STATE);
     setIsSubmitting(false);
+    setSelectedUser(null);
   };
 
   const handleBackdropClick = (e) => {
@@ -410,6 +404,14 @@ export default function TManagerAccounts() {
     // Close the account details modal
     setSelectedAccount(null);
     console.log("edit: ", account);
+    
+    // Set the selected user if the account has an assigned user
+    if (account.assigned_accs) {
+      setSelectedUser(account.assigned_accs);
+    } else {
+      setSelectedUser(null);
+    }
+    
     setFormData({
       name: account.name || "",
       website: account.website || "",
@@ -697,7 +699,7 @@ export default function TManagerAccounts() {
         </div>
 
         {/* Header */}
-          <div className="flex flex-col md:flex-row md:justify-between lg:flex-row lg:items-center lg:justify-between mt-3 gap-2 px-2 md:items-center lg:gap-4 md:mx-7 lg:mx-7">
+       <div className="flex flex-col md:flex-row md:justify-between lg:flex-row lg:items-center lg:justify-between mt-3 gap-2 px-2 md:items-center lg:gap-4 md:mx-7 lg:mx-7">
   <div className="flex flex-wrap items-center gap-2 sm:gap-3">
     <h1 className="text-xl sm:text-2xl font-semibold text-gray-800">
               {selectedAccount.name}
@@ -923,7 +925,7 @@ export default function TManagerAccounts() {
                 <div className="flex flex-col gap-2 w-full">
                   <button
                     onClick={() =>
-                      navigate("/group-manager/calls", {
+                      navigate("/admin/calls", {
                         state: {
                           openCallModal: true, // <-- this triggers your form
                           initialCallData: {
@@ -941,7 +943,7 @@ export default function TManagerAccounts() {
                   <button
                     className="flex items-center gap-2 border border-gray-100 rounded-md py-1.5 px-2 sm:px-3 hover:bg-gray-50 transition text-sm"
                     onClick={() =>
-                      navigate("/group-manager/meetings", {
+                      navigate("/admin/meetings", {
                         state: {
                           openMeetingModal: true,
                           initialMeetingData: {
@@ -957,7 +959,7 @@ export default function TManagerAccounts() {
 
                   <button
                     onClick={() =>
-                      navigate("/group-manager/tasks", {
+                      navigate("/admin/tasks", {
                         state: {
                           openTaskModal: true,
                           initialTaskData: {
@@ -1030,13 +1032,14 @@ export default function TManagerAccounts() {
           <FiUsers className="mr-2 text-blue-600" />
           Accounts Management
         </h2>
-       <div className="flex justify-center lg:justify-end w-full sm:w-auto">
+          
+     <div className="flex justify-center lg:justify-end w-full sm:w-auto">
         <button
-          onClick={handleOpenAddModal}
-          className="flex items-center bg-black text-white px-3 sm:px-4 py-2 rounded-md hover:bg-gray-800 text-sm sm:text-base cursor-pointer"
-        >
-          <FiPlus className="mr-2" /> Add Account
-        </button>
+        onClick={handleOpenAddModal}
+        className="flex items-center bg-black text-white px-3 sm:px-4 py-2 my-1 lg:my-0 rounded-md hover:bg-gray-800 text-sm sm:text-base mx-auto sm:ml-auto cursor-pointer"
+      >
+        <FiPlus className="mr-2" /> Add Account
+      </button>
       </div>
       </div>
 
@@ -1167,7 +1170,7 @@ export default function TManagerAccounts() {
       className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4"
     >
       <div
-        className="bg-white w-full max-w-full sm:max-w-3xl rounded-2xl shadow-lg p-4 sm:p-6 md:p-8 relative border border-gray-200 overflow-y-auto max-h-[90vh]"
+        className="bg-white w-full max-w-full sm:max-w-3xl rounded-2xl shadow-lg p-4 sm:p-6 md:p-8 relative border border-gray-200 overflow-y-auto hide-scrollbar max-h-[90vh]"
         onClick={(e) => e.stopPropagation()}
       >
         <button
@@ -1246,34 +1249,47 @@ export default function TManagerAccounts() {
             required
             disabled={isSubmitting}
           />
-          <SelectField
+          <SearchableSelectField
             label="Assigned To"
-            name="assigned_to"
             value={formData.assigned_to}
-            onChange={handleInputChange}
-            options={[
-              { value: "", label: "Select assignee" },
-              ...managerUsers.map((user) => ({
-                value: String(user.id),
-                label: `${user.first_name} ${user.last_name}`,
-              })),
-            ]}
-            disabled={isSubmitting || managerUsers.length === 0}
-          />
+            onChange={(newId) => {
+              const user = users.find((u) => String(u.id) === String(newId));
+              setSelectedUser(user);
 
+              // Auto-select territory if user has exactly one, otherwise reset
+              let newTerritoryId = null;
+              if (user && user.assigned_territory && user.assigned_territory.length === 1) {
+                newTerritoryId = user.assigned_territory[0].id;
+              }
+
+              setFormData((prev) => ({
+                ...prev,
+                assigned_to: newId,
+                territory_id: newTerritoryId, // Reset or Auto-select
+              }));
+            }}
+            items={users || []}
+            getLabel={(item) =>
+              `${item?.first_name ?? ""} ${item?.last_name ?? ""} (${item?.role ?? ""})`.trim()
+            }
+            placeholder="Search assignee..."
+            disabled={isSubmitting || users.length === 0}
+          />
           <SelectField
             label="Territory"
             name="territory_id"
-            value={formData.territory_id}
+            value={formData.territory_id || ""}
             onChange={handleInputChange}
             options={[
-              { value: "", label: "No Territory" },
-              ...territories.map((territory) => ({
-                value: String(territory.id),
-                label: territory.name,
-              })),
+              { value: "", label: !selectedUser ? "Select a user first" : (selectedUser.assigned_territory && selectedUser.assigned_territory.length > 0) ? "Select Territory" : "No territories assigned to this user" },
+              ...(selectedUser &&
+                selectedUser.assigned_territory &&
+                selectedUser.assigned_territory.map((t) => ({
+                  value: String(t.id),
+                  label: t.name,
+                }))) || [],
             ]}
-            disabled={isSubmitting || territories.length === 0}
+            disabled={isSubmitting || !selectedUser || !selectedUser.assigned_territory || selectedUser.assigned_territory.length === 0}
           />
 
           <div className="flex flex-col sm:flex-row justify-end sm:justify-end space-y-2 sm:space-y-0 sm:space-x-2 col-span-1 md:col-span-2 mt-4 w-full">
@@ -1418,6 +1434,125 @@ function SelectField({
           </option>
         ))}
       </select>
+    </div>
+  );
+}
+
+function SearchableSelectField({
+  label,
+  items = [],
+  value = "",
+  onChange,
+  getLabel,
+  placeholder = "Search...",
+  disabled = false,
+  className = "",
+}) {
+  return (
+    <div className={className}>
+      <label className="block text-gray-700 font-medium mb-1 text-sm">
+        {label}
+      </label>
+      <SearchableSelect
+        items={items}
+        value={value ?? ""}
+        onChange={onChange}
+        getLabel={getLabel}
+        placeholder={placeholder}
+        disabled={disabled}
+      />
+    </div>
+  );
+}
+
+function SearchableSelect({
+  items = [],
+  value = "",
+  onChange,
+  getLabel,
+  placeholder = "Search...",
+  disabled = false,
+  maxRender = 200,
+}) {
+  const [open, setOpen] = useState(false);
+  const [q, setQ] = useState("");
+  const wrapRef = useRef(null);
+
+  const selectedItem = items.find((it) => String(it.id) === String(value));
+  const selectedLabel = selectedItem ? getLabel(selectedItem) : "";
+
+  const filtered = useMemo(() => {
+    const query = q.trim().toLowerCase();
+    const base = query
+      ? items.filter((it) => (getLabel(it) || "").toLowerCase().includes(query))
+      : items;
+
+    return base.slice(0, maxRender);
+  }, [items, q, getLabel, maxRender]);
+
+  useEffect(() => {
+    const onDoc = (e) => {
+      if (wrapRef.current && !wrapRef.current.contains(e.target)) setOpen(false);
+    };
+    document.addEventListener("mousedown", onDoc);
+    return () => document.removeEventListener("mousedown", onDoc);
+  }, []);
+
+  useEffect(() => {
+    if (!open) setQ("");
+  }, [open]);
+
+  return (
+    <div ref={wrapRef} className="relative w-full">
+      <input
+        disabled={disabled}
+        value={open ? q : selectedLabel}
+        placeholder={placeholder}
+        onFocus={() => !disabled && setOpen(true)}
+        onChange={(e) => {
+          setQ(e.target.value);
+          if (!open) setOpen(true);
+        }}
+        className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-400 outline-none disabled:bg-gray-100"
+      />
+
+      {open && !disabled && (
+        <div className="absolute z-50 mt-1 w-full bg-white border border-gray-200 rounded-md shadow-lg overflow-hidden">
+          <div className="max-h-56 overflow-y-auto hide-scrollbar">
+            {filtered.length > 0 ? (
+              filtered.map((it) => {
+                const id = String(it.id);
+                const label = getLabel(it);
+                const active = String(value) === id;
+
+                return (
+                  <button
+                    key={id}
+                    type="button"
+                    onClick={() => {
+                      onChange(id);
+                      setOpen(false);
+                    }}
+                    className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-50 ${
+                      active ? "bg-blue-50" : ""
+                    }`}
+                  >
+                    {label || "--"}
+                  </button>
+                );
+              })
+            ) : (
+              <div className="px-3 py-2 text-sm text-gray-500">No results</div>
+            )}
+          </div>
+
+          {items.length > maxRender && (
+            <div className="px-3 py-2 text-[11px] text-gray-400 border-t">
+              Showing first {maxRender} results — keep typing to narrow.
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

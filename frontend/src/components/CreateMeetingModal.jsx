@@ -242,7 +242,7 @@ const CreateMeetingModal = ({
             onChange={handleInputChange}
             value={formData.relatedType1 || "Lead"}
             className="w-full outline-none cursor-pointer mb-1 rounded p-2 text-gray-700 disabled:text-gray-400"
-            disabled={isSubmitting || isEditing}
+            disabled={isSubmitting}
           >
             <option value="Lead">Lead</option>
             <option value="Account">Account</option>
@@ -250,6 +250,7 @@ const CreateMeetingModal = ({
 
           <SearchableSelect
             items={Array.isArray(relatedTo1Values) ? relatedTo1Values : []}
+            disabled={isSubmitting}
             value={formData.relatedTo1 ?? ""}
             placeholder={`Search ${formData.relatedType1 || "here"}...`}
             getLabel={(item) =>
@@ -263,7 +264,6 @@ const CreateMeetingModal = ({
                 relatedTo1: newId,
               }))
             }
-            disabled={isEditing}
           />
         </div>
 
@@ -274,7 +274,7 @@ const CreateMeetingModal = ({
             onChange={handleInputChange}
             value={formData.relatedType2 || "Contact"}
             className="w-full outline-none cursor-pointer mb-1 rounded p-2 text-gray-700 disabled:text-gray-400 disabled:cursor-not-allowed"
-            disabled={isSubmitting || isEditing || formData.relatedType1 === "Lead"}
+            disabled={isSubmitting || formData.relatedType1 === "Lead"}
           >
             <option value="Contact">Contact</option>
             <option value="Deal">Deal</option>
@@ -301,7 +301,7 @@ const CreateMeetingModal = ({
                 relatedTo2: newId,
               }))
             }
-            disabled={isEditing || formData.relatedType1 === "Lead"}
+            disabled={formData.relatedType1 === "Lead"}
           />
         </div>
 

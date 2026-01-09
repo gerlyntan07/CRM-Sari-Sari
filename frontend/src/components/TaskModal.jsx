@@ -351,9 +351,9 @@ export default function TaskModal({
                         name="relatedType1"
                         onChange={handleChange}
                         value={formData.relatedType1}
-                        disabled={viewMode || isEditing}
+                        disabled={viewMode}
                         className={`w-23 rounded-md text-sm focus:ring-2 focus:ring-blue-400 outline-none mb-2 disabled:text-gray-400 ${
-                          viewMode || isEditing ? "cursor-not-allowed" : ""
+                          viewMode ? "cursor-not-allowed" : ""
                         }`}
                       >
                         <option value="Lead">Lead</option>
@@ -361,7 +361,7 @@ export default function TaskModal({
                       </select>
 
                       <SearchableSelect
-                        disabled={isEditing}
+                        disabled={false}
                         items={
                           Array.isArray(relatedTo1Values)
                             ? relatedTo1Values
@@ -391,14 +391,14 @@ export default function TaskModal({
                         onChange={handleChange}
                         value={formData.relatedType2 ?? "Contact"}
                         className={`w-23 rounded-md text-sm focus:ring-2 focus:ring-blue-400 outline-none mb-2 disabled:text-gray-400 disabled:cursor-not-allowed`}
-                        disabled={viewMode || formData.relatedType1 === "Lead" || isEditing}
+                        disabled={viewMode || formData.relatedType1 === "Lead"}
                       >
                         <option value="Contact">Contact</option>
                         <option value="Deal">Deal</option>
                       </select>
 
                       <SearchableSelect
-                        disabled={formData.relatedType1 === "Lead" || isEditing}
+                        disabled={formData.relatedType1 === "Lead"}
                         items={
                           Array.isArray(relatedTo2Values)
                             ? relatedTo2Values

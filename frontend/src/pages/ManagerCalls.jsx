@@ -736,7 +736,7 @@ export default function AdminCalls() {
               onChange={handleInputChange}
               value={formData.relatedType1}
               className="outline-none cursor-pointer mb-1 w-22 text-gray-700 disabled:text-gray-400 disabled:cursor-not-allowed"
-              disabled={isSubmitting || isEditing}
+              disabled={isSubmitting}
             >
               <option value="Lead">Lead</option>
               <option value="Account">Account</option>
@@ -758,7 +758,7 @@ export default function AdminCalls() {
                   relatedTo1: newId, // keep string
                 }))
               }
-              disabled={isSubmitting || isEditing}
+              disabled={isSubmitting}
             />            
           </div>
 
@@ -769,14 +769,14 @@ export default function AdminCalls() {
               onChange={handleInputChange}
               value={formData.relatedType2 ?? "Contact"}
               className="text-gray-700 outline-none cursor-pointer mb-1 w-22 disabled:text-gray-400 disabled:cursor-not-allowed"
-              disabled={formData.relatedType1 === "Lead" || isSubmitting || isEditing}
+              disabled={formData.relatedType1 === "Lead" || isSubmitting}
             >
               <option value="Contact">Contact</option>
               <option value="Deal">Deal</option>
             </select>
 
             <SearchableSelect
-              disabled={formData.relatedType1 === "Lead" || isSubmitting || isEditing}
+              disabled={formData.relatedType1 === "Lead" || isSubmitting}
               items={Array.isArray(relatedTo2Values) ? relatedTo2Values : []}
               value={formData.relatedTo2 ?? ""}
               placeholder={

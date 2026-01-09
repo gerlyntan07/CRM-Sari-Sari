@@ -1044,7 +1044,7 @@ export default function AdminContacts() {
             items={accounts || []}
             getLabel={(item) => item?.name ?? ""}
             placeholder="Search account..."
-            disabled={isSubmitting || isEditing || accounts.length === 0}
+            disabled={isSubmitting || accounts.length === 0}
           />
           <SearchableSelectField
             label="Assigned To"
@@ -1060,7 +1060,7 @@ export default function AdminContacts() {
               `${item?.first_name ?? ""} ${item?.last_name ?? ""} (${item?.role ?? ""})`.trim()
             }
             placeholder="Search assignee..."
-            disabled={isSubmitting || isEditing || users.length === 0}
+            disabled={isSubmitting || users.length === 0}
           />
           <InputField
             label="Title"

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import {
     FiSearch,
     FiEdit,
@@ -14,7 +14,7 @@ import { LuUserSearch } from "react-icons/lu";
 import api from '../api'
 import { toast } from "react-toastify";
 import PaginationControls from "../components/PaginationControls.jsx";
-import AdminDealsInformation from "../components/ManagerDealsInformation.jsx";
+import AdminDealsInformation from "../components/AdminDealsInformation";
 import LoadingSpinner from "../components/LoadingSpinner.jsx";
 
 const ITEMS_PER_PAGE = 10;
@@ -54,6 +54,8 @@ export default function AdminDeals() {
         currency: "PHP",
         description: "",
     });
+    const [currentAccount, setCurrentAccount] = useState(null);
+    const [currentContact, setCurrentContact] = useState(null);
 
 
     // Filtered deals
@@ -64,6 +66,7 @@ export default function AdminDeals() {
         "Negotiation Stage": "NEGOTIATION",
         "Closed Won Stage": "CLOSED_WON",
         "Closed Lost Stage": "CLOSED_LOST",
+        "Closed Cancelled Stage": "CLOSED_CANCELLED",
     };
 
     const formatStageName = (stage) => {
@@ -74,6 +77,7 @@ export default function AdminDeals() {
             "NEGOTIATION": "Negotiation",
             "CLOSED_WON": "Closed Won",
             "CLOSED_LOST": "Closed Lost",
+            "CLOSED_CANCELLED": "Closed Cancelled",
         };
         return stageNames[stage] || stage || "--";
     };
@@ -86,6 +90,7 @@ export default function AdminDeals() {
             "NEGOTIATION": "bg-purple-100 text-purple-700",
             "CLOSED_WON": "bg-green-100 text-green-700",
             "CLOSED_LOST": "bg-red-100 text-red-700",
+            "CLOSED_CANCELLED": "bg-red-100 text-red-700",
         };
         return stageColors[stage] || "bg-gray-100 text-gray-700";
     };
@@ -246,8 +251,9 @@ export default function AdminDeals() {
         fetchUsers();
     }, [])
 
-    const openEditDealModal = (deal) => {
+    const openEditDealModal = async(deal) => {
         if (!deal) return;
+
         setDealForm({
             id: deal.id || null,
             name: deal.name || "",
@@ -260,6 +266,9 @@ export default function AdminDeals() {
             currency: deal.currency || "PHP",
             description: deal.description || "",
         });
+        // Store the full account and contact objects for display
+        setCurrentAccount(deal.account || null);
+        setCurrentContact(deal.contact || null);
         setIsEditing(true);
         setCurrentDealId(deal.id);
         setSelectedDeal(null);
@@ -287,10 +296,10 @@ export default function AdminDeals() {
                 const bDate = b?.created_at ? new Date(b.created_at).getTime() : 0;
                 return bDate - aDate;
             });
-            
+
             // Update the deals list with sorted data
             setDeals(sorted);
-            
+
             // Only update selectedDeal if modal should stay open (not when closing)
             if (!keepModalClosed && selectedDeal && selectedDeal.id) {
                 const updatedDeal = sorted.find(d => d.id === selectedDeal.id);
@@ -313,6 +322,10 @@ export default function AdminDeals() {
         const trimmedName = formDataFromModal.name.trim();
         if (!trimmedName) {
             toast.error("Deal name is required.");
+            return;
+        }
+        if (!formDataFromModal.account_id) {
+            toast.error("Account is required.");
             return;
         }
 
@@ -438,8 +451,8 @@ export default function AdminDeals() {
                 type === "create"
                     ? "Failed to create deal. Please review the details and try again."
                     : type === "update"
-                    ? "Failed to update deal. Please review the details and try again."
-                    : "Failed to delete deal. Please try again.";
+                        ? "Failed to update deal. Please review the details and try again."
+                        : "Failed to delete deal. Please try again.";
             const message = err.response?.data?.detail || defaultMessage;
             toast.error(message);
         } finally {
@@ -470,6 +483,8 @@ export default function AdminDeals() {
             currency: "PHP",
             description: "",
         });
+        setCurrentAccount(null);
+        setCurrentContact(null);
         setIsEditing(false);
         setCurrentDealId(null);
         setIsSubmitting(false);
@@ -485,6 +500,8 @@ export default function AdminDeals() {
     const negotiation = (deals ?? []).filter((d) => d.stage === "NEGOTIATION").length;
     const closedWon = (deals ?? []).filter((d) => d.stage === "CLOSED_WON").length;
     const closedLost = (deals ?? []).filter((d) => d.stage === "CLOSED_LOST").length;
+    const closedCancelled = (deals ?? []).filter((d) => d.stage === "CLOSED_CANCELLED").length;
+
 
     const metricCards = [
         {
@@ -529,7 +546,15 @@ export default function AdminDeals() {
             color: "text-red-600",
             bgColor: "bg-red-100",
         },
+        {
+            title: "Closed Cancelled",
+            value: closedCancelled,
+            icon: FiXCircle,
+            color: "text-gray-600",
+            bgColor: "bg-gray-100",
+        },
     ];
+
 
     return (
         <div className="p-4 sm:p-6 lg:p-8 font-inter relative">
@@ -540,14 +565,14 @@ export default function AdminDeals() {
                     Deals
                 </h1>
 
-                 <div className="flex justify-center lg:justify-end w-full sm:w-auto">
-                <button
-                    onClick={openNewDealModal}
-        className="flex items-center bg-black text-white px-3 sm:px-4 py-2 lg:my-0 rounded-md hover:bg-gray-800 text-sm sm:text-base mx-auto sm:ml-auto cursor-pointer"
-                >
-                    <FiPlus className="mr-2" /> Add Deal
-                </button>
-            </div>
+                <div className="flex justify-center lg:justify-end w-full sm:w-auto">
+                    <button
+                        onClick={openNewDealModal}
+                        className="flex items-center bg-black text-white px-3 sm:px-4 py-2 lg:my-0 rounded-md hover:bg-gray-800 text-sm sm:text-base mx-auto sm:ml-auto cursor-pointer"
+                    >
+                        <FiPlus className="mr-2" /> Add Deal
+                    </button>
+                </div>
             </div>
 
             <div className="grid grid-cols-1 p-2 lg:grid-cols-4 gap-4 mb-6 w-full break-words overflow-hidden">
@@ -581,6 +606,8 @@ export default function AdminDeals() {
                         <option value="Negotiation Stage">Negotiation</option>
                         <option value="Closed Won Stage">Closed Won</option>
                         <option value="Closed Lost Stage">Closed Lost</option>
+                        <option value="Closed Cancelled Stage">Closed Cancelled</option>
+
                     </select>
                     <select
                         value={ownerFilter}
@@ -624,8 +651,8 @@ export default function AdminDeals() {
                                     }}
                                 >
                                     <td className="py-3 px-4 text-gray-800 font-medium text-sm">
-  {deal.deal_id ? deal.deal_id.replace(/D(\d+)-\d+-/, "D$1-") : "--"}
-</td>
+                                        {deal.deal_id ? deal.deal_id.replace(/D(\d+)-\d+-/, "D$1-") : "--"}
+                                    </td>
 
                                     <td className="py-3 px-4">
                                         <div>
@@ -667,7 +694,7 @@ export default function AdminDeals() {
                             <tr>
                                 <td
                                     className="py-4 px-4 text-center text-sm text-gray-500"
-                                    colSpan={7}
+                                    colSpan={8}
                                 >
                                     No deals found.
                                 </td>
@@ -698,6 +725,8 @@ export default function AdminDeals() {
                     accounts={accounts}
                     contacts={contacts}
                     users={users}
+                    currentAccount={currentAccount}
+                    currentContact={currentContact}
                 />
             )}
 
@@ -801,7 +830,7 @@ function MetricCard({
 
     return (
         <div
-className="flex items-center p-4 bg-white rounded-xl shadow-md border border-gray-200 transition-all duration-300"
+            className="flex items-center p-4 bg-white rounded-xl shadow-md border border-gray-200 transition-all duration-300"
             onClick={handleClick}
         >
             <div
@@ -827,6 +856,8 @@ function CreateDealModal({
     accounts = [],
     contacts = [],
     users = [],
+    currentAccount = null,
+    currentContact = null,
 }) {
     const handleSubmit = (e) => {
         e.preventDefault();
@@ -840,6 +871,50 @@ function CreateDealModal({
             onClose();
         }
     };
+
+    const filteredContacts = useMemo(() => {
+        const selectedAccountId = String(externalFormData.account_id || "").trim();
+        const base = Array.isArray(contacts) ? contacts : [];
+
+        if (!selectedAccountId) return base;
+
+        return base.filter((c) => {
+            const candidates = [
+                c?.account_id,
+                c?.accountId,
+                c?.account?.id,
+                c?.account?.account_id,
+                c?.account?.accountId,
+            ];
+            const found = candidates.find(
+                (v) => v !== null && v !== undefined && String(v).trim() !== ""
+            );
+            return found ? String(found) === selectedAccountId : false;
+        });
+    }, [contacts, externalFormData.account_id]);
+
+    useEffect(() => {
+        const selectedAccountId = String(externalFormData.account_id || "").trim();
+        const selectedContactId = String(
+            externalFormData.primary_contact_id || ""
+        ).trim();
+
+        if (!selectedContactId) return;
+        if (!selectedAccountId) return;
+
+        const stillValid = filteredContacts.some(
+            (c) => String(c?.id) === selectedContactId
+        );
+
+        if (!stillValid) {
+            setExternalFormData((prev) => ({ ...prev, primary_contact_id: "" }));
+        }
+    }, [
+        externalFormData.account_id,
+        externalFormData.primary_contact_id,
+        filteredContacts,
+        setExternalFormData,
+    ]);
 
     return (
         <div
@@ -876,31 +951,38 @@ function CreateDealModal({
                         disabled={isSubmitting}
                         className="md:col-span-2"
                     />
-                    <SelectField
+                    <SearchableSelectField
                         label="Account"
-                        name="account_id"
                         value={externalFormData.account_id || ""}
-                        onChange={(e) => setExternalFormData({ ...externalFormData, account_id: e.target.value })}
-                        options={[
-                            { value: "", label: "Select Account" },
-                            ...accounts.map(acc => ({ value: acc.id.toString(), label: acc.name }))
-                        ]}
-                        required
+                        onChange={(newId) =>
+                            setExternalFormData({
+                                ...externalFormData,
+                                account_id: newId,
+                            })
+                        }
+                        items={accounts || []}
+                        getLabel={(item) => item?.name ?? ""}
+                        placeholder="Search account..."
                         disabled={isSubmitting}
+                        currentItem={currentAccount}
                     />
-                    <SelectField
+                    <SearchableSelectField
                         label="Primary Contact"
-                        name="primary_contact_id"
                         value={externalFormData.primary_contact_id || ""}
-                        onChange={(e) => setExternalFormData({ ...externalFormData, primary_contact_id: e.target.value })}
-                        options={[
-                            { value: "", label: "Select Contact (Optional)" },
-                            ...contacts.map(contact => ({ 
-                                value: contact.id.toString(), 
-                                label: `${contact.first_name} ${contact.last_name}`.trim() || contact.email
-                            }))
-                        ]}
+                        onChange={(newId) =>
+                            setExternalFormData({
+                                ...externalFormData,
+                                primary_contact_id: newId,
+                            })
+                        }
+                        items={filteredContacts || []}
+                        getLabel={(item) => {
+                            const name = `${item?.first_name ?? ""} ${item?.last_name ?? ""}`.trim();
+                            return name || item?.email || "";
+                        }}
+                        placeholder="Search contact..."
                         disabled={isSubmitting}
+                        currentItem={currentContact}
                     />
                     <SelectField
                         label="Stage"
@@ -914,6 +996,8 @@ function CreateDealModal({
                             { value: "NEGOTIATION", label: "Negotiation" },
                             { value: "CLOSED_WON", label: "Closed Won" },
                             { value: "CLOSED_LOST", label: "Closed Lost" },
+                            { value: "CLOSED_CANCELLED", label: "Closed Cancelled" },
+
                         ]}
                         disabled={isSubmitting}
                     />
@@ -946,19 +1030,22 @@ function CreateDealModal({
                         onChange={(e) => setExternalFormData({ ...externalFormData, close_date: e.target.value })}
                         disabled={isSubmitting}
                     />
-                    <SelectField
+                    <SearchableSelectField
                         label="Assign To"
-                        name="assigned_to"
                         value={externalFormData.assigned_to || ""}
-                        onChange={(e) => setExternalFormData({ ...externalFormData, assigned_to: e.target.value })}
-                        options={[
-                            { value: "", label: "Assign To (Optional)" },
-                            ...users.map(user => ({ 
-                                value: user.id.toString(), 
-                                label: `${user.first_name} ${user.last_name}`.trim() || user.email
-                            }))
-                        ]}
-                        disabled={isSubmitting || isEditing}
+                        onChange={(newId) =>
+                            setExternalFormData({
+                                ...externalFormData,
+                                assigned_to: newId,
+                            })
+                        }
+                        items={users || []}
+                        getLabel={(item) => {
+                            const name = `${item?.first_name ?? ""} ${item?.last_name ?? ""}`.trim();
+                            return name || item?.email || "";
+                        }}
+                        placeholder="Search assignee..."
+                        disabled={isSubmitting}
                         className="md:col-span-2"
                     />
                     <TextareaField
@@ -989,8 +1076,8 @@ function CreateDealModal({
                             {isSubmitting
                                 ? "Saving..."
                                 : isEditing
-                                ? "Update Deal"
-                                : "Save Deal"}
+                                    ? "Update Deal"
+                                    : "Save Deal"}
                         </button>
                     </div>
                 </form>
@@ -1058,6 +1145,129 @@ function SelectField({
                     </option>
                 ))}
             </select>
+        </div>
+    );
+}
+
+function SearchableSelectField({
+    label,
+    items = [],
+    value = "",
+    onChange,
+    getLabel,
+    placeholder = "Search...",
+    disabled = false,
+    className = "",
+    currentItem = null,
+}) {
+    return (
+        <div className={className}>
+            <label className="block text-gray-700 font-medium mb-1 text-sm">
+                {label}
+            </label>
+            <SearchableSelect
+                items={items}
+                value={value ?? ""}
+                onChange={onChange}
+                getLabel={getLabel}
+                placeholder={placeholder}
+                disabled={disabled}
+                currentItem={currentItem}
+            />
+        </div>
+    );
+}
+
+function SearchableSelect({
+    items = [],
+    value = "",
+    onChange,
+    getLabel,
+    placeholder = "Search...",
+    disabled = false,
+    maxRender = 200,
+    currentItem = null,
+}) {
+    const [open, setOpen] = useState(false);
+    const [q, setQ] = useState("");
+    const wrapRef = useRef(null);
+
+    const selectedItem = items.find((it) => String(it.id) === String(value));
+    // Use currentItem if the selected item is not in the items list (e.g., due to permissions)
+    const displayItem = selectedItem || currentItem;
+    const selectedLabel = displayItem ? getLabel(displayItem) : "";
+
+    const filtered = useMemo(() => {
+        const query = q.trim().toLowerCase();
+        const base = query
+            ? items.filter((it) => (getLabel(it) || "").toLowerCase().includes(query))
+            : items;
+
+        return base.slice(0, maxRender);
+    }, [items, q, getLabel, maxRender]);
+
+    useEffect(() => {
+        const onDoc = (e) => {
+            if (wrapRef.current && !wrapRef.current.contains(e.target)) setOpen(false);
+        };
+        document.addEventListener("mousedown", onDoc);
+        return () => document.removeEventListener("mousedown", onDoc);
+    }, []);
+
+    useEffect(() => {
+        if (!open) setQ("");
+    }, [open]);
+
+    return (
+        <div ref={wrapRef} className="relative w-full">
+            <input
+                disabled={disabled}
+                value={open ? q : selectedLabel}
+                placeholder={placeholder}
+                onFocus={() => !disabled && setOpen(true)}
+                onChange={(e) => {
+                    setQ(e.target.value);
+                    if (!open) setOpen(true);
+                }}
+                className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-400 outline-none disabled:bg-gray-100"
+            />
+
+            {open && !disabled && (
+                <div className="absolute z-50 mt-1 w-full bg-white border border-gray-200 rounded-md shadow-lg overflow-hidden">
+                    <div className="max-h-56 overflow-y-auto hide-scrollbar">
+                        {filtered.length > 0 ? (
+                            filtered.map((it) => {
+                                const id = String(it.id);
+                                const label = getLabel(it);
+                                const active = String(value) === id;
+
+                                return (
+                                    <button
+                                        key={id}
+                                        type="button"
+                                        onClick={() => {
+                                            onChange(id);
+                                            setOpen(false);
+                                        }}
+                                        className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-50 ${active ? "bg-blue-50" : ""
+                                            }`}
+                                    >
+                                        {label || "--"}
+                                    </button>
+                                );
+                            })
+                        ) : (
+                            <div className="px-3 py-2 text-sm text-gray-500">No results</div>
+                        )}
+                    </div>
+
+                    {items.length > maxRender && (
+                        <div className="px-3 py-2 text-[11px] text-gray-400 border-t">
+                            Showing first {maxRender} results — keep typing to narrow.
+                        </div>
+                    )}
+                </div>
+            )}
         </div>
     );
 }

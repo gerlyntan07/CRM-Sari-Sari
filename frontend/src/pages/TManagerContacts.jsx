@@ -241,6 +241,20 @@ export default function AdminContacts() {
   const handleNextPage = () =>
     setCurrentPage((prev) => Math.min(prev + 1, totalPages));
 
+  // Ensure contact's current account is available in edit form
+  const accountsForForm = useMemo(() => {
+    if (!isEditing || !currentContactId) return accounts;
+    
+    const editingContact = contacts.find(c => c.id === currentContactId);
+    if (!editingContact || !editingContact.account) return accounts;
+    
+    const accountExists = accounts.some(acc => acc.id === editingContact.account.id);
+    if (accountExists) return accounts;
+    
+    // Add the editing contact's account if it's not already in the list
+    return [...accounts, editingContact.account];
+  }, [accounts, isEditing, currentContactId, contacts]);
+
   const closeModal = useCallback(() => {
     setShowModal(false);
     setIsEditing(false);
@@ -274,12 +288,15 @@ export default function AdminContacts() {
     setShowModal(true);
   };
 
-  const handleEditClick = (contact) => {
+  const handleEditClick = async(contact) => {
     if (!contact) return;
+
+    const res = await api.get(`/accounts/get/${contact.account_id}`);
+
     setFormData({
       first_name: contact.first_name || "",
       last_name: contact.last_name || "",
-      account_id: contact.account_id ? String(contact.account_id) : "",
+      account_id: res.data.id ? res.data.id : "",
       title: contact.title || "",
       department: contact.department || "",
       email: contact.email || "",
@@ -1041,10 +1058,10 @@ export default function AdminContacts() {
                 account_id: newId,
               }))
             }
-            items={accounts || []}
+            items={isEditing ? accountsForForm : accounts || []}
             getLabel={(item) => item?.name ?? ""}
             placeholder="Search account..."
-            disabled={isSubmitting || isEditing || accounts.length === 0}
+            disabled={isSubmitting || (isEditing ? accountsForForm.length === 0 : accounts.length === 0)}
           />
           <SearchableSelectField
             label="Assigned To"
@@ -1060,7 +1077,7 @@ export default function AdminContacts() {
               `${item?.first_name ?? ""} ${item?.last_name ?? ""} (${item?.role ?? ""})`.trim()
             }
             placeholder="Search assignee..."
-            disabled={isSubmitting || isEditing || users.length === 0}
+            disabled={isSubmitting || users.length === 0}
           />
           <InputField
             label="Title"

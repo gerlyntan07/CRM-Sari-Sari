@@ -139,7 +139,7 @@ def get_users(
             .filter(
                 User.related_to_company == current_user.related_to_company,
                 User.is_active == True)
-            .filter(~User.role.in_(["CEO", "Admin"]))
+            .filter(~User.role.in_(["CEO", "Admin", "ADMIN"]))
             .all()
         )
     elif current_user.role.upper() == "MANAGER":

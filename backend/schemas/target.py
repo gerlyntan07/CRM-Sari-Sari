@@ -37,6 +37,7 @@ class TargetResponse(TargetBase):
     user: Optional[UserBase] = None
     created_at: datetime
     updated_at: Optional[datetime] = None
+    achieved_amount: Optional[Decimal] = None
 
     class Config:
         orm_mode = True

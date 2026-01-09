@@ -1,12 +1,16 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Request
 from sqlalchemy.orm import Session, joinedload
+from sqlalchemy import func
 from typing import List
+from decimal import Decimal
 
 from database import get_db
 from schemas.target import TargetCreate, TargetUpdate, TargetResponse, UserBase
 from .auth_utils import get_current_user
 from models.auth import User
 from models.target import Target
+from models.territory import Territory
+from models.deal import Deal, DealStage
 from .logs_utils import serialize_instance, create_audit_log
 
 
@@ -21,7 +25,28 @@ ALLOWED_ADMIN_ROLES = {"CEO", "ADMIN", "GROUP MANAGER", "MANAGER", "SALES"}
 # =====================================================
 # Helper: Model → Response
 # =====================================================
-def target_to_response(target: Target) -> dict:
+def target_to_response(target: Target, db: Session = None) -> dict:
+    """
+    Convert Target model to response dict.
+    Includes achieved_amount = sum of all CLOSED_WON deals assigned to the user
+    within the target's date range.
+    """
+    achieved_amount = 0.0
+    
+    if db and target.user_id:
+        # Calculate achieved amount: sum of CLOSED_WON deals for this user within the target period
+        achieved_query = (
+            db.query(func.sum(Deal.amount))
+            .filter(
+                Deal.assigned_to == target.user_id,
+                Deal.stage == DealStage.CLOSED_WON.value                
+            )
+            .scalar()
+        )
+        
+        if achieved_query:
+            achieved_amount = float(achieved_query)
+    
     return {
         "id": target.id,
         "user_id": target.user_id,
@@ -30,6 +55,7 @@ def target_to_response(target: Target) -> dict:
         "end_date": target.end_date,
         "created_at": target.created_at,
         "updated_at": target.updated_at,
+        "achieved_amount": achieved_amount,
         "user": {
             "id": target.user.id,
             "first_name": target.user.first_name,
@@ -47,24 +73,43 @@ def admin_get_targets(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    if current_user.role.upper() not in ALLOWED_ADMIN_ROLES:
-        raise HTTPException(status_code=403, detail="Permission denied")
+    if current_user.role.upper() in ["CEO", "ADMIN"]:
+        targets = (
+            db.query(Target)
+            .join(User, Target.user_id == User.id)
+            .filter(User.related_to_company == current_user.related_to_company)
+            .all()
+        )
+    elif current_user.role.upper() == "GROUP MANAGER":
+        targets = (
+            db.query(Target)
+            .join(User, Target.user_id == User.id)
+            .filter(User.related_to_company == current_user.related_to_company)
+            .filter(~User.role.in_(["CEO", "Admin"]))
+            .all()
+        )
+    elif current_user.role.upper() == "MANAGER":
+        subquery_user_ids = (
+            db.query(Territory.user_id)
+            .filter(Territory.manager_id == current_user.id)
+            .scalar_subquery()
+        )
 
-    company_users = (
-        db.query(User.id)
-        .filter(User.related_to_company == current_user.related_to_company)
-        .subquery()
-    )
+        targets = (
+            db.query(Target)
+            .join(User, Target.user_id == User.id)
+            .filter(User.related_to_company == current_user.related_to_company)
+            .filter(
+                (User.id.in_(subquery_user_ids))                
+            ).all()
+        )
+    else:
+        targets = (
+            db.query(Target)
+            .filter(Target.user_id == current_user.id).all()
+        )
 
-    targets = (
-        db.query(Target)
-        .options(joinedload(Target.user))
-        .filter(Target.user_id.in_(company_users))
-        .order_by(Target.created_at.desc())
-        .all()
-    )
-
-    return [target_to_response(t) for t in targets]
+    return [target_to_response(t, db) for t in targets]
 
 
 # =====================================================
@@ -120,21 +165,17 @@ def admin_create_target(
     if not target_user:
         raise HTTPException(status_code=404, detail="User not found in your company")
 
-    # Prevent overlapping targets
-    overlapping_target = (
+    # Prevent multiple targets - user can only have one target at a time
+    existing_target = (
         db.query(Target)
-        .filter(
-            Target.user_id == data.user_id,
-            Target.start_date <= data.end_date,
-            Target.end_date >= data.start_date
-        )
+        .filter(Target.user_id == data.user_id)
         .first()
     )
 
-    if overlapping_target:
+    if existing_target:
         raise HTTPException(
             status_code=400,
-            detail="Target already exists within the given date range"
+            detail="User already has an active target. Each user can only have one target at a time."
         )
 
     new_target = Target(
@@ -170,7 +211,7 @@ def admin_create_target(
         )
     )
 
-    return target_to_response(new_target)
+    return target_to_response(new_target, db)
 
 
 # =====================================================
@@ -227,7 +268,7 @@ def admin_update_target(
         custom_message=f"updated target ID {target.id}"
     )
 
-    return target_to_response(target)
+    return target_to_response(target, db)
 
 
 # =====================================================

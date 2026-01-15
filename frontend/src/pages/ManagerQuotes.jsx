@@ -736,8 +736,11 @@ export default function TManagerQuotes() {
     });
   };
 
+  //validation 
+  const [isSubmitted, setIsSubmitted] = useState(false);
   const handleSubmit = (e) => {
     e.preventDefault();
+    setIsSubmitted(true); 
 
     if (!currentUserId) {
       toast.error("Unable to determine current user. Please log in again.");
@@ -748,16 +751,21 @@ export default function TManagerQuotes() {
       toast.error("Deal is required.");
       return;
     }
+     const assignedTo = formData.assigned_to;
+          if (!assignedTo) {
+            toast.error("Assigned To is required.");
+            return;
+          }
 
-    if (!formData.total_amount || Number(formData.total_amount) <= 0) {
-      toast.error("Total amount must be greater than 0.");
-      return;
-    }
+    // if (!formData.total_amount || Number(formData.total_amount) <= 0) {
+    //   toast.error("Total amount must be greater than 0.");
+    //   return;
+    // }
 
-    if (formData.validity_days !== "" && Number(formData.validity_days) < 0) {
-      toast.error("Validity days must be 0 or higher.");
-      return;
-    }
+    // if (formData.validity_days !== "" && Number(formData.validity_days) < 0) {
+    //   toast.error("Validity days must be 0 or higher.");
+    //   return;
+    // }
 
     const derived = deriveAccountAndContactFromDealId(formData.deal_id);
 
@@ -1334,7 +1342,10 @@ export default function TManagerQuotes() {
 
         <div className="flex justify-center lg:justify-end w-full sm:w-auto">
           <button
-            onClick={handleOpenAddModal}
+            onClick={() => {
+          handleOpenAddModal();  // open the modal
+          setIsSubmitted(false); // reset all error borders
+        }}
             className="flex items-center bg-black text-white px-3 sm:px-4 py-2 rounded-md hover:bg-gray-800 text-sm sm:text-base mx-auto sm:ml-auto cursor-pointer"
           >
             <FiPlus className="mr-2" /> Add Quote
@@ -1501,7 +1512,10 @@ export default function TManagerQuotes() {
         onClick={(e) => e.stopPropagation()}
       >
         <button
-          onClick={closeModal}
+           onClick={() => {
+                closeModal();          // close the modal
+                setIsSubmitted(false); // reset validation errors
+              }}
           className="absolute top-4 right-4 text-gray-500 hover:text-black transition disabled:opacity-60"
           disabled={isSubmitting || confirmProcessing}
         >
@@ -1536,6 +1550,8 @@ export default function TManagerQuotes() {
               return name;
             }}
             placeholder="Search deal..."
+            required={true}     
+          isSubmitted={isSubmitted}  
             disabled={isSubmitting || deals.length === 0}
             className="md:col-span-2"
           />
@@ -1565,7 +1581,6 @@ export default function TManagerQuotes() {
             value={formData.total_amount}
             onChange={handleInputChange}
             placeholder="0.00"
-            required
             disabled={isSubmitting}
           />
 
@@ -1601,6 +1616,8 @@ export default function TManagerQuotes() {
               return item?.role ? `${name} (${item.role})` : name;
             }}
             placeholder="Search assignee..."
+             required={true}           
+            isSubmitted={isSubmitted} 
             disabled={isSubmitting}
           />
 
@@ -1629,7 +1646,10 @@ export default function TManagerQuotes() {
           <div className="flex flex-col sm:flex-row justify-end space-y-2 sm:space-y-0 sm:space-x-2 md:col-span-2 mt-4">
             <button
               type="button"
-              onClick={closeModal}
+                onClick={() => {
+                closeModal();          
+                setIsSubmitted(false); 
+              }}
               className="w-full sm:w-auto px-4 py-2 text-white bg-red-400 border border-red-300 rounded hover:bg-red-500 transition disabled:opacity-70"
               disabled={isSubmitting || confirmProcessing}
             >
@@ -1686,11 +1706,14 @@ function InputField({
   required = false,
   disabled = false,
   className = "",
+  isSubmitted = false, 
 }) {
+    const hasError = isSubmitted && !value?.trim();
+
   return (
     <div className={className}>
       <label className="block text-gray-700 font-medium mb-1 text-sm">
-        {label}
+        {label} {required && <span className="text-red-500">*</span>}
       </label>
       <input
         type={type}
@@ -1700,8 +1723,13 @@ function InputField({
         placeholder={placeholder}
         required={required}
         disabled={disabled}
-        className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-400 outline-none disabled:bg-gray-100"
-      />
+        className={`w-full rounded-md px-2 py-1.5 text-sm outline-none border focus:ring-2
+          ${hasError
+            ? "border-red-500 focus:ring-red-500"
+            : "border-gray-300 focus:ring-blue-400"
+          }
+          ${className}
+        `}/>  
     </div>
   );
 }
@@ -1774,11 +1802,15 @@ function SearchableSelectField({
   placeholder = "Search...",
   disabled = false,
   className = "",
+ required = false,
+  isSubmitted = false,
 }) {
+    const hasError = isSubmitted && required && !value;
+
   return (
     <div className={className}>
       <label className="block text-gray-700 font-medium mb-1 text-sm">
-        {label}
+         {label} {required && <span className="text-red-500">*</span>}
       </label>
       <SearchableSelect
         items={items}
@@ -1787,6 +1819,7 @@ function SearchableSelectField({
         getLabel={getLabel}
         placeholder={placeholder}
         disabled={disabled}
+        hasError={hasError}
       />
     </div>
   );
@@ -1800,6 +1833,7 @@ function SearchableSelect({
   placeholder = "Search...",
   disabled = false,
   maxRender = 200,
+  hasError = false, 
 }) {
   const [open, setOpen] = useState(false);
   const [q, setQ] = useState("");
@@ -1842,8 +1876,11 @@ function SearchableSelect({
           setQ(e.target.value);
           if (!open) setOpen(true);
         }}
-        className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-400 outline-none disabled:bg-gray-100"
-      />
+          className={`w-full border rounded-md px-2 py-1.5 text-sm outline-none focus:ring-2
+          ${hasError
+            ? "border-red-500 focus:ring-red-500"
+            : "border-gray-300 focus:ring-blue-400"
+          }`}/>  
 
       {open && !disabled && (
         <div className="absolute z-50 mt-1 w-full bg-white border border-gray-200 rounded-md shadow-lg overflow-hidden">

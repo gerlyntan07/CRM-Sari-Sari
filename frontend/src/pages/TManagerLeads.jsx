@@ -478,19 +478,53 @@ export default function AdminLeads() {
     }
   }
 
+  const [isSubmitted, setIsSubmitted] = useState(false);
   const handleSubmit = (e) => {
     e.preventDefault();
+    setIsSubmitted(true);       // mark that submit was attempted
     
     // Validation
-    if (!leadData.first_name?.trim() || !leadData.last_name?.trim()) {
-      toast.error("First name and last name are required.");
+     if (!leadData.last_name?.trim()) {
+      toast.error("Last name is required.");
+      return;
+    }
+    if (!leadData.company_name?.trim()) {
+      toast.error("Company is required.");
+      return;
+    }
+    if (!leadData.title?.trim()) {
+      toast.error("Job title is required.");
+            return;
+    }
+    
+    if (!leadData.email?.trim()) {
+      toast.error("Email is required.");
+      return;
+    }
+   
+    if (!leadData.email.includes("@")) {
+      toast.error("Email must contain '@'.");
+      return;
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(leadData.email)) {
+      toast.error("Please enter a valid email address with a dot in the domain.");
+      return;
+    }
+    const emailLower = leadData.email.toLowerCase();
+    const domain = emailLower.split("@")[1] || "";
+
+    // Strict Gmail validation
+    if (domain !== "gmail.com") {
+      toast.error(`Please enter a valid Gmail address (must be gmail.com).`);
       return;
     }
 
     if (!leadData.lead_owner) {
       toast.error("Please assign a lead owner.");
       return;
-    }
+    };
 
     const finalForm = {
       ...leadData,
@@ -667,7 +701,10 @@ export default function AdminLeads() {
             <FiDownload className="mr-2" /> Download
           </button>
           <button
-            onClick={handleOpenAddModal}
+                    onClick={() => {
+          handleOpenAddModal();  // open the modal
+          setIsSubmitted(false); // reset all error borders
+        }}
     className="flex items-center bg-black text-white px-3 sm:px-4 py-2 rounded-md hover:bg-gray-800 text-sm sm:text-base self-end sm:self-auto cursor-pointer"
           >
             <FiPlus className="mr-2" /> Add Lead
@@ -795,7 +832,10 @@ export default function AdminLeads() {
             onClick={(e) => e.stopPropagation()}
           >
             <button
-              onClick={closeModal}
+                onClick={() => {
+                closeModal();          // close the modal
+                setIsSubmitted(false); // reset validation errors
+              }}
               className="absolute top-4 right-4 text-gray-500 hover:text-black transition"
             >
               <FiX size={22} />
@@ -825,7 +865,7 @@ export default function AdminLeads() {
               {/* Last Name */}
               <div className="flex flex-col">
                 <label className="block text-gray-700 font-medium mb-1 text-sm">
-                  Last Name
+                  Last Name <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="text"
@@ -833,35 +873,51 @@ export default function AdminLeads() {
                   name="last_name"
                   value={leadData.last_name}
                   onChange={handleLeadChange}
-                  className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-400 outline-none"
-                />
+                  required
+                className={`w-full rounded-md px-2 py-1.5 text-sm outline-none border
+                      ${isSubmitted && !leadData.last_name?.trim()
+                      ? "border-red-400 focus:ring-red-400"
+                    : "border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-400 outline-none"}
+                  focus:ring-2`}
+              />
               </div>
 
               {/* Company */}
               <div className="flex flex-col">
-                <label className="block text-gray-700 font-medium mb-1 text-sm">Company</label>
+                <label className="block text-gray-700 font-medium mb-1 text-sm">
+                   Company <span className="text-red-500">*</span></label>
                 <input
                   type="text"
                   placeholder="ABC Company"
                   name="company_name"
                   value={leadData.company_name}
                   onChange={handleLeadChange}
-                  className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-400 outline-none"
-                />
+                   required
+              className={`w-full rounded-md px-2 py-1.5 text-sm outline-none border
+                       ${isSubmitted && !leadData.company_name?.trim()
+                       ? "border-red-400 focus:ring-red-400"
+                    : "border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-400 outline-none"}
+                  focus:ring-2`}/>
               </div>
 
               {/* Title */}
               <div className="flex flex-col">
-                <label className="block text-gray-700 font-medium mb-1 text-sm">Job Title</label>
+                <label className="block text-gray-700 font-medium mb-1 text-sm">
+                   Job Title<span className="text-red-500">*</span></label>
                 <input
                   type="text"
                   placeholder="ABC Agenda"
                   name="title"
                   value={leadData.title}
                   onChange={handleLeadChange}
-                  className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-400 outline-none"
-                />
-              </div>
+                  required
+                    className={`w-full rounded-md px-2 py-1.5 text-sm outline-none border
+                       ${isSubmitted && !leadData.title?.trim()
+                       ? "border-red-400 focus:ring-red-400"
+                      : "border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-400 outline-none"}
+                      focus:ring-2`}
+                  />
+                 </div>
 
               {/* Department */}
               <div className="flex flex-col">
@@ -880,15 +936,20 @@ export default function AdminLeads() {
 
               {/* Email */}
               <div className="flex flex-col">
-                <label className="block text-gray-700 font-medium mb-1 text-sm">Email</label>
+                <label className="block text-gray-700 font-medium mb-1 text-sm">
+                  Email<span className="text-red-500">*</span></label>
                 <input
                   type="email"
                   placeholder="abc@gmail.com"
                   name="email"
                   value={leadData.email}
                   onChange={handleLeadChange}
-                  className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-400 outline-none"
-                />
+                    className={`w-full rounded-md px-2 py-1.5 text-sm outline-none border
+                       ${isSubmitted && !leadData.email?.trim()
+                       ? "border-red-400 focus:ring-red-400"
+                      : "border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-400 outline-none"}
+                      focus:ring-2`}
+                  />
               </div>
 
               {/* Work Phone */}
@@ -971,8 +1032,14 @@ export default function AdminLeads() {
               {/* Assign To */}
               <div className="flex flex-col">
                 <label className="block text-gray-700 font-medium mb-1 text-sm">
-                  Assign To
-                </label>
+                  Assign To <span className="text-red-500">*</span></label>
+                  <div
+                  className={`w-full rounded-lg ${
+                    isSubmitted && !leadData.lead_owner
+                      ? "border border-red-400"
+                      : "border border-gray-300"
+                  }`}
+                >
                 <SearchableSelect               
                   items={Array.isArray(users) ? users : []}
                   value={leadData.lead_owner ?? ""}
@@ -996,8 +1063,8 @@ export default function AdminLeads() {
                   }}
                 />
               </div>
+              </div>
 
-              {/* Territory */}
               {/* Territory */}
               <div className="flex flex-col">
                 <label className="block text-gray-700 font-medium mb-1 text-sm">
@@ -1069,7 +1136,10 @@ export default function AdminLeads() {
               <div className="flex flex-col sm:flex-row justify-end space-y-2 sm:space-y-0 sm:space-x-2 mt-4 col-span-1 sm:col-span-2 lg:col-span-3">
                 <button
                   type="button"
-                  onClick={closeModal}
+                  onClick={() => {
+                    closeModal();       // close the modal
+                    setIsSubmitted(false); // reset validation errors
+                  }}
                   className="w-full sm:w-auto px-4 py-2 text-white bg-red-400 border border-red-300 rounded hover:bg-red-500 transition disabled:opacity-70"
                   disabled={isSubmitting || confirmProcessing}
                 >
@@ -1254,8 +1324,7 @@ function SearchableSelect({
           setQ(e.target.value);
           if (!open) setOpen(true);
         }}
-        className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-400 outline-none disabled:bg-gray-100"
-      />
+ className="w-full rounded-md px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-400 outline-none disabled:bg-gray-100"/>
 
       {open && !disabled && (
         <div className="absolute z-50 mt-1 w-full bg-white border border-gray-200 rounded-md shadow-lg overflow-hidden">

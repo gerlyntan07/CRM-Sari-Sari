@@ -487,6 +487,7 @@ export default function AdminLeads() {
       return;
     }
 
+              return;
     if (!leadData.lead_owner) {
       toast.error("Please assign a lead owner.");
       return;

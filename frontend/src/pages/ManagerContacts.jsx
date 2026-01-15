@@ -261,6 +261,7 @@ export default function AdminContacts() {
     setCurrentContactId(null);
     setFormData(INITIAL_FORM_STATE);
     setIsSubmitting(false);
+    setIsSubmitted(false);
   }, []);
 
   const handleBackdropClick = (e) => {
@@ -336,8 +337,11 @@ export default function AdminContacts() {
     });
   };
 
+      //validation
+const [isSubmitted, setIsSubmitted] = useState(false);
   const handleSubmit = (e) => {
     e.preventDefault();
+    setIsSubmitted(true);  
 
     const trimmedFirstName = formData.first_name.trim();
     const trimmedLastName = formData.last_name.trim();
@@ -350,6 +354,37 @@ export default function AdminContacts() {
       toast.error("Account is required.");
       return;
     }
+
+     const assignedTo = formData.assigned_to;
+      if (!assignedTo) {
+        toast.error("Assigned To is required.");
+        return;
+      }
+
+    const email = formData.email?.trim();
+
+if (!email) {
+  toast.error("Email is required.");
+  return;
+}
+
+if (!email.includes("@")) {
+  toast.error("Email must contain '@'.");
+  return;
+}
+
+const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+if (!emailRegex.test(email)) {
+  toast.error("Please enter a valid email address.");
+  return;
+}
+const emailLower = email.toLowerCase();
+const domain = emailLower.split("@")[1] || "";
+
+if (domain !== "gmail.com") {
+  toast.error(`Please enter a valid Gmail address (must be gmail.com).`);
+  return;
+}
 
     const payload = {
       first_name: trimmedFirstName,
@@ -831,7 +866,10 @@ export default function AdminContacts() {
   </h2>
    <div className="flex justify-center lg:justify-end w-full sm:w-auto">
   <button
-    onClick={handleOpenAddModal}
+     onClick={() => {
+          handleOpenAddModal();  // open the modal
+          setIsSubmitted(false); // reset all error borders
+        }}
     className="flex items-center bg-black text-white px-3 sm:px-4 py-2 rounded-md hover:bg-gray-800 text-sm sm:text-base self-end sm:self-auto cursor-pointer"
   >
     <FiPlus className="mr-2" /> Add Contact
@@ -1016,7 +1054,10 @@ export default function AdminContacts() {
         onClick={(e) => e.stopPropagation()}
       >
         <button
-          onClick={closeModal}
+           onClick={() => {
+                closeModal();          // close the modal
+                setIsSubmitted(false); // reset validation errors
+              }}
           className="absolute top-4 right-4 text-gray-500 hover:text-black transition disabled:opacity-60"
           disabled={isSubmitting || confirmProcessing}
         >
@@ -1030,6 +1071,7 @@ export default function AdminContacts() {
         <form
           className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm"
           onSubmit={handleSubmit}
+          noValidate
         >
           <InputField
             label="First Name"
@@ -1038,7 +1080,7 @@ export default function AdminContacts() {
             onChange={handleInputChange}
             placeholder="First name"
             required
-            disabled={isSubmitting}
+            isSubmitted={isSubmitted} 
           />
           <InputField
             label="Last Name"
@@ -1047,7 +1089,7 @@ export default function AdminContacts() {
             onChange={handleInputChange}
             placeholder="Last name"
             required
-            disabled={isSubmitting}
+            isSubmitted={isSubmitted}
           />
           <SearchableSelectField
             label="Account"
@@ -1062,7 +1104,10 @@ export default function AdminContacts() {
             getLabel={(item) => item?.name ?? ""}
             placeholder="Search account..."
             disabled={isSubmitting || (isEditing ? accountsForForm.length === 0 : accounts.length === 0)}
+            required={true}               // <-- use required directly
+           isSubmitted={isSubmitted} 
           />
+
           <SearchableSelectField
             label="Assigned To"
             value={formData.assigned_to}
@@ -1077,15 +1122,18 @@ export default function AdminContacts() {
               `${item?.first_name ?? ""} ${item?.last_name ?? ""} (${item?.role ?? ""})`.trim()
             }
             placeholder="Search assignee..."
-            disabled={isSubmitting || users.length === 0}
+            required={true}               // <-- use required directly
+          isSubmitted={isSubmitted}     
+          disabled={isSubmitting || users.length === 0}  
           />
+
           <InputField
             label="Title"
             name="title"
             value={formData.title}
             onChange={handleInputChange}
             placeholder="Job title"
-            disabled={isSubmitting}
+             disabled={isSubmitting}
           />
           <InputField
             label="Department"
@@ -1102,7 +1150,8 @@ export default function AdminContacts() {
             value={formData.email}
             onChange={handleInputChange}
             placeholder="example@email.com"
-            disabled={isSubmitting}
+              required
+            isSubmitted={isSubmitted}
           />
           <InputField
             label="Work Phone"
@@ -1142,7 +1191,10 @@ export default function AdminContacts() {
           <div className="flex flex-col sm:flex-row justify-end space-y-2 sm:space-y-0 sm:space-x-2 md:col-span-2 mt-4">
             <button
               type="button"
-              onClick={closeModal}
+              onClick={() => {
+                    closeModal();       // close the modal
+                    setIsSubmitted(false); // reset validation errors
+                  }}
               className="w-full sm:w-auto px-4 py-2 text-white bg-red-400 border border-red-300 rounded hover:bg-red-500 transition disabled:opacity-70"
               disabled={isSubmitting || confirmProcessing}
             >
@@ -1198,11 +1250,15 @@ function InputField({
   type = "text",
   required = false,
   disabled = false,
+  isSubmitted = false, 
+  className = "", // <-- add this line
 }) {
+  const hasError = isSubmitted && !value?.trim();
+
   return (
     <div>
       <label className="block text-gray-700 font-medium mb-1 text-sm">
-        {label}
+        {label} {required && <span className="text-red-500">*</span>}
       </label>
       <input
         type={type}
@@ -1212,8 +1268,13 @@ function InputField({
         placeholder={placeholder}
         required={required}
         disabled={disabled}
-        className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-400 outline-none disabled:bg-gray-100"
-      />
+   className={`w-full rounded-md px-2 py-1.5 text-sm outline-none border focus:ring-2
+          ${hasError
+            ? "border-red-500 focus:ring-red-500"
+            : "border-gray-300 focus:ring-blue-400"
+          }
+          ${className}
+        `}      />  
     </div>
   );
 }
@@ -1260,11 +1321,15 @@ function SearchableSelectField({
   placeholder = "Search...",
   disabled = false,
   className = "",
+required = false,
+  isSubmitted = false,
 }) {
+  const hasError = isSubmitted && required && !value;
+
   return (
     <div className={className}>
       <label className="block text-gray-700 font-medium mb-1 text-sm">
-        {label}
+        {label} {required && <span className="text-red-500">*</span>}
       </label>
       <SearchableSelect
         items={items}
@@ -1273,6 +1338,7 @@ function SearchableSelectField({
         getLabel={getLabel}
         placeholder={placeholder}
         disabled={disabled}
+        hasError={hasError} 
       />
     </div>
   );
@@ -1286,6 +1352,7 @@ function SearchableSelect({
   placeholder = "Search...",
   disabled = false,
   maxRender = 200,
+  hasError = false,  
 }) {
   const [open, setOpen] = useState(false);
   const [q, setQ] = useState("");
@@ -1326,8 +1393,11 @@ function SearchableSelect({
           setQ(e.target.value);
           if (!open) setOpen(true);
         }}
-        className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-400 outline-none disabled:bg-gray-100"
-      />
+       className={`w-full border rounded-md px-2 py-1.5 text-sm outline-none focus:ring-2
+          ${hasError
+            ? "border-red-500 focus:ring-red-500"
+            : "border-gray-300 focus:ring-blue-400"
+          }`}/>
 
       {open && !disabled && (
         <div className="absolute z-50 mt-1 w-full bg-white border border-gray-200 rounded-md shadow-lg overflow-hidden">

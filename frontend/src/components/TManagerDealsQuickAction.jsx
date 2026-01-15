@@ -121,7 +121,6 @@ export default function AdminDealsQuickAction({
             <FiPhone className="text-gray-600 w-4 h-4" />
             Schedule Call
           </button>
-
           <button
             type="button"
             onClick={() => {
@@ -134,18 +133,16 @@ export default function AdminDealsQuickAction({
               const subject = encodeURIComponent("");
               const body = encodeURIComponent("");
 
-              // Gmail web compose URL
-              const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${to}&su=${subject}&body=${body}`;
+              const mailtoUrl = `mailto:${to}?subject=${subject}&body=${body}`;
 
-              // Open Gmail in a new tab
-              window.open(gmailUrl, "_blank");
+              // Opens user's default email client
+              window.location.href = mailtoUrl;
             }}
             className="flex items-center gap-2 border border-gray-100 rounded-md py-1.5 px-2 sm:px-3 hover:bg-gray-50 transition text-sm"
           >
             <FiMail className="text-gray-600 w-4 h-4" />
             Send E-mail
           </button>
-
           <button
             className="flex items-center gap-2 border border-gray-100 rounded-md py-1.5 px-2 sm:px-3 hover:bg-gray-50 transition text-sm"
             onClick={() =>

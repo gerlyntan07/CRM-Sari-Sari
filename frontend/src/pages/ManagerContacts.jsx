@@ -56,8 +56,8 @@ const formattedDateTime = (datetime) => {
 };
 
 export default function AdminContacts() {
-     const navigate = useNavigate();
-     
+  const navigate = useNavigate();
+
   useEffect(() => {
     document.title = "Contacts | Sari-Sari CRM";
   }, []);
@@ -244,13 +244,13 @@ export default function AdminContacts() {
   // Ensure contact's current account is available in edit form
   const accountsForForm = useMemo(() => {
     if (!isEditing || !currentContactId) return accounts;
-    
+
     const editingContact = contacts.find(c => c.id === currentContactId);
     if (!editingContact || !editingContact.account) return accounts;
-    
+
     const accountExists = accounts.some(acc => acc.id === editingContact.account.id);
     if (accountExists) return accounts;
-    
+
     // Add the editing contact's account if it's not already in the list
     return [...accounts, editingContact.account];
   }, [accounts, isEditing, currentContactId, contacts]);
@@ -289,7 +289,7 @@ export default function AdminContacts() {
     setShowModal(true);
   };
 
-  const handleEditClick = async(contact) => {
+  const handleEditClick = async (contact) => {
     if (!contact) return;
 
     const res = await api.get(`/accounts/get/${contact.account_id}`);
@@ -337,11 +337,11 @@ export default function AdminContacts() {
     });
   };
 
-      //validation
-const [isSubmitted, setIsSubmitted] = useState(false);
+  //validation
+  const [isSubmitted, setIsSubmitted] = useState(false);
   const handleSubmit = (e) => {
     e.preventDefault();
-    setIsSubmitted(true);  
+    setIsSubmitted(true);
 
     const trimmedFirstName = formData.first_name.trim();
     const trimmedLastName = formData.last_name.trim();
@@ -355,36 +355,36 @@ const [isSubmitted, setIsSubmitted] = useState(false);
       return;
     }
 
-     const assignedTo = formData.assigned_to;
-      if (!assignedTo) {
-        toast.error("Assigned To is required.");
-        return;
-      }
+    const assignedTo = formData.assigned_to;
+    if (!assignedTo) {
+      toast.error("Assigned To is required.");
+      return;
+    }
 
     const email = formData.email?.trim();
 
-if (!email) {
-  toast.error("Email is required.");
-  return;
-}
+    if (!email) {
+      toast.error("Email is required.");
+      return;
+    }
 
-if (!email.includes("@")) {
-  toast.error("Email must contain '@'.");
-  return;
-}
+    if (!email.includes("@")) {
+      toast.error("Email must contain '@'.");
+      return;
+    }
 
-const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-if (!emailRegex.test(email)) {
-  toast.error("Please enter a valid email address.");
-  return;
-}
-const emailLower = email.toLowerCase();
-const domain = emailLower.split("@")[1] || "";
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      toast.error("Please enter a valid email address.");
+      return;
+    }
+    const emailLower = email.toLowerCase();
+    const domain = emailLower.split("@")[1] || "";
 
-if (domain !== "gmail.com") {
-  toast.error(`Please enter a valid Gmail address (must be gmail.com).`);
-  return;
-}
+    if (domain !== "gmail.com") {
+      toast.error(`Please enter a valid Gmail address (must be gmail.com).`);
+      return;
+    }
 
     const payload = {
       first_name: trimmedFirstName,
@@ -544,10 +544,10 @@ if (domain !== "gmail.com") {
       className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4"
     >
       <div
-      className="bg-white rounded-xl shadow-xl w-full max-w-6xl max-h-[92vh] overflow-y-auto hide-scrollbar animate-scale-in font-inter relative"
+        className="bg-white rounded-xl shadow-xl w-full max-w-6xl max-h-[92vh] overflow-y-auto hide-scrollbar animate-scale-in font-inter relative"
         onClick={(e) => e.stopPropagation()}
       >
-         {/* 🔵 ONLY TOP */}
+        {/* 🔵 ONLY TOP */}
         <div className="bg-tertiary w-full rounded-t-xl relative p-3 lg:p-3">
           <h1 className="lg:text-3xl text-xl text-white font-semibold text-center w-full">
             Contact
@@ -562,12 +562,12 @@ if (domain !== "gmail.com") {
         </div>
 
         {/* Header */}
-       <div className="flex flex-col md:flex-row md:justify-between lg:flex-row lg:items-center lg:justify-between mt-3 gap-2 px-2 md:items-center lg:gap-4 md:mx-7 lg:mx-7">
+        <div className="flex flex-col md:flex-row md:justify-between lg:flex-row lg:items-center lg:justify-between mt-3 gap-2 px-2 md:items-center lg:gap-4 md:mx-7 lg:mx-7">
           <div className="flex flex-wrap items-center gap-2 sm:gap-3">
             <h1 className="text-xl sm:text-2xl font-semibold text-gray-800">
               {getContactFullName(selectedContact) || "Unnamed contact"}
             </h1>
-          </div>          
+          </div>
 
           <div className="flex flex-col sm:flex-row sm:space-x-3 space-y-2 sm:space-y-0">
             <button
@@ -597,285 +597,284 @@ if (domain !== "gmail.com") {
               )}
             </button>
           </div>
-       
-         </div>
-         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-2 px-2 lg:gap-4 md:mx-7 lg:mx-7">
+
+        </div>
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-2 px-2 lg:gap-4 md:mx-7 lg:mx-7">
           <p className="text-sm text-gray-500">
-              {selectedContact.account?.name || "No associated account"}
-            </p>
-         </div>
-         
+            {selectedContact.account?.name || "No associated account"}
+          </p>
+        </div>
+
         <div className="border-b border-gray-200 my-5"></div>
 
         {/* TABS */}
         <div className="p-6 lg:p-4">
-        <div className="flex w-full bg-[#6A727D] text-white mt-1 overflow-x-auto mb-6">
-          {["Overview", "Notes", "Activities"].map((tab) => (
-            <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
-              className={`flex-1 min-w-[90px] px-4 py-2.5 text-xs sm:text-sm font-medium text-center transition-all duration-200 border-b-2
+          <div className="flex w-full bg-[#6A727D] text-white mt-1 overflow-x-auto mb-6">
+            {["Overview", "Notes", "Activities"].map((tab) => (
+              <button
+                key={tab}
+                onClick={() => setActiveTab(tab)}
+                className={`flex-1 min-w-[90px] px-4 py-2.5 text-xs sm:text-sm font-medium text-center transition-all duration-200 border-b-2
         ${activeTab === tab
-                  ? "bg-paper-white text-[#6A727D] border-white"
-                  : "text-white hover:bg-[#5c636d]"
-                }`}
-            >
-              {tab}
-            </button>
-          ))}
+                    ? "bg-paper-white text-[#6A727D] border-white"
+                    : "text-white hover:bg-[#5c636d]"
+                  }`}
+              >
+                {tab}
+              </button>
+            ))}
 
 
-        </div>
+          </div>
 
-        {/* TAB CONTENT */}
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 items-start">
-          <div className="lg:col-span-3">
-            {activeTab === "Overview" && (
-              <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6 md:p-8 border border-gray-200">
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-4 sm:gap-6 text-sm text-gray-700">
-                  <div>
-                    <p className="font-semibold">Contact Name:</p>
-                    <p>{getContactFullName(selectedContact) || "N/A"}</p>
-                  </div>
-                  <div>
-                    <p className="font-semibold">Title:</p>
-                    <p>{selectedContact.title || "N/A"}</p>
-                  </div>
-                  <div>
-                    <p className="font-semibold">Email:</p>
-                    <p>
-                      {selectedContact.email ? (
-                        <a
-                          href={`mailto:${selectedContact.email}`}
-                          className="text-blue-600 hover:underline break-all"
-                        >
-                          {selectedContact.email}
-                        </a>
-                      ) : (
-                        "N/A"
-                      )}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="font-semibold">Department:</p>
-                    <p>{selectedContact.department || "N/A"}</p>
-                  </div>
-                  <div>
-                    <p className="font-semibold">Work Phone:</p>
-                    <p>{selectedContact.work_phone || "N/A"}</p>
-                  </div>
-                  <div>
-                    <p className="font-semibold">Mobile Phone 1:</p>
-                    <p>{selectedContact.mobile_phone_1 || "N/A"}</p>
-                  </div>
-                  <div>
-                    <p className="font-semibold">Mobile Phone 2:</p>
-                    <p>{selectedContact.mobile_phone_2 || "N/A"}</p>
-                  </div>
-                  <div>
-                    <p className="font-semibold">Assigned To:</p>
-                    <p>
-                      {selectedContact.assigned_contact
-                        ? `${selectedContact.assigned_contact.first_name} ${selectedContact.assigned_contact.last_name}`
-                        : "Unassigned"}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="font-semibold">Created By:</p>
-                    <p>
-                      {selectedContact.contact_creator
-                        ? `${selectedContact.contact_creator.first_name} ${selectedContact.contact_creator.last_name}`
-                        : "N/A"}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="font-semibold">Created At:</p>
-                    <p>{formattedDateTime(selectedContact.created_at) || "N/A"}</p>
-                  </div>
-                  <div>
-                    <p className="font-semibold">Last Updated:</p>
-                    <p>{formattedDateTime(selectedContact.updated_at) || "N/A"}</p>
+          {/* TAB CONTENT */}
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 items-start">
+            <div className="lg:col-span-3">
+              {activeTab === "Overview" && (
+                <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6 md:p-8 border border-gray-200">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-4 sm:gap-6 text-sm text-gray-700">
+                    <div>
+                      <p className="font-semibold">Contact Name:</p>
+                      <p>{getContactFullName(selectedContact) || "N/A"}</p>
+                    </div>
+                    <div>
+                      <p className="font-semibold">Title:</p>
+                      <p>{selectedContact.title || "N/A"}</p>
+                    </div>
+                    <div>
+                      <p className="font-semibold">Email:</p>
+                      <p>
+                        {selectedContact.email ? (
+                          <a
+                            href={`mailto:${selectedContact.email}`}
+                            className="text-blue-600 hover:underline break-all"
+                          >
+                            {selectedContact.email}
+                          </a>
+                        ) : (
+                          "N/A"
+                        )}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="font-semibold">Department:</p>
+                      <p>{selectedContact.department || "N/A"}</p>
+                    </div>
+                    <div>
+                      <p className="font-semibold">Work Phone:</p>
+                      <p>{selectedContact.work_phone || "N/A"}</p>
+                    </div>
+                    <div>
+                      <p className="font-semibold">Mobile Phone 1:</p>
+                      <p>{selectedContact.mobile_phone_1 || "N/A"}</p>
+                    </div>
+                    <div>
+                      <p className="font-semibold">Mobile Phone 2:</p>
+                      <p>{selectedContact.mobile_phone_2 || "N/A"}</p>
+                    </div>
+                    <div>
+                      <p className="font-semibold">Assigned To:</p>
+                      <p>
+                        {selectedContact.assigned_contact
+                          ? `${selectedContact.assigned_contact.first_name} ${selectedContact.assigned_contact.last_name}`
+                          : "Unassigned"}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="font-semibold">Created By:</p>
+                      <p>
+                        {selectedContact.contact_creator
+                          ? `${selectedContact.contact_creator.first_name} ${selectedContact.contact_creator.last_name}`
+                          : "N/A"}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="font-semibold">Created At:</p>
+                      <p>{formattedDateTime(selectedContact.created_at) || "N/A"}</p>
+                    </div>
+                    <div>
+                      <p className="font-semibold">Last Updated:</p>
+                      <p>{formattedDateTime(selectedContact.updated_at) || "N/A"}</p>
+                    </div>
                   </div>
                 </div>
-              </div>
-            )}
+              )}
 
-            {/* ------- Notes ------ */}
+              {/* ------- Notes ------ */}
               {activeTab === "Notes" && (
-                  <div className="mt-4 w-full">
-                <div className="flex flex-wrap items-center justify-between mb-4 gap-2">
-                  <h3 className="text-lg font-semibold text-gray-800 break-words">Contact Note</h3>
-                </div>
+                <div className="mt-4 w-full">
+                  <div className="flex flex-wrap items-center justify-between mb-4 gap-2">
+                    <h3 className="text-lg font-semibold text-gray-800 break-words">Contact Note</h3>
+                  </div>
 
                   <div className="bg-white border border-gray-100 rounded-lg p-4 shadow-sm break-words">
-                      <div className="flex items-start justify-between">
-                        <div>
-                          <p className="text-sm font-medium text-gray-800 break-words">
-                            Note
-                          </p>
-                        </div>
-                      </div>
-                      <div className="mt-3 text-sm text-gray-700 whitespace-pre-wrap break-words">
-                         {selectedContact.notes || "No notes available."}
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <p className="text-sm font-medium text-gray-800 break-words">
+                          Note
+                        </p>
                       </div>
                     </div>
+                    <div className="mt-3 text-sm text-gray-700 whitespace-pre-wrap break-words">
+                      {selectedContact.notes || "No notes available."}
+                    </div>
+                  </div>
                 </div>
               )}
 
 
-            {/* ACTIVITIES */}
-            {activeTab === "Activities" && (
-              <div className="mt-4 space-y-4 w-full">
-                <h3 className="text-lg font-semibold text-gray-800 break-words">Recent Activities</h3>
+              {/* ACTIVITIES */}
+              {activeTab === "Activities" && (
+                <div className="mt-4 space-y-4 w-full">
+                  <h3 className="text-lg font-semibold text-gray-800 break-words">Recent Activities</h3>
 
-                {[{
-                  icon: FiPhone,
-                  title: "Schedule Call",
-                  desc: "Discuss implementation timeline and pricing",
-                  user: "Lester James",
-                  date: "December 12, 2025 at 8:00 AM",
-                }, {
-                  icon: FiCalendar,
-                  title: "Meeting regarding Enterprise Software License",
-                  desc: "Discuss implementation timeline and pricing",
-                  user: "Lester James",
-                  date: "December 12, 2025 at 8:00 AM",
-                }].map((act, idx) => (
-                  <div key={idx} className="flex flex-col sm:flex-row justify-between items-start border border-gray-200 rounded-lg p-4 shadow-sm bg-white w-full break-words">
-                    <div className="flex gap-4 mb-2 sm:mb-0 flex-1 min-w-0">
-                      <div className="text-gray-600 mt-1">
-                        <act.icon size={24} />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <h4 className="font-medium text-gray-900 break-words">{act.title}</h4>
-                        <p className="text-sm text-gray-500 break-words">{act.desc}</p>
-                        <div className="flex items-center gap-2 mt-2">
-                          <div className="w-7 h-7 rounded-full bg-gray-200 shrink-0"></div>
-                          <p className="text-sm text-gray-700 break-words">{act.user}</p>
+                  {[{
+                    icon: FiPhone,
+                    title: "Schedule Call",
+                    desc: "Discuss implementation timeline and pricing",
+                    user: "Lester James",
+                    date: "December 12, 2025 at 8:00 AM",
+                  }, {
+                    icon: FiCalendar,
+                    title: "Meeting regarding Enterprise Software License",
+                    desc: "Discuss implementation timeline and pricing",
+                    user: "Lester James",
+                    date: "December 12, 2025 at 8:00 AM",
+                  }].map((act, idx) => (
+                    <div key={idx} className="flex flex-col sm:flex-row justify-between items-start border border-gray-200 rounded-lg p-4 shadow-sm bg-white w-full break-words">
+                      <div className="flex gap-4 mb-2 sm:mb-0 flex-1 min-w-0">
+                        <div className="text-gray-600 mt-1">
+                          <act.icon size={24} />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <h4 className="font-medium text-gray-900 break-words">{act.title}</h4>
+                          <p className="text-sm text-gray-500 break-words">{act.desc}</p>
+                          <div className="flex items-center gap-2 mt-2">
+                            <div className="w-7 h-7 rounded-full bg-gray-200 shrink-0"></div>
+                            <p className="text-sm text-gray-700 break-words">{act.user}</p>
+                          </div>
                         </div>
                       </div>
+                      <p className="text-sm text-gray-500 break-words">{act.date}</p>
                     </div>
-                    <p className="text-sm text-gray-500 break-words">{act.date}</p>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+                  ))}
+                </div>
+              )}
+            </div>
 
- <div className="flex flex-col gap-4">
-  {/* QUICK ACTIONS */}
-  <div className="bg-white border border-gray-100 rounded-lg p-3 sm:p-4 shadow-sm">
-    <h4 className="font-semibold text-gray-800 mb-2 text-sm">
-      Quick Actions
-    </h4>
+            <div className="flex flex-col gap-4">
+              {/* QUICK ACTIONS */}
+              <div className="bg-white border border-gray-100 rounded-lg p-3 sm:p-4 shadow-sm">
+                <h4 className="font-semibold text-gray-800 mb-2 text-sm">
+                  Quick Actions
+                </h4>
 
-    <div className="flex flex-col gap-2 w-full">
+                <div className="flex flex-col gap-2 w-full">
 
-      {/* --- SCHEDULE CALL BUTTON (updated) --- */}
-      <button
-        onClick={() =>
-          navigate("/admin/calls", {
-            state: {
-              openCallModal: true,      // <-- this triggers your form
-              initialCallData: {
-                relatedType1: "Contact", // <-- your custom default
-              },
-            },
-          })
-        }
-        className="flex items-center gap-2 border border-gray-100 rounded-md py-1.5 px-2 sm:px-3 hover:bg-gray-50 transition text-sm"
-      >
-        <FiPhone className="text-gray-600 w-4 h-4" />
-        Schedule Call
-      </button>
-
- 
- <button
-  type="button"
-  onClick={() => {
-    if (!selectedContact?.email) {
-      alert("No email address available");
-      return;
-    }
-
-    const to = encodeURIComponent(selectedContact.email);
-    const subject = encodeURIComponent("");
-    const body = encodeURIComponent("");
-
-    // Gmail web compose URL
-    const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${to}&su=${subject}&body=${body}`;
-
-    // Open Gmail in a new tab
-    window.open(gmailUrl, "_blank");
-  }}
-  className="flex items-center gap-2 border border-gray-100 rounded-md py-1.5 px-2 sm:px-3 hover:bg-gray-50 transition text-sm"
->
-  <FiMail className="text-gray-600 w-4 h-4" />
-  Send E-mail
-</button>
-
-
-     <button
-       className="flex items-center gap-2 border border-gray-100 rounded-md py-1.5 px-2 sm:px-3 hover:bg-gray-50 transition text-sm"
-        onClick={() =>
-        navigate("/admin/meetings", {
-           state: {
-            openMeetingModal: true,
-              initialMeetingData: {
-                relatedType: "Contact",
-                   },
-                     },
-                     })
+                  {/* --- SCHEDULE CALL BUTTON (updated) --- */}
+                  <button
+                    onClick={() =>
+                      navigate("/admin/calls", {
+                        state: {
+                          openCallModal: true,      // <-- this triggers your form
+                          initialCallData: {
+                            relatedType1: "Contact", // <-- your custom default
+                          },
+                        },
+                      })
                     }
-                    >
+                    className="flex items-center gap-2 border border-gray-100 rounded-md py-1.5 px-2 sm:px-3 hover:bg-gray-50 transition text-sm"
+                  >
+                    <FiPhone className="text-gray-600 w-4 h-4" />
+                    Schedule Call
+                  </button>
+
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (!selectedContact?.email) {
+                        alert("No email address available");
+                        return;
+                      }
+
+                      const to = encodeURIComponent(selectedContact.email);
+                      const subject = encodeURIComponent("");
+                      const body = encodeURIComponent("");
+
+                      const mailtoUrl = `mailto:${to}?subject=${subject}&body=${body}`;
+
+                      // Opens user's default email client
+                      window.location.href = mailtoUrl;
+                    }}
+                    className="flex items-center gap-2 border border-gray-100 rounded-md py-1.5 px-2 sm:px-3 hover:bg-gray-50 transition text-sm"
+                  >
+                    <FiMail className="text-gray-600 w-4 h-4" />
+                    Send E-mail
+                  </button>
+
+
+                  <button
+                    className="flex items-center gap-2 border border-gray-100 rounded-md py-1.5 px-2 sm:px-3 hover:bg-gray-50 transition text-sm"
+                    onClick={() =>
+                      navigate("/admin/meetings", {
+                        state: {
+                          openMeetingModal: true,
+                          initialMeetingData: {
+                            relatedType: "Contact",
+                          },
+                        },
+                      })
+                    }
+                  >
                     <FiCalendar className="text-gray-600 w-4 h-4" />
                     Book Meeting
-                   </button>
+                  </button>
 
-            <button
-              onClick={() =>
-                navigate("/admin/tasks", {
-                  state: {
-                    openTaskModal: true,
-                    initialTaskData: {
-                      relatedTo: "Contact",
-                    },
-                  },
-                })
-              }
-  className="flex items-center gap-2 border border-gray-100 rounded-md py-1.5 px-2 sm:px-3 hover:bg-gray-50 transition text-sm"
->
-  <FiCheckSquare className="text-gray-600 w-4 h-4" />
-  Tasks
-</button>
-    </div>
-  </div>
+                  <button
+                    onClick={() =>
+                      navigate("/admin/tasks", {
+                        state: {
+                          openTaskModal: true,
+                          initialTaskData: {
+                            relatedTo: "Contact",
+                          },
+                        },
+                      })
+                    }
+                    className="flex items-center gap-2 border border-gray-100 rounded-md py-1.5 px-2 sm:px-3 hover:bg-gray-50 transition text-sm"
+                  >
+                    <FiCheckSquare className="text-gray-600 w-4 h-4" />
+                    Tasks
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
     </div>
-    </div>
   ) : null;
 
   const listView = (
-     <div className="p-4 sm:p-6 lg:p-8 font-inter relative">
+    <div className="p-4 sm:p-6 lg:p-8 font-inter relative">
       {contactsLoading && <LoadingSpinner message="Loading contacts..." />}
-   <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 sm:mb-6 space-y-2 sm:space-y-0 w-full">
-  <h2 className="flex items-center text-xl sm:text-2xl font-semibold text-gray-800">
-    <FiUsers className="mr-2 text-blue-600" /> Contacts Management
-  </h2>
-   <div className="flex justify-center lg:justify-end w-full sm:w-auto">
-  <button
-     onClick={() => {
-          handleOpenAddModal();  // open the modal
-          setIsSubmitted(false); // reset all error borders
-        }}
-    className="flex items-center bg-black text-white px-3 sm:px-4 py-2 rounded-md hover:bg-gray-800 text-sm sm:text-base self-end sm:self-auto cursor-pointer"
-  >
-    <FiPlus className="mr-2" /> Add Contact
-  </button>
-</div>
-</div>
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 sm:mb-6 space-y-2 sm:space-y-0 w-full">
+        <h2 className="flex items-center text-xl sm:text-2xl font-semibold text-gray-800">
+          <FiUsers className="mr-2 text-blue-600" /> Contacts Management
+        </h2>
+        <div className="flex justify-center lg:justify-end w-full sm:w-auto">
+          <button
+            onClick={() => {
+              handleOpenAddModal();  // open the modal
+              setIsSubmitted(false); // reset all error borders
+            }}
+            className="flex items-center bg-black text-white px-3 sm:px-4 py-2 rounded-md hover:bg-gray-800 text-sm sm:text-base self-end sm:self-auto cursor-pointer"
+          >
+            <FiPlus className="mr-2" /> Add Contact
+          </button>
+        </div>
+      </div>
 
       <div className="bg-white rounded-xl p-4 shadow-sm mb-6 flex flex-col lg:flex-row items-center justify-between gap-3 w-full">
         <div className="flex items-center border border-gray-300 rounded-lg px-4 h-11 w-full lg:w-3/4 focus-within:ring-2 focus-within:ring-indigo-500 transition">
@@ -1054,10 +1053,10 @@ if (domain !== "gmail.com") {
         onClick={(e) => e.stopPropagation()}
       >
         <button
-           onClick={() => {
-                closeModal();          // close the modal
-                setIsSubmitted(false); // reset validation errors
-              }}
+          onClick={() => {
+            closeModal();          // close the modal
+            setIsSubmitted(false); // reset validation errors
+          }}
           className="absolute top-4 right-4 text-gray-500 hover:text-black transition disabled:opacity-60"
           disabled={isSubmitting || confirmProcessing}
         >
@@ -1080,7 +1079,7 @@ if (domain !== "gmail.com") {
             onChange={handleInputChange}
             placeholder="First name"
             required
-            isSubmitted={isSubmitted} 
+            isSubmitted={isSubmitted}
           />
           <InputField
             label="Last Name"
@@ -1105,7 +1104,7 @@ if (domain !== "gmail.com") {
             placeholder="Search account..."
             disabled={isSubmitting || (isEditing ? accountsForForm.length === 0 : accounts.length === 0)}
             required={true}               // <-- use required directly
-           isSubmitted={isSubmitted} 
+            isSubmitted={isSubmitted}
           />
 
           <SearchableSelectField
@@ -1123,8 +1122,8 @@ if (domain !== "gmail.com") {
             }
             placeholder="Search assignee..."
             required={true}               // <-- use required directly
-          isSubmitted={isSubmitted}     
-          disabled={isSubmitting || users.length === 0}  
+            isSubmitted={isSubmitted}
+            disabled={isSubmitting || users.length === 0}
           />
 
           <InputField
@@ -1133,7 +1132,7 @@ if (domain !== "gmail.com") {
             value={formData.title}
             onChange={handleInputChange}
             placeholder="Job title"
-             disabled={isSubmitting}
+            disabled={isSubmitting}
           />
           <InputField
             label="Department"
@@ -1150,7 +1149,7 @@ if (domain !== "gmail.com") {
             value={formData.email}
             onChange={handleInputChange}
             placeholder="example@email.com"
-              required
+            required
             isSubmitted={isSubmitted}
           />
           <InputField
@@ -1192,9 +1191,9 @@ if (domain !== "gmail.com") {
             <button
               type="button"
               onClick={() => {
-                    closeModal();       // close the modal
-                    setIsSubmitted(false); // reset validation errors
-                  }}
+                closeModal();       // close the modal
+                setIsSubmitted(false); // reset validation errors
+              }}
               className="w-full sm:w-auto px-4 py-2 text-white bg-red-400 border border-red-300 rounded hover:bg-red-500 transition disabled:opacity-70"
               disabled={isSubmitting || confirmProcessing}
             >
@@ -1250,7 +1249,7 @@ function InputField({
   type = "text",
   required = false,
   disabled = false,
-  isSubmitted = false, 
+  isSubmitted = false,
   className = "", // <-- add this line
 }) {
   const hasError = isSubmitted && !value?.trim();
@@ -1268,13 +1267,13 @@ function InputField({
         placeholder={placeholder}
         required={required}
         disabled={disabled}
-   className={`w-full rounded-md px-2 py-1.5 text-sm outline-none border focus:ring-2
+        className={`w-full rounded-md px-2 py-1.5 text-sm outline-none border focus:ring-2
           ${hasError
             ? "border-red-500 focus:ring-red-500"
             : "border-gray-300 focus:ring-blue-400"
           }
           ${className}
-        `}      />  
+        `} />
     </div>
   );
 }
@@ -1321,7 +1320,7 @@ function SearchableSelectField({
   placeholder = "Search...",
   disabled = false,
   className = "",
-required = false,
+  required = false,
   isSubmitted = false,
 }) {
   const hasError = isSubmitted && required && !value;
@@ -1338,7 +1337,7 @@ required = false,
         getLabel={getLabel}
         placeholder={placeholder}
         disabled={disabled}
-        hasError={hasError} 
+        hasError={hasError}
       />
     </div>
   );
@@ -1352,7 +1351,7 @@ function SearchableSelect({
   placeholder = "Search...",
   disabled = false,
   maxRender = 200,
-  hasError = false,  
+  hasError = false,
 }) {
   const [open, setOpen] = useState(false);
   const [q, setQ] = useState("");
@@ -1393,11 +1392,11 @@ function SearchableSelect({
           setQ(e.target.value);
           if (!open) setOpen(true);
         }}
-       className={`w-full border rounded-md px-2 py-1.5 text-sm outline-none focus:ring-2
+        className={`w-full border rounded-md px-2 py-1.5 text-sm outline-none focus:ring-2
           ${hasError
             ? "border-red-500 focus:ring-red-500"
             : "border-gray-300 focus:ring-blue-400"
-          }`}/>
+          }`} />
 
       {open && !disabled && (
         <div className="absolute z-50 mt-1 w-full bg-white border border-gray-200 rounded-md shadow-lg overflow-hidden">
@@ -1416,9 +1415,8 @@ function SearchableSelect({
                       onChange(id);
                       setOpen(false);
                     }}
-                    className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-50 ${
-                      active ? "bg-blue-50" : ""
-                    }`}
+                    className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-50 ${active ? "bg-blue-50" : ""
+                      }`}
                   >
                     {label || "--"}
                   </button>

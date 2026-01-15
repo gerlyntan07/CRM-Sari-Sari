@@ -62,3 +62,25 @@ class AccountResponse(AccountBase):
 
     class Config:
         orm_mode = True
+
+class TaskBase(BaseModel):
+    id: int
+    title: str    
+
+class MeetingBase(BaseModel):
+    id: int
+    subject: str
+
+class CallBase(BaseModel):
+    id: int
+    subject: str
+
+class AccountActivityResponse(BaseModel):
+    id: int
+    name: Optional[str] = None
+    tasks: Optional[list[TaskBase]] = []
+    meetings: Optional[list[MeetingBase]] = []
+    calls: Optional[list[CallBase]] = []
+
+    class Config:
+        orm_mode = True

@@ -44,6 +44,7 @@ import routers.meeting as meeting_router
 import routers.quote as quote_router
 import routers.target as target_router
 import routers.ws_notification as ws_notification
+import routers.activities as activities_router
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -73,7 +74,7 @@ app.include_router(meeting_router.router, prefix='/api')
 app.include_router(quote_router.router, prefix='/api')
 app.include_router(target_router.router, prefix='/api')
 app.include_router(ws_notification.router)
-
+app.include_router(activities_router.router, prefix='/api')
 
 # === Database initialization ===
 Base.metadata.create_all(bind=engine)
@@ -82,8 +83,6 @@ Base.metadata.create_all(bind=engine)
 origins = [
     "*",
     "http://localhost:5173",  # local dev
-    "*",  # allow all in production; adjust later for security
-    "http://crm-sari-sari-env.eba-pdpixtqe.ap-southeast-1.elasticbeanstalk.com",
     "https://crm.sari-sari.com",
     "http://crm.sari-sari.com/",    
 ]

@@ -37,6 +37,7 @@ const INITIAL_FORM_STATE = {
   billing_address: "",
   shipping_address: "",
   industry: "",
+  parent_company: "",
   status: "PROSPECT",
   territory_id: "",
   assigned_to: "",
@@ -111,6 +112,7 @@ export default function AdminAccounts() {
   const [users, setUsers] = useState([]);
   const [selectedUser, setSelectedUser] = useState(null);
   const [territories, setTerritories] = useState([]);
+  const [parentCompanies, setParentCompanies] = useState([]);
   const [stageFilter, setStageFilter] = useState("Filter by Status");
   const [searchQuery, setSearchQuery] = useState("");
   const [confirmModalData, setConfirmModalData] = useState(null);
@@ -181,11 +183,24 @@ export default function AdminAccounts() {
     }
   }, []);
 
+  const fetchParentCompanies = useCallback(async () => {
+    try {
+      const res = await api.get(`/accounts/admin/parent-companies`);
+      setParentCompanies(Array.isArray(res.data) ? res.data : []);
+    } catch (err) {
+      console.error(err);
+      if (err.response?.status === 403) {
+        toast.warn("Unable to load parent companies (permission denied).");
+      }
+    }
+  }, []);
+
   useEffect(() => {
     fetchAccounts();
     fetchUsers();
     fetchTerritories();
-  }, [fetchAccounts, fetchUsers, fetchTerritories]);
+    fetchParentCompanies();
+  }, [fetchAccounts, fetchUsers, fetchTerritories, fetchParentCompanies]);
 
   // Sync selectedStatus with selectedAccount status
   useEffect(() => {
@@ -598,24 +613,24 @@ export default function AdminAccounts() {
     }
   };
 
-      //validation
+  //validation
 const [isSubmitted, setIsSubmitted] = useState(false);
   const handleSubmit = (e) => {
     e.preventDefault();
-    setIsSubmitted(true);   
-
+    setIsSubmitted(true);      
 
     const trimmedName = formData.name.trim();
     if (!trimmedName) {
       toast.error("Account name is required.");
       return;
     }
-
+    
       const assignedTo = formData.assigned_to;
   if (!assignedTo) {
     toast.error("Assigned To is required.");
     return;
   }
+
 
     const payload = {
       name: trimmedName,
@@ -624,6 +639,7 @@ const [isSubmitted, setIsSubmitted] = useState(false);
       billing_address: formData.billing_address?.trim() || null,
       shipping_address: formData.shipping_address?.trim() || null,
       industry: formData.industry?.trim() || null,
+      parent_company: formData.parent_company?.trim() || null,
       status: formData.status || "PROSPECT",
       territory_id: formData.territory_id
         ? Number(formData.territory_id)
@@ -797,6 +813,10 @@ const [isSubmitted, setIsSubmitted] = useState(false);
                     <div>
                       <p className="font-semibold">Industry:</p>
                       <p>{selectedAccount.industry || "N/A"}</p>
+                    </div>
+                    <div>
+                      <p className="font-semibold">Parent Company:</p>
+                      <p>{selectedAccount.parent_company || "N/A"}</p>
                     </div>
                     <div>
                       <p className="font-semibold">Territory:</p>
@@ -1045,7 +1065,7 @@ const [isSubmitted, setIsSubmitted] = useState(false);
           
      <div className="flex justify-center lg:justify-end w-full sm:w-auto">
         <button
-         onClick={() => {
+          onClick={() => {
           handleOpenAddModal();  // open the modal
           setIsSubmitted(false); // reset all error borders
         }}
@@ -1187,12 +1207,12 @@ const [isSubmitted, setIsSubmitted] = useState(false);
         onClick={(e) => e.stopPropagation()}
       >
         <button
-              onClick={() => {
+         onClick={() => {
                 closeModal();          // close the modal
                 setIsSubmitted(false); // reset validation errors
               }}
           className="absolute top-4 right-4 text-gray-500 hover:text-black transition"
-          disabled={isSubmitting || confirmProcessing}
+            disabled={isSubmitting || confirmProcessing}
         >
           <FiX size={22} />
         </button>
@@ -1201,13 +1221,12 @@ const [isSubmitted, setIsSubmitted] = useState(false);
           {isEditing ? "Edit Account" : "Add New Account"}
         </h2>
 
-        <form
-          className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm"
-          onSubmit={handleSubmit}
-           noValidate
-        >
-
-           <div className="md:col-span-2">
+       <form
+            className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm"
+            onSubmit={handleSubmit}
+            noValidate
+          >
+              <div className="md:col-span-2">
           <InputField
             label="Name"
             name="name"
@@ -1215,11 +1234,24 @@ const [isSubmitted, setIsSubmitted] = useState(false);
             onChange={handleInputChange}
             placeholder="Company name"
             required
-            disabled={isSubmitting}
-           isSubmitted={isSubmitted}   
+            isSubmitted={isSubmitted}   
           />
             </div>
-
+            <SearchableSelectField
+            label="Parent Company"
+            value={formData.parent_company}
+            onChange={(newValue) => {
+              setFormData((prev) => ({
+                ...prev,
+                parent_company: newValue,
+              }));
+            }}
+            items={parentCompanies.map((company) => ({ id: company, name: company }))}
+            getLabel={(item) => item?.name || ""}
+            placeholder="Select or type parent company..."
+            disabled={isSubmitting}
+            allowFreeText={true}
+          />
 
           <InputField
             label="Website"
@@ -1245,7 +1277,7 @@ const [isSubmitted, setIsSubmitted] = useState(false);
             onChange={handleInputChange}
             placeholder="Industry"
             disabled={isSubmitting}
-          />
+          />          
           <InputField
             label="Billing Address"
             name="billing_address"
@@ -1271,6 +1303,7 @@ const [isSubmitted, setIsSubmitted] = useState(false);
             required
             disabled={isSubmitting}
           />
+
           <SearchableSelectField
             label="Assigned To"
             value={formData.assigned_to}
@@ -1295,11 +1328,12 @@ const [isSubmitted, setIsSubmitted] = useState(false);
               `${item?.first_name ?? ""} ${item?.last_name ?? ""} (${item?.role ?? ""})`.trim()
             }
             placeholder="Search assignee..."
-              required={true}               // <-- use required directly
+            required={true}               // <-- use required directly
           isSubmitted={isSubmitted}     
           disabled={isSubmitting || users.length === 0}  
         />
-        
+
+
           <SelectField
             label="Territory"
             name="territory_id"
@@ -1320,7 +1354,7 @@ const [isSubmitted, setIsSubmitted] = useState(false);
           <div className="flex flex-col sm:flex-row justify-end sm:justify-end space-y-2 sm:space-y-0 sm:space-x-2 col-span-1 md:col-span-2 mt-4 w-full">
             <button
               type="button"
-                 onClick={() => {
+               onClick={() => {
                     closeModal();       // close the modal
                     setIsSubmitted(false); // reset validation errors
                   }}
@@ -1413,15 +1447,15 @@ function InputField({
   type = "text",
   required = false,
   disabled = false,
-  className = "",
+ className = "",
   isSubmitted = false,       // <-- new prop
 }) {
   const hasError = isSubmitted && !value?.trim();
 
   return (
-        <div>
-        <label className="block text-gray-700 font-medium mb-1 text-sm">
-            {label} {required && <span className="text-red-500">*</span>}
+   <div>
+      <label className="block text-gray-700 font-medium mb-1 text-sm">
+        {label} {required && <span className="text-red-500">*</span>}
       </label>
       <input
         type={type}
@@ -1431,13 +1465,14 @@ function InputField({
         placeholder={placeholder}
         required={required}
         disabled={disabled}
-      className={`w-full rounded-md px-2 py-1.5 text-sm outline-none border focus:ring-2
+         className={`w-full rounded-md px-2 py-1.5 text-sm outline-none border focus:ring-2
           ${hasError
             ? "border-red-500 focus:ring-red-500"
             : "border-gray-300 focus:ring-blue-400"
           }
           ${className}
-        `} />
+        `}
+      />
     </div>
   );
 }
@@ -1485,13 +1520,14 @@ function SearchableSelectField({
   className = "",
   required = false,
   isSubmitted = false,
+  allowFreeText = false,
 }) {
   const hasError = isSubmitted && required && !value; 
 
   return (
-    <div className={className}>
-      <label className="block text-gray-700 font-medium mb-1 text-sm">
-         {label} {required && <span className="text-red-500">*</span>}
+<div className={className}>
+       <label className="block text-gray-700 font-medium mb-1 text-sm">
+        {label} {required && <span className="text-red-500">*</span>}
       </label>
       <SearchableSelect
         items={items}
@@ -1500,7 +1536,8 @@ function SearchableSelectField({
         getLabel={getLabel}
         placeholder={placeholder}
         disabled={disabled}
-       hasError={hasError} 
+        hasError={hasError}
+        allowFreeText={allowFreeText}
            />
     </div>
   );
@@ -1514,14 +1551,15 @@ function SearchableSelect({
   placeholder = "Search...",
   disabled = false,
   maxRender = 200,
-  hasError = false,   
+  hasError = false,
+  allowFreeText = false,
 }) {
   const [open, setOpen] = useState(false);
   const [q, setQ] = useState("");
   const wrapRef = useRef(null);
 
   const selectedItem = items.find((it) => String(it.id) === String(value));
-  const selectedLabel = selectedItem ? getLabel(selectedItem) : "";
+  const selectedLabel = selectedItem ? getLabel(selectedItem) : value;
 
   const filtered = useMemo(() => {
     const query = q.trim().toLowerCase();
@@ -1555,16 +1593,28 @@ function SearchableSelect({
           setQ(e.target.value);
           if (!open) setOpen(true);
         }}
-      className={`w-full border rounded-md px-2 py-1.5 text-sm outline-none focus:ring-2
+       className={`w-full border rounded-md px-2 py-1.5 text-sm outline-none focus:ring-2
           ${hasError
             ? "border-red-500 focus:ring-red-500"
             : "border-gray-300 focus:ring-blue-400"
           }`}
-            />
+      />
 
       {open && !disabled && (
         <div className="absolute z-50 mt-1 w-full bg-white border border-gray-200 rounded-md shadow-lg overflow-hidden">
           <div className="max-h-56 overflow-y-auto hide-scrollbar">
+            {allowFreeText && q.trim() && !filtered.some((it) => getLabel(it).toLowerCase() === q.trim().toLowerCase()) && (
+              <button
+                type="button"
+                onClick={() => {
+                  onChange(q.trim());
+                  setOpen(false);
+                }}
+                className="w-full text-left px-3 py-2 text-sm hover:bg-green-50 bg-blue-50 font-medium text-blue-700"
+              >
+                + Add "{q.trim()}" as new parent company
+              </button>
+            )}
             {filtered.length > 0 ? (
               filtered.map((it) => {
                 const id = String(it.id);
@@ -1587,9 +1637,9 @@ function SearchableSelect({
                   </button>
                 );
               })
-            ) : (
+            ) : !allowFreeText || !q.trim() ? (
               <div className="px-3 py-2 text-sm text-gray-500">No results</div>
-            )}
+            ) : null}
           </div>
 
           {items.length > maxRender && (

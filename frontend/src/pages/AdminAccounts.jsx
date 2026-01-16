@@ -37,6 +37,7 @@ const INITIAL_FORM_STATE = {
   billing_address: "",
   shipping_address: "",
   industry: "",
+  parent_company: "",
   status: "PROSPECT",
   territory_id: "",
   assigned_to: "",
@@ -111,6 +112,7 @@ export default function AdminAccounts() {
   const [users, setUsers] = useState([]);
   const [selectedUser, setSelectedUser] = useState(null);
   const [territories, setTerritories] = useState([]);
+  const [parentCompanies, setParentCompanies] = useState([]);
   const [stageFilter, setStageFilter] = useState("Filter by Status");
   const [searchQuery, setSearchQuery] = useState("");
   const [confirmModalData, setConfirmModalData] = useState(null);
@@ -181,11 +183,24 @@ export default function AdminAccounts() {
     }
   }, []);
 
+  const fetchParentCompanies = useCallback(async () => {
+    try {
+      const res = await api.get(`/accounts/admin/parent-companies`);
+      setParentCompanies(Array.isArray(res.data) ? res.data : []);
+    } catch (err) {
+      console.error(err);
+      if (err.response?.status === 403) {
+        toast.warn("Unable to load parent companies (permission denied).");
+      }
+    }
+  }, []);
+
   useEffect(() => {
     fetchAccounts();
     fetchUsers();
     fetchTerritories();
-  }, [fetchAccounts, fetchUsers, fetchTerritories]);
+    fetchParentCompanies();
+  }, [fetchAccounts, fetchUsers, fetchTerritories, fetchParentCompanies]);
 
   // Sync selectedStatus with selectedAccount status
   useEffect(() => {
@@ -624,6 +639,7 @@ const [isSubmitted, setIsSubmitted] = useState(false);
       billing_address: formData.billing_address?.trim() || null,
       shipping_address: formData.shipping_address?.trim() || null,
       industry: formData.industry?.trim() || null,
+      parent_company: formData.parent_company?.trim() || null,
       status: formData.status || "PROSPECT",
       territory_id: formData.territory_id
         ? Number(formData.territory_id)
@@ -797,6 +813,10 @@ const [isSubmitted, setIsSubmitted] = useState(false);
                     <div>
                       <p className="font-semibold">Industry:</p>
                       <p>{selectedAccount.industry || "N/A"}</p>
+                    </div>
+                    <div>
+                      <p className="font-semibold">Parent Company:</p>
+                      <p>{selectedAccount.parent_company || "N/A"}</p>
                     </div>
                     <div>
                       <p className="font-semibold">Territory:</p>
@@ -1217,6 +1237,21 @@ const [isSubmitted, setIsSubmitted] = useState(false);
             isSubmitted={isSubmitted}   
           />
             </div>
+            <SearchableSelectField
+            label="Parent Company"
+            value={formData.parent_company}
+            onChange={(newValue) => {
+              setFormData((prev) => ({
+                ...prev,
+                parent_company: newValue,
+              }));
+            }}
+            items={parentCompanies.map((company) => ({ id: company, name: company }))}
+            getLabel={(item) => item?.name || ""}
+            placeholder="Select or type parent company..."
+            disabled={isSubmitting}
+            allowFreeText={true}
+          />
 
           <InputField
             label="Website"
@@ -1242,7 +1277,7 @@ const [isSubmitted, setIsSubmitted] = useState(false);
             onChange={handleInputChange}
             placeholder="Industry"
             disabled={isSubmitting}
-          />
+          />          
           <InputField
             label="Billing Address"
             name="billing_address"
@@ -1485,6 +1520,7 @@ function SearchableSelectField({
   className = "",
   required = false,
   isSubmitted = false,
+  allowFreeText = false,
 }) {
   const hasError = isSubmitted && required && !value; 
 
@@ -1500,7 +1536,8 @@ function SearchableSelectField({
         getLabel={getLabel}
         placeholder={placeholder}
         disabled={disabled}
-        hasError={hasError} 
+        hasError={hasError}
+        allowFreeText={allowFreeText}
            />
     </div>
   );
@@ -1514,14 +1551,15 @@ function SearchableSelect({
   placeholder = "Search...",
   disabled = false,
   maxRender = 200,
-  hasError = false,   
+  hasError = false,
+  allowFreeText = false,
 }) {
   const [open, setOpen] = useState(false);
   const [q, setQ] = useState("");
   const wrapRef = useRef(null);
 
   const selectedItem = items.find((it) => String(it.id) === String(value));
-  const selectedLabel = selectedItem ? getLabel(selectedItem) : "";
+  const selectedLabel = selectedItem ? getLabel(selectedItem) : value;
 
   const filtered = useMemo(() => {
     const query = q.trim().toLowerCase();
@@ -1565,6 +1603,18 @@ function SearchableSelect({
       {open && !disabled && (
         <div className="absolute z-50 mt-1 w-full bg-white border border-gray-200 rounded-md shadow-lg overflow-hidden">
           <div className="max-h-56 overflow-y-auto hide-scrollbar">
+            {allowFreeText && q.trim() && !filtered.some((it) => getLabel(it).toLowerCase() === q.trim().toLowerCase()) && (
+              <button
+                type="button"
+                onClick={() => {
+                  onChange(q.trim());
+                  setOpen(false);
+                }}
+                className="w-full text-left px-3 py-2 text-sm hover:bg-green-50 bg-blue-50 font-medium text-blue-700"
+              >
+                + Add "{q.trim()}" as new parent company
+              </button>
+            )}
             {filtered.length > 0 ? (
               filtered.map((it) => {
                 const id = String(it.id);
@@ -1587,9 +1637,9 @@ function SearchableSelect({
                   </button>
                 );
               })
-            ) : (
+            ) : !allowFreeText || !q.trim() ? (
               <div className="px-3 py-2 text-sm text-gray-500">No results</div>
-            )}
+            ) : null}
           </div>
 
           {items.length > maxRender && (

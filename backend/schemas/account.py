@@ -12,6 +12,7 @@ class AccountBase(BaseModel):
     shipping_address: Optional[str] = None
     industry: Optional[str] = None
     status: str
+    parent_company: Optional[str] = None
     territory_id: Optional[int] = None
     assigned_to: Optional[int] = None
     created_by: Optional[int] = None
@@ -31,6 +32,7 @@ class AccountUpdate(BaseModel):
     shipping_address: Optional[str] = None
     industry: Optional[str] = None
     status: Optional[str] = None
+    parent_company: Optional[str] = None
     territory_id: Optional[int] = None
     assigned_to: Optional[int] = None
 

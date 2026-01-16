@@ -17,6 +17,7 @@ class Account(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, index=True, nullable=False)
+    parent_company = Column(String, nullable=True)
     website = Column(String, nullable=True)
     phone_number = Column(String, nullable=True)
     billing_address = Column(String, nullable=True)

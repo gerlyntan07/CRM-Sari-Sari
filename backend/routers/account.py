@@ -63,7 +63,43 @@ def _push_notif(
     )
 
 
-# ✅ CREATE account from converted lead
+# ✅ GET unique parent companies for current user's company
+@router.get("/admin/parent-companies", response_model=list[str])
+def get_unique_parent_companies(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Get unique parent_company values for accounts created_by or assigned_to users in the same company.
+    Helps populate searchable parent company presets.
+    """
+    if not current_user.related_to_company:
+        raise HTTPException(status_code=403, detail="User not associated with a company")
+
+    # Get all users in the same company
+    company_users = (
+        db.query(User.id)
+        .filter(User.related_to_company == current_user.related_to_company)
+        .subquery()
+    )
+
+    # Get unique parent_company values for accounts in this company
+    parent_companies = (
+        db.query(Account.parent_company)
+        .filter(
+            Account.parent_company.isnot(None),
+            Account.parent_company != "",
+            ((Account.created_by.in_(company_users)) | (Account.assigned_to.in_(company_users)))
+        )
+        .distinct()
+        .order_by(Account.parent_company)
+        .all()
+    )
+
+    # Extract and return as list of strings
+    return [company[0].strip() for company in parent_companies if company[0]]
+
+
 @router.post("/convertedLead", response_model=AccountResponse, status_code=status.HTTP_201_CREATED)
 def create_account(
     data: AccountBase,
@@ -85,6 +121,7 @@ def create_account(
         shipping_address=data.shipping_address,
         industry=data.industry,
         status=normalize_account_status(data.status),
+        parent_company=data.parent_company.strip() if data.parent_company else None,
         territory_id=data.territory_id,
         assigned_to=assigned_to,
         created_by=data.created_by
@@ -350,6 +387,7 @@ def admin_create_account(
         shipping_address=data.shipping_address,
         industry=data.industry,
         status=normalize_account_status(data.status),
+        parent_company=data.parent_company.strip() if data.parent_company else None,
         territory_id=data.territory_id,
         assigned_to=assigned_to,
         created_by=created_by_user_id
@@ -448,6 +486,9 @@ def admin_update_account(
 
     if "status" in update_data:
         update_data["status"] = normalize_account_status(update_data["status"])
+
+    if "parent_company" in update_data and update_data["parent_company"]:
+        update_data["parent_company"] = update_data["parent_company"].strip()
 
     for field, value in update_data.items():
         setattr(account, field, value)

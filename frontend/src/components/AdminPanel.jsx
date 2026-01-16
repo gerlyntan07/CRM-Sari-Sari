@@ -63,17 +63,16 @@ export default function AdminPanel() {
       {/* Sidebar */}
       <div
         className={`fixed top-0 left-0 h-screen w-64 bg-[#1e293b] text-white flex flex-col shadow-lg transform transition-transform duration-300 z-50
-          ${
-            sidebarOpen ? "translate-x-0" : "-translate-x-full"
+          ${sidebarOpen ? "translate-x-0" : "-translate-x-full"
           } lg:translate-x-0`}
       >
         {/* Logo */}
         <div className="px-4 py-3 bg-[#fbbf24] leading-none">
           <p className="text-gray-900 font-bold text-lg m-0 p-0"> Sari-Sari.CRM{" "}
-          <span className="text-[12px] text-gray-700 font-medium align-bottom">
-            v2
-          </span>
-        </p>
+            <span className="text-[12px] text-gray-700 font-medium align-bottom">
+              v2
+            </span>
+          </p>
           {user && user.company && (
             <p className="text-[12px] text-gray-600 font-medium w-full truncate">
               {user.company.company_name}
@@ -103,9 +102,8 @@ export default function AdminPanel() {
                 Sales
               </span>
               <FiChevronDown
-                className={`transition-transform ${
-                  salesOpen ? "rotate-180" : ""
-                }`}
+                className={`transition-transform ${salesOpen ? "rotate-180" : ""
+                  }`}
               />
             </button>
 
@@ -174,9 +172,8 @@ export default function AdminPanel() {
                 Activity
               </span>
               <FiChevronDown
-                className={`transition-transform ${
-                  activityOpen ? "rotate-180" : ""
-                }`}
+                className={`transition-transform ${activityOpen ? "rotate-180" : ""
+                  }`}
               />
             </button>
 
@@ -241,9 +238,8 @@ export default function AdminPanel() {
                 User Management
               </span>
               <FiChevronDown
-                className={`transition-transform ${
-                  userMgmtOpen ? "rotate-180" : ""
-                }`}
+                className={`transition-transform ${userMgmtOpen ? "rotate-180" : ""
+                  }`}
               />
             </button>
 
@@ -264,6 +260,12 @@ export default function AdminPanel() {
                   }
                 >
                   <FiUser /> Manage Account
+                </NavLink>
+                <NavLink
+                  to="/admin/company-details"
+                  className={({ isActive }) => (isActive ? activeLink : normalLink)}
+                >
+                  <FiShield /> Company Details
                 </NavLink>
               </div>
             )}

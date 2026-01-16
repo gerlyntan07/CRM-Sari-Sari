@@ -37,6 +37,7 @@ import AdminTask from "./pages/AdminTask";
 import AdminTerritory from "./pages/AdminTerritory";
 import AdminCalls from "./pages/AdminCalls";
 import AdminMeeting from "./pages/AdminMeeting";
+import AdminCompanyDetails from "./components/AdminCompanyDetails";
 
 // 🔹 Sales layout + pages
 import SalesPanel from "./components/SalesPanel";
@@ -149,6 +150,7 @@ function App() {
           <Route path="quotes" element={<AdminQuotes />} />
           <Route path="users" element={<AdminUser />} />
           <Route path="manage-account" element={<AdminManageAccount />} />
+          <Route path="company-details" element={<AdminCompanyDetails/>}/>
           <Route path="deals" element={<AdminDeals />} />
           <Route path="deals/info" element={<AdminDealsInformation />} />
           <Route path="deals/quickaction" element={<AdminDealsQuickAction />} />

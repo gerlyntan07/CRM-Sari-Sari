@@ -20,6 +20,8 @@ import {
   FiX,
   FiTrendingUp,
 } from "react-icons/fi";
+import { FaPesoSign } from "react-icons/fa6";
+
 import { HiX } from "react-icons/hi";
 import { toast } from "react-toastify";
 import api from "../api";
@@ -255,7 +257,7 @@ export default function TargetDashboard({ currentUserRole, currentUserId }) {
 
   const pieChartData = useMemo(() => {
     const filteredTargets = getTargetsForPeriod();
-    
+
     // Group targets by sales person (user)
     const groupedByUser = {};
 
@@ -471,7 +473,7 @@ export default function TargetDashboard({ currentUserRole, currentUserId }) {
           <MetricCard
             title="Target Amount"
             value={`₱${metrics.totalTarget.toLocaleString("en-US", { maximumFractionDigits: 0 })}`}
-            icon={<FiDollarSign size={22} />}
+            icon={<FaPesoSign size={22} />}
             color="green"
           />
           <MetricCard
@@ -513,8 +515,8 @@ export default function TargetDashboard({ currentUserRole, currentUserId }) {
                 />
                 <Tooltip
                   cursor={{ fill: "rgba(0, 0, 0, 0.15)" }}
-                  wrapperStyle={{ 
-                    outline: "none", 
+                  wrapperStyle={{
+                    outline: "none",
                     zIndex: 9999,
                     pointerEvents: "auto"
                   }}
@@ -530,7 +532,7 @@ export default function TargetDashboard({ currentUserRole, currentUserId }) {
                   labelFormatter={(label) => `Sales: ${label}`}
                   formatter={(value, name, props) => {
                     if (!props || !props.payload) return [value, name];
-                    
+
                     const data = props.payload;
                     const achievement = Number(data.achievement) || 0;
                     const target = Number(data.target) || 0;
@@ -694,19 +696,19 @@ export default function TargetDashboard({ currentUserRole, currentUserId }) {
 
         {/* Search Bar */}
         {(canCreateTarget && currentUserRole.toLowerCase() !== "sales") && (
-            <div className="bg-white rounded-xl p-4 shadow-sm mb-6 flex flex-col lg:flex-row items-center justify-between gap-3 w-full">
-          <div className="flex items-center border border-gray-300 rounded-lg px-4 h-11 w-full focus-within:ring-2 focus-within:ring-indigo-500 transition">
-            <FiSearch className="text-gray-400 mr-3" />
-            <input
-              type="text"
-              placeholder="Search targets..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full outline-none"
-            />
+          <div className="bg-white rounded-xl p-4 shadow-sm mb-6 flex flex-col lg:flex-row items-center justify-between gap-3 w-full">
+            <div className="flex items-center border border-gray-300 rounded-lg px-4 h-11 w-full focus-within:ring-2 focus-within:ring-indigo-500 transition">
+              <FiSearch className="text-gray-400 mr-3" />
+              <input
+                type="text"
+                placeholder="Search targets..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full outline-none"
+              />
+            </div>
           </div>
-        </div>
-        )}        
+        )}
 
         {/* Table */}
         <div className="overflow-x-auto">
@@ -746,15 +748,14 @@ export default function TargetDashboard({ currentUserRole, currentUserId }) {
                         ₱{Number(t.achieved_amount).toLocaleString()}
                       </td>
                       <td className="py-3 px-4 text-left">
-                        <span className={`px-2 py-1 rounded text-white text-xs font-semibold ${
-                          achievementPercent >= 100
+                        <span className={`px-2 py-1 rounded text-white text-xs font-semibold ${achievementPercent >= 100
                             ? "bg-green-500"
                             : achievementPercent >= 75
-                            ? "bg-blue-500"
-                            : achievementPercent >= 50
-                            ? "bg-yellow-500"
-                            : "bg-red-500"
-                        }`}>
+                              ? "bg-blue-500"
+                              : achievementPercent >= 50
+                                ? "bg-yellow-500"
+                                : "bg-red-500"
+                          }`}>
                           {achievementPercent}%
                         </span>
                       </td>
@@ -936,15 +937,14 @@ function DetailModal({ target, onClose, onEdit, onDelete, canEdit }) {
               </div>
               <div>
                 <p className="font-semibold text-gray-900">Achievement Rate:</p>
-                <p className={`font-semibold ${
-                  achievementPercent >= 100
+                <p className={`font-semibold ${achievementPercent >= 100
                     ? "text-green-600"
                     : achievementPercent >= 75
-                    ? "text-blue-600"
-                    : achievementPercent >= 50
-                    ? "text-yellow-600"
-                    : "text-red-600"
-                }`}>
+                      ? "text-blue-600"
+                      : achievementPercent >= 50
+                        ? "text-yellow-600"
+                        : "text-red-600"
+                  }`}>
                   {achievementPercent}%
                 </p>
               </div>
@@ -1104,11 +1104,10 @@ function ConfirmationModal({
           <button
             onClick={onConfirm}
             disabled={loading}
-            className={`w-full sm:w-auto px-4 py-2 rounded-md text-white transition disabled:opacity-70 ${
-              variant === "danger"
+            className={`w-full sm:w-auto px-4 py-2 rounded-md text-white transition disabled:opacity-70 ${variant === "danger"
                 ? "bg-red-500 hover:bg-red-600 border border-red-400"
                 : "bg-tertiary hover:bg-tertiary/90 border border-tertiary"
-            }`}
+              }`}
           >
             {loading ? "Processing..." : confirmLabel}
           </button>

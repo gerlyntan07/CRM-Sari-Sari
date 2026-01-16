@@ -141,32 +141,38 @@ export default function AdminCalls() {
   const [formData, setFormData] = useState(INITIAL_FORM_STATE);
 
   // ✅ Auto open modal if passed via state or query
-  useEffect(() => {
-    const shouldOpen = location.state?.openCallModal;
-    const incomingId =
-      location.state?.initialCallData?.relatedTo1 || searchParams.get("id");
+useEffect(() => {
+  const state = location.state;
+  const shouldOpen = state?.openCallModal;
+  const incomingId = state?.initialCallData?.relatedTo1 || searchParams.get("id");
 
-    if (shouldOpen || incomingId) {
-      setShowModal(true);
+  if (shouldOpen || incomingId) {
+    setShowModal(true);
 
-      if (location.state?.initialCallData) {
-        setFormData((prev) => ({
-          ...prev,
-          ...location.state.initialCallData,
-        }));
-      }
-
-      if (incomingId) {
-        setFormData((prev) => ({
-          ...prev,
-          relatedTo1: incomingId,
-        }));
-      }
-
-      // Clear URL state so modal does not reopen on refresh
-      navigate(location.pathname, { replace: true, state: {} });
+    if (state?.initialCallData) {
+      setFormData((prev) => ({
+        ...prev,
+        ...state.initialCallData,
+        // Convert IDs to strings to ensure dropdowns match them
+        relatedTo1: state.initialCallData.relatedTo1 
+          ? String(state.initialCallData.relatedTo1) 
+          : "",
+        relatedTo2: state.initialCallData.relatedTo2 
+          ? String(state.initialCallData.relatedTo2) 
+          : "",
+      }));
+    } else if (incomingId) {
+      // Legacy support for just passing an ID in URL
+      setFormData((prev) => ({
+        ...prev,
+        relatedTo1: String(incomingId),
+      }));
     }
-  }, [location, searchParams, navigate]);
+
+    // Clean up URL state so refreshing doesn't re-trigger
+    navigate(location.pathname, { replace: true, state: {} });
+  }
+}, [location, searchParams, navigate]);
 
   const fetchCalls = async () => {
     try {
@@ -326,8 +332,8 @@ export default function AdminCalls() {
         formData.relatedType1 === "Lead"
           ? null
           : formData.relatedTo2
-          ? parseInt(formData.relatedTo2, 10)
-          : null,
+            ? parseInt(formData.relatedTo2, 10)
+            : null,
       relatedType2: formData.relatedType1 === "Lead" ? null : formData.relatedType2,
       assigned_to: formData.assigned_to ? parseInt(formData.assigned_to, 10) : null,
     };
@@ -401,8 +407,8 @@ export default function AdminCalls() {
         type === "create"
           ? "Failed to create call. Please review the details and try again."
           : type === "update"
-          ? "Failed to update call. Please review the details and try again."
-          : "Failed to delete call. Please try again.";
+            ? "Failed to update call. Please review the details and try again."
+            : "Failed to delete call. Please try again.";
 
       const message = err?.response?.data?.detail || defaultMessage;
       toast.error(message);
@@ -464,8 +470,8 @@ export default function AdminCalls() {
 
         <div className="mt-4 gap-2 px-2 lg:gap-4 lg:mx-7">
           <div className="flex flex-col md:flex-row md:justify-between lg:flex-row lg:items-center lg:justify-between mt-3 gap-2 px-2 md:items-center lg:gap-4 md:mx-7 lg:mx-7">
-  <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-    <h1 className="text-xl sm:text-2xl font-semibold text-gray-800">
+            <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+              <h1 className="text-xl sm:text-2xl font-semibold text-gray-800">
                 {selectedCall.subject}
               </h1>
               <span
@@ -495,32 +501,32 @@ export default function AdminCalls() {
                   const relatedType1 = selectedCall.lead
                     ? "Lead"
                     : selectedCall.account
-                    ? "Account"
-                    : "Lead";
+                      ? "Account"
+                      : "Lead";
 
                   const relatedTo1 = selectedCall.lead
                     ? selectedCall.lead.id
                     : selectedCall.account
-                    ? selectedCall.account.id
-                    : null;
+                      ? selectedCall.account.id
+                      : null;
 
                   const relatedType2 =
                     relatedType1 === "Lead"
                       ? null
                       : selectedCall.contact
-                      ? "Contact"
-                      : selectedCall.deal
-                      ? "Deal"
-                      : "Contact";
+                        ? "Contact"
+                        : selectedCall.deal
+                          ? "Deal"
+                          : "Contact";
 
                   const relatedTo2 =
                     relatedType1 === "Lead"
                       ? null
                       : selectedCall.contact
-                      ? selectedCall.contact.id
-                      : selectedCall.deal
-                      ? selectedCall.deal.id
-                      : null;
+                        ? selectedCall.contact.id
+                        : selectedCall.deal
+                          ? selectedCall.deal.id
+                          : null;
 
                   setFormData({
                     subject: selectedCall.subject || "",
@@ -583,11 +589,10 @@ export default function AdminCalls() {
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
-                className={`flex-1 min-w-[90px] px-4 py-2.5 text-xs sm:text-sm font-medium border-b-2 ${
-                  activeTab === tab
+                className={`flex-1 min-w-[90px] px-4 py-2.5 text-xs sm:text-sm font-medium border-b-2 ${activeTab === tab
                     ? "bg-paper-white text-[#6A727D] border-white"
                     : "text-white hover:bg-[#5c636d]"
-                }`}
+                  }`}
               >
                 {tab}
               </button>
@@ -625,52 +630,52 @@ export default function AdminCalls() {
                 </div>
               )}
 
-                {/* ------- Notes ------ */}
-            {activeTab === "Notes" && (
-              <div className="mt-4 w-full">
-                <div className="flex flex-wrap items-center justify-between mb-4 gap-2">
-                  <h3 className="text-lg font-semibold text-gray-800 break-words">Call Note</h3>
-                </div>
+              {/* ------- Notes ------ */}
+              {activeTab === "Notes" && (
+                <div className="mt-4 w-full">
+                  <div className="flex flex-wrap items-center justify-between mb-4 gap-2">
+                    <h3 className="text-lg font-semibold text-gray-800 break-words">Call Note</h3>
+                  </div>
 
-                <div className="bg-white border border-gray-100 rounded-lg p-4 shadow-sm break-words">
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-gray-800 break-words">
-                        Note
-                      </p>
+                  <div className="bg-white border border-gray-100 rounded-lg p-4 shadow-sm break-words">
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <p className="text-sm font-medium text-gray-800 break-words">
+                          Note
+                        </p>
+                      </div>
+                    </div>
+                    <div className="mt-3 text-sm text-gray-700 whitespace-pre-wrap break-words">
+                      {selectedCall.notes || "No notes available."}
                     </div>
                   </div>
-                  <div className="mt-3 text-sm text-gray-700 whitespace-pre-wrap break-words">
-                    {selectedCall.notes || "No notes available."}
-                  </div>
                 </div>
-              </div>
-            )}
-    </div>
-        
-              <div className="bg-white border border-gray-100 rounded-lg p-3 sm:p-4 shadow-sm w-full">
-                <h4 className="font-semibold text-gray-800 mb-2 text-sm">Status</h4>
-                <select
-                  className="border border-gray-200 rounded-md px-2 py-1.5 w-full text-sm mb-2"
-                  value={statusSelection}
-                  onChange={(e) => setStatusSelection(e.target.value)}
-                >
-                  <option value="PLANNED">PLANNED</option>
-                  <option value="HELD">HELD</option>
-                  <option value="NOT_HELD">NOT HELD</option>
-                </select>
-                <button
-                  onClick={handleStatusUpdate}
-                  disabled={updatingStatus}
-                  className="w-full py-1.5 rounded-md text-sm bg-gray-900 text-white hover:bg-gray-800 disabled:opacity-50"
-                >
-                  {updatingStatus ? "Updating..." : "Update"}
-                </button>
-              </div>
+              )}
+            </div>
+
+            <div className="bg-white border border-gray-100 rounded-lg p-3 sm:p-4 shadow-sm w-full">
+              <h4 className="font-semibold text-gray-800 mb-2 text-sm">Status</h4>
+              <select
+                className="border border-gray-200 rounded-md px-2 py-1.5 w-full text-sm mb-2"
+                value={statusSelection}
+                onChange={(e) => setStatusSelection(e.target.value)}
+              >
+                <option value="PLANNED">PLANNED</option>
+                <option value="HELD">HELD</option>
+                <option value="NOT_HELD">NOT HELD</option>
+              </select>
+              <button
+                onClick={handleStatusUpdate}
+                disabled={updatingStatus}
+                className="w-full py-1.5 rounded-md text-sm bg-gray-900 text-white hover:bg-gray-800 disabled:opacity-50"
+              >
+                {updatingStatus ? "Updating..." : "Update"}
+              </button>
             </div>
           </div>
         </div>
       </div>
+    </div>
   ) : null;
 
   // --- Form Modal ---
@@ -716,7 +721,7 @@ export default function AdminCalls() {
               <option value="Account">Account</option>
             </select>
 
-            <SearchableSelect              
+            <SearchableSelect
               items={Array.isArray(relatedTo1Values) ? relatedTo1Values : []}
               value={formData.relatedTo1 ?? ""}
               placeholder={`Search ${formData.relatedType1 || 'here'}...`
@@ -733,7 +738,7 @@ export default function AdminCalls() {
                 }))
               }
               disabled={isSubmitting || isEditing}
-            />            
+            />
           </div>
 
           {/* ✅ RELATED TYPE 2 + SEARCHABLE RELATED TO 2 (CONTACT / DEAL) */}
@@ -757,8 +762,8 @@ export default function AdminCalls() {
                 formData.relatedType1 === "Lead"
                   ? ""
                   : Array.isArray(relatedTo2Values) && relatedTo2Values.length > 0
-                  ? `Search ${formData.relatedType2 || "Contact"}...`
-                  : `No ${formData.relatedType2 || ""} data found`
+                    ? `Search ${formData.relatedType2 || "Contact"}...`
+                    : `No ${formData.relatedType2 || ""} data found`
               }
               getLabel={(item) =>
                 formData.relatedType2 === "Contact"
@@ -800,8 +805,8 @@ export default function AdminCalls() {
           </div>
 
           <div className="col-span-2">
-            <label className="block text-gray-700 font-medium mb-1 text-sm">Assign To</label>            
-            <SearchableSelect              
+            <label className="block text-gray-700 font-medium mb-1 text-sm">Assign To</label>
+            <SearchableSelect
               items={Array.isArray(team) ? team : []}
               value={formData.assigned_to ?? ""}
               placeholder={`Search an account...`
@@ -815,7 +820,7 @@ export default function AdminCalls() {
                   assigned_to: newId, // keep string
                 }))
               }
-            /> 
+            />
           </div>
 
           <div>
@@ -883,19 +888,19 @@ export default function AdminCalls() {
             <FiPhoneCall className="mr-2 text-blue-600" /> Calls
           </h1>
 
-       <div className="flex justify-center lg:justify-end w-full sm:w-auto">
-          <button
-            onClick={() => {
-              setFormData(INITIAL_FORM_STATE);
-              setIsEditing(false);
-              setCurrentCallId(null);
-              setShowModal(true);
-            }}
-        className="flex items-center bg-black text-white px-3 sm:px-4 py-2 my-1 lg:my-0 rounded-md hover:bg-gray-800 text-sm sm:text-base mx-auto sm:ml-auto cursor-pointer"
-          >
-            <FiPlus className="mr-2" /> Add Call
-          </button>
-        </div>
+          <div className="flex justify-center lg:justify-end w-full sm:w-auto">
+            <button
+              onClick={() => {
+                setFormData(INITIAL_FORM_STATE);
+                setIsEditing(false);
+                setCurrentCallId(null);
+                setShowModal(true);
+              }}
+              className="flex items-center bg-black text-white px-3 sm:px-4 py-2 my-1 lg:my-0 rounded-md hover:bg-gray-800 text-sm sm:text-base mx-auto sm:ml-auto cursor-pointer"
+            >
+              <FiPlus className="mr-2" /> Add Call
+            </button>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 mb-6 w-full break-words overflow-hidden lg:overflow-visible">
@@ -914,7 +919,7 @@ export default function AdminCalls() {
               defaultValue={searchQuery}
             />
           </div>
-        <div className="flex flex-col sm:flex-row w-full lg:w-1/2 gap-2">
+          <div className="flex flex-col sm:flex-row w-full lg:w-1/2 gap-2">
             <select
               defaultValue={statusFilter}
               className="border border-gray-300 rounded-lg px-3 h-11 text-sm bg-white w-full"
@@ -1018,8 +1023,8 @@ export default function AdminCalls() {
           totalItems={filteredCalls.length}
           pageSize={ITEMS_PER_PAGE}
           currentPage={currentPage}
-          onPrev={() => {}}
-          onNext={() => {}}
+          onPrev={() => { }}
+          onNext={() => { }}
           label="calls"
         />
       </div>
@@ -1211,9 +1216,8 @@ function SearchableSelect({
                       onChange(id);
                       setOpen(false);
                     }}
-                    className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-50 ${
-                      active ? "bg-blue-50" : ""
-                    }`}
+                    className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-50 ${active ? "bg-blue-50" : ""
+                      }`}
                   >
                     {label || "--"}
                   </button>

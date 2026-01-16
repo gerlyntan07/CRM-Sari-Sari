@@ -92,22 +92,31 @@ export default function AdminDealsQuickAction({ selectedDeal, onStatusUpdate, on
 
           {/* --- SCHEDULE CALL BUTTON (updated) --- */}
           <button
-            onClick={() =>
+            onClick={() => {
+              // Check if account data exists to avoid errors
+              const accountId = selectedDeal.account?.id || selectedDeal.account_id;
+
               navigate("/admin/calls", {
                 state: {
-                  openCallModal: true,      // <-- this triggers your form
+                  openCallModal: true,
                   initialCallData: {
-                    relatedType1: "Deal", // <-- your custom default
+                    // 1. Pre-fill the Subject
+                    subject: selectedDeal.title ? `Call regarding: ${selectedDeal.title}` : "",
+                    relatedType1: "Account",
+                    relatedTo1: accountId,
+                    relatedType2: "Deal",
+                    relatedTo2: selectedDeal.id,
+                    contactId: selectedDeal.contact?.id
                   },
                 },
-              })
-            }
+              });
+            }}
             className="flex items-center gap-2 border border-gray-100 rounded-md py-1.5 px-2 sm:px-3 hover:bg-gray-50 transition text-sm"
           >
             <FiPhone className="text-gray-600 w-4 h-4" />
             Schedule Call
           </button>
-          
+
           <button
             type="button"
             onClick={() => {
@@ -135,32 +144,59 @@ export default function AdminDealsQuickAction({ selectedDeal, onStatusUpdate, on
 
           <button
             className="flex items-center gap-2 border border-gray-100 rounded-md py-1.5 px-2 sm:px-3 hover:bg-gray-50 transition text-sm"
-            onClick={() =>
+            onClick={() => {
+              // 1. Get the Account ID safely
+              const accountId = selectedDeal.account?.id || selectedDeal.account_id;
+
               navigate("/admin/meetings", {
                 state: {
                   openMeetingModal: true,
                   initialMeetingData: {
-                    relatedType: "Deal",
+                    // 2. Pre-fill the Title/Subject
+                    title: selectedDeal.title ? `Meeting: ${selectedDeal.title}` : "",
+
+                    // 3. Set Parent (Account) - Use "relatedType1" if your Meetings form matches the Calls form structure
+                    relatedType1: "Account",
+                    relatedTo1: accountId,
+
+                    // 4. Set Child (Deal)
+                    relatedType2: "Deal",
+                    relatedTo2: selectedDeal.id,
                   },
                 },
-              })
-            }
+              });
+            }}
           >
             <FiCalendar className="text-gray-600 w-4 h-4" />
             Book Meeting
           </button>
 
           <button
-            onClick={() =>
+            onClick={() => {
+              // 1. Get the Account ID safely
+              const accountId = selectedDeal.account?.id || selectedDeal.account_id;
+
               navigate("/admin/tasks", {
                 state: {
                   openTaskModal: true,
                   initialTaskData: {
-                    relatedTo: "Deal",
+                    // 2. Pre-fill the Task Title
+                    title: selectedDeal.title ? `Task for: ${selectedDeal.title}` : "",
+
+                    // 3. Set Parent (Account)
+                    relatedType1: "Account",
+                    relatedTo1: accountId,
+
+                    // 4. Set Child (Deal)
+                    relatedType2: "Deal",
+                    relatedTo2: selectedDeal.id,
+
+                    // 5. Link Contact (Optional)
+                    contactId: selectedDeal.contact?.id
                   },
                 },
-              })
-            }
+              });
+            }}
             className="flex items-center gap-2 border border-gray-100 rounded-md py-1.5 px-2 sm:px-3 hover:bg-gray-50 transition text-sm"
           >
             <FiCheckSquare className="text-gray-600 w-4 h-4" />

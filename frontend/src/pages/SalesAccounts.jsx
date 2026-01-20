@@ -16,14 +16,16 @@ import {
   FiFileText,
   FiChevronDown,
   FiChevronRight,
+  FiMail,
+  FiCalendar,
 } from "react-icons/fi";
 import { HiX } from "react-icons/hi";
-import { FiMail, FiCalendar } from "react-icons/fi";
 import api from "../api.js";
 import { toast } from "react-toastify";
 import PaginationControls from "../components/PaginationControls.jsx";
 import LoadingSpinner from "../components/LoadingSpinner.jsx";
 import { useNavigate } from "react-router-dom";
+import useFetchUser from "../hooks/useFetchUser.js";
 
 const STATUS_OPTIONS = [
   { value: "CUSTOMER", label: "Customer" },
@@ -99,6 +101,8 @@ const ITEMS_PER_PAGE = 10;
 
 export default function AdminAccounts() {
   const navigate = useNavigate();
+  const { user: currentUser } = useFetchUser();
+  const isSales = currentUser?.role === "Sales";
 
   useEffect(() => {
     document.title = "Accounts | Sari-Sari CRM";
@@ -127,6 +131,15 @@ export default function AdminAccounts() {
   const [updatingStatus, setUpdatingStatus] = useState(false);
   const [relatedActs, setRelatedActs] = useState({});
   const [expandedSection, setExpandedSection] = useState(null);
+
+  useEffect(() => {
+    if (showModal && !isEditing && isSales && currentUser && !formData.assigned_to) {
+      setFormData((prev) => ({
+        ...prev,
+        assigned_to: currentUser.id,
+      }));
+    }
+  }, [showModal, isEditing, isSales, currentUser, formData.assigned_to]);
 
   const fetchAccounts = useCallback(
     async (preserveSelectedId = null) => {
@@ -1533,11 +1546,12 @@ const [isSubmitted, setIsSubmitted] = useState(false);
             }
             placeholder="Search assignee..."
             required={true}               // <-- use required directly
-          isSubmitted={isSubmitted}     
-          disabled={isSubmitting || users.length === 0}  
-        />
+            isSubmitted={isSubmitted}     
+            disabled={isSubmitting || users.length === 0 || isSales}  
+          />
 
 
+          <div className="md:col-span-2">
           <SelectField
             label="Territory"
             name="territory_id"
@@ -1554,6 +1568,7 @@ const [isSubmitted, setIsSubmitted] = useState(false);
             ]}
             disabled={isSubmitting || !selectedUser || !selectedUser.assigned_territory || selectedUser.assigned_territory.length === 0}
           />
+          </div>
 
           <div className="flex flex-col sm:flex-row justify-end sm:justify-end space-y-2 sm:space-y-0 sm:space-x-2 col-span-1 md:col-span-2 mt-4 w-full">
             <button
@@ -1797,7 +1812,7 @@ function SearchableSelect({
           setQ(e.target.value);
           if (!open) setOpen(true);
         }}
-       className={`w-full border rounded-md px-2 py-1.5 text-sm outline-none focus:ring-2
+       className={`w-full border rounded-md px-2 py-1.5 text-sm outline-none focus:ring-2 disabled:bg-gray-100
           ${hasError
             ? "border-red-500 focus:ring-red-500"
             : "border-gray-300 focus:ring-blue-400"

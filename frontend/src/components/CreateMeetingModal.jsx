@@ -350,6 +350,7 @@ const CreateMeetingModal = ({
                 assignedTo: newId,
               }))
             }
+            disabled={userRole === 'Sales'}
           />
         </div>
 

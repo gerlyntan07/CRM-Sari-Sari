@@ -84,6 +84,19 @@ export default function AdminContacts() {
   const [currentPage, setCurrentPage] = useState(1);
   const [relatedActs, setRelatedActs] = useState({});
   const [expandedSection, setExpandedSection] = useState(null);
+  const [currentUser, setCurrentUser] = useState(null);
+
+  useEffect(() => {
+    async function fetchCurrentUser() {
+      try {
+        const res = await api.get("/auth/me");
+        setCurrentUser(res.data);
+      } catch (err) {
+        console.error("Failed to fetch current user", err);
+      }
+    }
+    fetchCurrentUser();
+  }, []);
 
   const fetchContacts = useCallback(
     async (preserveSelectedId = null) => {
@@ -305,6 +318,13 @@ export default function AdminContacts() {
     setIsEditing(false);
     setCurrentContactId(null);
     setShowModal(true);
+
+    if (currentUser?.role === "Sales") {
+      setFormData((prev) => ({
+        ...prev,
+        assigned_to: currentUser.id,
+      }));
+    }
   };
 
   const handleEditClick = async(contact) => {
@@ -1340,7 +1360,7 @@ if (domain !== "gmail.com") {
             placeholder="Search assignee..."
             required={true}               // <-- use required directly
           isSubmitted={isSubmitted}     
-          disabled={isSubmitting || users.length === 0}  
+          disabled={isSubmitting || users.length === 0 || currentUser?.role === "Sales"}  
           />
           <InputField
             label="Title"
@@ -1609,7 +1629,7 @@ function SearchableSelect({
           setQ(e.target.value);
           if (!open) setOpen(true);
         }}
-       className={`w-full border rounded-md px-2 py-1.5 text-sm outline-none focus:ring-2
+       className={`w-full border rounded-md px-2 py-1.5 text-sm outline-none focus:ring-2 disabled:bg-gray-100
           ${hasError
             ? "border-red-500 focus:ring-red-500"
             : "border-gray-300 focus:ring-blue-400"

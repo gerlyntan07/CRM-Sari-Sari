@@ -16,6 +16,7 @@ export default function TaskModal({
   isEditing = false,
   viewMode = false,
   users = [],
+  currentUser,
   onDelete
 }) {
   // Local state for the dropdown options
@@ -500,6 +501,7 @@ export default function TaskModal({
                             assignedTo: newId, // keep string
                           }))
                         }
+                        disabled={viewMode || currentUser?.role === 'Sales'}
                       />
                     </div>
 

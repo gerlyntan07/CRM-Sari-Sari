@@ -18,6 +18,7 @@ import PaginationControls from "../components/PaginationControls.jsx";
 import { toast } from "react-toastify";
 import api from "../api";
 import LoadingSpinner from "../components/LoadingSpinner.jsx";
+import useFetchUser from "../hooks/useFetchUser";
 
 import * as countryCodesList from "country-codes-list";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
@@ -174,6 +175,15 @@ export default function AdminLeads() {
     fetchAccounts();
     fetchLeads();
   }, []);
+
+  const { user: currentUser } = useFetchUser();
+  const isSales = currentUser?.role === 'Sales';
+
+  useEffect(() => {
+    if (showModal && !isEditing && isSales && currentUser && !leadData.lead_owner) {
+        setLeadData((prev) => ({ ...prev, lead_owner: currentUser.id }));
+    }
+  }, [showModal, isEditing, isSales, currentUser, leadData.lead_owner]);
 
   useEffect(() => {
     // If there's a leadID in URL, set selectedLead (for direct URL access)
@@ -1034,6 +1044,7 @@ export default function AdminLeads() {
                   items={Array.isArray(users) ? users : []}
                   value={leadData.lead_owner ?? ""}
                   placeholder={`Search a user...`}
+                  disabled={isSubmitting || isSales}
                   getLabel={(item) => `${item.first_name} ${item.last_name}`}
                   onChange={(newId) => {
                     const user = users.find((u) => String(u.id) === String(newId));

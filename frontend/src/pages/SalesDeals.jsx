@@ -12,6 +12,7 @@ import {
 } from "react-icons/fi";
 import { LuUserSearch } from "react-icons/lu";
 import api from '../api'
+import useFetchUser from "../hooks/useFetchUser";
 import { toast } from "react-toastify";
 import PaginationControls from "../components/PaginationControls.jsx";
 import AdminDealsInformation from "../components/AdminDealsInformation";
@@ -250,6 +251,15 @@ export default function AdminDeals() {
         fetchContacts();
         fetchUsers();
     }, [])
+
+    const { user: currentUser } = useFetchUser();
+    const isSales = currentUser?.role === 'Sales';
+
+    useEffect(() => {
+        if (showDealModal && !isEditing && isSales && currentUser && !dealForm.assigned_to) {
+            setDealForm((prev) => ({ ...prev, assigned_to: currentUser.id }));
+        }
+    }, [showDealModal, isEditing, isSales, currentUser, dealForm.assigned_to]);
 
     const openEditDealModal = async(deal) => {
         if (!deal) return;
@@ -859,6 +869,15 @@ function CreateDealModal({
     currentAccount = null,
     currentContact = null,
 }) {
+    const { user } = useFetchUser();
+    const isSales = user?.role === 'Sales';
+
+    useEffect(() => {
+        if (!isEditing && isSales && user && !externalFormData.assigned_to) {
+            setExternalFormData((prev) => ({ ...prev, assigned_to: user.id }));
+        }
+    }, [isEditing, isSales, user, externalFormData.assigned_to, setExternalFormData]);
+
     const handleSubmit = (e) => {
         e.preventDefault();
         if (onSubmit) {
@@ -1045,7 +1064,7 @@ function CreateDealModal({
                             return name || item?.email || "";
                         }}
                         placeholder="Search assignee..."
-                        disabled={isSubmitting}
+                        disabled={isSubmitting || isSales}
                         className="md:col-span-2"
                     />
                     <TextareaField

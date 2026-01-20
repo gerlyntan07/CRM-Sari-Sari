@@ -21,6 +21,7 @@ import api from "../api.js";
 import { toast } from "react-toastify";
 import { useSearchParams, useNavigate, useLocation } from "react-router-dom";
 import LoadingSpinner from "../components/LoadingSpinner.jsx";
+import useFetchUser from "../hooks/useFetchUser";
 
 // --- Constants (UI Options) ---
 const PRIORITY_OPTIONS = [
@@ -116,6 +117,9 @@ export default function AdminCalls() {
   const navigate = useNavigate();
   const location = useLocation();
 
+  const { user } = useFetchUser();
+  const isSales = user?.role === 'Sales';
+
   const getDefaultCallTime = () => {
     const today = new Date();
     const year = today.getFullYear();
@@ -139,6 +143,16 @@ export default function AdminCalls() {
     assigned_to: null,
   };
   const [formData, setFormData] = useState(INITIAL_FORM_STATE);
+
+  // Set default assigned_to to current user when modal opens for a new call (Sales only)
+  useEffect(() => {
+    if (showModal && !isEditing && isSales && user && !formData.assigned_to) {
+      setFormData((prev) => ({
+        ...prev,
+        assigned_to: user.id,
+      }));
+    }
+  }, [showModal, isEditing, user, isSales]);
 
   // ✅ Auto open modal if passed via state or query
   useEffect(() => {
@@ -840,6 +854,7 @@ export default function AdminCalls() {
                   assigned_to: newId, // keep string
                 }))
               }
+              disabled={isSales}
             /> 
           </div>
 

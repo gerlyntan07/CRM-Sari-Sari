@@ -305,15 +305,6 @@ export default function SalesQuotes() {
         }
       } catch {}
 
-      try {
-        const res = await api.get("/users/me");
-        const id = tryExtractUserId(res?.data);
-        if (id && mounted) {
-          setCurrentUserId(id);
-          return;
-        }
-      } catch {}
-
       if (mounted) setCurrentUserId(null);
     };
 
@@ -663,6 +654,13 @@ export default function SalesQuotes() {
     setIsEditing(false);
     setCurrentQuoteId(null);
     setShowModal(true);
+
+    if (currentUser?.role === "Sales") {
+      setFormData((prev) => ({
+        ...prev,
+        assigned_to: currentUser.id,
+      }));
+    }
   };
 
   const handleEditClick = (quote) => {
@@ -1617,9 +1615,9 @@ export default function SalesQuotes() {
               return item?.role ? `${name} (${item.role})` : name;
             }}
             placeholder="Search assignee..."
-             required={true}           
+            required={true}           
             isSubmitted={isSubmitted} 
-            disabled={isSubmitting}
+            disabled={isSubmitting || currentUser?.role === "Sales"}
           />
 
           <SelectField
@@ -1876,7 +1874,7 @@ function SearchableSelect({
           setQ(e.target.value);
           if (!open) setOpen(true);
         }}
-         className={`w-full border rounded-md px-2 py-1.5 text-sm outline-none focus:ring-2
+         className={`w-full border rounded-md px-2 py-1.5 text-sm outline-none focus:ring-2 disabled:bg-gray-100
           ${hasError
             ? "border-red-500 focus:ring-red-500"
             : "border-gray-300 focus:ring-blue-400"

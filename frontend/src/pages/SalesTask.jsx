@@ -22,6 +22,16 @@ import { useLocation, useNavigate } from "react-router-dom";
 const BOARD_COLUMNS = ["To Do", "In Progress", "Review", "Completed"];
 const LIST_PAGE_SIZE = 10;
 
+const mapStatusToColumn = (status) => {
+  if (!status) return "To Do";
+  const lower = status.toLowerCase();
+  if (lower === "not started" || lower === "to do") return "To Do";
+  if (lower === "in progress") return "In Progress";
+  if (lower === "review") return "Review";
+  if (lower === "completed") return "Completed";
+  return "To Do"; // Default fallback
+};
+
 // --- Utility Functions ---
 
 const toDateTimeInputValue = (value) => {
@@ -259,6 +269,7 @@ export default function AdminTask() {
   }, []);
 
   const { user: currentUser, loading: userLoading } = useFetchUser();
+  const isSales = currentUser?.role === 'Sales';
   const [view, setView] = useState("board");
   const [showModal, setShowModal] = useState(false);
   const [selectedTask, setSelectedTask] = useState(null);
@@ -290,6 +301,16 @@ export default function AdminTask() {
     relatedTo1: "",
     relatedTo2: "",
   });
+
+  // Set default assignedTo to current user when modal opens for a new task (Sales only)
+  useEffect(() => {
+    if (showModal && !formData.id && isSales && currentUser && !formData.assignedTo) {
+       setFormData((prev) => ({
+         ...prev,
+         assignedTo: currentUser.id,
+       }));
+    }
+  }, [showModal, formData.id, currentUser, isSales]);
 
   // --- Auto-Open Modal Logic ---
   useEffect(() => {
@@ -491,7 +512,7 @@ export default function AdminTask() {
         task.createdBy?.toLowerCase().includes(normalized);
 
       const matchesStatus =
-        filterStatus === "Filter by Status" || task.status === filterStatus;
+        filterStatus === "Filter by Status" || mapStatusToColumn(task.status) === filterStatus;
       const matchesPriority =
         filterPriority === "Filter by Priority" || task.priority === filterPriority;
 
@@ -562,7 +583,7 @@ export default function AdminTask() {
     task.dueDate && new Date(task.dueDate) < new Date() && task.status !== "Completed";
 
   const getTaskCardColor = (task) => {
-    switch (task.status) {
+    switch (mapStatusToColumn(task.status)) {
       case "To Do": return "bg-blue-50 hover:bg-blue-100 border-blue-200";
       case "In Progress": return "bg-purple-50 hover:bg-purple-100 border-purple-200";
       case "Review": return "bg-orange-50 hover:bg-orange-100 border-orange-200";
@@ -572,7 +593,7 @@ export default function AdminTask() {
   };
 
   const getStatusBadgeClass = (status) => {
-    switch (status) {
+    switch (mapStatusToColumn(status)) {
       case "To Do": return "bg-blue-100 text-blue-700";
       case "In Progress": return "bg-purple-100 text-purple-700";
       case "Review": return "bg-orange-100 text-orange-700";
@@ -678,7 +699,7 @@ export default function AdminTask() {
       {!loading && !userLoading && filteredTasks.length > 0 && view === "board" && (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 rounded-md">
           {BOARD_COLUMNS.map((column) => {
-            const columnTasks = displayTasks.filter((task) => task.status === column);
+            const columnTasks = displayTasks.filter((task) => mapStatusToColumn(task.status) === column);
             return (
               <div key={column} className="bg-white p-4 shadow border border-gray-200 flex flex-col relative">
                 <div className="absolute top-0 left-0 w-full h-5 bg-secondary rounded-t-md" /> 

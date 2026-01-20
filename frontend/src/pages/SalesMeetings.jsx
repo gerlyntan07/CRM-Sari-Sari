@@ -14,6 +14,7 @@ import CreateMeetingModal from "../components/CreateMeetingModal";
 import AdminMeetingInfomation from "../components/AdminMeetingInfomation";
 import PaginationControls from "../components/PaginationControls.jsx";
 import LoadingSpinner from "../components/LoadingSpinner.jsx";
+import useFetchUser from "../hooks/useFetchUser";
 
 // --- HELPER FUNCTIONS ---
 const normalizeStatus = (status) => (status ? status.toUpperCase() : "");
@@ -65,6 +66,8 @@ const INITIAL_FORM_STATE = {
 const AdminMeeting = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { user } = useFetchUser();
+  const isSales = user?.role === 'Sales';
   const [searchParams] = useSearchParams();
   const meetingIdFromQuery = searchParams.get('id');
   const isInfoRoute = location.pathname === '/admin/meetings/info';
@@ -88,6 +91,16 @@ const AdminMeeting = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [confirmModalData, setConfirmModalData] = useState(null);
   const [confirmProcessing, setConfirmProcessing] = useState(false);
+
+  // Set default assignedTo to current user when modal opens for a new meeting (Sales only)
+  useEffect(() => {
+    if (showModal && !isEditing && isSales && user && !formData.assignedTo) {
+      setFormData((prev) => ({
+        ...prev,
+        assignedTo: user.id,
+      }));
+    }
+  }, [showModal, isEditing, user, isSales]);
 
   // Auto-open logic
   useEffect(() => {
@@ -502,6 +515,7 @@ const AdminMeeting = () => {
           onSubmit={handleSubmit}
           isSubmitting={isSubmitting || confirmProcessing}
           users={users} // Only passing users, other data is fetched inside modal
+          currentUser={user}
         />
       )}
 

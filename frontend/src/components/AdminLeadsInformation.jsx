@@ -600,16 +600,34 @@ export default function AdminLeadsInformation({
 
                     {/* --- SCHEDULE CALL BUTTON (updated) --- */}
                     <button
-                      onClick={() =>
+                      onClick={() => {
+                        if (!lead) return;
+
                         navigate("/admin/calls", {
                           state: {
-                            openCallModal: true,      // <-- this triggers your form
+                            openCallModal: true,
                             initialCallData: {
-                              relatedType1: "Lead", // <-- your custom default
+                              subject: lead.title
+                                ? `Call regarding ${lead.title}`
+                                : `Call with ${lead.first_name} ${lead.last_name}`,
+
+                              relatedType1: "Lead",
+                              relatedTo1: String(lead.id),
+
+                              relatedType2: null,
+                              relatedTo2: null,
+
+                              assigned_to: lead.assigned_to?.id
+                                ? String(lead.assigned_to.id)
+                                : "",
+
+                              direction: "Outgoing",
+                              status: "Planned",
                             },
                           },
-                        })
-                      }
+                        });
+
+                      }}
                       className="flex items-center gap-2 border border-gray-100 rounded-md py-1.5 px-2 sm:px-3 hover:bg-gray-50 transition text-sm"
                     >
                       <FiPhone className="text-gray-600 w-4 h-4" />
@@ -641,37 +659,72 @@ export default function AdminLeadsInformation({
 
                     <button
                       className="flex items-center gap-2 border border-gray-100 rounded-md py-1.5 px-2 sm:px-3 hover:bg-gray-50 transition text-sm"
-                      onClick={() =>
+                      onClick={() => {
+                        if (!lead) return;
+
                         navigate("/admin/meetings", {
                           state: {
                             openMeetingModal: true,
                             initialMeetingData: {
-                              relatedType: "Lead",
+                              subject: lead.title
+                                ? `Meeting regarding ${lead.title}`
+                                : `Meeting with ${lead.first_name || ""} ${lead.last_name || ""}`.trim(),
+
+                              relatedType1: "Lead",
+                              relatedTo1: String(lead.id),
+
+                              relatedType2: null,
+                              relatedTo2: null,
+
+                              assigned_to: lead.assigned_to?.id
+                                ? String(lead.assigned_to.id)
+                                : "",
+
+                              status: "Planned",
                             },
                           },
-                        })
-                      }
+                        });
+                      }}
                     >
                       <FiCalendar className="text-gray-600 w-4 h-4" />
                       Book Meeting
                     </button>
 
+
                     <button
-                      onClick={() =>
+                      onClick={() => {
+                        if (!lead) return;
+
                         navigate("/admin/tasks", {
                           state: {
                             openTaskModal: true,
                             initialTaskData: {
-                              relatedTo: "Lead",
+                              subject: lead.title
+                                ? `Follow up on ${lead.title}`
+                                : `Follow up with ${lead.first_name || ""} ${lead.last_name || ""}`.trim(),
+
+                              relatedType1: "Lead",
+                              relatedTo1: String(lead.id),
+
+                              relatedType2: null,
+                              relatedTo2: null,
+
+                              assigned_to: lead.assigned_to?.id
+                                ? String(lead.assigned_to.id)
+                                : "",
+
+                              priority: "MEDIUM",
+                              status: "Not Started",
                             },
                           },
-                        })
-                      }
+                        });
+                      }}
                       className="flex items-center gap-2 border border-gray-100 rounded-md py-1.5 px-2 sm:px-3 hover:bg-gray-50 transition text-sm"
                     >
                       <FiCheckSquare className="text-gray-600 w-4 h-4" />
                       Tasks
                     </button>
+
                   </div>
                 </div>
 

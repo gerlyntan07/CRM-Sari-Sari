@@ -699,7 +699,6 @@ export default function AdminLeadsInformation({
                     <option value="New">New</option>
                     <option value="Contacted">Contacted</option>
                     <option value="Qualified">Qualified</option>
-                    <option value="Converted">Converted</option>
                     <option value="Lost">Lost</option>
                   </select>
 

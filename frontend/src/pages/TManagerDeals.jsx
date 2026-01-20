@@ -859,12 +859,41 @@ function CreateDealModal({
     currentAccount = null,
     currentContact = null,
 }) {
+
+        //validation 
+const [isSubmitted, setIsSubmitted] = useState(false);
     const handleSubmit = (e) => {
         e.preventDefault();
-        if (onSubmit) {
-            onSubmit(externalFormData);
-        }
-    };
+        setIsSubmitted(true); 
+
+        if (!externalFormData.name?.trim()) {
+        toast.error("Deal name is required.");
+        return;
+    }
+
+    const amount = Number(externalFormData.amount);
+    if (!externalFormData.amount || isNaN(amount) || amount <= 0) {
+        toast.error("Amount must be a number greater than 0.");
+        return;
+    }
+
+    if (!externalFormData.account_id) {
+        toast.error("Please select an account.");
+        return;
+    }
+
+    if (!externalFormData.primary_contact_id) {
+        toast.error("Please select a primary contact.");
+        return;
+    }
+
+    if (!externalFormData.assigned_to) {
+        toast.error("Please assign this deal to a user.");
+        return;
+    }
+
+    onSubmit?.(externalFormData);
+};
 
     const handleBackdropClick = (e) => {
         if (e.target.id === "modalBackdrop") {
@@ -940,6 +969,7 @@ function CreateDealModal({
                 <form
                     className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm"
                     onSubmit={handleSubmit}
+                    noValidate  
                 >
                     <InputField
                         label="Deal Name"
@@ -948,7 +978,7 @@ function CreateDealModal({
                         onChange={(e) => setExternalFormData({ ...externalFormData, name: e.target.value })}
                         placeholder="Enter deal name"
                         required
-                        disabled={isSubmitting}
+                        isSubmitted={isSubmitted}
                         className="md:col-span-2"
                     />
                     <SearchableSelectField
@@ -965,7 +995,10 @@ function CreateDealModal({
                         placeholder="Search account..."
                         disabled={isSubmitting}
                         currentItem={currentAccount}
+                         required={true}              
+                        isSubmitted={isSubmitted} 
                     />
+
                     <SearchableSelectField
                         label="Primary Contact"
                         value={externalFormData.primary_contact_id || ""}
@@ -983,7 +1016,10 @@ function CreateDealModal({
                         placeholder="Search contact..."
                         disabled={isSubmitting}
                         currentItem={currentContact}
+                        required={true}               
+                        isSubmitted={isSubmitted}  
                     />
+
                     <SelectField
                         label="Stage"
                         name="stage"
@@ -1009,8 +1045,10 @@ function CreateDealModal({
                         value={externalFormData.amount}
                         onChange={(e) => setExternalFormData({ ...externalFormData, amount: e.target.value })}
                         placeholder="₱0"
-                        disabled={isSubmitting}
+                         required
+                        isSubmitted={isSubmitted}
                     />
+                    
                     <SelectField
                         label="Currency"
                         name="currency"
@@ -1046,6 +1084,8 @@ function CreateDealModal({
                         }}
                         placeholder="Search assignee..."
                         disabled={isSubmitting}
+                         required={true}              
+                        isSubmitted={isSubmitted}   
                         className="md:col-span-2"
                     />
                     <TextareaField
@@ -1096,11 +1136,14 @@ function InputField({
     required = false,
     disabled = false,
     className = "",
+  isSubmitted = false, 
 }) {
+     const hasError = isSubmitted && !value?.trim();
+
     return (
         <div className={className}>
             <label className="block text-gray-700 font-medium mb-1 text-sm">
-                {label}
+                {label} {required && <span className="text-red-500">*</span>}
             </label>
             <input
                 type={type}
@@ -1110,8 +1153,13 @@ function InputField({
                 placeholder={placeholder}
                 required={required}
                 disabled={disabled}
-                className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-400 outline-none disabled:bg-gray-100"
-            />
+              className={`w-full rounded-md px-2 py-1.5 text-sm outline-none border focus:ring-2
+          ${hasError
+            ? "border-red-500 focus:ring-red-500"
+            : "border-gray-300 focus:ring-blue-400"
+          }
+          ${className}
+        `}/>  
         </div>
     );
 }
@@ -1159,11 +1207,15 @@ function SearchableSelectField({
     disabled = false,
     className = "",
     currentItem = null,
+     required = false,
+  isSubmitted = false,
 }) {
+      const hasError = isSubmitted && required && !value;
+
     return (
         <div className={className}>
             <label className="block text-gray-700 font-medium mb-1 text-sm">
-                {label}
+        {label} {required && <span className="text-red-500">*</span>}
             </label>
             <SearchableSelect
                 items={items}
@@ -1173,6 +1225,7 @@ function SearchableSelectField({
                 placeholder={placeholder}
                 disabled={disabled}
                 currentItem={currentItem}
+                hasError={hasError} 
             />
         </div>
     );
@@ -1187,6 +1240,7 @@ function SearchableSelect({
     disabled = false,
     maxRender = 200,
     currentItem = null,
+    hasError = false,  
 }) {
     const [open, setOpen] = useState(false);
     const [q, setQ] = useState("");
@@ -1229,8 +1283,11 @@ function SearchableSelect({
                     setQ(e.target.value);
                     if (!open) setOpen(true);
                 }}
-                className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-400 outline-none disabled:bg-gray-100"
-            />
+                className={`w-full border rounded-md px-2 py-1.5 text-sm outline-none focus:ring-2
+          ${hasError
+            ? "border-red-500 focus:ring-red-500"
+            : "border-gray-300 focus:ring-blue-400"
+          }`}/>
 
             {open && !disabled && (
                 <div className="absolute z-50 mt-1 w-full bg-white border border-gray-200 rounded-md shadow-lg overflow-hidden">

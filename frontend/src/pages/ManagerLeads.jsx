@@ -853,7 +853,7 @@ export default function AdminLeads() {
               {/* Last Name */}
               <div className="flex flex-col">
                 <label className="block text-gray-700 font-medium mb-1 text-sm">
-                  Last Name
+                  Last Name <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="text"

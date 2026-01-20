@@ -282,22 +282,24 @@ const Signup = () => {
       const userObject = jwtDecode(response.credential);
       console.log("Google user:", userObject);
 
-      // Verify the account doesn't already exist with backend
+      // Only check if email already exists - don't create user yet
       try {
-        await api.post("/auth/google/signup", { id_token: response.credential });
+        await api.post("/auth/email-check", { email: userObject.email });
       } catch (error) {
+        // If email already exists, show error and don't proceed
         const errorDetail = error.response?.data?.detail || "An error occurred.";
         setSignupError(errorDetail);
         setIsLoading(false);
         return;
       }
 
+      // Store Google user info in state - user will be created in Step 2
       setFormData((prev) => ({
         ...prev,
         email: userObject.email,
         first_name: userObject.given_name || "",
         last_name: userObject.family_name || "",
-        password: userObject.password || "",
+        password: "",
         profilePicture: userObject.picture || "",
         googleId: userObject.sub,
         auth_provider: "google",  // 👈 important flag

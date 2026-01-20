@@ -70,3 +70,13 @@ class AccountActivityResponse(BaseModel):
 
     class Config:
         orm_mode = True
+
+class ContactActivityResponse(BaseModel):    
+    tasks: Optional[list[TaskBase]] = None
+    meetings: Optional[list[MeetingBase]] = []
+    calls: Optional[list[CallBase]] = []
+    quotes: Optional[list[QuoteBase]] = []
+    deals: Optional[list[DealBase]] = []
+    
+    class Config:
+        orm_mode = True        

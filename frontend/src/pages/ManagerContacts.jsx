@@ -12,7 +12,10 @@ import {
   FiBriefcase,
   FiCalendar,
   FiSmartphone,
-  FiCheckSquare
+  FiCheckSquare,
+  FiFileText,
+  FiChevronDown,
+  FiChevronRight,
 } from "react-icons/fi";
 import { HiX } from "react-icons/hi";
 import { BsBuilding } from "react-icons/bs";
@@ -45,7 +48,7 @@ const formattedDateTime = (datetime) => {
   if (!datetime) return "";
   return new Date(datetime)
     .toLocaleString("en-US", {
-      month: "2-digit",
+      month: "short",
       day: "2-digit",
       year: "numeric",
       hour: "numeric",
@@ -79,6 +82,8 @@ export default function AdminContacts() {
   const [deletingId, setDeletingId] = useState(null);
   const [activeTab, setActiveTab] = useState("Overview");
   const [currentPage, setCurrentPage] = useState(1);
+  const [relatedActs, setRelatedActs] = useState({});
+  const [expandedSection, setExpandedSection] = useState(null);
 
   const fetchContacts = useCallback(
     async (preserveSelectedId = null) => {
@@ -148,6 +153,19 @@ export default function AdminContacts() {
       }
     }
   }, []);
+
+  const fetchRelatedActivities = useCallback(async (contact_id) => {
+      try {
+        const res = await api.get(`/activities/contact/${contact_id}`);
+        setRelatedActs(res.data && typeof res.data === 'object' ? res.data : {});
+      } catch (err) {
+        console.error(err);
+        if (err.response?.status === 404) {
+          console.warn("No activities found for this account.");
+          setRelatedActs({});
+        }
+      }
+    }, []);
 
   useEffect(() => {
     fetchContacts();
@@ -725,39 +743,234 @@ export default function AdminContacts() {
 
               {/* ACTIVITIES */}
               {activeTab === "Activities" && (
-                <div className="mt-4 space-y-4 w-full">
-                  <h3 className="text-lg font-semibold text-gray-800 break-words">Recent Activities</h3>
-
-                  {[{
-                    icon: FiPhone,
-                    title: "Schedule Call",
-                    desc: "Discuss implementation timeline and pricing",
-                    user: "Lester James",
-                    date: "December 12, 2025 at 8:00 AM",
-                  }, {
-                    icon: FiCalendar,
-                    title: "Meeting regarding Enterprise Software License",
-                    desc: "Discuss implementation timeline and pricing",
-                    user: "Lester James",
-                    date: "December 12, 2025 at 8:00 AM",
-                  }].map((act, idx) => (
-                    <div key={idx} className="flex flex-col sm:flex-row justify-between items-start border border-gray-200 rounded-lg p-4 shadow-sm bg-white w-full break-words">
-                      <div className="flex gap-4 mb-2 sm:mb-0 flex-1 min-w-0">
-                        <div className="text-gray-600 mt-1">
-                          <act.icon size={24} />
+                <div className="space-y-2 w-full h-full max-h-[50dvh] overflow-y-auto bg-gray-50 p-2 hide-scrollbar rounded-lg border border-gray-200 shadow-sm">
+                  <h3 className="text-lg font-semibold text-gray-800 break-words border-b border-gray-300 py-2">
+                    Related Activities
+                  </h3>                  
+                  
+                  <div className="space-y-2 text-sm">
+                  
+                  {/* TASKS */}
+                  {relatedActs.tasks && relatedActs.tasks.length > 0 && (
+                    <div className="rounded-lg border border-gray-200 bg-white overflow-hidden">
+                      <button
+                        type="button"
+                        onClick={() => setExpandedSection(expandedSection === 'tasks' ? null : 'tasks')}
+                        className="w-full flex items-center justify-between p-3 hover:bg-gray-50 transition cursor-pointer"
+                      >
+                        <div className="flex items-center gap-2">
+                          <FiCheckSquare className="text-blue-600" />
+                          <span className="font-semibold text-gray-700">Tasks ({relatedActs.tasks.length})</span>
                         </div>
-                        <div className="flex-1 min-w-0">
-                          <h4 className="font-medium text-gray-900 break-words">{act.title}</h4>
-                          <p className="text-sm text-gray-500 break-words">{act.desc}</p>
-                          <div className="flex items-center gap-2 mt-2">
-                            <div className="w-7 h-7 rounded-full bg-gray-200 shrink-0"></div>
-                            <p className="text-sm text-gray-700 break-words">{act.user}</p>
-                          </div>
+                        {expandedSection === 'tasks' ? <FiChevronDown className="text-gray-500" /> : <FiChevronRight className="text-gray-500" />}
+                      </button>
+                      {expandedSection === 'tasks' && (
+                        <div className="border-t border-gray-200 p-2 space-y-2 max-h-60 overflow-y-auto hide-scrollbar">
+                          {relatedActs.tasks.map((task, idx) => (
+                            <div key={`task-${idx}`} className="flex flex-col sm:flex-row justify-between items-start border border-gray-100 rounded-lg p-3 bg-gray-50 w-full break-words">
+                              <div className="flex gap-3 mb-2 sm:mb-0 flex-1 min-w-0">
+                                <div className="text-blue-600 mt-1"><FiCheckSquare size={20} /></div>
+                                <div className="flex-1 min-w-0">
+                                  <h4 className="font-medium text-blue-600 break-words text-sm">{task.subject || task.title || "Task"}</h4>
+                                  <p className="text-gray-500 break-words text-xs">{task.description || "No description"}</p>
+                                  {task.assigned_to && (
+                                    <p className="text-xs text-gray-600 mt-1">
+                                      Assigned: {task.assigned_to.first_name} {task.assigned_to.last_name}
+                                    </p>
+                                  )}
+                                </div>
+                              </div>
+                              <p className="text-xs text-gray-500 break-words">{formattedDateTime(task.due_date || task.created_at)}</p>
+                            </div>
+                          ))}
                         </div>
-                      </div>
-                      <p className="text-sm text-gray-500 break-words">{act.date}</p>
+                      )}
                     </div>
-                  ))}
+                  )}
+
+                  {/* MEETINGS */}
+                  {relatedActs.meetings && relatedActs.meetings.length > 0 && (
+                    <div className="rounded-lg border border-gray-200 bg-white overflow-hidden">
+                      <button
+                        type="button"
+                        onClick={() => setExpandedSection(expandedSection === 'meetings' ? null : 'meetings')}
+                        className="w-full flex items-center justify-between p-3 hover:bg-gray-50 transition cursor-pointer"
+                      >
+                        <div className="flex items-center gap-2">
+                          <FiCalendar className="text-green-600" />
+                          <span className="font-semibold text-gray-700">Meetings ({relatedActs.meetings.length})</span>
+                        </div>
+                        {expandedSection === 'meetings' ? <FiChevronDown className="text-gray-500" /> : <FiChevronRight className="text-gray-500" />}
+                      </button>
+                      {expandedSection === 'meetings' && (
+                        <div className="border-t border-gray-200 p-2 space-y-2 max-h-60 overflow-y-auto hide-scrollbar">
+                          {relatedActs.meetings.map((meeting, idx) => (
+                            <div key={`meeting-${idx}`} className="flex flex-col sm:flex-row justify-between items-start border border-gray-100 rounded-lg p-3 bg-gray-50 w-full break-words">
+                              <div className="flex gap-3 mb-2 sm:mb-0 flex-1 min-w-0">
+                                <div className="text-green-600 mt-1"><FiCalendar size={20} /></div>
+                                <div className="flex-1 min-w-0">
+                                  <h4 className="font-medium text-blue-600 break-words text-sm">{meeting.subject || meeting.title || "Meeting"}</h4>
+                                  <p className="text-gray-500 break-words text-xs">{meeting.description || meeting.location || "No description"}</p>
+                                  {meeting.host && (
+                                    <p className="text-xs text-gray-600 mt-1">
+                                      Host: {meeting.host.first_name} {meeting.host.last_name}
+                                    </p>
+                                  )}
+                                </div>
+                              </div>
+                              <p className="text-xs text-gray-500 break-words">{formattedDateTime(meeting.start_time || meeting.created_at)}</p>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* CALLS */}
+                  {relatedActs.calls && relatedActs.calls.length > 0 && (
+                    <div className="rounded-lg border border-gray-200 bg-white overflow-hidden">
+                      <button
+                        type="button"
+                        onClick={() => setExpandedSection(expandedSection === 'calls' ? null : 'calls')}
+                        className="w-full flex items-center justify-between p-3 hover:bg-gray-50 transition cursor-pointer"
+                      >
+                        <div className="flex items-center gap-2">
+                          <FiPhone className="text-purple-600" />
+                          <span className="font-semibold text-gray-700">Calls ({relatedActs.calls.length})</span>
+                        </div>
+                        {expandedSection === 'calls' ? <FiChevronDown className="text-gray-500" /> : <FiChevronRight className="text-gray-500" />}
+                      </button>
+                      {expandedSection === 'calls' && (
+                        <div className="border-t border-gray-200 p-2 space-y-2 max-h-60 overflow-y-auto hide-scrollbar">
+                          {relatedActs.calls.map((call, idx) => (
+                            <div key={`call-${idx}`} className="flex flex-col sm:flex-row justify-between items-start border border-gray-100 rounded-lg p-3 bg-gray-50 w-full break-words">
+                              <div className="flex gap-3 mb-2 sm:mb-0 flex-1 min-w-0">
+                                <div className="text-purple-600 mt-1"><FiPhone size={20} /></div>
+                                <div className="flex-1 min-w-0">
+                                  <h4 className="font-medium text-blue-600 break-words text-sm">{call.subject || call.title || "Call"}</h4>
+                                  <p className="text-gray-500 break-words text-xs">{call.direction || ""}</p>
+                                </div>
+                              </div>
+                              <p className="text-xs text-gray-500 break-words">{formattedDateTime(call.call_time || call.created_at)}</p>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* CONTACTS */}
+                  {relatedActs.contacts && relatedActs.contacts.length > 0 && (
+                    <div className="rounded-lg border border-gray-200 bg-white overflow-hidden">
+                      <button
+                        type="button"
+                        onClick={() => setExpandedSection(expandedSection === 'contacts' ? null : 'contacts')}
+                        className="w-full flex items-center justify-between p-3 hover:bg-gray-50 transition cursor-pointer"
+                      >
+                        <div className="flex items-center gap-2">
+                          <FiUser className="text-teal-600" />
+                          <span className="font-semibold text-gray-700">Contacts ({relatedActs.contacts.length})</span>
+                        </div>
+                        {expandedSection === 'contacts' ? <FiChevronDown className="text-gray-500" /> : <FiChevronRight className="text-gray-500" />}
+                      </button>
+                      {expandedSection === 'contacts' && (
+                        <div className="border-t border-gray-200 p-2 space-y-2 max-h-60 overflow-y-auto hide-scrollbar">
+                          {relatedActs.contacts.map((contact, idx) => (
+                            <div key={`contact-${idx}`} className="flex flex-col sm:flex-row justify-between items-start border border-gray-100 rounded-lg p-3 bg-gray-50 w-full break-words">
+                              <div className="flex gap-3 mb-2 sm:mb-0 flex-1 min-w-0">
+                                <div className="text-teal-600 mt-1"><FiUser size={20} /></div>
+                                <div className="flex-1 min-w-0">
+                                  <h4 className="font-medium text-blue-600 break-words text-sm">{contact.first_name ? `${contact.first_name} ` : ''}{contact.last_name}</h4>
+                                  <p className="text-xs text-gray-500 break-words">{contact.title || ""}</p>
+                                </div>
+                              </div>
+                              <p className="text-xs text-gray-500 break-words">{formattedDateTime(contact.created_at)}</p>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* DEALS */}
+                  {relatedActs.deals && relatedActs.deals.length > 0 && (
+                    <div className="rounded-lg border border-gray-200 bg-white overflow-hidden">
+                      <button
+                        type="button"
+                        onClick={() => setExpandedSection(expandedSection === 'deals' ? null : 'deals')}
+                        className="w-full flex items-center justify-between p-3 hover:bg-gray-50 transition cursor-pointer"
+                      >
+                        <div className="flex items-center gap-2">
+                          <FiBriefcase className="text-indigo-600" />
+                          <span className="font-semibold text-gray-700">Deals ({relatedActs.deals.length})</span>
+                        </div>
+                        {expandedSection === 'deals' ? <FiChevronDown className="text-gray-500" /> : <FiChevronRight className="text-gray-500" />}
+                      </button>
+                      {expandedSection === 'deals' && (
+                        <div className="border-t border-gray-200 p-2 space-y-2 max-h-60 overflow-y-auto hide-scrollbar">
+                          {relatedActs.deals.map((deal, idx) => (
+                            <div key={`deal-${idx}`} className="flex flex-col sm:flex-row justify-between items-start border border-gray-100 rounded-lg p-3 bg-gray-50 w-full break-words">
+                              <div className="flex gap-3 mb-2 sm:mb-0 flex-1 min-w-0">
+                                <div className="text-indigo-600 mt-1"><FiBriefcase size={20} /></div>
+                                <div className="flex-1 min-w-0">
+                                  <h4 className="font-medium text-blue-600 break-words text-sm">{deal.deal_id ? deal.deal_id.replace(/D(\d+)-\d+-/, "D$1-") : "--"} {deal.name || deal.title || "Deal"}</h4>
+                                  <p className="text-xs text-gray-500 break-words capitalize">{deal.stage || deal.description || "No description"}</p>
+                                </div>
+                              </div>
+                              <p className="text-xs text-gray-500 break-words">{formattedDateTime(deal.close_date || deal.created_at)}</p>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* QUOTES */}
+                  {relatedActs.quotes && relatedActs.quotes.length > 0 && (
+                    <div className="rounded-lg border border-gray-200 bg-white overflow-hidden">
+                      <button
+                        type="button"
+                        onClick={() => setExpandedSection(expandedSection === 'quotes' ? null : 'quotes')}
+                        className="w-full flex items-center justify-between p-3 hover:bg-gray-50 transition cursor-pointer"
+                      >
+                        <div className="flex items-center gap-2">
+                          <FiFileText className="text-orange-600" />
+                          <span className="font-semibold text-gray-700">Quotes ({relatedActs.quotes.length})</span>
+                        </div>
+                        {expandedSection === 'quotes' ? <FiChevronDown className="text-gray-500" /> : <FiChevronRight className="text-gray-500" />}
+                      </button>
+                      {expandedSection === 'quotes' && (
+                        <div className="border-t border-gray-200 p-2 space-y-2 max-h-60 overflow-y-auto hide-scrollbar">
+                          {relatedActs.quotes.map((quote, idx) => (
+                            <div key={`quote-${idx}`} className="flex flex-col sm:flex-row justify-between items-start border border-gray-100 rounded-lg p-3 bg-gray-50 w-full break-words">
+                              <div className="flex gap-3 mb-2 sm:mb-0 flex-1 min-w-0">
+                                <div className="text-orange-600 mt-1"><FiFileText size={20} /></div>
+                                <div className="flex-1 min-w-0">
+                                  <h4 className="font-medium text-blue-600 break-words text-sm">{(quote.quote_id ? quote.quote_id.replace(/Q(\d+)-\d+-/, "Q$1-") : "--") || 'Quote'}</h4>
+                                  <p className="text-xs text-gray-500 break-words">{quote.status || ''}</p>
+                                </div>
+                              </div>
+                              <p className="text-xs text-gray-500 break-words">{formattedDateTime(quote.presented_date) || ''}</p>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* No activities message */}
+                  {(!relatedActs || 
+                    ((!relatedActs.tasks || relatedActs.tasks.length === 0) &&
+                     (!relatedActs.meetings || relatedActs.meetings.length === 0) &&
+                     (!relatedActs.calls || relatedActs.calls.length === 0) &&
+                     (!relatedActs.quotes || relatedActs.quotes.length === 0) &&
+                     (!relatedActs.deals || relatedActs.deals.length === 0) &&
+                     (!relatedActs.contacts || relatedActs.contacts.length === 0))) && (
+                    <div className="text-center py-8 text-gray-500">
+                      <p>No related activities found for this account.</p>
+                    </div>
+                  )}
+                  </div>
                 </div>
               )}
             </div>
@@ -949,7 +1162,10 @@ export default function AdminContacts() {
                   <tr
                     key={contact.id}
                     className="hover:bg-gray-50 text-sm cursor-pointer transition"
-                    onClick={() => handleContactClick(contact)}
+                    onClick={() => {
+                      handleContactClick(contact)
+                      fetchRelatedActivities(contact.id)
+                    }}
                   >
                     <td className="py-3 px-4 align-top">
                       <div className="font-medium text-blue-600 hover:underline break-all text-sm">

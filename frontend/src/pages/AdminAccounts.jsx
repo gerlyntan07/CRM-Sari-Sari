@@ -440,14 +440,14 @@ export default function AdminAccounts() {
     // Close the account details modal
     setSelectedAccount(null);
     console.log("edit: ", account);
-    
+
     // Set the selected user if the account has an assigned user
     if (account.assigned_accs) {
       setSelectedUser(account.assigned_accs);
     } else {
       setSelectedUser(null);
     }
-    
+
     setFormData({
       name: account.name || "",
       website: account.website || "",
@@ -558,8 +558,8 @@ export default function AdminAccounts() {
         type === "create"
           ? "Failed to create account. Please review the details and try again."
           : type === "update"
-          ? "Failed to update account. Please review the details and try again."
-          : "Failed to delete account. Please try again.";
+            ? "Failed to update account. Please review the details and try again."
+            : "Failed to delete account. Please try again.";
 
       const message = err.response?.data?.detail || defaultMessage;
       toast.error(message);
@@ -636,22 +636,22 @@ export default function AdminAccounts() {
   };
 
   //validation
-const [isSubmitted, setIsSubmitted] = useState(false);
+  const [isSubmitted, setIsSubmitted] = useState(false);
   const handleSubmit = (e) => {
     e.preventDefault();
-    setIsSubmitted(true);      
+    setIsSubmitted(true);
 
     const trimmedName = formData.name.trim();
     if (!trimmedName) {
       toast.error("Account name is required.");
       return;
     }
-    
-      const assignedTo = formData.assigned_to;
-  if (!assignedTo) {
-    toast.error("Assigned To is required.");
-    return;
-  }
+
+    const assignedTo = formData.assigned_to;
+    if (!assignedTo) {
+      toast.error("Assigned To is required.");
+      return;
+    }
 
 
     const payload = {
@@ -747,9 +747,9 @@ const [isSubmitted, setIsSubmitted] = useState(false);
         </div>
 
         {/* Header */}
-       <div className="flex flex-col md:flex-row md:justify-between lg:flex-row lg:items-center lg:justify-between mt-3 gap-2 px-2 md:items-center lg:gap-4 md:mx-7 lg:mx-7">
-  <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-    <h1 className="text-xl sm:text-2xl font-semibold text-gray-800">
+        <div className="flex flex-col md:flex-row md:justify-between lg:flex-row lg:items-center lg:justify-between mt-3 gap-2 px-2 md:items-center lg:gap-4 md:mx-7 lg:mx-7">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+            <h1 className="text-xl sm:text-2xl font-semibold text-gray-800">
               {selectedAccount.name}
             </h1>
             <span
@@ -798,11 +798,10 @@ const [isSubmitted, setIsSubmitted] = useState(false);
                 key={tab}
                 onClick={() => setActiveTab(tab)}
                 className={`flex-1 min-w-[90px] px-4 py-2.5 text-xs sm:text-sm font-medium text-center transition-all duration-200 border-b-2
-        ${
-          activeTab === tab
-            ? "bg-paper-white text-[#6A727D] border-white"
-            : "text-white hover:bg-[#5c636d]"
-        }`}
+        ${activeTab === tab
+                    ? "bg-paper-white text-[#6A727D] border-white"
+                    : "text-white hover:bg-[#5c636d]"
+                  }`}
               >
                 {tab}
               </button>
@@ -917,230 +916,230 @@ const [isSubmitted, setIsSubmitted] = useState(false);
                 <div className="space-y-2 w-full h-full max-h-[50dvh] overflow-y-auto bg-gray-50 p-2 hide-scrollbar rounded-lg border border-gray-200 shadow-sm">
                   <h3 className="text-lg font-semibold text-gray-800 break-words border-b border-gray-300 py-2">
                     Related Activities
-                  </h3>                  
-                  
+                  </h3>
+
                   <div className="space-y-2 text-sm">
-                  
-                  {/* TASKS */}
-                  {relatedActs.tasks && relatedActs.tasks.length > 0 && (
-                    <div className="rounded-lg border border-gray-200 bg-white overflow-hidden">
-                      <button
-                        type="button"
-                        onClick={() => setExpandedSection(expandedSection === 'tasks' ? null : 'tasks')}
-                        className="w-full flex items-center justify-between p-3 hover:bg-gray-50 transition cursor-pointer"
-                      >
-                        <div className="flex items-center gap-2">
-                          <FiCheckSquare className="text-blue-600" />
-                          <span className="font-semibold text-gray-700">Tasks ({relatedActs.tasks.length})</span>
-                        </div>
-                        {expandedSection === 'tasks' ? <FiChevronDown className="text-gray-500" /> : <FiChevronRight className="text-gray-500" />}
-                      </button>
-                      {expandedSection === 'tasks' && (
-                        <div className="border-t border-gray-200 p-2 space-y-2 max-h-60 overflow-y-auto hide-scrollbar">
-                          {relatedActs.tasks.map((task, idx) => (
-                            <div key={`task-${idx}`} className="flex flex-col sm:flex-row justify-between items-start border border-gray-100 rounded-lg p-3 bg-gray-50 w-full break-words">
-                              <div className="flex gap-3 mb-2 sm:mb-0 flex-1 min-w-0">
-                                <div className="text-blue-600 mt-1"><FiCheckSquare size={20} /></div>
-                                <div className="flex-1 min-w-0">
-                                  <h4 className="font-medium text-blue-600 break-words text-sm">{task.subject || task.title || "Task"}</h4>
-                                  <p className="text-gray-500 break-words text-xs">{task.description || "No description"}</p>
-                                  {task.assigned_to && (
-                                    <p className="text-xs text-gray-600 mt-1">
-                                      Assigned: {task.assigned_to.first_name} {task.assigned_to.last_name}
-                                    </p>
-                                  )}
+
+                    {/* TASKS */}
+                    {relatedActs.tasks && relatedActs.tasks.length > 0 && (
+                      <div className="rounded-lg border border-gray-200 bg-white overflow-hidden">
+                        <button
+                          type="button"
+                          onClick={() => setExpandedSection(expandedSection === 'tasks' ? null : 'tasks')}
+                          className="w-full flex items-center justify-between p-3 hover:bg-gray-50 transition cursor-pointer"
+                        >
+                          <div className="flex items-center gap-2">
+                            <FiCheckSquare className="text-blue-600" />
+                            <span className="font-semibold text-gray-700">Tasks ({relatedActs.tasks.length})</span>
+                          </div>
+                          {expandedSection === 'tasks' ? <FiChevronDown className="text-gray-500" /> : <FiChevronRight className="text-gray-500" />}
+                        </button>
+                        {expandedSection === 'tasks' && (
+                          <div className="border-t border-gray-200 p-2 space-y-2 max-h-60 overflow-y-auto hide-scrollbar">
+                            {relatedActs.tasks.map((task, idx) => (
+                              <div key={`task-${idx}`} className="flex flex-col sm:flex-row justify-between items-start border border-gray-100 rounded-lg p-3 bg-gray-50 w-full break-words">
+                                <div className="flex gap-3 mb-2 sm:mb-0 flex-1 min-w-0">
+                                  <div className="text-blue-600 mt-1"><FiCheckSquare size={20} /></div>
+                                  <div className="flex-1 min-w-0">
+                                    <h4 className="font-medium text-blue-600 break-words text-sm">{task.subject || task.title || "Task"}</h4>
+                                    <p className="text-gray-500 break-words text-xs">{task.description || "No description"}</p>
+                                    {task.assigned_to && (
+                                      <p className="text-xs text-gray-600 mt-1">
+                                        Assigned: {task.assigned_to.first_name} {task.assigned_to.last_name}
+                                      </p>
+                                    )}
+                                  </div>
                                 </div>
+                                <p className="text-xs text-gray-500 break-words">{formattedDateTime(task.due_date || task.created_at)}</p>
                               </div>
-                              <p className="text-xs text-gray-500 break-words">{formattedDateTime(task.due_date || task.created_at)}</p>
-                            </div>
-                          ))}
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* MEETINGS */}
+                    {relatedActs.meetings && relatedActs.meetings.length > 0 && (
+                      <div className="rounded-lg border border-gray-200 bg-white overflow-hidden">
+                        <button
+                          type="button"
+                          onClick={() => setExpandedSection(expandedSection === 'meetings' ? null : 'meetings')}
+                          className="w-full flex items-center justify-between p-3 hover:bg-gray-50 transition cursor-pointer"
+                        >
+                          <div className="flex items-center gap-2">
+                            <FiCalendar className="text-green-600" />
+                            <span className="font-semibold text-gray-700">Meetings ({relatedActs.meetings.length})</span>
+                          </div>
+                          {expandedSection === 'meetings' ? <FiChevronDown className="text-gray-500" /> : <FiChevronRight className="text-gray-500" />}
+                        </button>
+                        {expandedSection === 'meetings' && (
+                          <div className="border-t border-gray-200 p-2 space-y-2 max-h-60 overflow-y-auto hide-scrollbar">
+                            {relatedActs.meetings.map((meeting, idx) => (
+                              <div key={`meeting-${idx}`} className="flex flex-col sm:flex-row justify-between items-start border border-gray-100 rounded-lg p-3 bg-gray-50 w-full break-words">
+                                <div className="flex gap-3 mb-2 sm:mb-0 flex-1 min-w-0">
+                                  <div className="text-green-600 mt-1"><FiCalendar size={20} /></div>
+                                  <div className="flex-1 min-w-0">
+                                    <h4 className="font-medium text-blue-600 break-words text-sm">{meeting.subject || meeting.title || "Meeting"}</h4>
+                                    <p className="text-gray-500 break-words text-xs">{meeting.description || meeting.location || "No description"}</p>
+                                    {meeting.host && (
+                                      <p className="text-xs text-gray-600 mt-1">
+                                        Host: {meeting.host.first_name} {meeting.host.last_name}
+                                      </p>
+                                    )}
+                                  </div>
+                                </div>
+                                <p className="text-xs text-gray-500 break-words">{formattedDateTime(meeting.start_time || meeting.created_at)}</p>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* CALLS */}
+                    {relatedActs.calls && relatedActs.calls.length > 0 && (
+                      <div className="rounded-lg border border-gray-200 bg-white overflow-hidden">
+                        <button
+                          type="button"
+                          onClick={() => setExpandedSection(expandedSection === 'calls' ? null : 'calls')}
+                          className="w-full flex items-center justify-between p-3 hover:bg-gray-50 transition cursor-pointer"
+                        >
+                          <div className="flex items-center gap-2">
+                            <FiPhone className="text-purple-600" />
+                            <span className="font-semibold text-gray-700">Calls ({relatedActs.calls.length})</span>
+                          </div>
+                          {expandedSection === 'calls' ? <FiChevronDown className="text-gray-500" /> : <FiChevronRight className="text-gray-500" />}
+                        </button>
+                        {expandedSection === 'calls' && (
+                          <div className="border-t border-gray-200 p-2 space-y-2 max-h-60 overflow-y-auto hide-scrollbar">
+                            {relatedActs.calls.map((call, idx) => (
+                              <div key={`call-${idx}`} className="flex flex-col sm:flex-row justify-between items-start border border-gray-100 rounded-lg p-3 bg-gray-50 w-full break-words">
+                                <div className="flex gap-3 mb-2 sm:mb-0 flex-1 min-w-0">
+                                  <div className="text-purple-600 mt-1"><FiPhone size={20} /></div>
+                                  <div className="flex-1 min-w-0">
+                                    <h4 className="font-medium text-blue-600 break-words text-sm">{call.subject || call.title || "Call"}</h4>
+                                    <p className="text-gray-500 break-words text-xs">{call.direction || ""}</p>
+                                  </div>
+                                </div>
+                                <p className="text-xs text-gray-500 break-words">{formattedDateTime(call.call_time || call.created_at)}</p>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* CONTACTS */}
+                    {relatedActs.contacts && relatedActs.contacts.length > 0 && (
+                      <div className="rounded-lg border border-gray-200 bg-white overflow-hidden">
+                        <button
+                          type="button"
+                          onClick={() => setExpandedSection(expandedSection === 'contacts' ? null : 'contacts')}
+                          className="w-full flex items-center justify-between p-3 hover:bg-gray-50 transition cursor-pointer"
+                        >
+                          <div className="flex items-center gap-2">
+                            <FiUser className="text-teal-600" />
+                            <span className="font-semibold text-gray-700">Contacts ({relatedActs.contacts.length})</span>
+                          </div>
+                          {expandedSection === 'contacts' ? <FiChevronDown className="text-gray-500" /> : <FiChevronRight className="text-gray-500" />}
+                        </button>
+                        {expandedSection === 'contacts' && (
+                          <div className="border-t border-gray-200 p-2 space-y-2 max-h-60 overflow-y-auto hide-scrollbar">
+                            {relatedActs.contacts.map((contact, idx) => (
+                              <div key={`contact-${idx}`} className="flex flex-col sm:flex-row justify-between items-start border border-gray-100 rounded-lg p-3 bg-gray-50 w-full break-words">
+                                <div className="flex gap-3 mb-2 sm:mb-0 flex-1 min-w-0">
+                                  <div className="text-teal-600 mt-1"><FiUser size={20} /></div>
+                                  <div className="flex-1 min-w-0">
+                                    <h4 className="font-medium text-blue-600 break-words text-sm">{contact.first_name ? `${contact.first_name} ` : ''}{contact.last_name}</h4>
+                                    <p className="text-xs text-gray-500 break-words">{contact.title || ""}</p>
+                                  </div>
+                                </div>
+                                <p className="text-xs text-gray-500 break-words">{formattedDateTime(contact.created_at)}</p>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* DEALS */}
+                    {relatedActs.deals && relatedActs.deals.length > 0 && (
+                      <div className="rounded-lg border border-gray-200 bg-white overflow-hidden">
+                        <button
+                          type="button"
+                          onClick={() => setExpandedSection(expandedSection === 'deals' ? null : 'deals')}
+                          className="w-full flex items-center justify-between p-3 hover:bg-gray-50 transition cursor-pointer"
+                        >
+                          <div className="flex items-center gap-2">
+                            <FiBriefcase className="text-indigo-600" />
+                            <span className="font-semibold text-gray-700">Deals ({relatedActs.deals.length})</span>
+                          </div>
+                          {expandedSection === 'deals' ? <FiChevronDown className="text-gray-500" /> : <FiChevronRight className="text-gray-500" />}
+                        </button>
+                        {expandedSection === 'deals' && (
+                          <div className="border-t border-gray-200 p-2 space-y-2 max-h-60 overflow-y-auto hide-scrollbar">
+                            {relatedActs.deals.map((deal, idx) => (
+                              <div key={`deal-${idx}`} className="flex flex-col sm:flex-row justify-between items-start border border-gray-100 rounded-lg p-3 bg-gray-50 w-full break-words">
+                                <div className="flex gap-3 mb-2 sm:mb-0 flex-1 min-w-0">
+                                  <div className="text-indigo-600 mt-1"><FiBriefcase size={20} /></div>
+                                  <div className="flex-1 min-w-0">
+                                    <h4 className="font-medium text-blue-600 break-words text-sm">{deal.deal_id ? deal.deal_id.replace(/D(\d+)-\d+-/, "D$1-") : "--"} {deal.name || deal.title || "Deal"}</h4>
+                                    <p className="text-xs text-gray-500 break-words capitalize">{deal.stage || deal.description || "No description"}</p>
+                                  </div>
+                                </div>
+                                <p className="text-xs text-gray-500 break-words">{formattedDateTime(deal.close_date || deal.created_at)}</p>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* QUOTES */}
+                    {relatedActs.quotes && relatedActs.quotes.length > 0 && (
+                      <div className="rounded-lg border border-gray-200 bg-white overflow-hidden">
+                        <button
+                          type="button"
+                          onClick={() => setExpandedSection(expandedSection === 'quotes' ? null : 'quotes')}
+                          className="w-full flex items-center justify-between p-3 hover:bg-gray-50 transition cursor-pointer"
+                        >
+                          <div className="flex items-center gap-2">
+                            <FiFileText className="text-orange-600" />
+                            <span className="font-semibold text-gray-700">Quotes ({relatedActs.quotes.length})</span>
+                          </div>
+                          {expandedSection === 'quotes' ? <FiChevronDown className="text-gray-500" /> : <FiChevronRight className="text-gray-500" />}
+                        </button>
+                        {expandedSection === 'quotes' && (
+                          <div className="border-t border-gray-200 p-2 space-y-2 max-h-60 overflow-y-auto hide-scrollbar">
+                            {relatedActs.quotes.map((quote, idx) => (
+                              <div key={`quote-${idx}`} className="flex flex-col sm:flex-row justify-between items-start border border-gray-100 rounded-lg p-3 bg-gray-50 w-full break-words">
+                                <div className="flex gap-3 mb-2 sm:mb-0 flex-1 min-w-0">
+                                  <div className="text-orange-600 mt-1"><FiFileText size={20} /></div>
+                                  <div className="flex-1 min-w-0">
+                                    <h4 className="font-medium text-blue-600 break-words text-sm">{(quote.quote_id ? quote.quote_id.replace(/Q(\d+)-\d+-/, "Q$1-") : "--") || 'Quote'}</h4>
+                                    <p className="text-xs text-gray-500 break-words">{quote.status || ''}</p>
+                                  </div>
+                                </div>
+                                <p className="text-xs text-gray-500 break-words">{formattedDateTime(quote.presented_date) || ''}</p>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* No activities message */}
+                    {(!relatedActs ||
+                      ((!relatedActs.tasks || relatedActs.tasks.length === 0) &&
+                        (!relatedActs.meetings || relatedActs.meetings.length === 0) &&
+                        (!relatedActs.calls || relatedActs.calls.length === 0) &&
+                        (!relatedActs.quotes || relatedActs.quotes.length === 0) &&
+                        (!relatedActs.deals || relatedActs.deals.length === 0) &&
+                        (!relatedActs.contacts || relatedActs.contacts.length === 0))) && (
+                        <div className="text-center py-8 text-gray-500">
+                          <p>No related activities found for this account.</p>
                         </div>
                       )}
-                    </div>
-                  )}
-
-                  {/* MEETINGS */}
-                  {relatedActs.meetings && relatedActs.meetings.length > 0 && (
-                    <div className="rounded-lg border border-gray-200 bg-white overflow-hidden">
-                      <button
-                        type="button"
-                        onClick={() => setExpandedSection(expandedSection === 'meetings' ? null : 'meetings')}
-                        className="w-full flex items-center justify-between p-3 hover:bg-gray-50 transition cursor-pointer"
-                      >
-                        <div className="flex items-center gap-2">
-                          <FiCalendar className="text-green-600" />
-                          <span className="font-semibold text-gray-700">Meetings ({relatedActs.meetings.length})</span>
-                        </div>
-                        {expandedSection === 'meetings' ? <FiChevronDown className="text-gray-500" /> : <FiChevronRight className="text-gray-500" />}
-                      </button>
-                      {expandedSection === 'meetings' && (
-                        <div className="border-t border-gray-200 p-2 space-y-2 max-h-60 overflow-y-auto hide-scrollbar">
-                          {relatedActs.meetings.map((meeting, idx) => (
-                            <div key={`meeting-${idx}`} className="flex flex-col sm:flex-row justify-between items-start border border-gray-100 rounded-lg p-3 bg-gray-50 w-full break-words">
-                              <div className="flex gap-3 mb-2 sm:mb-0 flex-1 min-w-0">
-                                <div className="text-green-600 mt-1"><FiCalendar size={20} /></div>
-                                <div className="flex-1 min-w-0">
-                                  <h4 className="font-medium text-blue-600 break-words text-sm">{meeting.subject || meeting.title || "Meeting"}</h4>
-                                  <p className="text-gray-500 break-words text-xs">{meeting.description || meeting.location || "No description"}</p>
-                                  {meeting.host && (
-                                    <p className="text-xs text-gray-600 mt-1">
-                                      Host: {meeting.host.first_name} {meeting.host.last_name}
-                                    </p>
-                                  )}
-                                </div>
-                              </div>
-                              <p className="text-xs text-gray-500 break-words">{formattedDateTime(meeting.start_time || meeting.created_at)}</p>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {/* CALLS */}
-                  {relatedActs.calls && relatedActs.calls.length > 0 && (
-                    <div className="rounded-lg border border-gray-200 bg-white overflow-hidden">
-                      <button
-                        type="button"
-                        onClick={() => setExpandedSection(expandedSection === 'calls' ? null : 'calls')}
-                        className="w-full flex items-center justify-between p-3 hover:bg-gray-50 transition cursor-pointer"
-                      >
-                        <div className="flex items-center gap-2">
-                          <FiPhone className="text-purple-600" />
-                          <span className="font-semibold text-gray-700">Calls ({relatedActs.calls.length})</span>
-                        </div>
-                        {expandedSection === 'calls' ? <FiChevronDown className="text-gray-500" /> : <FiChevronRight className="text-gray-500" />}
-                      </button>
-                      {expandedSection === 'calls' && (
-                        <div className="border-t border-gray-200 p-2 space-y-2 max-h-60 overflow-y-auto hide-scrollbar">
-                          {relatedActs.calls.map((call, idx) => (
-                            <div key={`call-${idx}`} className="flex flex-col sm:flex-row justify-between items-start border border-gray-100 rounded-lg p-3 bg-gray-50 w-full break-words">
-                              <div className="flex gap-3 mb-2 sm:mb-0 flex-1 min-w-0">
-                                <div className="text-purple-600 mt-1"><FiPhone size={20} /></div>
-                                <div className="flex-1 min-w-0">
-                                  <h4 className="font-medium text-blue-600 break-words text-sm">{call.subject || call.title || "Call"}</h4>
-                                  <p className="text-gray-500 break-words text-xs">{call.direction || ""}</p>
-                                </div>
-                              </div>
-                              <p className="text-xs text-gray-500 break-words">{formattedDateTime(call.call_time || call.created_at)}</p>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {/* CONTACTS */}
-                  {relatedActs.contacts && relatedActs.contacts.length > 0 && (
-                    <div className="rounded-lg border border-gray-200 bg-white overflow-hidden">
-                      <button
-                        type="button"
-                        onClick={() => setExpandedSection(expandedSection === 'contacts' ? null : 'contacts')}
-                        className="w-full flex items-center justify-between p-3 hover:bg-gray-50 transition cursor-pointer"
-                      >
-                        <div className="flex items-center gap-2">
-                          <FiUser className="text-teal-600" />
-                          <span className="font-semibold text-gray-700">Contacts ({relatedActs.contacts.length})</span>
-                        </div>
-                        {expandedSection === 'contacts' ? <FiChevronDown className="text-gray-500" /> : <FiChevronRight className="text-gray-500" />}
-                      </button>
-                      {expandedSection === 'contacts' && (
-                        <div className="border-t border-gray-200 p-2 space-y-2 max-h-60 overflow-y-auto hide-scrollbar">
-                          {relatedActs.contacts.map((contact, idx) => (
-                            <div key={`contact-${idx}`} className="flex flex-col sm:flex-row justify-between items-start border border-gray-100 rounded-lg p-3 bg-gray-50 w-full break-words">
-                              <div className="flex gap-3 mb-2 sm:mb-0 flex-1 min-w-0">
-                                <div className="text-teal-600 mt-1"><FiUser size={20} /></div>
-                                <div className="flex-1 min-w-0">
-                                  <h4 className="font-medium text-blue-600 break-words text-sm">{contact.first_name ? `${contact.first_name} ` : ''}{contact.last_name}</h4>
-                                  <p className="text-xs text-gray-500 break-words">{contact.title || ""}</p>
-                                </div>
-                              </div>
-                              <p className="text-xs text-gray-500 break-words">{formattedDateTime(contact.created_at)}</p>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {/* DEALS */}
-                  {relatedActs.deals && relatedActs.deals.length > 0 && (
-                    <div className="rounded-lg border border-gray-200 bg-white overflow-hidden">
-                      <button
-                        type="button"
-                        onClick={() => setExpandedSection(expandedSection === 'deals' ? null : 'deals')}
-                        className="w-full flex items-center justify-between p-3 hover:bg-gray-50 transition cursor-pointer"
-                      >
-                        <div className="flex items-center gap-2">
-                          <FiBriefcase className="text-indigo-600" />
-                          <span className="font-semibold text-gray-700">Deals ({relatedActs.deals.length})</span>
-                        </div>
-                        {expandedSection === 'deals' ? <FiChevronDown className="text-gray-500" /> : <FiChevronRight className="text-gray-500" />}
-                      </button>
-                      {expandedSection === 'deals' && (
-                        <div className="border-t border-gray-200 p-2 space-y-2 max-h-60 overflow-y-auto hide-scrollbar">
-                          {relatedActs.deals.map((deal, idx) => (
-                            <div key={`deal-${idx}`} className="flex flex-col sm:flex-row justify-between items-start border border-gray-100 rounded-lg p-3 bg-gray-50 w-full break-words">
-                              <div className="flex gap-3 mb-2 sm:mb-0 flex-1 min-w-0">
-                                <div className="text-indigo-600 mt-1"><FiBriefcase size={20} /></div>
-                                <div className="flex-1 min-w-0">
-                                  <h4 className="font-medium text-blue-600 break-words text-sm">{deal.deal_id ? deal.deal_id.replace(/D(\d+)-\d+-/, "D$1-") : "--"} {deal.name || deal.title || "Deal"}</h4>
-                                  <p className="text-xs text-gray-500 break-words capitalize">{deal.stage || deal.description || "No description"}</p>
-                                </div>
-                              </div>
-                              <p className="text-xs text-gray-500 break-words">{formattedDateTime(deal.close_date || deal.created_at)}</p>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {/* QUOTES */}
-                  {relatedActs.quotes && relatedActs.quotes.length > 0 && (
-                    <div className="rounded-lg border border-gray-200 bg-white overflow-hidden">
-                      <button
-                        type="button"
-                        onClick={() => setExpandedSection(expandedSection === 'quotes' ? null : 'quotes')}
-                        className="w-full flex items-center justify-between p-3 hover:bg-gray-50 transition cursor-pointer"
-                      >
-                        <div className="flex items-center gap-2">
-                          <FiFileText className="text-orange-600" />
-                          <span className="font-semibold text-gray-700">Quotes ({relatedActs.quotes.length})</span>
-                        </div>
-                        {expandedSection === 'quotes' ? <FiChevronDown className="text-gray-500" /> : <FiChevronRight className="text-gray-500" />}
-                      </button>
-                      {expandedSection === 'quotes' && (
-                        <div className="border-t border-gray-200 p-2 space-y-2 max-h-60 overflow-y-auto hide-scrollbar">
-                          {relatedActs.quotes.map((quote, idx) => (
-                            <div key={`quote-${idx}`} className="flex flex-col sm:flex-row justify-between items-start border border-gray-100 rounded-lg p-3 bg-gray-50 w-full break-words">
-                              <div className="flex gap-3 mb-2 sm:mb-0 flex-1 min-w-0">
-                                <div className="text-orange-600 mt-1"><FiFileText size={20} /></div>
-                                <div className="flex-1 min-w-0">
-                                  <h4 className="font-medium text-blue-600 break-words text-sm">{(quote.quote_id ? quote.quote_id.replace(/Q(\d+)-\d+-/, "Q$1-") : "--") || 'Quote'}</h4>
-                                  <p className="text-xs text-gray-500 break-words">{quote.status || ''}</p>
-                                </div>
-                              </div>
-                              <p className="text-xs text-gray-500 break-words">{formattedDateTime(quote.presented_date) || ''}</p>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {/* No activities message */}
-                  {(!relatedActs || 
-                    ((!relatedActs.tasks || relatedActs.tasks.length === 0) &&
-                     (!relatedActs.meetings || relatedActs.meetings.length === 0) &&
-                     (!relatedActs.calls || relatedActs.calls.length === 0) &&
-                     (!relatedActs.quotes || relatedActs.quotes.length === 0) &&
-                     (!relatedActs.deals || relatedActs.deals.length === 0) &&
-                     (!relatedActs.contacts || relatedActs.contacts.length === 0))) && (
-                    <div className="text-center py-8 text-gray-500">
-                      <p>No related activities found for this account.</p>
-                    </div>
-                  )}
                   </div>
                 </div>
               )}
@@ -1158,9 +1157,22 @@ const [isSubmitted, setIsSubmitted] = useState(false);
                     onClick={() =>
                       navigate("/admin/calls", {
                         state: {
-                          openCallModal: true, // <-- this triggers your form
+                          openCallModal: true,
                           initialCallData: {
-                            relatedType1: "Account", // <-- your custom default
+                            subject: `Call with ${selectedAccount.name}`,
+
+                            relatedType1: "Account",
+                            relatedTo1: String(selectedAccount.id),
+
+                            relatedType2: null,
+                            relatedTo2: null,
+
+                            assigned_to: selectedAccount.assigned_accs?.id
+                              ? String(selectedAccount.assigned_accs.id)
+                              : "",
+
+                            direction: "Outgoing",
+                            status: "Planned",
                           },
                         },
                       })
@@ -1171,22 +1183,36 @@ const [isSubmitted, setIsSubmitted] = useState(false);
                     Schedule Call
                   </button>
 
+
                   <button
-                    className="flex items-center gap-2 border border-gray-100 rounded-md py-1.5 px-2 sm:px-3 hover:bg-gray-50 transition text-sm"
                     onClick={() =>
                       navigate("/admin/meetings", {
                         state: {
                           openMeetingModal: true,
                           initialMeetingData: {
-                            relatedType: "Account",
+                            subject: `Meeting with ${selectedAccount.name}`,
+
+                            relatedType1: "Account",
+                            relatedTo1: String(selectedAccount.id),
+
+                            relatedType2: null,
+                            relatedTo2: null,
+
+                            assigned_to: selectedAccount.assigned_accs?.id
+                              ? String(selectedAccount.assigned_accs.id)
+                              : "",
+
+                            status: "Planned",
                           },
                         },
                       })
                     }
+                    className="flex items-center gap-2 border border-gray-100 rounded-md py-1.5 px-2 sm:px-3 hover:bg-gray-50 transition text-sm"
                   >
                     <FiCalendar className="text-gray-600 w-4 h-4" />
                     Book Meeting
                   </button>
+
 
                   <button
                     onClick={() =>
@@ -1194,7 +1220,20 @@ const [isSubmitted, setIsSubmitted] = useState(false);
                         state: {
                           openTaskModal: true,
                           initialTaskData: {
-                            relatedTo: "Account",
+                            subject: `Follow up with ${selectedAccount.name}`,
+
+                            relatedType1: "Account",
+                            relatedTo1: String(selectedAccount.id),
+
+                            relatedType2: null,
+                            relatedTo2: null,
+
+                            assigned_to: selectedAccount.assigned_accs?.id
+                              ? String(selectedAccount.assigned_accs.id)
+                              : "",
+
+                            priority: "MEDIUM",
+                            status: "Not Started",
                           },
                         },
                       })
@@ -1204,6 +1243,7 @@ const [isSubmitted, setIsSubmitted] = useState(false);
                     <FiCheckSquare className="text-gray-600 w-4 h-4" />
                     Tasks
                   </button>
+
                 </div>
               </div>
 
@@ -1234,16 +1274,15 @@ const [isSubmitted, setIsSubmitted] = useState(false);
                     updatingStatus ||
                     !selectedStatus ||
                     normalizeStatus(selectedStatus) ===
-                      normalizeStatus(selectedAccount?.status)
+                    normalizeStatus(selectedAccount?.status)
                   }
-                  className={`w-full py-1.5 rounded-md text-sm transition focus:outline-none focus:ring-2 ${
-                    updatingStatus ||
+                  className={`w-full py-1.5 rounded-md text-sm transition focus:outline-none focus:ring-2 ${updatingStatus ||
                     !selectedStatus ||
                     normalizeStatus(selectedStatus) ===
-                      normalizeStatus(selectedAccount?.status)
-                      ? "bg-gray-400 cursor-not-allowed text-white"
-                      : "bg-gray-900 text-white hover:bg-gray-800 focus:ring-gray-400"
-                  }`}
+                    normalizeStatus(selectedAccount?.status)
+                    ? "bg-gray-400 cursor-not-allowed text-white"
+                    : "bg-gray-900 text-white hover:bg-gray-800 focus:ring-gray-400"
+                    }`}
                 >
                   {updatingStatus ? "Updating..." : "Update"}
                 </button>
@@ -1263,18 +1302,18 @@ const [isSubmitted, setIsSubmitted] = useState(false);
           <FiUsers className="mr-2 text-blue-600" />
           Accounts Management
         </h2>
-          
-     <div className="flex justify-center lg:justify-end w-full sm:w-auto">
-        <button
-          onClick={() => {
-          handleOpenAddModal();  // open the modal
-          setIsSubmitted(false); // reset all error borders
-        }}
-        className="flex items-center bg-black text-white px-3 sm:px-4 py-2 my-1 lg:my-0 rounded-md hover:bg-gray-800 text-sm sm:text-base mx-auto sm:ml-auto cursor-pointer"
-      >
-        <FiPlus className="mr-2" /> Add Account
-      </button>
-      </div>
+
+        <div className="flex justify-center lg:justify-end w-full sm:w-auto">
+          <button
+            onClick={() => {
+              handleOpenAddModal();  // open the modal
+              setIsSubmitted(false); // reset all error borders
+            }}
+            className="flex items-center bg-black text-white px-3 sm:px-4 py-2 my-1 lg:my-0 rounded-md hover:bg-gray-800 text-sm sm:text-base mx-auto sm:ml-auto cursor-pointer"
+          >
+            <FiPlus className="mr-2" /> Add Account
+          </button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4 mb-6 w-full break-words overflow-hidden lg:overflow-visible">
@@ -1411,12 +1450,12 @@ const [isSubmitted, setIsSubmitted] = useState(false);
         onClick={(e) => e.stopPropagation()}
       >
         <button
-         onClick={() => {
-                closeModal();          // close the modal
-                setIsSubmitted(false); // reset validation errors
-              }}
+          onClick={() => {
+            closeModal();          // close the modal
+            setIsSubmitted(false); // reset validation errors
+          }}
           className="absolute top-4 right-4 text-gray-500 hover:text-black transition"
-            disabled={isSubmitting || confirmProcessing}
+          disabled={isSubmitting || confirmProcessing}
         >
           <FiX size={22} />
         </button>
@@ -1425,23 +1464,23 @@ const [isSubmitted, setIsSubmitted] = useState(false);
           {isEditing ? "Edit Account" : "Add New Account"}
         </h2>
 
-       <form
-            className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm"
-            onSubmit={handleSubmit}
-            noValidate
-          >
-              <div className="md:col-span-2">
-          <InputField
-            label="Name"
-            name="name"
-            value={formData.name}
-            onChange={handleInputChange}
-            placeholder="Company name"
-            required
-            isSubmitted={isSubmitted}   
-          />
-            </div>
-            <SearchableSelectField
+        <form
+          className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm"
+          onSubmit={handleSubmit}
+          noValidate
+        >
+          <div className="md:col-span-2">
+            <InputField
+              label="Name"
+              name="name"
+              value={formData.name}
+              onChange={handleInputChange}
+              placeholder="Company name"
+              required
+              isSubmitted={isSubmitted}
+            />
+          </div>
+          <SearchableSelectField
             label="Parent Company"
             value={formData.parent_company}
             onChange={(newValue) => {
@@ -1481,7 +1520,7 @@ const [isSubmitted, setIsSubmitted] = useState(false);
             onChange={handleInputChange}
             placeholder="Industry"
             disabled={isSubmitting}
-          />          
+          />
           <InputField
             label="Billing Address"
             name="billing_address"
@@ -1533,9 +1572,9 @@ const [isSubmitted, setIsSubmitted] = useState(false);
             }
             placeholder="Search assignee..."
             required={true}               // <-- use required directly
-          isSubmitted={isSubmitted}     
-          disabled={isSubmitting || users.length === 0}  
-        />
+            isSubmitted={isSubmitted}
+            disabled={isSubmitting || users.length === 0}
+          />
 
 
           <SelectField
@@ -1558,10 +1597,10 @@ const [isSubmitted, setIsSubmitted] = useState(false);
           <div className="flex flex-col sm:flex-row justify-end sm:justify-end space-y-2 sm:space-y-0 sm:space-x-2 col-span-1 md:col-span-2 mt-4 w-full">
             <button
               type="button"
-               onClick={() => {
-                    closeModal();       // close the modal
-                    setIsSubmitted(false); // reset validation errors
-                  }}
+              onClick={() => {
+                closeModal();       // close the modal
+                setIsSubmitted(false); // reset validation errors
+              }}
               className="w-full sm:w-auto px-4 py-2 text-white bg-red-400 border border-red-300 rounded hover:bg-red-500 transition disabled:opacity-70"
               disabled={isSubmitting || confirmProcessing}
             >
@@ -1575,8 +1614,8 @@ const [isSubmitted, setIsSubmitted] = useState(false);
               {isSubmitting
                 ? "Saving..."
                 : isEditing
-                ? "Update Account"
-                : "Save Account"}
+                  ? "Update Account"
+                  : "Save Account"}
             </button>
           </div>
         </form>
@@ -1651,13 +1690,13 @@ function InputField({
   type = "text",
   required = false,
   disabled = false,
- className = "",
+  className = "",
   isSubmitted = false,       // <-- new prop
 }) {
   const hasError = isSubmitted && !value?.trim();
 
   return (
-   <div>
+    <div>
       <label className="block text-gray-700 font-medium mb-1 text-sm">
         {label} {required && <span className="text-red-500">*</span>}
       </label>
@@ -1669,7 +1708,7 @@ function InputField({
         placeholder={placeholder}
         required={required}
         disabled={disabled}
-         className={`w-full rounded-md px-2 py-1.5 text-sm outline-none border focus:ring-2
+        className={`w-full rounded-md px-2 py-1.5 text-sm outline-none border focus:ring-2
           ${hasError
             ? "border-red-500 focus:ring-red-500"
             : "border-gray-300 focus:ring-blue-400"
@@ -1726,11 +1765,11 @@ function SearchableSelectField({
   isSubmitted = false,
   allowFreeText = false,
 }) {
-  const hasError = isSubmitted && required && !value; 
+  const hasError = isSubmitted && required && !value;
 
   return (
-<div className={className}>
-       <label className="block text-gray-700 font-medium mb-1 text-sm">
+    <div className={className}>
+      <label className="block text-gray-700 font-medium mb-1 text-sm">
         {label} {required && <span className="text-red-500">*</span>}
       </label>
       <SearchableSelect
@@ -1742,7 +1781,7 @@ function SearchableSelectField({
         disabled={disabled}
         hasError={hasError}
         allowFreeText={allowFreeText}
-           />
+      />
     </div>
   );
 }
@@ -1797,7 +1836,7 @@ function SearchableSelect({
           setQ(e.target.value);
           if (!open) setOpen(true);
         }}
-       className={`w-full border rounded-md px-2 py-1.5 text-sm outline-none focus:ring-2
+        className={`w-full border rounded-md px-2 py-1.5 text-sm outline-none focus:ring-2
           ${hasError
             ? "border-red-500 focus:ring-red-500"
             : "border-gray-300 focus:ring-blue-400"
@@ -1833,9 +1872,8 @@ function SearchableSelect({
                       onChange(id);
                       setOpen(false);
                     }}
-                    className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-50 ${
-                      active ? "bg-blue-50" : ""
-                    }`}
+                    className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-50 ${active ? "bg-blue-50" : ""
+                      }`}
                   >
                     {label || "--"}
                   </button>

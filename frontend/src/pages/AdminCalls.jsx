@@ -141,38 +141,40 @@ export default function AdminCalls() {
   const [formData, setFormData] = useState(INITIAL_FORM_STATE);
 
   // ✅ Auto open modal if passed via state or query
-useEffect(() => {
-  const state = location.state;
-  const shouldOpen = state?.openCallModal;
-  const incomingId = state?.initialCallData?.relatedTo1 || searchParams.get("id");
+  useEffect(() => {
+    const state = location.state;
+    if (!state?.openCallModal || !state?.initialCallData) return;
 
-  if (shouldOpen || incomingId) {
+    // Wait until related options are loaded
+    if (
+      state.initialCallData.relatedType1 === "Lead" &&
+      Array.isArray(relatedTo1Values) &&
+      relatedTo1Values.length === 0
+    ) return;
+
+    if (
+      state.initialCallData.relatedType1 === "Account" &&
+      (!Array.isArray(relatedTo1Values) || relatedTo1Values.length === 0)
+    ) return;
+
     setShowModal(true);
 
-    if (state?.initialCallData) {
-      setFormData((prev) => ({
-        ...prev,
-        ...state.initialCallData,
-        // Convert IDs to strings to ensure dropdowns match them
-        relatedTo1: state.initialCallData.relatedTo1 
-          ? String(state.initialCallData.relatedTo1) 
-          : "",
-        relatedTo2: state.initialCallData.relatedTo2 
-          ? String(state.initialCallData.relatedTo2) 
-          : "",
-      }));
-    } else if (incomingId) {
-      // Legacy support for just passing an ID in URL
-      setFormData((prev) => ({
-        ...prev,
-        relatedTo1: String(incomingId),
-      }));
-    }
+    setFormData(prev => ({
+      ...prev,
+      ...state.initialCallData,
+      relatedTo1: state.initialCallData.relatedTo1
+        ? String(state.initialCallData.relatedTo1)
+        : "",
+      relatedTo2: state.initialCallData.relatedTo2
+        ? String(state.initialCallData.relatedTo2)
+        : "",
+    }));
 
-    // Clean up URL state so refreshing doesn't re-trigger
+    // cleanup
     navigate(location.pathname, { replace: true, state: {} });
-  }
-}, [location, searchParams, navigate]);
+
+  }, [location.state, relatedTo1Values]);
+
 
   const fetchCalls = async () => {
     try {
@@ -590,8 +592,8 @@ useEffect(() => {
                 key={tab}
                 onClick={() => setActiveTab(tab)}
                 className={`flex-1 min-w-[90px] px-4 py-2.5 text-xs sm:text-sm font-medium border-b-2 ${activeTab === tab
-                    ? "bg-paper-white text-[#6A727D] border-white"
-                    : "text-white hover:bg-[#5c636d]"
+                  ? "bg-paper-white text-[#6A727D] border-white"
+                  : "text-white hover:bg-[#5c636d]"
                   }`}
               >
                 {tab}

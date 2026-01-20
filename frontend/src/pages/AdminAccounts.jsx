@@ -1577,22 +1577,24 @@ export default function AdminAccounts() {
           />
 
 
-          <SelectField
-            label="Territory"
-            name="territory_id"
-            value={formData.territory_id || ""}
-            onChange={handleInputChange}
-            options={[
-              { value: "", label: !selectedUser ? "Select a user first" : (selectedUser.assigned_territory && selectedUser.assigned_territory.length > 0) ? "Select Territory" : "No territories assigned to this user" },
-              ...(selectedUser &&
-                selectedUser.assigned_territory &&
-                selectedUser.assigned_territory.map((t) => ({
-                  value: String(t.id),
-                  label: t.name,
-                }))) || [],
-            ]}
-            disabled={isSubmitting || !selectedUser || !selectedUser.assigned_territory || selectedUser.assigned_territory.length === 0}
-          />
+          <div className="md:col-span-2">
+            <SelectField
+              label="Territory"
+              name="territory_id"
+              value={formData.territory_id || ""}
+              onChange={handleInputChange}
+              options={[
+                { value: "", label: !selectedUser ? "Select a user first" : (selectedUser.assigned_territory && selectedUser.assigned_territory.length > 0) ? "Select Territory" : "No territories assigned to this user" },
+                ...(selectedUser &&
+                  selectedUser.assigned_territory &&
+                  selectedUser.assigned_territory.map((t) => ({
+                    value: String(t.id),
+                    label: t.name,
+                  }))) || [],
+              ]}
+              disabled={isSubmitting || !selectedUser || !selectedUser.assigned_territory || selectedUser.assigned_territory.length === 0}
+            />
+          </div>
 
           <div className="flex flex-col sm:flex-row justify-end sm:justify-end space-y-2 sm:space-y-0 sm:space-x-2 col-span-1 md:col-span-2 mt-4 w-full">
             <button

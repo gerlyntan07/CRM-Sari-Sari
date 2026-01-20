@@ -19,8 +19,31 @@ import useFetchUser from "../hooks/useFetchUser";
 import LoadingSpinner from "../components/LoadingSpinner.jsx";
 import { useLocation, useNavigate } from "react-router-dom";
 
-const BOARD_COLUMNS = ["To Do", "In Progress", "Review", "Completed"];
+const BOARD_COLUMNS = ["Not started", "In progress", "Deferred", "Completed"];
 const LIST_PAGE_SIZE = 10;
+
+const STATUS_NORMALIZATION_MAP = {
+  "NOT_STARTED": "Not started",
+  "NOT STARTED": "Not started",
+  "TO DO": "Not started",
+  "IN_PROGRESS": "In progress",
+  "IN PROGRESS": "In progress",
+  "COMPLETED": "Completed",
+  "DEFERRED": "Deferred",
+  "Not started": "Not started",
+  "In progress": "In progress",
+  "Completed": "Completed",
+  "Deferred": "Deferred",
+  "In Progress": "In progress",
+  "To Do": "Not started",
+  "Review": "Deferred"
+};
+
+const normalizeTaskStatus = (status) => {
+  if (!status) return "Not started";
+  // Try exact match first, then uppercase match, then default
+  return STATUS_NORMALIZATION_MAP[status] || STATUS_NORMALIZATION_MAP[String(status).toUpperCase()] || "Not started";
+};
 
 // --- Utility Functions ---
 
@@ -60,28 +83,13 @@ const buildTaskPayload = (data) => {
     "Low": "Low"
   };
 
-  const STATUS_MAP = {
-    "NOT_STARTED": "Not started",
-    "NOT STARTED": "Not started",
-    "TO DO": "Not started",
-    "IN_PROGRESS": "In progress",
-    "IN PROGRESS": "In progress",
-    "COMPLETED": "Completed",
-    "DEFERRED": "Deferred",
-    "Not started": "Not started",
-    "In progress": "In progress",
-    "Completed": "Completed",
-    "Deferred": "Deferred"
-  };
-
   const rawPriority = data.priority ? String(data.priority).toUpperCase() : "NORMAL";
-  const rawStatus = data.status ? String(data.status).toUpperCase() : "NOT_STARTED";
 
   // Default to "Normal" if the map lookup fails
   const cleanPriority = PRIORITY_MAP[rawPriority] || "Normal";
   
   // Default to "Not started" if the map lookup fails
-  const cleanStatus = STATUS_MAP[rawStatus] || "Not started";
+  const cleanStatus = normalizeTaskStatus(data.status);
 
   // Initialize specific foreign keys
   let lead_id = null;
@@ -225,7 +233,7 @@ const mapBackendTaskToFrontend = (task) => {
     title: task.title,
     description: task.description,
     priority: task.priority || "Normal",
-    status: task.status || "Not started",
+    status: normalizeTaskStatus(task.status),
     dueDate: dueDate,
     dateAssigned: dateAssigned,
     
@@ -563,9 +571,9 @@ export default function AdminTask() {
 
   const getTaskCardColor = (task) => {
     switch (task.status) {
-      case "To Do": return "bg-blue-50 hover:bg-blue-100 border-blue-200";
-      case "In Progress": return "bg-purple-50 hover:bg-purple-100 border-purple-200";
-      case "Review": return "bg-orange-50 hover:bg-orange-100 border-orange-200";
+      case "Not started": return "bg-blue-50 hover:bg-blue-100 border-blue-200";
+      case "In progress": return "bg-purple-50 hover:bg-purple-100 border-purple-200";
+      case "Deferred": return "bg-orange-50 hover:bg-orange-100 border-orange-200";
       case "Completed": return "bg-green-50 hover:bg-green-100 border-green-200";
       default: return "bg-gray-50 hover:bg-gray-100 border-gray-100";
     }
@@ -573,9 +581,9 @@ export default function AdminTask() {
 
   const getStatusBadgeClass = (status) => {
     switch (status) {
-      case "To Do": return "bg-blue-100 text-blue-700";
-      case "In Progress": return "bg-purple-100 text-purple-700";
-      case "Review": return "bg-orange-100 text-orange-700";
+      case "Not started": return "bg-blue-100 text-blue-700";
+      case "In progress": return "bg-purple-100 text-purple-700";
+      case "Deferred": return "bg-orange-100 text-orange-700";
       case "Completed": return "bg-green-100 text-green-700";
       default: return "bg-gray-100 text-gray-700";
     }
@@ -758,7 +766,7 @@ export default function AdminTask() {
                   >
                     <td className="py-3 px-4 text-gray-700 whitespace-nowrap font-medium">{task.title}</td>
                     <td className="py-3 px-4 whitespace-nowrap">
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium whitespace-nowrap ${getStatusBadgeClass(task.status || "To Do")}`}>{task.status || "To Do"}</span>
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium whitespace-nowrap ${getStatusBadgeClass(task.status || "Not started")}`}>{task.status || "Not started"}</span>
                     </td>
                     <td className="py-3 px-4 whitespace-nowrap">
                       <span className={`px-2 py-1 rounded-full text-xs font-medium whitespace-nowrap ${getPriorityBadgeClass(task.priority || "Low")}`}>{task.priority || "Low"}</span>

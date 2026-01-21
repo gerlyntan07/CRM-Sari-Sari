@@ -7,7 +7,7 @@ from sqlalchemy import select
 from typing import Optional
 
 from database import get_db
-from schemas.account import AccountBase, AccountCreate, AccountResponse, AccountUpdate
+from schemas.account import AccountBase, AccountCreate, AccountResponse, AccountUpdate, AccountBulkDelete
 from .auth_utils import get_current_user
 from models.auth import User
 from models.account import Account, AccountStatus
@@ -430,6 +430,58 @@ def admin_create_account(
     )
 
     return new_account
+
+
+@router.delete("/admin/bulk-delete", status_code=status.HTTP_200_OK)
+def admin_bulk_delete_accounts(
+    data: AccountBulkDelete,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    request: Request = None
+):
+    if current_user.role.upper() not in ALLOWED_ADMIN_ROLES:
+        raise HTTPException(status_code=403, detail="Permission denied")
+
+    if not data.account_ids:
+        return {"detail": "No accounts provided for deletion."}
+
+    company_users = (
+        select(User.id)
+        .where(User.related_to_company == current_user.related_to_company)
+        .subquery()
+    )
+
+    accounts_to_delete = db.query(Account).filter(
+        Account.id.in_(data.account_ids),
+        ((Account.created_by.in_(company_users)) | (Account.assigned_to.in_(company_users)))
+    ).all()
+
+    if not accounts_to_delete:
+        raise HTTPException(status_code=404, detail="No matching accounts found for deletion.")
+
+    deleted_count = 0
+    for account in accounts_to_delete:
+        deleted_data = serialize_instance(account)
+        account_name = account.name
+        target_user_id = account.assigned_to or account.created_by
+
+        db.delete(account)
+        
+        create_audit_log(
+            db=db,
+            current_user=current_user,
+            instance=account,
+            action="DELETE",
+            request=request,
+            old_data=deleted_data,
+            target_user_id=target_user_id,
+            custom_message=f"bulk delete account '{account_name}' via admin panel"
+        )
+        deleted_count += 1
+
+    db.commit()
+
+    return {"detail": f"Successfully deleted {deleted_count} account(s)."}
 
 
 @router.put("/admin/{account_id}", response_model=AccountResponse)

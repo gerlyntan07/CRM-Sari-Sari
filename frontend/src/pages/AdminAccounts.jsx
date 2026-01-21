@@ -124,6 +124,7 @@ export default function AdminAccounts() {
   const [activeTab, setActiveTab] = useState("Overview");
   const [selectedStatus, setSelectedStatus] = useState("");
   const [updatingStatus, setUpdatingStatus] = useState(false);
+  const [selectedIds, setSelectedIds] = useState([]);
   const [relatedActs, setRelatedActs] = useState({});
   const [expandedSection, setExpandedSection] = useState(null);
 
@@ -222,6 +223,103 @@ export default function AdminAccounts() {
     fetchParentCompanies();
   }, [fetchAccounts, fetchUsers, fetchTerritories, fetchParentCompanies]);
 
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, stageFilter, itemsPerPage]);
+
+  const filteredAccounts = useMemo(() => {
+    const query = searchQuery.toLowerCase();
+    const filter = stageFilter;
+
+    return accounts.filter((acc) => {
+      const matchesSearch =
+        acc.name?.toLowerCase().includes(query) ||
+        acc.website?.toLowerCase().includes(query) ||
+        acc.phone_number?.toLowerCase().includes(query) ||
+        acc.industry?.toLowerCase().includes(query) ||
+        acc.parent_company?.toLowerCase().includes(query) ||
+        acc.territory?.name?.toLowerCase().includes(query);
+
+      const matchesFilter =
+        filter === "Filter by Status" ||
+        normalizeStatus(acc.status) === normalizeStatus(filter);
+
+      return matchesSearch && matchesFilter;
+    });
+  }, [accounts, searchQuery, stageFilter]);
+
+  const totalPages = Math.max(
+    1,
+    Math.ceil(filteredAccounts.length / itemsPerPage) || 1
+  );
+
+  useEffect(() => {
+    setCurrentPage((prev) => {
+      const maxPage = Math.max(
+        1,
+        Math.ceil(filteredAccounts.length / itemsPerPage) || 1
+      );
+      return prev > maxPage ? maxPage : prev;
+    });
+  }, [filteredAccounts.length, itemsPerPage]);
+
+  const paginatedAccounts = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    return filteredAccounts.slice(startIndex, startIndex + itemsPerPage);
+  }, [filteredAccounts, currentPage, itemsPerPage]);
+
+  const handleSelectAll = (e) => {
+    if (e.target.checked) {
+      const allIds = paginatedAccounts.map((a) => a.id);
+      setSelectedIds(allIds);
+    } else {
+      setSelectedIds([]);
+    }
+  };
+
+  const handleCheckboxChange = (id) => {
+    setSelectedIds((prev) => {
+      if (prev.includes(id)) {
+        return prev.filter((prevId) => prevId !== id);
+      } else {
+        return [...prev, id];
+      }
+    });
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedIds.length === 0) return;
+
+    setConfirmModalData({
+      title: "Bulk Delete Accounts",
+      message: (
+        <span>
+          Are you sure you want to delete{" "}
+          <span className="font-semibold">{selectedIds.length}</span> selected
+          accounts? This action cannot be undone.
+        </span>
+      ),
+      confirmLabel: `Delete ${selectedIds.length} Accounts`,
+      cancelLabel: "Cancel",
+      variant: "danger",
+      action: {
+        type: "bulk-delete",
+        accountIds: selectedIds,
+      },
+    });
+  };
+
+  const pageStart =
+    filteredAccounts.length === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1;
+  const pageEnd = Math.min(
+    currentPage * itemsPerPage,
+    filteredAccounts.length
+  );
+
+  const handlePrevPage = () => setCurrentPage((prev) => Math.max(prev - 1, 1));
+  const handleNextPage = () =>
+    setCurrentPage((prev) => Math.min(prev + 1, totalPages));
+
   // Sync selectedStatus with selectedAccount status
   useEffect(() => {
     if (selectedAccount) {
@@ -316,68 +414,7 @@ export default function AdminAccounts() {
     [total, customers, prospects, partners, active, inactive, former]
   );
 
-  const filteredAccounts = useMemo(() => {
-    const normalizedQuery = searchQuery.trim().toLowerCase();
-    const normalizedFilter = stageFilter.trim().toUpperCase();
 
-    return accounts.filter((acc) => {
-      const searchFields = [
-        acc?.name,
-        acc?.website,
-        acc?.industry,
-        acc?.territory?.name,
-        acc?.phone_number,
-      ];
-
-      const matchesSearch =
-        normalizedQuery === "" ||
-        searchFields.some((field) => {
-          if (field === null || field === undefined) return false;
-          return field.toString().toLowerCase().includes(normalizedQuery);
-        });
-
-      const matchesStage =
-        normalizedFilter === "FILTER BY STATUS" ||
-        normalizeStatus(acc.status) === normalizedFilter;
-
-      return matchesSearch && matchesStage;
-    });
-  }, [accounts, searchQuery, stageFilter]);
-
-  const totalPages = Math.max(
-    1,
-    Math.ceil(filteredAccounts.length / itemsPerPage) || 1
-  );
-
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [searchQuery, stageFilter, itemsPerPage]);
-
-  useEffect(() => {
-    setCurrentPage((prev) => {
-      const maxPage = Math.max(
-        1,
-        Math.ceil(filteredAccounts.length / itemsPerPage) || 1
-      );
-      return prev > maxPage ? maxPage : prev;
-    });
-  }, [filteredAccounts.length, itemsPerPage]);
-
-  const paginatedAccounts = useMemo(() => {
-    const startIndex = (currentPage - 1) * itemsPerPage;
-    return filteredAccounts.slice(startIndex, startIndex + itemsPerPage);
-  }, [filteredAccounts, currentPage, itemsPerPage]);
-
-  const pageStart =
-    filteredAccounts.length === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1;
-  const pageEnd = Math.min(
-    currentPage * itemsPerPage,
-    filteredAccounts.length
-  );
-
-  const handlePrevPage = () => setCurrentPage((prev) => Math.max(prev - 1, 1));
-  const handleNextPage = () =>
-    setCurrentPage((prev) => Math.min(prev + 1, totalPages));
 
   const handleAccountClick = (acc) => {
     setSelectedAccount(acc);
@@ -495,7 +532,7 @@ export default function AdminAccounts() {
     }
 
     const { action } = confirmModalData;
-    const { type, payload, targetId, name } = action;
+    const { type, payload, targetId, name, accountIds } = action;
 
     setConfirmProcessing(true);
 
@@ -550,6 +587,13 @@ export default function AdminAccounts() {
         if (currentSelectedId === targetId) {
           setSelectedAccount(null);
         }
+      } else if (type === "bulk-delete") {
+        await api.delete("/accounts/admin/bulk-delete", {
+          data: { account_ids: accountIds },
+        });
+        toast.success(`Successfully deleted ${accountIds.length} accounts`);
+        setSelectedIds([]);
+        await fetchAccounts();
       }
     } catch (err) {
       console.error(err);
@@ -558,6 +602,8 @@ export default function AdminAccounts() {
           ? "Failed to create account. Please review the details and try again."
           : type === "update"
             ? "Failed to update account. Please review the details and try again."
+            : type === "bulk-delete"
+            ? "Failed to delete selected accounts."
             : "Failed to delete account. Please try again.";
 
       const message = err.response?.data?.detail || defaultMessage;
@@ -1351,11 +1397,35 @@ export default function AdminAccounts() {
         <table className="w-full min-w-[500px] border border-gray-200 rounded-lg bg-white shadow-sm text-sm">
           <thead className="bg-gray-100 text-left text-gray-600 text-sm tracking-wide font-semibold">
             <tr>
+              <th className="py-3 px-4 text-center w-12">
+                <input
+                  type="checkbox"
+                  checked={
+                    paginatedAccounts.length > 0 &&
+                    paginatedAccounts.every((a) => selectedIds.includes(a.id))
+                  }
+                  onChange={handleSelectAll}
+                  className="form-checkbox h-4 w-4 text-blue-600 rounded focus:ring-blue-500 border-gray-300"
+                />
+              </th>
               <th className="py-3 px-4 truncate">Account</th>
               <th className="py-3 px-4">Status</th>
               <th className="py-3 px-4">Industry</th>
               <th className="py-3 px-4">Territory</th>
               <th className="py-3 px-4">Phone</th>
+              <th className="py-3 px-4 text-center w-24">
+                {selectedIds.length > 0 ? (
+                  <button
+                    onClick={handleBulkDelete}
+                    className="text-red-600 hover:text-red-800 transition p-1 rounded-full hover:bg-red-50"
+                    title={`Delete ${selectedIds.length} selected items`}
+                  >
+                    <FiTrash2 size={18} />
+                  </button>
+                ) : (
+                  ""
+                )}
+              </th>
             </tr>
           </thead>
           <tbody>
@@ -1363,7 +1433,7 @@ export default function AdminAccounts() {
               <tr>
                 <td
                   className="py-4 px-4 text-center text-sm text-gray-500"
-                  colSpan={5}
+                  colSpan={7}
                 >
                   Loading accounts...
                 </td>
@@ -1379,6 +1449,15 @@ export default function AdminAccounts() {
                       fetchRelatedActivities(acc.id);
                     }}
                   >
+                    <td className="py-3 px-4 text-center">
+                      <input
+                        type="checkbox"
+                        checked={selectedIds.includes(acc.id)}
+                        onChange={() => handleCheckboxChange(acc.id)}
+                        onClick={(e) => e.stopPropagation()}
+                        className="form-checkbox h-4 w-4 text-blue-600 rounded focus:ring-blue-500 border-gray-300"
+                      />
+                    </td>
                     <td className="py-3 px-4">
                       <div>
                         <div className="font-medium text-blue-600 hover:underline break-all text-sm">
@@ -1410,6 +1489,7 @@ export default function AdminAccounts() {
                         <span>{acc.phone_number || "--"}</span>
                       </div>
                     </td>
+                    <td className="py-3 px-4 text-center"></td>
                   </tr>
                 );
               })
@@ -1417,7 +1497,7 @@ export default function AdminAccounts() {
               <tr>
                 <td
                   className="py-4 px-4 text-center text-sm text-gray-500"
-                  colSpan={5}
+                  colSpan={7}
                 >
                   No accounts found.
                 </td>

@@ -495,6 +495,58 @@ def admin_update_contact(
     return contact
 
 
+@router.delete("/admin/bulk-delete", status_code=status.HTTP_200_OK)
+def admin_bulk_delete_contacts(
+    data: ContactBulkDelete,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    request: Request = None
+):
+    if current_user.role.upper() not in ALLOWED_ADMIN_ROLES:
+        raise HTTPException(status_code=403, detail="Permission denied")
+
+    if not data.contact_ids:
+        return {"detail": "No contacts provided for deletion."}
+
+    company_users = (
+        select(User.id)
+        .where(User.related_to_company == current_user.related_to_company)
+        .subquery()
+    )
+
+    contacts_to_delete = db.query(Contact).filter(
+        Contact.id.in_(data.contact_ids),
+        ((Contact.created_by.in_(company_users)) | (Contact.assigned_to.in_(company_users)))
+    ).all()
+
+    if not contacts_to_delete:
+        raise HTTPException(status_code=404, detail="No matching contacts found for deletion.")
+
+    deleted_count = 0
+    for contact in contacts_to_delete:
+        deleted_data = serialize_instance(contact)
+        contact_name = f"{contact.first_name} {contact.last_name}"
+        target_user_id = contact.assigned_to or contact.created_by
+
+        db.delete(contact)
+        
+        create_audit_log(
+            db=db,
+            current_user=current_user,
+            instance=contact,
+            action="DELETE",
+            request=request,
+            old_data=deleted_data,
+            target_user_id=target_user_id,
+            custom_message=f"bulk delete contact '{contact_name}' via admin panel"
+        )
+        deleted_count += 1
+
+    db.commit()
+
+    return {"detail": f"Successfully deleted {deleted_count} contact(s)."}
+
+
 @router.delete("/admin/{contact_id}", status_code=status.HTTP_200_OK)
 def admin_delete_contact(
     contact_id: int,

@@ -1,6 +1,6 @@
 # backend/schemas/auth.py
 from pydantic import BaseModel, EmailStr
-from typing import Optional
+from typing import Optional, List
 from datetime import datetime
 from .auth import UserBase
 
@@ -35,6 +35,9 @@ class ContactUpdate(BaseModel):
     mobile_phone_2: Optional[str] = None
     notes: Optional[str] = None
     assigned_to: Optional[int] = None
+
+class ContactBulkDelete(BaseModel):
+    contact_ids: List[int]
 
 class UserBase(BaseModel):
     id: int

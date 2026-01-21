@@ -1,6 +1,6 @@
 # backend/schemas/account.py
 from pydantic import BaseModel, HttpUrl, EmailStr
-from typing import Optional
+from typing import Optional, List
 from datetime import datetime
 from .auth import UserBase
 
@@ -53,6 +53,9 @@ class TerritoryBase(BaseModel):
 
     class Config:
         orm_mode = True
+
+class AccountBulkDelete(BaseModel):
+    account_ids: List[int]
 
 class AccountResponse(AccountBase):
     id: int

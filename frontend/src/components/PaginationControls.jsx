@@ -7,6 +7,8 @@ export default function PaginationControls({
   currentPage = 1,
   onPrev,
   onNext,
+  onPageSizeChange,
+  pageSizeOptions = [10, 20, 30, 40, 50],
   className = "",
   label = "records",
 }) {
@@ -24,18 +26,43 @@ export default function PaginationControls({
 
   return (
     <div
-      className={`flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 ${className}`}>
-      <div className="text-sm text-gray-600 font-medium text-center sm:text-left w-full sm:w-auto">
+      className={`flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 ${className}`}
+    >
+      {/* 1. Info Text */}
+      <div className="text-sm text-gray-600 font-medium text-center sm:text-left w-full sm:w-auto order-1">
         Showing {totalItems === 0 ? 0 : startItem}-{endItem} of {totalItems}{" "}
         {label}
       </div>
-      <div className="flex items-center gap-3 justify-center sm:justify-end w-full sm:w-auto">
+
+      {/* 2. Rows Per Page Selector */}
+      {onPageSizeChange && (
+        <div className="flex items-center justify-center gap-2 w-full sm:w-auto order-3 sm:order-2">
+          <span className="text-sm text-gray-600 font-medium">
+            Rows per page
+          </span>
+          <select
+            value={pageSize}
+            onChange={(e) => onPageSizeChange(Number(e.target.value))}
+            className="border border-gray-300 rounded-md text-sm py-1 pl-2 pr-6 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          >
+            {pageSizeOptions.map((size) => (
+              <option key={size} value={size}>
+                {size}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
+
+      {/* 3. Pagination Buttons */}
+      <div className="flex items-center gap-3 justify-center sm:justify-end w-full sm:w-auto order-2 sm:order-3">
         <button
           type="button"
           onClick={onPrev}
           disabled={disabledPrev}
-          className={`${baseButtonClasses} ${disabledPrev ? disabledClasses : activeClasses
-            }`}
+          className={`${baseButtonClasses} ${
+            disabledPrev ? disabledClasses : activeClasses
+          }`}
         >
           <FiChevronLeft className="text-base" />
           Prev
@@ -48,14 +75,14 @@ export default function PaginationControls({
           type="button"
           onClick={onNext}
           disabled={disabledNext}
-          className={`${baseButtonClasses} ${disabledNext ? disabledClasses : activeClasses
-            }`}
+          className={`${baseButtonClasses} ${
+            disabledNext ? disabledClasses : activeClasses
+          }`}
         >
           Next
           <FiChevronRight className="text-base" />
         </button>
       </div>
     </div>
-
   );
 }

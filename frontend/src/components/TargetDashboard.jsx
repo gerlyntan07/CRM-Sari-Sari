@@ -19,6 +19,8 @@ import {
   FiDollarSign,
   FiX,
   FiTrendingUp,
+  FiPieChart,
+  FiBarChart2,
 } from "react-icons/fi";
 import { FaPesoSign } from "react-icons/fa6";
 
@@ -31,8 +33,6 @@ import LoadingSpinner from "./LoadingSpinner.jsx";
 /* ======================================================
    CONSTANTS
 ====================================================== */
-const ITEMS_PER_PAGE = 10;
-
 const INITIAL_FORM_STATE = {
   user_id: "",
   start_date: "",
@@ -127,6 +127,7 @@ export default function TargetDashboard({ currentUserRole, currentUserId }) {
   const [targetsLoading, setTargetsLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
 
   const [showModal, setShowModal] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -321,11 +322,11 @@ export default function TargetDashboard({ currentUserRole, currentUserId }) {
     });
   }, [targets, searchQuery]);
 
-  const totalPages = Math.max(1, Math.ceil(filteredTargets.length / ITEMS_PER_PAGE));
+  const totalPages = Math.max(1, Math.ceil(filteredTargets.length / itemsPerPage));
   const paginatedTargets = useMemo(() => {
-    const start = (currentPage - 1) * ITEMS_PER_PAGE;
-    return filteredTargets.slice(start, start + ITEMS_PER_PAGE);
-  }, [filteredTargets, currentPage]);
+    const start = (currentPage - 1) * itemsPerPage;
+    return filteredTargets.slice(start, start + itemsPerPage);
+  }, [filteredTargets, currentPage, itemsPerPage]);
 
   /* ======================================================
      HANDLERS
@@ -493,99 +494,109 @@ export default function TargetDashboard({ currentUserRole, currentUserId }) {
         {/* Charts */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
           {/* Bar Chart - Sales Achievement */}
-          <div className="bg-white rounded-xl shadow p-4 md:h-[420px] h-[350px]">
+          <div className="bg-white rounded-xl shadow p-4 md:h-[420px] h-[350px] flex flex-col">
             <div className="mb-4 text-center">
-              <h2 className="text-lg font-semibold">Sales Achievement</h2>
+              <h2 className="text-lg font-semibold mb-3">Sales Achievement</h2>
+              <div className="h-[38px] w-full invisible"></div>
             </div>
-            <ResponsiveContainer width="100%" height="85%">
-              <BarChart data={barChartData}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                <XAxis
-                  dataKey="name"
-                  tickLine={false}
-                  axisLine={false}
-                  tick={{ fontSize: 12, fill: "#6b7280" }}
-                />
-                <YAxis
-                  tickLine={false}
-                  axisLine={false}
-                  label={{ value: "Amount", angle: -90, position: "insideLeft", offset: 3 }}
-                  domain={[0, (dataMax) => Math.ceil(dataMax / 50) * 50]}
-                  tick={{ fontSize: 12, fill: "#6b7280" }}
-                />
-                <Tooltip
-                  cursor={{ fill: "rgba(0, 0, 0, 0.15)" }}
-                  wrapperStyle={{
-                    outline: "none",
-                    zIndex: 9999,
-                    pointerEvents: "auto"
-                  }}
-                  contentStyle={{
-                    backgroundColor: "#ffffff",
-                    border: "2px solid #1f2937",
-                    borderRadius: "8px",
-                    padding: "12px",
-                    boxShadow: "0 4px 20px rgba(0, 0, 0, 0.2)",
-                    zIndex: 9999,
-                    pointerEvents: "auto",
-                  }}
-                  labelFormatter={(label) => `Sales: ${label}`}
-                  formatter={(value, name, props) => {
-                    if (!props || !props.payload) return [value, name];
+            {barChartData.length > 0 ? (
+              <div className="flex-1 min-h-0 w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={barChartData}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                    <XAxis
+                      dataKey="name"
+                      tickLine={false}
+                      axisLine={false}
+                      tick={{ fontSize: 12, fill: "#6b7280" }}
+                    />
+                    <YAxis
+                      tickLine={false}
+                      axisLine={false}
+                      label={{ value: "Amount", angle: -90, position: "insideLeft", offset: 3 }}
+                      domain={[0, (dataMax) => Math.ceil(dataMax / 50) * 50]}
+                      tick={{ fontSize: 12, fill: "#6b7280" }}
+                    />
+                    <Tooltip
+                      cursor={{ fill: "rgba(0, 0, 0, 0.15)" }}
+                      wrapperStyle={{
+                        outline: "none",
+                        zIndex: 9999,
+                        pointerEvents: "auto"
+                      }}
+                      contentStyle={{
+                        backgroundColor: "#ffffff",
+                        border: "2px solid #1f2937",
+                        borderRadius: "8px",
+                        padding: "12px",
+                        boxShadow: "0 4px 20px rgba(0, 0, 0, 0.2)",
+                        zIndex: 9999,
+                        pointerEvents: "auto",
+                      }}
+                      labelFormatter={(label) => `Sales: ${label}`}
+                      formatter={(value, name, props) => {
+                        if (!props || !props.payload) return [value, name];
 
-                    const data = props.payload;
-                    const achievement = Number(data.achievement) || 0;
-                    const target = Number(data.target) || 0;
-                    const remaining = Math.max(0, target - achievement);
-                    const percentage = target > 0 ? ((achievement / target) * 100).toFixed(1) : 0;
+                        const data = props.payload;
+                        const achievement = Number(data.achievement) || 0;
+                        const target = Number(data.target) || 0;
+                        const remaining = Math.max(0, target - achievement);
+                        const percentage = target > 0 ? ((achievement / target) * 100).toFixed(1) : 0;
 
-                    if (name === "Achieved") {
-                      return [
-                        `₱${achievement.toLocaleString()} (${percentage}%)`,
-                        "Achieved",
-                      ];
-                    } else if (name === "Remaining") {
-                      return [`₱${remaining.toLocaleString()}`, "Remaining"];
-                    }
-                    return [value, name];
-                  }}
-                />
-                <Bar
-                  dataKey="achievement"
-                  stackId="a"
-                  fill="#10b981"
-                  name="Achieved"
-                  label={({ x, y, width, value, payload }) => {
-                    if (!payload || payload.target === undefined) return null;
-                    const percent = ((value / payload.target) * 100).toFixed(0);
-                    const labelY = y - 10 < 0 ? 10 : y - 10;
-                    return (
-                      <text
-                        x={x + width / 2}
-                        y={labelY}
-                        textAnchor="middle"
-                        fill="#111827"
-                        fontSize={10}
-                        fontWeight={500}
-                      >
-                        {percent}%
-                      </text>
-                    );
-                  }}
-                />
-                <Bar
-                  dataKey={(row) => Math.max(0, row.target - row.achievement)}
-                  stackId="a"
-                  fill="#e5e7eb"
-                  name="Remaining"
-                  radius={[0, 4, 4, 0]}
-                />
-              </BarChart>
-            </ResponsiveContainer>
+                        if (name === "Achieved") {
+                          return [
+                            `₱${achievement.toLocaleString()} (${percentage}%)`,
+                            "Achieved",
+                          ];
+                        } else if (name === "Remaining") {
+                          return [`₱${remaining.toLocaleString()}`, "Remaining"];
+                        }
+                        return [value, name];
+                      }}
+                    />
+                    <Bar
+                      dataKey="achievement"
+                      stackId="a"
+                      fill="#10b981"
+                      name="Achieved"
+                      label={({ x, y, width, value, payload }) => {
+                        if (!payload || payload.target === undefined) return null;
+                        const percent = ((value / payload.target) * 100).toFixed(0);
+                        const labelY = y - 10 < 0 ? 10 : y - 10;
+                        return (
+                          <text
+                            x={x + width / 2}
+                            y={labelY}
+                            textAnchor="middle"
+                            fill="#111827"
+                            fontSize={10}
+                            fontWeight={500}
+                          >
+                            {percent}%
+                          </text>
+                        );
+                      }}
+                    />
+                    <Bar
+                      dataKey={(row) => Math.max(0, row.target - row.achievement)}
+                      stackId="a"
+                      fill="#e5e7eb"
+                      name="Remaining"
+                      radius={[0, 4, 4, 0]}
+                    />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center flex-1 text-gray-400">
+                <FiBarChart2 size={48} className="mb-2 opacity-20" />
+                <p className="text-gray-500 font-medium text-center">No sales data available</p>
+              </div>
+            )}
           </div>
 
           {/* Pie Chart - Target Distribution */}
-          <div className="bg-white rounded-xl shadow p-4 md:h-[420px] h-[350px]">
+          <div className="bg-white rounded-xl shadow p-4 md:h-[420px] h-[350px] flex flex-col">
             <div className="text-center mb-4">
               <h2 className="text-lg font-semibold mb-3">Target Distribution by Sales</h2>
               <div className="flex flex-col sm:flex-row gap-2 justify-center items-center flex-wrap">
@@ -634,63 +645,66 @@ export default function TargetDashboard({ currentUserRole, currentUserId }) {
                 )}
               </div>
             </div>
-            <ResponsiveContainer width="100%" height="85%">
-              {pieChartData.length > 0 ? (
-                <PieChart>
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: "#fff",
-                      border: "1px solid #333",
-                      borderRadius: "6px",
-                      padding: "10px",
-                      boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
-                      outline: "none",
-                    }}
-                    content={({ active, payload }) => {
-                      if (active && payload && payload.length > 0) {
-                        const data = payload[0].payload;
-                        return (
-                          <div className="bg-white p-3 border border-gray-300 rounded shadow-lg">
-                            <p className="text-sm font-semibold text-gray-800">{data.name}</p>
-                            <p className="text-xs text-blue-600 mt-1">
-                              <span className="font-semibold">Target Amount:</span> ₱{Number(data.targetAmount || 0).toLocaleString("en-US", { maximumFractionDigits: 0 })}
-                            </p>
-                            <p className="text-xs text-purple-600 font-semibold mt-2">
-                              Distribution: {data.percentage}%
-                            </p>
-                          </div>
-                        );
-                      }
-                      return null;
-                    }}
-                  />
-                  <Pie
-                    data={pieChartData}
-                    dataKey="targetAmount"
-                    nameKey="name"
-                    cx="50%"
-                    cy="50%"
-                    outerRadius={80}
-                    label={({ name, percentage, fill }) => (
-                      <text
-                        fill={fill}
-                        fontSize={12}
-                        fontWeight={600}
-                      >
-                        {name.split(" ")[0]}: {percentage}%
-                      </text>
-                    )}
-                    labelLine={false}
-                    isAnimationActive
-                    animationDuration={800}
-                  />
-                </PieChart>
-              ) : (
-                <div className="flex items-center justify-center h-full">
-                  <p className="text-gray-500 text-center">No targets data available</p>
-                </div>
-              )}
-            </ResponsiveContainer>
+            {pieChartData.length > 0 ? (
+              <div className="flex-1 min-h-0 w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: "#fff",
+                        border: "1px solid #333",
+                        borderRadius: "6px",
+                        padding: "10px",
+                        boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
+                        outline: "none",
+                      }}
+                      content={({ active, payload }) => {
+                        if (active && payload && payload.length > 0) {
+                          const data = payload[0].payload;
+                          return (
+                            <div className="bg-white p-3 border border-gray-300 rounded shadow-lg">
+                              <p className="text-sm font-semibold text-gray-800">{data.name}</p>
+                              <p className="text-xs text-blue-600 mt-1">
+                                <span className="font-semibold">Target Amount:</span> ₱{Number(data.targetAmount || 0).toLocaleString("en-US", { maximumFractionDigits: 0 })}
+                              </p>
+                              <p className="text-xs text-purple-600 font-semibold mt-2">
+                                Distribution: {data.percentage}%
+                              </p>
+                            </div>
+                          );
+                        }
+                        return null;
+                      }}
+                    />
+                    <Pie
+                      data={pieChartData}
+                      dataKey="targetAmount"
+                      nameKey="name"
+                      cx="50%"
+                      cy="50%"
+                      outerRadius={80}
+                      label={({ name, percentage, fill }) => (
+                        <text
+                          fill={fill}
+                          fontSize={12}
+                          fontWeight={600}
+                        >
+                          {name.split(" ")[0]}: {percentage}%
+                        </text>
+                      )}
+                      labelLine={false}
+                      isAnimationActive
+                      animationDuration={800}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center flex-1 text-gray-400">
+                <FiPieChart size={48} className="mb-2 opacity-20" />
+                <p className="text-gray-500 font-medium text-center">No targets data available</p>
+              </div>
+            )}
           </div>
         </div>
 
@@ -775,17 +789,20 @@ export default function TargetDashboard({ currentUserRole, currentUserId }) {
           </table>
         </div>
 
-        {paginatedTargets.length > 0 && (
-          <PaginationControls
-            className="mt-4"
-            totalItems={filteredTargets.length}
-            pageSize={ITEMS_PER_PAGE}
-            currentPage={currentPage}
-            onPrev={() => setCurrentPage((p) => Math.max(p - 1, 1))}
-            onNext={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}
-            label="targets"
-          />
-        )}
+        <PaginationControls
+          className="mt-4"
+          totalItems={filteredTargets.length}
+          pageSize={itemsPerPage}
+          currentPage={currentPage}
+          onPrev={() => setCurrentPage((p) => Math.max(p - 1, 1))}
+          onNext={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}
+          onPageSizeChange={(newSize) => {
+            setItemsPerPage(newSize);
+            setCurrentPage(1);
+          }}
+          pageSizeOptions={[10, 20, 30, 40, 50]}
+          label="targets"
+        />
       </div>
 
       {/* ================= MODALS ================= */}

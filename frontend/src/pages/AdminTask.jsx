@@ -20,7 +20,6 @@ import LoadingSpinner from "../components/LoadingSpinner.jsx";
 import { useLocation, useNavigate } from "react-router-dom";
 
 const BOARD_COLUMNS = ["Not started", "In progress", "Deferred", "Completed"];
-const LIST_PAGE_SIZE = 10;
 
 const STATUS_NORMALIZATION_MAP = {
   "NOT_STARTED": "Not started",
@@ -278,6 +277,7 @@ export default function AdminTask() {
   const [filterPriority, setFilterPriority] = useState("Filter by Priority");
   const [users, setUsers] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
   const [confirmModalData, setConfirmModalData] = useState(null);
   const [confirmProcessing, setConfirmProcessing] = useState(false);
   
@@ -508,20 +508,20 @@ export default function AdminTask() {
   }, [tasks, search, filterStatus, filterPriority]);
 
   // Pagination logic
-  useEffect(() => { setCurrentPage(1); }, [search, filterStatus, filterPriority, view]);
+  useEffect(() => { setCurrentPage(1); }, [search, filterStatus, filterPriority, view, itemsPerPage]);
   
   useEffect(() => {
     if (view === "list") {
-      const maxPage = filteredTasks.length === 0 ? 1 : Math.ceil(filteredTasks.length / LIST_PAGE_SIZE);
+      const maxPage = filteredTasks.length === 0 ? 1 : Math.ceil(filteredTasks.length / itemsPerPage);
       if (currentPage > maxPage) setCurrentPage(maxPage);
     }
-  }, [filteredTasks.length, currentPage, view]);
+  }, [filteredTasks.length, currentPage, view, itemsPerPage]);
 
   const displayTasks = useMemo(() => {
     if (view === "board") return filteredTasks;
-    const startIndex = (currentPage - 1) * LIST_PAGE_SIZE;
-    return filteredTasks.slice(startIndex, startIndex + LIST_PAGE_SIZE);
-  }, [filteredTasks, currentPage, view]);
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    return filteredTasks.slice(startIndex, startIndex + itemsPerPage);
+  }, [filteredTasks, currentPage, view, itemsPerPage]);
 
   const METRICS = useMemo(() => {
     const now = new Date();
@@ -793,10 +793,15 @@ export default function AdminTask() {
         <PaginationControls
           className="mt-6"
           totalItems={filteredTasks.length}
-          pageSize={LIST_PAGE_SIZE}
+          pageSize={itemsPerPage}
           currentPage={filteredTasks.length === 0 ? 0 : currentPage}
           onPrev={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
-          onNext={() => setCurrentPage((prev) => Math.min(prev + 1, Math.max(1, Math.ceil(filteredTasks.length / LIST_PAGE_SIZE) || 1)))}
+          onNext={() => setCurrentPage((prev) => Math.min(prev + 1, Math.max(1, Math.ceil(filteredTasks.length / itemsPerPage) || 1)))}
+          onPageSizeChange={(newSize) => {
+            setItemsPerPage(newSize);
+            setCurrentPage(1);
+          }}
+          pageSizeOptions={[10, 20, 30, 40, 50]}
           label="tasks"
         />
       )}

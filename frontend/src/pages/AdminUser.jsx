@@ -107,7 +107,7 @@ const renderRoleBadge = (role, { size = "sm" } = {}) => {
   );
 };
 
-const ITEMS_PER_PAGE = 10;
+
 
 const getUserInitials = (firstName, lastName) => {
   const first = firstName?.trim()?.[0] ?? "";
@@ -139,6 +139,7 @@ export default function AdminUser() {
   const [confirmModalData, setConfirmModalData] = useState(null);
   const [confirmProcessing, setConfirmProcessing] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
   const [activeTab, setActiveTab] = useState("Overview");
   const [selectedStatus, setSelectedStatus] = useState("");
   const [updatingStatus, setUpdatingStatus] = useState(false);
@@ -247,31 +248,31 @@ export default function AdminUser() {
 
   const totalPages = Math.max(
     1,
-    Math.ceil(filteredUsers.length / ITEMS_PER_PAGE) || 1
+    Math.ceil(filteredUsers.length / itemsPerPage) || 1
   );
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchQuery, roleFilter]);
+  }, [searchQuery, roleFilter, itemsPerPage]);
 
   useEffect(() => {
     setCurrentPage((prev) => {
       const maxPage = Math.max(
         1,
-        Math.ceil(filteredUsers.length / ITEMS_PER_PAGE) || 1
+        Math.ceil(filteredUsers.length / itemsPerPage) || 1
       );
       return prev > maxPage ? maxPage : prev;
     });
-  }, [filteredUsers.length]);
+  }, [filteredUsers.length, itemsPerPage]);
 
   const paginatedUsers = useMemo(() => {
-    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-    return filteredUsers.slice(startIndex, startIndex + ITEMS_PER_PAGE);
-  }, [filteredUsers, currentPage]);
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    return filteredUsers.slice(startIndex, startIndex + itemsPerPage);
+  }, [filteredUsers, currentPage, itemsPerPage]);
 
   const pageStart =
-    filteredUsers.length === 0 ? 0 : (currentPage - 1) * ITEMS_PER_PAGE + 1;
-  const pageEnd = Math.min(currentPage * ITEMS_PER_PAGE, filteredUsers.length);
+    filteredUsers.length === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1;
+  const pageEnd = Math.min(currentPage * itemsPerPage, filteredUsers.length);
 
   const handlePrevPage = () => setCurrentPage((prev) => Math.max(prev - 1, 1));
   const handleNextPage = () =>
@@ -685,10 +686,14 @@ export default function AdminUser() {
       <PaginationControls
         className="mt-4"
         totalItems={filteredUsers.length}
-        pageSize={ITEMS_PER_PAGE}
+        pageSize={itemsPerPage}
         currentPage={currentPage}
         onPrev={handlePrevPage}
         onNext={handleNextPage}
+        onPageSizeChange={(newSize) => {
+          setItemsPerPage(newSize);
+          setCurrentPage(1);
+        }}
         label="users"
       />
     </div>

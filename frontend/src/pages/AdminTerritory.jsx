@@ -34,9 +34,6 @@ const STATUS_FILTER_OPTIONS = [
   { label: "Inactive", value: "Inactive" },
 ];
 
-const BOARD_PAGE_SIZE = 12;
-const TABLE_PAGE_SIZE = 10;
-
 // --- NEW COMPONENT: Searchable Multi-Select ---
 function SearchableMultiSelect({
   label,
@@ -185,6 +182,7 @@ export default function AdminTerritory() {
   const [confirmProcessing, setConfirmProcessing] = useState(false);
   const [deletingId, setDeletingId] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
   const justUpdatedRef = useRef(false);
   const {userRole} = useAuth();
 
@@ -303,11 +301,11 @@ export default function AdminTerritory() {
     setCurrentPage((prev) => {
       const maxPage = Math.max(
         1,
-        Math.ceil(filteredTerritories.length / (viewMode === "board" ? BOARD_PAGE_SIZE : TABLE_PAGE_SIZE)) || 1
+        Math.ceil(filteredTerritories.length / itemsPerPage) || 1
       );
       return prev > maxPage ? maxPage : prev;
     });
-  }, [filteredTerritories.length, viewMode]);
+  }, [filteredTerritories.length, itemsPerPage]);
 
   const fetchUsers = async () => {
     try {
@@ -514,10 +512,12 @@ export default function AdminTerritory() {
   const handleCancelConfirm = () => { if(!confirmProcessing) setConfirmModalData(null); };
 
   const paginatedTerritories = useMemo(() => {
-    const pageSize = viewMode === "board" ? BOARD_PAGE_SIZE : TABLE_PAGE_SIZE;
-    const startIndex = (currentPage - 1) * pageSize;
-    return filteredTerritories.slice(startIndex, startIndex + pageSize);
-  }, [filteredTerritories, currentPage, viewMode]);
+    if (viewMode === "board") {
+      return filteredTerritories;
+    }
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    return filteredTerritories.slice(startIndex, startIndex + itemsPerPage);
+  }, [filteredTerritories, currentPage, itemsPerPage, viewMode]);
 
   const hasResults = filteredTerritories.length > 0;
 
@@ -526,7 +526,7 @@ export default function AdminTerritory() {
   };
 
   const handlePrevPage = () => setCurrentPage(p => Math.max(p - 1, 1));
-  const handleNextPage = () => setCurrentPage(p => Math.min(p + 1, Math.ceil(filteredTerritories.length / (viewMode === "board" ? BOARD_PAGE_SIZE : TABLE_PAGE_SIZE)) || 1));
+  const handleNextPage = () => setCurrentPage(p => Math.min(p + 1, Math.ceil(filteredTerritories.length / itemsPerPage) || 1));
 
   // Helper to display user list in UI
   const renderAssignedUsers = (userList) => {
@@ -748,7 +748,21 @@ export default function AdminTerritory() {
           </div>
         )}
 
-        <PaginationControls className="mt-4" totalItems={filteredTerritories.length} pageSize={viewMode === "board" ? BOARD_PAGE_SIZE : TABLE_PAGE_SIZE} currentPage={currentPage} onPrev={handlePrevPage} onNext={handleNextPage} label="territories" />
+        {viewMode === "list" && (
+          <PaginationControls 
+            className="mt-4" 
+            totalItems={filteredTerritories.length} 
+            pageSize={itemsPerPage} 
+            currentPage={currentPage} 
+            onPrev={handlePrevPage} 
+            onNext={handleNextPage} 
+            onPageSizeChange={(newSize) => {
+              setItemsPerPage(newSize);
+              setCurrentPage(1);
+            }}
+            label="territories" 
+          />
+        )}
         
         {confirmModalData && (
           <ConfirmationModal open title={confirmModalData.title} message={confirmModalData.message} confirmLabel={confirmModalData.confirmLabel} cancelLabel={confirmModalData.cancelLabel} variant={confirmModalData.variant} onConfirm={handleConfirmAction} onCancel={handleCancelConfirm} loading={confirmProcessing} />

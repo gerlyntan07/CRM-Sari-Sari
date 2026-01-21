@@ -58,8 +58,6 @@ const getStatusBadgeClass = (status) => {
   }
 };
 
-const ITEMS_PER_PAGE = 10;
-
 const INITIAL_FORM_STATE = {
   first_name: "",
   last_name: "",
@@ -95,6 +93,7 @@ export default function AdminLeads() {
   const [statusFilter, setStatusFilter] = useState("Filter by Status");
   const [nameSort, setNameSort] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
   const [leadData, setLeadData] = useState(INITIAL_FORM_STATE);
   const [isEditing, setIsEditing] = useState(false);
   const [currentLeadId, setCurrentLeadId] = useState(null);
@@ -324,7 +323,7 @@ export default function AdminLeads() {
 
   const totalPages = Math.max(
     1,
-    Math.ceil(filteredLeads.length / ITEMS_PER_PAGE) || 1
+    Math.ceil(filteredLeads.length / itemsPerPage) || 1
   );
 
   useEffect(() => {
@@ -335,20 +334,25 @@ export default function AdminLeads() {
     setCurrentPage((prev) => {
       const maxPage = Math.max(
         1,
-        Math.ceil(filteredLeads.length / ITEMS_PER_PAGE) || 1
+        Math.ceil(filteredLeads.length / itemsPerPage) || 1
       );
       return prev > maxPage ? maxPage : prev;
     });
-  }, [filteredLeads.length]);
+  }, [filteredLeads.length, itemsPerPage]);
 
   const paginatedLeads = useMemo(() => {
-    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-    return filteredLeads.slice(startIndex, startIndex + ITEMS_PER_PAGE);
-  }, [filteredLeads, currentPage]);
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    return filteredLeads.slice(startIndex, startIndex + itemsPerPage);
+  }, [filteredLeads, currentPage, itemsPerPage]);
 
   const handlePrevPage = () => setCurrentPage((prev) => Math.max(prev - 1, 1));
   const handleNextPage = () =>
     setCurrentPage((prev) => Math.min(prev + 1, totalPages));
+
+  const handlePageSizeChange = (newPageSize) => {
+    setItemsPerPage(newPageSize);
+    setCurrentPage(1);
+  };
 
   const handleLeadClick = (lead) => {
     // Set selectedLead instead of navigating - this will show modal overlay
@@ -844,10 +848,11 @@ export default function AdminLeads() {
       <PaginationControls
         className="mt-4"
         totalItems={filteredLeads.length}
-        pageSize={ITEMS_PER_PAGE}
+        pageSize={itemsPerPage}
         currentPage={currentPage}
         onPrev={handlePrevPage}
         onNext={handleNextPage}
+        onPageSizeChange={handlePageSizeChange}
         label="leads"
       />
 

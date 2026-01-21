@@ -6,9 +6,7 @@ import PaginationControls from "./PaginationControls.jsx";
 import LoadingSpinner from "./LoadingSpinner.jsx";
 import { FiCalendar } from "react-icons/fi";
 
-const ITEMS_PER_PAGE = 10;
-
-export default function AdminAudit() {
+  export default function AdminAudit() {
   useEffect(() => {
     document.title = "Audit | Sari-Sari CRM";
   }, []);
@@ -17,6 +15,7 @@ export default function AdminAudit() {
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("Filter by Actions");
   const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
 
   const fetchLogs = async () => {
     try {
@@ -94,7 +93,7 @@ export default function AdminAudit() {
 
   const totalPages = Math.max(
     1,
-    Math.ceil(filteredLogs.length / ITEMS_PER_PAGE) || 1
+    Math.ceil(filteredLogs.length / itemsPerPage) || 1
   );
 
   useEffect(() => {
@@ -105,20 +104,20 @@ export default function AdminAudit() {
     setCurrentPage((prev) => {
       const maxPage = Math.max(
         1,
-        Math.ceil(filteredLogs.length / ITEMS_PER_PAGE) || 1
+        Math.ceil(filteredLogs.length / itemsPerPage) || 1
       );
       return prev > maxPage ? maxPage : prev;
     });
-  }, [filteredLogs.length]);
+  }, [filteredLogs.length, itemsPerPage]);
 
   const paginatedLogs = useMemo(() => {
-    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-    return filteredLogs.slice(startIndex, startIndex + ITEMS_PER_PAGE);
-  }, [filteredLogs, currentPage]);
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    return filteredLogs.slice(startIndex, startIndex + itemsPerPage);
+  }, [filteredLogs, currentPage, itemsPerPage]);
 
   const pageStart =
-    filteredLogs.length === 0 ? 0 : (currentPage - 1) * ITEMS_PER_PAGE + 1;
-  const pageEnd = Math.min(currentPage * ITEMS_PER_PAGE, filteredLogs.length);
+    filteredLogs.length === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1;
+  const pageEnd = Math.min(currentPage * itemsPerPage, filteredLogs.length);
 
   const handlePrevPage = () => setCurrentPage((prev) => Math.max(prev - 1, 1));
   const handleNextPage = () =>
@@ -311,10 +310,15 @@ export default function AdminAudit() {
       <PaginationControls
         className="mt-4"
         totalItems={filteredLogs.length}
-        pageSize={ITEMS_PER_PAGE}
+        pageSize={itemsPerPage}
         currentPage={currentPage}
         onPrev={handlePrevPage}
         onNext={handleNextPage}
+        onPageSizeChange={(newSize) => {
+          setItemsPerPage(newSize);
+          setCurrentPage(1);
+        }}
+        pageSizeOptions={[10, 20, 30, 40, 50]}
         label="logs"
       />
     </div>

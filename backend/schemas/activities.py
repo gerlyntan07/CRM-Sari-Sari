@@ -88,3 +88,12 @@ class LeadActivityResponse(BaseModel):
     
     class Config:
         orm_mode = True
+
+class DealActivityResponse(BaseModel):    
+    tasks: Optional[list[TaskBase]] = None
+    meetings: Optional[list[MeetingBase]] = []
+    calls: Optional[list[CallBase]] = []
+    quotes: Optional[list[QuoteBase]] = []
+    
+    class Config:
+        orm_mode = True

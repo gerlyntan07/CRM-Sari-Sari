@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from "react";
+import React, { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import {
     FiSearch,
     FiEdit,
@@ -41,6 +41,7 @@ export default function AdminDeals() {
     const [accounts, setAccounts] = useState([]);
     const [contacts, setContacts] = useState([]);
     const [users, setUsers] = useState([]);
+    const [relatedActs, setRelatedActs] = useState({});
 
     const [dealForm, setDealForm] = useState({
         id: null,
@@ -94,6 +95,19 @@ export default function AdminDeals() {
         };
         return stageColors[stage] || "bg-gray-100 text-gray-700";
     };
+
+    const fetchRelatedActivities = useCallback(async (deal_id) => {
+      try {
+        const res = await api.get(`/activities/deal/${deal_id}`);
+        setRelatedActs(res.data && typeof res.data === "object" ? res.data : {});
+      } catch (err) {
+        console.error(err);
+        if (err.response?.status === 404) {
+          console.warn("No activities found for this account.");
+          setRelatedActs({});
+        }
+      }
+    }, []);
 
     const filteredDeals = useMemo(() => {
         const normalizedQuery = searchQuery.trim().toLowerCase();
@@ -648,6 +662,7 @@ export default function AdminDeals() {
                                     onClick={() => {
                                         // Force re-render by creating a new object reference
                                         setSelectedDeal({ ...deal });
+                                        fetchRelatedActivities(deal.id);
                                     }}
                                 >
                                     <td className="py-3 px-4 text-gray-800 font-medium text-sm">
@@ -733,6 +748,7 @@ export default function AdminDeals() {
             {/* Modal: Selected Deal Info */}
             {selectedDeal && (
                 <AdminDealsInformation
+                    relatedActs={relatedActs}
                     selectedDeal={selectedDeal}
                     show={!!selectedDeal}
                     onClose={() => setSelectedDeal(null)}

@@ -7,7 +7,7 @@ from sqlalchemy import select
 from typing import Optional
 
 from database import get_db
-from schemas.activities import AccountActivityResponse, ContactActivityResponse, LeadActivityResponse
+from schemas.activities import AccountActivityResponse, ContactActivityResponse, LeadActivityResponse, DealActivityResponse
 from .auth_utils import get_current_user
 from models.auth import User
 from models.task import Task
@@ -78,4 +78,22 @@ def get_account_activities(
         "tasks": tasks,
         "calls": calls,
         "meetings": meetings,
+    }
+
+@router.get('/deal/{deal_id}', response_model=DealActivityResponse)
+def get_account_activities(
+    deal_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    tasks = db.query(Task).filter(Task.related_to_deal == deal_id).all()
+    calls = db.query(Call).filter(Call.related_to_deal == deal_id).all()
+    meetings = db.query(Meeting).filter(Meeting.related_to_deal == deal_id).all()      
+    quotes = db.query(Quote).filter(Quote.deal_id == deal_id).all()    
+
+    return {
+        "tasks": tasks,
+        "calls": calls,
+        "meetings": meetings,
+        "quotes": quotes,        
     }

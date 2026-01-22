@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from "react";
+import React, { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import {
   FiSearch,
   FiEdit,
@@ -100,6 +100,7 @@ export default function AdminLeads() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [confirmModalData, setConfirmModalData] = useState(null);
   const [confirmProcessing, setConfirmProcessing] = useState(false);
+  const [relatedActs, setRelatedActs] = useState({});
   const editDataRef = useRef(null);
   const [convertModalOpen, setConvertModalOpen] = useState(false);
   const [leadToConvert, setLeadToConvert] = useState(null);
@@ -332,9 +333,23 @@ export default function AdminLeads() {
   const handleNextPage = () =>
     setCurrentPage((prev) => Math.min(prev + 1, totalPages));
 
+  const fetchRelatedActivities = useCallback(async (lead_id) => {
+        try {
+          const res = await api.get(`/activities/lead/${lead_id}`);
+          setRelatedActs(res.data && typeof res.data === "object" ? res.data : {});
+        } catch (err) {
+          console.error(err);
+          if (err.response?.status === 404) {
+            console.warn("No activities found for this account.");
+            setRelatedActs({});
+          }
+        }
+      }, []);
+
   const handleLeadClick = (lead) => {
     // Set selectedLead instead of navigating - this will show modal overlay
     setSelectedLead(lead);
+    fetchRelatedActivities(lead.id);
   };
   const handleBackToList = () => {
     // Clear selectedLead and navigate to base URL
@@ -1169,6 +1184,7 @@ export default function AdminLeads() {
       {/* Modal: Selected Lead Info - Overlay on top of list view */}
       {selectedLead && !showModal && !isEditing && (
         <AdminLeadsInformation
+          relatedActs={relatedActs}
           lead={selectedLead}
           onBack={handleBackToList}
           fetchLeads={fetchLeads}

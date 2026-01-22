@@ -1,6 +1,16 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { HiX } from "react-icons/hi";
-import { FiPhone, FiMail, FiCalendar, FiEdit2, FiTrash2, FiCheckSquare } from "react-icons/fi";
+import {
+  FiPhone,
+  FiMail,
+  FiCalendar,
+  FiEdit2,
+  FiTrash2,
+  FiCheckSquare,
+  FiFileText,
+  FiChevronDown,
+  FiChevronRight,
+} from "react-icons/fi";
 import { toast } from "react-toastify";
 import { useNavigate, useParams } from "react-router-dom";
 import api from "../api";
@@ -14,6 +24,20 @@ function Detail({ label, value }) {
   );
 }
 
+const formattedDateTime = (datetime) => {
+  if (!datetime) return "";
+  return new Date(datetime)
+    .toLocaleString("en-US", {
+      month: "short",
+      day: "2-digit",
+      year: "numeric",
+      hour: "numeric",
+      minute: "numeric",
+      hour12: true,
+    })
+    .replace(",", "");
+};
+
 export default function AdminLeadsInformation({
   lead: leadProp,
   onBack,
@@ -21,14 +45,15 @@ export default function AdminLeadsInformation({
   onEdit,
   onDelete,
   setSelectedLead,
+  relatedActs
 }) {
   const navigate = useNavigate();
   const { leadID } = useParams();
   const [lead, setLead] = useState(leadProp || null);
   const [activeTab, setActiveTab] = useState("Overview");
   const [selectedStatus, setSelectedStatus] = useState("");
-  const canConvert = lead?.status?.toUpperCase() === "QUALIFIED";
-
+  const canConvert = lead?.status?.toUpperCase() === "QUALIFIED";  
+  const [expandedSection, setExpandedSection] = useState(null);  
 
   const [accountData, setAccountData] = useState({
     name: "",
@@ -182,7 +207,6 @@ export default function AdminLeadsInformation({
     }
   };
 
-
   const handleConvert = async (lead) => {
     const newAccount = {
       ...accountData,
@@ -288,8 +312,9 @@ export default function AdminLeadsInformation({
       state: {
         openCallModal: true,
         initialCallData: {
-          subject: `Call with ${lead.first_name || ""} ${lead.last_name || ""
-            }`.trim(),
+          subject: `Call with ${lead.first_name || ""} ${
+            lead.last_name || ""
+          }`.trim(),
           phone_number: lead.work_phone || lead.mobile_phone_1 || "",
           assigned_to: lead.assigned_to ? String(lead.assigned_to.id) : "",
           related_type: "Lead",
@@ -333,7 +358,6 @@ export default function AdminLeadsInformation({
       <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
         {/* MODAL */}
         <div className="bg-white rounded-xl shadow-lg w-full max-w-full sm:max-w-6xl max-h-[90vh] overflow-y-auto hide-scrollbar relative box-border">
-
           {/* TOP SECTION*/}
           <div className="bg-tertiary w-full rounded-t-xl p-3 lg:p-3">
             <div className="flex items-start justify-between w-full">
@@ -349,7 +373,8 @@ export default function AdminLeadsInformation({
                     navigate(-1);
                   }
                 }}
-                className="text-gray-400 hover:text-white mt-1 cursor-pointer">
+                className="text-gray-400 hover:text-white mt-1 cursor-pointer"
+              >
                 <HiX size={25} />
               </button>
             </div>
@@ -363,7 +388,7 @@ export default function AdminLeadsInformation({
               </h1>
               <span
                 className={`text-xs sm:text-sm font-medium px-2 sm:px-3 py-1 rounded-full whitespace-nowrap ${getStatusBadgeClass(
-                  lead.status
+                  lead.status,
                 )}`}
               >
                 {formatStatusLabel(lead.status || "New")}
@@ -379,16 +404,16 @@ export default function AdminLeadsInformation({
                       : "Convert Lead"
                   }
                   className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-md font-medium text-xs sm:text-sm transition focus:outline-none focus:ring-2
-      ${canConvert
-                      ? "bg-green-600 hover:bg-green-700 text-white focus:ring-green-400"
-                      : "bg-gray-200 text-gray-400 cursor-not-allowed"
-                    }
+      ${
+        canConvert
+          ? "bg-green-600 hover:bg-green-700 text-white focus:ring-green-400"
+          : "bg-gray-200 text-gray-400 cursor-not-allowed"
+      }
     `}
                 >
                   Convert
                 </button>
               </div>
-
             </div>
 
             <div className="flex flex-col sm:flex-row sm:space-x-3 space-y-2 sm:space-y-0">
@@ -428,10 +453,11 @@ export default function AdminLeadsInformation({
                   key={tab}
                   onClick={() => setActiveTab(tab)}
                   className={`flex-1 min-w-[90px] px-4 py-2.5 text-xs sm:text-sm font-medium text-center transition-all duration-200 border-b-2
-        ${activeTab === tab
-                      ? "bg-paper-white text-[#6A727D] border-white"
-                      : "text-white hover:bg-[#5c636d]"
-                    }`}
+        ${
+          activeTab === tab
+            ? "bg-paper-white text-[#6A727D] border-white"
+            : "text-white hover:bg-[#5c636d]"
+        }`}
                 >
                   {tab}
                 </button>
@@ -536,55 +562,220 @@ export default function AdminLeadsInformation({
 
                 {/* ACTIVITIES */}
                 {activeTab === "Activities" && (
-                  <div className="mt-4 space-y-4 w-full">
-                    <h3 className="text-lg font-semibold text-gray-800 break-words">
-                      Recent Activities
+                  <div className="space-y-2 w-full h-full max-h-[50dvh] overflow-y-auto bg-gray-50 p-2 hide-scrollbar rounded-lg border border-gray-200 shadow-sm">
+                    <h3 className="text-lg font-semibold text-gray-800 break-words border-b border-gray-300 py-2">
+                      Related Activities
                     </h3>
 
-                    {[
-                      {
-                        icon: FiPhone,
-                        title: "Schedule Call",
-                        desc: "Discuss implementation timeline and pricing",
-                        user: "Lester James",
-                        date: "December 12, 2025 at 8:00 AM",
-                      },
-                      {
-                        icon: FiCalendar,
-                        title: "Meeting regarding Enterprise Software License",
-                        desc: "Discuss implementation timeline and pricing",
-                        user: "Lester James",
-                        date: "December 12, 2025 at 8:00 AM",
-                      },
-                    ].map((act, idx) => (
-                      <div
-                        key={idx}
-                        className="flex flex-col sm:flex-row justify-between items-start border border-gray-200 rounded-lg p-4 shadow-sm bg-white w-full break-words"
-                      >
-                        <div className="flex gap-4 mb-2 sm:mb-0 flex-1 min-w-0">
-                          <div className="text-gray-600 mt-1">
-                            <act.icon size={24} />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <h4 className="font-medium text-gray-900 break-words">
-                              {act.title}
-                            </h4>
-                            <p className="text-sm text-gray-500 break-words">
-                              {act.desc}
-                            </p>
-                            <div className="flex items-center gap-2 mt-2">
-                              <div className="w-7 h-7 rounded-full bg-gray-200 shrink-0"></div>
-                              <p className="text-sm text-gray-700 break-words">
-                                {act.user}
-                              </p>
+                    <div className="space-y-2 text-sm">
+                      {/* TASKS */}
+                      {relatedActs.tasks && relatedActs.tasks.length > 0 && (
+                        <div className="rounded-lg border border-gray-200 bg-white overflow-hidden">
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setExpandedSection(
+                                expandedSection === "tasks" ? null : "tasks",
+                              )
+                            }
+                            className="w-full flex items-center justify-between p-3 hover:bg-gray-50 transition cursor-pointer"
+                          >
+                            <div className="flex items-center gap-2">
+                              <FiCheckSquare className="text-blue-600" />
+                              <span className="font-semibold text-gray-700">
+                                Tasks ({relatedActs.tasks.length})
+                              </span>
                             </div>
-                          </div>
+                            {expandedSection === "tasks" ? (
+                              <FiChevronDown className="text-gray-500" />
+                            ) : (
+                              <FiChevronRight className="text-gray-500" />
+                            )}
+                          </button>
+                          {expandedSection === "tasks" && (
+                            <div className="border-t border-gray-200 p-2 space-y-2 max-h-60 overflow-y-auto hide-scrollbar">
+                              {relatedActs.tasks.map((task, idx) => (
+                                <div
+                                  key={`task-${idx}`}
+                                  className="flex flex-col sm:flex-row justify-between items-start border border-gray-100 rounded-lg p-3 bg-gray-50 w-full break-words"
+                                >
+                                  <div className="flex gap-3 mb-2 sm:mb-0 flex-1 min-w-0">
+                                    <div className="text-blue-600 mt-1">
+                                      <FiCheckSquare size={20} />
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                      <h4 className="font-medium text-blue-600 break-words text-sm">
+                                        {task.subject || task.title || "Task"}
+                                      </h4>
+                                      <p className="text-gray-500 break-words text-xs">
+                                        {task.description || "No description"}
+                                      </p>
+                                      {task.assigned_to && (
+                                        <p className="text-xs text-gray-600 mt-1">
+                                          Assigned:{" "}
+                                          {task.assigned_to.first_name}{" "}
+                                          {task.assigned_to.last_name}
+                                        </p>
+                                      )}
+                                    </div>
+                                  </div>
+                                  <p className="text-xs text-gray-500 break-words">
+                                    {formattedDateTime(
+                                      task.due_date || task.created_at,
+                                    )}
+                                  </p>
+                                </div>
+                              ))}
+                            </div>
+                          )}
                         </div>
-                        <p className="text-sm text-gray-500 break-words">
-                          {act.date}
-                        </p>
-                      </div>
-                    ))}
+                      )}
+
+                      {/* MEETINGS */}
+                      {relatedActs.meetings &&
+                        relatedActs.meetings.length > 0 && (
+                          <div className="rounded-lg border border-gray-200 bg-white overflow-hidden">
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setExpandedSection(
+                                  expandedSection === "meetings"
+                                    ? null
+                                    : "meetings",
+                                )
+                              }
+                              className="w-full flex items-center justify-between p-3 hover:bg-gray-50 transition cursor-pointer"
+                            >
+                              <div className="flex items-center gap-2">
+                                <FiCalendar className="text-green-600" />
+                                <span className="font-semibold text-gray-700">
+                                  Meetings ({relatedActs.meetings.length})
+                                </span>
+                              </div>
+                              {expandedSection === "meetings" ? (
+                                <FiChevronDown className="text-gray-500" />
+                              ) : (
+                                <FiChevronRight className="text-gray-500" />
+                              )}
+                            </button>
+                            {expandedSection === "meetings" && (
+                              <div className="border-t border-gray-200 p-2 space-y-2 max-h-60 overflow-y-auto hide-scrollbar">
+                                {relatedActs.meetings.map((meeting, idx) => (
+                                  <div
+                                    key={`meeting-${idx}`}
+                                    className="flex flex-col sm:flex-row justify-between items-start border border-gray-100 rounded-lg p-3 bg-gray-50 w-full break-words"
+                                  >
+                                    <div className="flex gap-3 mb-2 sm:mb-0 flex-1 min-w-0">
+                                      <div className="text-green-600 mt-1">
+                                        <FiCalendar size={20} />
+                                      </div>
+                                      <div className="flex-1 min-w-0">
+                                        <h4 className="font-medium text-blue-600 break-words text-sm">
+                                          {meeting.subject ||
+                                            meeting.title ||
+                                            "Meeting"}
+                                        </h4>
+                                        <p className="text-gray-500 break-words text-xs">
+                                          {meeting.description ||
+                                            meeting.location ||
+                                            "No description"}
+                                        </p>
+                                        {meeting.host && (
+                                          <p className="text-xs text-gray-600 mt-1">
+                                            Host: {meeting.host.first_name}{" "}
+                                            {meeting.host.last_name}
+                                          </p>
+                                        )}
+                                      </div>
+                                    </div>
+                                    <p className="text-xs text-gray-500 break-words">
+                                      {formattedDateTime(
+                                        meeting.start_time ||
+                                          meeting.created_at,
+                                      )}
+                                    </p>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        )}
+
+                      {/* CALLS */}
+                      {relatedActs.calls && relatedActs.calls.length > 0 && (
+                        <div className="rounded-lg border border-gray-200 bg-white overflow-hidden">
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setExpandedSection(
+                                expandedSection === "calls" ? null : "calls",
+                              )
+                            }
+                            className="w-full flex items-center justify-between p-3 hover:bg-gray-50 transition cursor-pointer"
+                          >
+                            <div className="flex items-center gap-2">
+                              <FiPhone className="text-purple-600" />
+                              <span className="font-semibold text-gray-700">
+                                Calls ({relatedActs.calls.length})
+                              </span>
+                            </div>
+                            {expandedSection === "calls" ? (
+                              <FiChevronDown className="text-gray-500" />
+                            ) : (
+                              <FiChevronRight className="text-gray-500" />
+                            )}
+                          </button>
+                          {expandedSection === "calls" && (
+                            <div className="border-t border-gray-200 p-2 space-y-2 max-h-60 overflow-y-auto hide-scrollbar">
+                              {relatedActs.calls.map((call, idx) => (
+                                <div
+                                  key={`call-${idx}`}
+                                  className="flex flex-col sm:flex-row justify-between items-start border border-gray-100 rounded-lg p-3 bg-gray-50 w-full break-words"
+                                >
+                                  <div className="flex gap-3 mb-2 sm:mb-0 flex-1 min-w-0">
+                                    <div className="text-purple-600 mt-1">
+                                      <FiPhone size={20} />
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                      <h4 className="font-medium text-blue-600 break-words text-sm">
+                                        {call.subject || call.title || "Call"}
+                                      </h4>
+                                      <p className="text-gray-500 break-words text-xs">
+                                        {call.direction || ""}
+                                      </p>
+                                    </div>
+                                  </div>
+                                  <p className="text-xs text-gray-500 break-words">
+                                    {formattedDateTime(
+                                      call.call_time || call.created_at,
+                                    )}
+                                  </p>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {/* No activities message */}
+                      {(!relatedActs ||
+                        ((!relatedActs.tasks ||
+                          relatedActs.tasks.length === 0) &&
+                          (!relatedActs.meetings ||
+                            relatedActs.meetings.length === 0) &&
+                          (!relatedActs.calls ||
+                            relatedActs.calls.length === 0) &&
+                          (!relatedActs.quotes ||
+                            relatedActs.quotes.length === 0) &&
+                          (!relatedActs.deals ||
+                            relatedActs.deals.length === 0) &&
+                          (!relatedActs.contacts ||
+                            relatedActs.contacts.length === 0))) && (
+                        <div className="text-center py-8 text-gray-500">
+                          <p>No related activities found for this account.</p>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 )}
               </div>
@@ -597,7 +788,6 @@ export default function AdminLeadsInformation({
                   </h4>
 
                   <div className="flex flex-col gap-2 w-full">
-
                     {/* --- SCHEDULE CALL BUTTON (updated) --- */}
                     <button
                       onClick={() => {
@@ -626,7 +816,6 @@ export default function AdminLeadsInformation({
                             },
                           },
                         });
-
                       }}
                       className="flex items-center gap-2 border border-gray-100 rounded-md py-1.5 px-2 sm:px-3 hover:bg-gray-50 transition text-sm"
                     >
@@ -690,7 +879,6 @@ export default function AdminLeadsInformation({
                       Book Meeting
                     </button>
 
-
                     <button
                       onClick={() => {
                         if (!lead) return;
@@ -724,7 +912,6 @@ export default function AdminLeadsInformation({
                       <FiCheckSquare className="text-gray-600 w-4 h-4" />
                       Tasks
                     </button>
-
                   </div>
                 </div>
 
@@ -747,16 +934,16 @@ export default function AdminLeadsInformation({
                     )}
 
                     <option value="Lost">Lost</option>
-
                   </select>
 
                   <button
                     onClick={updateStatus}
                     disabled={selectedStatus === lead.status}
-                    className={`w-full py-1.5 rounded-md text-sm transition focus:outline-none focus:ring-2 ${selectedStatus === lead.status
-                      ? "bg-gray-400 cursor-not-allowed text-white"
-                      : "bg-gray-900 text-white hover:bg-gray-800 focus:ring-gray-400"
-                      }`}
+                    className={`w-full py-1.5 rounded-md text-sm transition focus:outline-none focus:ring-2 ${
+                      selectedStatus === lead.status
+                        ? "bg-gray-400 cursor-not-allowed text-white"
+                        : "bg-gray-900 text-white hover:bg-gray-800 focus:ring-gray-400"
+                    }`}
                   >
                     Update
                   </button>

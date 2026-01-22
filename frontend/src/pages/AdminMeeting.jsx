@@ -6,6 +6,8 @@ import {
   FiClock,
   FiCheckCircle,
   FiXCircle,
+  FiCheckSquare,
+  FiTrash2,
 } from "react-icons/fi";
 import { toast } from "react-toastify";
 import { useSearchParams, useNavigate, useLocation } from "react-router-dom";
@@ -87,6 +89,7 @@ const AdminMeeting = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [confirmModalData, setConfirmModalData] = useState(null);
   const [confirmProcessing, setConfirmProcessing] = useState(false);
+  const [selectedIds, setSelectedIds] = useState([]);
 
   // Auto-open logic
   useEffect(() => {
@@ -155,6 +158,25 @@ const AdminMeeting = () => {
   }, []);
 
   const handleSearch = (event) => setSearchTerm(event.target.value);
+
+  const handleSelectAll = (e) => {
+    if (e.target.checked) {
+      const allIds = paginatedMeetings.map((item) => item.id);
+      setSelectedIds(allIds);
+    } else {
+      setSelectedIds([]);
+    }
+  };
+
+  const handleCheckboxChange = (id) => {
+    setSelectedIds((prev) => {
+      if (prev.includes(id)) {
+        return prev.filter((prevId) => prevId !== id);
+      } else {
+        return [...prev, id];
+      }
+    });
+  };
 
   const filteredMeetings = useMemo(() => {
     const normalizedQuery = searchTerm.trim().toLowerCase();
@@ -368,6 +390,12 @@ const AdminMeeting = () => {
         toast.success(`Meeting "${name}" deleted.`);
         if (selectedMeeting?.id === targetId) setSelectedMeeting(null);
         await fetchMeetings();
+      } else if (type === "bulk-delete") {
+        const { meeting_ids } = confirmModalData.action;
+        await api.delete(`/meetings/admin/bulk-delete`, { data: { meeting_ids } });
+        toast.success(`${meeting_ids.length} meetings deleted.`);
+        setSelectedIds([]);
+        await fetchMeetings();
       }
     } catch (err) {
       const msg = err.response?.data?.detail || "Action failed.";
@@ -378,6 +406,28 @@ const AdminMeeting = () => {
       setConfirmProcessing(false);
       setConfirmModalData(null);
     }
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedIds.length === 0) return;
+
+    setConfirmModalData({
+      title: "Bulk Delete Meetings",
+      message: (
+        <span>
+          Are you sure you want to delete{" "}
+          <span className="font-semibold">{selectedIds.length}</span> selected
+          meetings? This action cannot be undone.
+        </span>
+      ),
+      confirmLabel: `Delete ${selectedIds.length} Meetings`,
+      cancelLabel: "Cancel",
+      variant: "danger",
+      action: {
+        type: "bulk-delete",
+        meeting_ids: selectedIds,
+      },
+    });
   };
 
   // ... (Keep existing MetricCard, handleStatusUpdate, handleDelete logic same as provided) ...
@@ -426,10 +476,10 @@ const AdminMeeting = () => {
           <FiCalendar className="mr-2 text-blue-600" /> Meetings
         </h1>
         <div className="flex justify-center lg:justify-end w-full sm:w-auto">
-        <button onClick={handleOpenAddModal} className="bg-black text-white px-4 py-2 rounded-md flex items-center hover:bg-gray-800">
-          <FiPlus className="mr-2" /> Add Meeting
-        </button>
-      </div>
+          <button onClick={handleOpenAddModal} className="bg-black text-white px-4 py-2 rounded-md flex items-center hover:bg-gray-800">
+            <FiPlus className="mr-2" /> Add Meeting
+          </button>
+        </div>
       </div>
 
       {/* METRICS & FILTERS (Keep existing markup structure) */}
@@ -453,16 +503,45 @@ const AdminMeeting = () => {
         <table className="w-full min-w-[500px] border border-gray-200 rounded-lg bg-white shadow-sm text-sm mb-4">
           <thead className="bg-gray-100 text-left text-gray-600 font-semibold">
             <tr>
+              <th className="py-3 px-4 w-12">
+                <input
+                  type="checkbox"
+                  checked={paginatedMeetings.length > 0 && selectedIds.length === paginatedMeetings.length}
+                  onChange={handleSelectAll}
+                  className="cursor-pointer"
+                />
+              </th>
               <th className="py-3 px-4">Subject</th>
               <th className="py-3 px-4">Related To</th>
               <th className="py-3 px-4">Start Time</th>
               <th className="py-3 px-4">Assigned</th>
               <th className="py-3 px-4">Status</th>
+              <th className="py-3 px-4 text-center w-24">
+                {selectedIds.length > 0 ? (
+                  <button
+                    onClick={handleBulkDelete}
+                    className="text-red-600 hover:text-red-800 transition p-1 rounded-full hover:bg-red-50"
+                    title={`Delete ${selectedIds.length} selected items`}
+                  >
+                    <FiTrash2 size={18} />
+                  </button>
+                ) : (
+                  <span className="text-gray-400">Actions</span>
+                )}
+              </th>
             </tr>
           </thead>
           <tbody>
             {paginatedMeetings.length > 0 ? paginatedMeetings.map((m) => (
                <tr key={m.id} onClick={() => setSelectedMeeting(m)} className="hover:bg-gray-50 cursor-pointer border-b border-gray-100">
+                  <td className="py-3 px-4 align-top w-12" onClick={(e) => e.stopPropagation()}>
+                    <input
+                      type="checkbox"
+                      checked={selectedIds.includes(m.id)}
+                      onChange={() => handleCheckboxChange(m.id)}
+                      className="cursor-pointer"
+                    />
+                  </td>
                   <td className="py-3 px-4 font-medium text-blue-600">{m.subject}</td>
                   <td className="py-3 px-4">
                     {m.lead && (
@@ -485,9 +564,10 @@ const AdminMeeting = () => {
                         {toAdminStatus(m.status).replace("_", " ")}
                      </span>
                   </td>
+                  <td className="py-3 px-4 text-center"></td>
                </tr>
             )) : (
-               <tr><td colSpan={5} className="text-center py-4 text-gray-500">No meetings found.</td></tr>
+               <tr><td colSpan={7} className="text-center py-4 text-gray-500">No meetings found.</td></tr>
             )}
           </tbody>
         </table>

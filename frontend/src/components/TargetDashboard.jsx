@@ -21,6 +21,7 @@ import {
   FiTrendingUp,
   FiPieChart,
   FiBarChart2,
+  FiCheckSquare,
 } from "react-icons/fi";
 import { FaPesoSign } from "react-icons/fa6";
 
@@ -138,6 +139,7 @@ export default function TargetDashboard({ currentUserRole, currentUserId }) {
   const [selectedTarget, setSelectedTarget] = useState(null);
   const [confirmModalData, setConfirmModalData] = useState(null);
   const [confirmProcessing, setConfirmProcessing] = useState(false);
+  const [selectedIds, setSelectedIds] = useState([]);
 
   // Chart state
   const [timeframe, setTimeframe] = useState("annual");
@@ -377,6 +379,47 @@ export default function TargetDashboard({ currentUserRole, currentUserId }) {
         toast.success("Target deleted successfully.");
         fetchTargets();
         setSelectedTarget(null);
+      },
+    });
+  };
+
+  const handleSelectAll = () => {
+    if (paginatedTargets.every((t) => selectedIds.includes(t.id))) {
+      setSelectedIds(selectedIds.filter((id) => !paginatedTargets.map((t) => t.id).includes(id)));
+    } else {
+      const newIds = paginatedTargets.map((t) => t.id);
+      setSelectedIds([...new Set([...selectedIds, ...newIds])]);
+    }
+  };
+
+  const handleCheckboxChange = (id) => {
+    setSelectedIds((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+    );
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedIds.length === 0) return;
+
+    setConfirmModalData({
+      title: "Bulk Delete Targets",
+      message: (
+        <span>
+          Are you sure you want to delete{" "}
+          <span className="font-semibold">{selectedIds.length}</span> selected
+          targets? This action cannot be undone.
+        </span>
+      ),
+      confirmLabel: `Delete ${selectedIds.length} Targets`,
+      cancelLabel: "Cancel",
+      variant: "danger",
+      action: async () => {
+        await api.post("/targets/admin/bulk-delete", {
+          target_ids: selectedIds,
+        });
+        toast.success(`Successfully deleted ${selectedIds.length} targets`);
+        setSelectedIds([]);
+        fetchTargets();
       },
     });
   };
@@ -729,12 +772,36 @@ export default function TargetDashboard({ currentUserRole, currentUserId }) {
           <table className="w-full border border-gray-200 rounded-lg bg-white shadow-sm text-sm">
             <thead className="bg-gray-100 font-semibold text-gray-600">
               <tr>
+                <th className="py-3 px-4 w-10">
+                  <input
+                    type="checkbox"
+                    className="w-4 h-4 accent-blue-600"
+                    checked={
+                      paginatedTargets.length > 0 &&
+                      paginatedTargets.every((t) => selectedIds.includes(t.id))
+                    }
+                    onChange={handleSelectAll}
+                  />
+                </th>
                 <th className="py-3 px-4 text-left">User</th>
                 <th className="py-3 px-4 text-left">Target Amount</th>
                 <th className="py-3 px-4 text-left">Achieved Amount</th>
                 <th className="py-3 px-4 text-left">Achievement %</th>
                 <th className="py-3 px-4 text-left">Start Date</th>
                 <th className="py-3 px-4 text-left">End Date</th>
+                <th className="py-3 px-4 text-center w-24">
+                  {selectedIds.length > 0 ? (
+                    <button
+                      onClick={handleBulkDelete}
+                      className="text-red-600 hover:text-red-800 transition p-1 rounded-full hover:bg-red-50"
+                      title={`Delete ${selectedIds.length} selected targets`}
+                    >
+                      <FiTrash2 size={18} />
+                    </button>
+                  ) : (
+                    ""
+                  )}
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -748,20 +815,27 @@ export default function TargetDashboard({ currentUserRole, currentUserId }) {
                     <tr
                       key={t.id}
                       className="hover:bg-gray-50 cursor-pointer border-b border-gray-200"
-                      onClick={() => setSelectedTarget(t)}
                     >
-                      <td className="py-3 px-4 text-left font-medium">
+                      <td className="py-3 px-4" onClick={(e) => e.stopPropagation()}>
+                        <input
+                          type="checkbox"
+                          className="w-4 h-4 accent-blue-600"
+                          checked={selectedIds.includes(t.id)}
+                          onChange={() => handleCheckboxChange(t.id)}
+                        />
+                      </td>
+                      <td className="py-3 px-4 text-left font-medium" onClick={() => setSelectedTarget(t)}>
                         {t.user
                           ? `${t.user.first_name} ${t.user.last_name}`
                           : "Unknown"}
                       </td>
-                      <td className="py-3 px-4 text-left">
+                      <td className="py-3 px-4 text-left" onClick={() => setSelectedTarget(t)}>
                         ₱{Number(t.target_amount).toLocaleString()}
                       </td>
-                      <td className="py-3 px-4 text-left">
+                      <td className="py-3 px-4 text-left" onClick={() => setSelectedTarget(t)}>
                         ₱{Number(t.achieved_amount).toLocaleString()}
                       </td>
-                      <td className="py-3 px-4 text-left">
+                      <td className="py-3 px-4 text-left" onClick={() => setSelectedTarget(t)}>
                         <span className={`px-2 py-1 rounded text-white text-xs font-semibold ${achievementPercent >= 100
                             ? "bg-green-500"
                             : achievementPercent >= 75
@@ -773,14 +847,15 @@ export default function TargetDashboard({ currentUserRole, currentUserId }) {
                           {achievementPercent}%
                         </span>
                       </td>
-                      <td className="py-3 px-4 text-left">{t.start_date}</td>
-                      <td className="py-3 px-4 text-left">{t.end_date}</td>
+                      <td className="py-3 px-4 text-left" onClick={() => setSelectedTarget(t)}>{t.start_date}</td>
+                      <td className="py-3 px-4 text-left" onClick={() => setSelectedTarget(t)}>{t.end_date}</td>
+                      <td></td>
                     </tr>
                   );
                 })
               ) : (
                 <tr>
-                  <td colSpan="6" className="py-4 px-4 text-center text-gray-500">
+                  <td colSpan="8" className="py-4 px-4 text-center text-gray-500">
                     No targets found
                   </td>
                 </tr>

@@ -12,6 +12,7 @@ import {
   FiDownload,
   FiPhone,
   FiXCircle,
+  FiCheckSquare,
 } from "react-icons/fi";
 import AdminLeadsInformation from "../components/AdminLeadsInformation";
 import PaginationControls from "../components/PaginationControls.jsx";
@@ -100,6 +101,7 @@ export default function AdminLeads() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [confirmModalData, setConfirmModalData] = useState(null);
   const [confirmProcessing, setConfirmProcessing] = useState(false);
+  const [selectedIds, setSelectedIds] = useState([]);
   const [relatedActs, setRelatedActs] = useState({});
   const editDataRef = useRef(null);
   const [convertModalOpen, setConvertModalOpen] = useState(false);
@@ -601,6 +603,47 @@ export default function AdminLeads() {
     });
   };
 
+  const handleSelectAll = (e) => {
+    if (e.target.checked) {
+      const allIds = paginatedLeads.map((l) => l.id);
+      setSelectedIds(allIds);
+    } else {
+      setSelectedIds([]);
+    }
+  };
+
+  const handleCheckboxChange = (id) => {
+    setSelectedIds((prev) => {
+      if (prev.includes(id)) {
+        return prev.filter((prevId) => prevId !== id);
+      } else {
+        return [...prev, id];
+      }
+    });
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedIds.length === 0) return;
+
+    setConfirmModalData({
+      title: "Bulk Delete Leads",
+      message: (
+        <span>
+          Are you sure you want to delete{" "}
+          <span className="font-semibold">{selectedIds.length}</span> selected
+          leads? This action cannot be undone.
+        </span>
+      ),
+      confirmLabel: `Delete ${selectedIds.length} Leads`,
+      cancelLabel: "Cancel",
+      variant: "danger",
+      action: {
+        type: "bulk-delete",
+        leadIds: selectedIds,
+      },
+    });
+  };
+
   const handleConfirmAction = async () => {
     if (!confirmModalData?.action) {
       setConfirmModalData(null);
@@ -608,7 +651,7 @@ export default function AdminLeads() {
     }
 
     const { action } = confirmModalData;
-    const { type, payload, targetId, name, lead } = action;
+    const { type, payload, targetId, name, lead, leadIds } = action;
 
     console.log(payload)
     setConfirmProcessing(true);
@@ -644,6 +687,13 @@ export default function AdminLeads() {
         if (selectedLead?.id === targetId) {
           setSelectedLead(null);
         }
+        await fetchLeads();
+      } else if (type === "bulk-delete") {
+        await api.delete("/leads/admin/bulk-delete", {
+          data: { lead_ids: leadIds },
+        });
+        toast.success(`Successfully deleted ${leadIds.length} leads`);
+        setSelectedIds([]);
         await fetchLeads();
       }
     } catch (err) {
@@ -799,12 +849,36 @@ export default function AdminLeads() {
         <table className="w-full min-w-[500px] border border-gray-200 rounded-lg bg-white shadow-sm text-sm">
           <thead className="bg-gray-100 text-left text-gray-600 text-sm tracking-wide font-semibold">
             <tr>
+              <th className="py-3 px-4 w-10">
+                <input
+                  type="checkbox"
+                  className="w-4 h-4 accent-blue-600"
+                  checked={
+                    paginatedLeads.length > 0 &&
+                    paginatedLeads.every((l) => selectedIds.includes(l.id))
+                  }
+                  onChange={handleSelectAll}
+                />
+              </th>
               <th className="py-3 px-4">Name</th>
               <th className="py-3 px-4">Company</th>
               <th className="py-3 px-4">Job Title</th>
               <th className="py-3 px-4">Email</th>
               <th className="py-3 px-4">Assigned To</th>
               <th className="py-3 px-4">Status</th>
+              <th className="py-3 px-4 text-center w-24">
+                {selectedIds.length > 0 ? (
+                  <button
+                    onClick={handleBulkDelete}
+                    className="text-red-600 hover:text-red-800 transition p-1 rounded-full hover:bg-red-50"
+                    title={`Delete ${selectedIds.length} selected leads`}
+                  >
+                    <FiTrash2 size={18} />
+                  </button>
+                ) : (
+                  ""
+                )}
+              </th>
             </tr>
           </thead>
           <tbody>
@@ -813,30 +887,37 @@ export default function AdminLeads() {
                 <tr
                   key={lead.id}
                   className="hover:bg-gray-50 text-sm cursor-pointer"
-                  onClick={() => handleLeadClick(lead)}
                 >
-                  <td className="py-3 px-4">
+                  <td className="py-3 px-4" onClick={(e) => e.stopPropagation()}>
+                    <input
+                      type="checkbox"
+                      className="w-4 h-4 accent-blue-600"
+                      checked={selectedIds.includes(lead.id)}
+                      onChange={() => handleCheckboxChange(lead.id)}
+                    />
+                  </td>
+                  <td className="py-3 px-4" onClick={() => handleLeadClick(lead)}>
                     <div className="font-medium text-blue-600 hover:underline break-all text-sm">
                       {lead.first_name} {lead.last_name}
                     </div>
                   </td>
-                  <td className="py-3 px-4">
+                  <td className="py-3 px-4" onClick={() => handleLeadClick(lead)}>
                     <div className="font-medium text-gray-800 text-sm leading-tight">
                       {lead.company_name || "--"}
                     </div>
                   </td>
-                  <td className="py-3 px-4 text-gray-800 font-medium text-sm">
+                  <td className="py-3 px-4 text-gray-800 font-medium text-sm" onClick={() => handleLeadClick(lead)}>
                     {lead.title || "--"}
                   </td>
-                  <td className="py-3 px-4 text-gray-800 font-medium text-sm">
+                  <td className="py-3 px-4 text-gray-800 font-medium text-sm" onClick={() => handleLeadClick(lead)}>
                     {lead.email || "--"}
                   </td>
-                  <td className="py-3 px-4 text-gray-800 font-medium text-sm">
+                  <td className="py-3 px-4 text-gray-800 font-medium text-sm" onClick={() => handleLeadClick(lead)}>
                     {lead.assigned_to
                       ? `${lead.assigned_to.first_name} ${lead.assigned_to.last_name}`
                       : "--"}
                   </td>
-                  <td className="py-3 px-4">
+                  <td className="py-3 px-4" onClick={() => handleLeadClick(lead)}>
                     <span
                       className={`px-2 py-1 rounded-full text-xs font-medium whitespace-nowrap ${getStatusBadgeClass(
                         lead.status || "New"
@@ -845,13 +926,14 @@ export default function AdminLeads() {
                       {formatStatusLabel(lead.status || "New")}
                     </span>
                   </td>
+                  <td></td>
                 </tr>
               ))
             ) : (
               <tr>
                 <td
                   className="py-4 px-4 text-center text-sm text-gray-500"
-                  colSpan={7}
+                  colSpan={8}
                 >
                   No leads found.
                 </td>

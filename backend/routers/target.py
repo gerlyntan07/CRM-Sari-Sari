@@ -1,11 +1,11 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Request
+from fastapi import APIRouter, Depends, HTTPException, status, Request, Body
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import func
 from typing import List
 from decimal import Decimal
 
 from database import get_db
-from schemas.target import TargetCreate, TargetUpdate, TargetResponse, UserBase
+from schemas.target import TargetCreate, TargetUpdate, TargetResponse, UserBase, TargetBulkDelete
 from .auth_utils import get_current_user
 from models.auth import User
 from models.target import Target
@@ -314,3 +314,55 @@ def admin_delete_target(
     )
 
     return None
+
+
+@router.post("/admin/bulk-delete", status_code=status.HTTP_200_OK)
+def admin_bulk_delete_targets(
+    data: TargetBulkDelete,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    request: Request = None
+):
+    if current_user.role.upper() not in ALLOWED_ADMIN_ROLES:
+        raise HTTPException(status_code=403, detail="Permission denied")
+
+    if not data.target_ids:
+        return {"detail": "No targets provided for deletion."}
+
+    company_users = (
+        db.query(User.id)
+        .where(User.related_to_company == current_user.related_to_company)
+        .subquery()
+    )
+
+    targets_to_delete = db.query(Target).filter(
+        Target.id.in_(data.target_ids),
+        (Target.user_id.in_(company_users))
+    ).all()
+
+    if not targets_to_delete:
+        raise HTTPException(status_code=404, detail="No matching targets found for deletion.")
+
+    deleted_count = 0
+    for target in targets_to_delete:
+        deleted_data = serialize_instance(target)
+        target_name = f"target for user {target.user_id}"
+        target_user_id = target.user_id
+
+        db.delete(target)
+        
+        create_audit_log(
+            db=db,
+            current_user=current_user,
+            instance=target,
+            action="DELETE",
+            request=request,
+            old_data=deleted_data,
+            target_user_id=target_user_id,
+            custom_message=f"bulk delete target for user {target.user_id} via admin panel"
+        )
+        deleted_count += 1
+
+    db.commit()
+
+    return {"detail": f"Successfully deleted {deleted_count} target(s)."}

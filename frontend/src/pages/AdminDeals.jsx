@@ -8,7 +8,8 @@ import {
     FiXCircle,
     FiTrash2,
     FiX,
-    FiPlus
+    FiPlus,
+    FiCheckSquare
 } from "react-icons/fi";
 import { LuUserSearch } from "react-icons/lu";
 import api from '../api'
@@ -35,6 +36,7 @@ export default function AdminDeals() {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [confirmModalData, setConfirmModalData] = useState(null);
     const [confirmProcessing, setConfirmProcessing] = useState(false);
+    const [selectedIds, setSelectedIds] = useState([]);
     const [isEditing, setIsEditing] = useState(false);
     const [currentDealId, setCurrentDealId] = useState(null);
     const [accounts, setAccounts] = useState([]);
@@ -373,6 +375,47 @@ export default function AdminDeals() {
         });
     };
 
+    const handleSelectAll = (e) => {
+        if (e.target.checked) {
+            const allIds = paginatedDeals.map((d) => d.id);
+            setSelectedIds(allIds);
+        } else {
+            setSelectedIds([]);
+        }
+    };
+
+    const handleCheckboxChange = (id) => {
+        setSelectedIds((prev) => {
+            if (prev.includes(id)) {
+                return prev.filter((prevId) => prevId !== id);
+            } else {
+                return [...prev, id];
+            }
+        });
+    };
+
+    const handleBulkDelete = async () => {
+        if (selectedIds.length === 0) return;
+
+        setConfirmModalData({
+            title: "Bulk Delete Deals",
+            message: (
+                <span>
+                    Are you sure you want to delete{" "}
+                    <span className="font-semibold">{selectedIds.length}</span> selected
+                    deals? This action cannot be undone.
+                </span>
+            ),
+            confirmLabel: `Delete ${selectedIds.length} Deals`,
+            cancelLabel: "Cancel",
+            variant: "danger",
+            action: {
+                type: "bulk-delete",
+                dealIds: selectedIds,
+            },
+        });
+    };
+
     const handleConfirmAction = async () => {
         if (!confirmModalData?.action) {
             setConfirmModalData(null);
@@ -436,6 +479,14 @@ export default function AdminDeals() {
                 if (selectedDeal?.id === targetId) {
                     setSelectedDeal(null);
                 }
+                await fetchDeals();
+            } else if (type === "bulk-delete") {
+                const { dealIds } = action;
+                await api.delete("/deals/admin/bulk-delete", {
+                    data: { deal_ids: dealIds },
+                });
+                toast.success(`Successfully deleted ${dealIds.length} deals`);
+                setSelectedIds([]);
                 await fetchDeals();
             }
         } catch (err) {
@@ -620,6 +671,17 @@ export default function AdminDeals() {
                 <table className="w-full min-w-[500px] border border-gray-200 rounded-lg bg-white shadow-sm text-sm">
                     <thead className="bg-gray-100 text-left text-gray-600 text-sm tracking-wide font-semibold">
                         <tr>
+                            <th className="py-3 px-4 w-10">
+                                <input
+                                    type="checkbox"
+                                    className="w-4 h-4 accent-blue-600"
+                                    checked={
+                                        paginatedDeals.length > 0 &&
+                                        paginatedDeals.every((d) => selectedIds.includes(d.id))
+                                    }
+                                    onChange={handleSelectAll}
+                                />
+                            </th>
                             <th className="py-3 px-4">Deal ID</th>
                             <th className="py-3 px-4 truncate">Deal Name</th>
                             <th className="py-3 px-4">Account</th>
@@ -628,6 +690,19 @@ export default function AdminDeals() {
                             <th className="py-3 px-4">Value</th>
                             <th className="py-3 px-4">Close Date</th>
                             <th className="py-3 px-4">Owner</th>
+                            <th className="py-3 px-4 text-center w-24">
+                                {selectedIds.length > 0 ? (
+                                    <button
+                                        onClick={handleBulkDelete}
+                                        className="text-red-600 hover:text-red-800 transition p-1 rounded-full hover:bg-red-50"
+                                        title={`Delete ${selectedIds.length} selected items`}
+                                    >
+                                        <FiTrash2 size={18} />
+                                    </button>
+                                ) : (
+                                    ""
+                                )}
+                            </th>
                         </tr>
                     </thead>
                     <tbody>
@@ -641,6 +716,14 @@ export default function AdminDeals() {
                                         setSelectedDeal({ ...deal });
                                     }}
                                 >
+                                    <td className="py-3 px-4" onClick={(e) => e.stopPropagation()}>
+                                        <input
+                                            type="checkbox"
+                                            className="w-4 h-4 accent-blue-600"
+                                            checked={selectedIds.includes(deal.id)}
+                                            onChange={() => handleCheckboxChange(deal.id)}
+                                        />
+                                    </td>
                                     <td className="py-3 px-4 text-gray-800 font-medium text-sm">
                                         {deal.deal_id ? deal.deal_id.replace(/D(\d+)-\d+-/, "D$1-") : "--"}
                                     </td>

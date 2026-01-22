@@ -1,8 +1,8 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Request
+from fastapi import APIRouter, Depends, HTTPException, status, Request, Body
 from sqlalchemy.orm import Session
 from typing import List
 from database import get_db
-from schemas.territory import TerritoryCreate, TerritoryResponse
+from schemas.territory import TerritoryCreate, TerritoryResponse, TerritoryBulkDelete
 from .auth_utils import get_current_user, hash_password,get_default_avatar
 from models.auth import User
 from models.territory import Territory
@@ -14,6 +14,8 @@ router = APIRouter(
     prefix="/territories",
     tags=["territories"]
 )
+
+ALLOWED_ADMIN_ROLES = {"CEO", "ADMIN", "GROUP MANAGER", "MANAGER", "SALES"}
 
 @router.get("/fetch", response_model=List[TerritoryResponse])
 def get_territories(
@@ -237,36 +239,38 @@ async def update_territory(
 #     return territories
 
 
-# @router.delete("/{territory_id}")
-# def delete_territory(
-#     territory_id: int,
-#     db: Session = Depends(get_db),
-#     current_user: User = Depends(get_current_user),
-#     request: Request = None
-# ):
-#     territory = db.query(Territory).filter(Territory.id == territory_id).first()
-#     if not territory:
-#         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Territory not found")
-#     if territory.company_id != current_user.related_to_company and current_user.role not in ['CEO', 'Admin', 'Manager', 'Group Manager']:
-#         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You don't have permission to delete this territory")
+@router.delete("/{territory_id}")
+def delete_territory(
+    territory_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    request: Request = None
+):
+    territory = db.query(Territory).filter(Territory.id == territory_id).first()
+    if not territory:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Territory not found")
+    if territory.company_id != current_user.related_to_company and current_user.role.upper() not in ['CEO', 'ADMIN', 'MANAGER', 'GROUP MANAGER']:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You don't have permission to delete this territory")
     
-#     deleted_data = serialize_instance(territory)
-#     entity_id = deleted_data.get("id")
+    deleted_data = serialize_instance(territory)
+    entity_id = deleted_data.get("id")
+    target_user_id = territory.user_id
     
-#     db.delete(territory)
-#     db.commit()    
+    db.delete(territory)
+    db.commit()    
 
-#     create_audit_log(
-#         db=db,
-#         current_user=current_user,
-#         instance=territory,
-#         action="DELETE",
-#         request=request,
-#         old_data=deleted_data,        
-#         custom_message=f"delete territory '{entity_id}' permanently"
-#     )
+    create_audit_log(
+        db=db,
+        current_user=current_user,
+        instance=territory,
+        action="DELETE",
+        request=request,
+        old_data=deleted_data,
+        target_user_id=target_user_id,
+        custom_message=f"delete territory '{entity_id}' permanently"
+    )
 
-#     return deleted_data
+    return deleted_data
 
 
 # @router.put("/{territory_id}", response_model=TerritoryResponse)
@@ -340,3 +344,55 @@ async def update_territory(
 #     )
 
 #     return territory
+
+
+@router.delete("/admin/bulk-delete", status_code=status.HTTP_200_OK)
+def admin_bulk_delete_territories(
+    data: TerritoryBulkDelete = Body(...),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    request: Request = None
+):
+    if current_user.role.upper() not in ALLOWED_ADMIN_ROLES:
+        raise HTTPException(status_code=403, detail="Permission denied")
+
+    if not data.territory_ids:
+        return {"detail": "No territories provided for deletion."}
+
+    company_users = (
+        db.query(User.id)
+        .where(User.related_to_company == current_user.related_to_company)
+        .subquery()
+    )
+
+    territories_to_delete = db.query(Territory).filter(
+        Territory.id.in_(data.territory_ids),
+        (Territory.user_id.in_(company_users))
+    ).all()
+
+    if not territories_to_delete:
+        raise HTTPException(status_code=404, detail="No matching territories found for deletion.")
+
+    deleted_count = 0
+    for territory in territories_to_delete:
+        deleted_data = serialize_instance(territory)
+        territory_name = territory.name
+        target_user_id = territory.user_id
+
+        db.delete(territory)
+        
+        create_audit_log(
+            db=db,
+            current_user=current_user,
+            instance=territory,
+            action="DELETE",
+            request=request,
+            old_data=deleted_data,
+            target_user_id=target_user_id,
+            custom_message=f"bulk delete territory '{territory_name}' via admin panel"
+        )
+        deleted_count += 1
+
+    db.commit()
+
+    return {"detail": f"Successfully deleted {deleted_count} territory(ies)."}

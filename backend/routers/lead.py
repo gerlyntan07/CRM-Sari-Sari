@@ -1,9 +1,9 @@
 # backend/routers/lead.py
-from fastapi import APIRouter, Depends, HTTPException, status, Request, BackgroundTasks
+from fastapi import APIRouter, Depends, HTTPException, status, Request, BackgroundTasks, Body
 from sqlalchemy.orm import Session
 from typing import List
 from database import get_db
-from schemas.lead import LeadCreate, LeadResponse, LeadStatusUpdate, LeadUpdate
+from schemas.lead import LeadCreate, LeadResponse, LeadStatusUpdate, LeadUpdate, LeadBulkDelete
 from schemas.auth import UserWithTerritories, UserResponse
 from .auth_utils import get_current_user, hash_password,get_default_avatar
 from models.auth import User
@@ -24,6 +24,8 @@ router = APIRouter(
     prefix="/leads",
     tags=["Leads"]
 )
+
+ALLOWED_ADMIN_ROLES = {"CEO", "ADMIN", "GROUP MANAGER", "MANAGER", "SALES"}
 
 @router.get("/admin/getLeads", response_model=List[LeadResponse])
 def get_leads_admin(
@@ -536,3 +538,55 @@ def update_lead_status(
     )
 
     return lead
+
+
+@router.delete("/admin/bulk-delete", status_code=status.HTTP_200_OK)
+def admin_bulk_delete_leads(
+    data: LeadBulkDelete = Body(...),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    request: Request = None
+):
+    if current_user.role.upper() not in ALLOWED_ADMIN_ROLES:
+        raise HTTPException(status_code=403, detail="Permission denied")
+
+    if not data.lead_ids:
+        return {"detail": "No leads provided for deletion."}
+
+    company_users = (
+        db.query(User.id)
+        .where(User.related_to_company == current_user.related_to_company)
+        .subquery()
+    )
+
+    leads_to_delete = db.query(Lead).filter(
+        Lead.id.in_(data.lead_ids),
+        ((Lead.created_by.in_(company_users)) | (Lead.lead_owner.in_(company_users)))
+    ).all()
+
+    if not leads_to_delete:
+        raise HTTPException(status_code=404, detail="No matching leads found for deletion.")
+
+    deleted_count = 0
+    for lead in leads_to_delete:
+        deleted_data = serialize_instance(lead)
+        lead_name = f"{lead.first_name} {lead.last_name}"
+        target_user_id = lead.lead_owner or lead.created_by
+
+        db.delete(lead)
+        
+        create_audit_log(
+            db=db,
+            current_user=current_user,
+            instance=lead,
+            action="DELETE",
+            request=request,
+            old_data=deleted_data,
+            target_user_id=target_user_id,
+            custom_message=f"bulk delete lead '{lead_name}' via admin panel"
+        )
+        deleted_count += 1
+
+    db.commit()
+
+    return {"detail": f"Successfully deleted {deleted_count} lead(s)."}

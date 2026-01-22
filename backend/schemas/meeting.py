@@ -36,6 +36,9 @@ class MeetingUpdate(BaseModel):
     relatedTo2: Optional[int] = None
     assignedTo: Optional[int] = None
 
+class MeetingBulkDelete(BaseModel):
+    meeting_ids: list[int]
+
 class AccountBase(BaseModel):
     id: int
     name: str

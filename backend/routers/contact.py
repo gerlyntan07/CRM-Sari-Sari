@@ -1,12 +1,12 @@
 # backend/routers/contact.py
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, HTTPException, status, Request, BackgroundTasks
+from fastapi import APIRouter, Depends, HTTPException, status, Request, BackgroundTasks, Body
 from sqlalchemy.orm import Session
 from sqlalchemy import select
 
 from database import get_db
-from schemas.contact import ContactBase, ContactResponse, ContactCreate, ContactUpdate
+from schemas.contact import ContactBase, ContactResponse, ContactCreate, ContactUpdate, ContactBulkDelete
 from .auth_utils import get_current_user
 from models.auth import User
 from models.contact import Contact
@@ -497,7 +497,7 @@ def admin_update_contact(
 
 @router.delete("/admin/bulk-delete", status_code=status.HTTP_200_OK)
 def admin_bulk_delete_contacts(
-    data: ContactBulkDelete,
+    data: ContactBulkDelete = Body(...),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
     request: Request = None

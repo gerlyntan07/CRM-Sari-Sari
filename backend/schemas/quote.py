@@ -38,6 +38,9 @@ class QuoteUpdate(BaseModel):
     assigned_to: Optional[int] = None
     notes: Optional[str] = None
 
+class QuoteBulkDelete(BaseModel):
+    quote_ids: list[int]
+
 
 class DealBase(BaseModel):
     id: int

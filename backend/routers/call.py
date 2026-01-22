@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Request
+from fastapi import APIRouter, Depends, HTTPException, status, Request, Body
 from sqlalchemy.orm import Session, joinedload
 from typing import List
 from datetime import datetime
@@ -11,7 +11,7 @@ from models.account import Account
 from models.contact import Contact
 from models.lead import Lead
 from models.deal import Deal
-from schemas.call import CallCreate, CallResponse, CallUpdate
+from schemas.call import CallCreate, CallResponse, CallUpdate, CallBulkDelete
 from .auth_utils import get_current_user
 from .logs_utils import serialize_instance, create_audit_log
 from models.territory import Territory
@@ -20,6 +20,8 @@ router = APIRouter(
     prefix="/calls",
     tags=["Calls"]
 )
+
+ALLOWED_ADMIN_ROLES = {"CEO", "ADMIN", "GROUP MANAGER", "MANAGER", "SALES"}
 
 @router.post("/create", response_model=CallResponse, status_code=status.HTTP_201_CREATED)
 async def create_task(
@@ -298,4 +300,56 @@ def delete_call(
     db.delete(call)
     db.commit()
     return {"message": "Call deleted successfully"}
+
+
+@router.delete("/admin/bulk-delete", status_code=status.HTTP_200_OK)
+def admin_bulk_delete_calls(
+    data: CallBulkDelete = Body(...),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    request: Request = None
+):
+    if current_user.role.upper() not in ALLOWED_ADMIN_ROLES:
+        raise HTTPException(status_code=403, detail="Permission denied")
+
+    if not data.call_ids:
+        return {"detail": "No calls provided for deletion."}
+
+    company_users = (
+        db.query(User.id)
+        .where(User.related_to_company == current_user.related_to_company)
+        .subquery()
+    )
+
+    calls_to_delete = db.query(Call).filter(
+        Call.id.in_(data.call_ids),
+        ((Call.created_by.in_(company_users)) | (Call.assigned_to.in_(company_users)))
+    ).all()
+
+    if not calls_to_delete:
+        raise HTTPException(status_code=404, detail="No matching calls found for deletion.")
+
+    deleted_count = 0
+    for call in calls_to_delete:
+        deleted_data = serialize_instance(call)
+        call_name = call.subject
+        target_user_id = call.assigned_to or call.created_by
+
+        db.delete(call)
+        
+        create_audit_log(
+            db=db,
+            current_user=current_user,
+            instance=call,
+            action="DELETE",
+            request=request,
+            old_data=deleted_data,
+            target_user_id=target_user_id,
+            custom_message=f"bulk delete call '{call_name}' via admin panel"
+        )
+        deleted_count += 1
+
+    db.commit()
+
+    return {"detail": f"Successfully deleted {deleted_count} call(s)."}
 

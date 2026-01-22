@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, status, Request, Backgrou
 from sqlalchemy.orm import Session
 
 from database import get_db
-from schemas.deal import DealBase, DealResponse, DealCreate, DealUpdate
+from schemas.deal import DealBase, DealResponse, DealCreate, DealUpdate, DealBulkDelete
 from .auth_utils import get_current_user
 from models.auth import User
 from models.deal import Deal, DealStage, STAGE_PROBABILITY_MAP
@@ -448,6 +448,58 @@ def admin_update_deal(
     )
 
     return deal
+
+
+@router.delete("/admin/bulk-delete", status_code=status.HTTP_200_OK)
+def admin_bulk_delete_deals(
+    data: DealBulkDelete,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    request: Request = None
+):
+    if current_user.role.upper() not in ALLOWED_ADMIN_ROLES:
+        raise HTTPException(status_code=403, detail="Permission denied")
+
+    if not data.deal_ids:
+        return {"detail": "No deals provided for deletion."}
+
+    company_users = (
+        db.query(User.id)
+        .where(User.related_to_company == current_user.related_to_company)
+        .subquery()
+    )
+
+    deals_to_delete = db.query(Deal).filter(
+        Deal.id.in_(data.deal_ids),
+        ((Deal.created_by.in_(company_users)) | (Deal.assigned_to.in_(company_users)))
+    ).all()
+
+    if not deals_to_delete:
+        raise HTTPException(status_code=404, detail="No matching deals found for deletion.")
+
+    deleted_count = 0
+    for deal in deals_to_delete:
+        deleted_data = serialize_instance(deal)
+        deal_name = deal.name
+        target_user_id = deal.assigned_to or deal.created_by
+
+        db.delete(deal)
+        
+        create_audit_log(
+            db=db,
+            current_user=current_user,
+            instance=deal,
+            action="DELETE",
+            request=request,
+            old_data=deleted_data,
+            target_user_id=target_user_id,
+            custom_message=f"bulk delete deal '{deal_name}' via admin panel"
+        )
+        deleted_count += 1
+
+    db.commit()
+
+    return {"detail": f"Successfully deleted {deleted_count} deal(s)."}
 
 
 @router.delete("/admin/{deal_id}", status_code=status.HTTP_200_OK)

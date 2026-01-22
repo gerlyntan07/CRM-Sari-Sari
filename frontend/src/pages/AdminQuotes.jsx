@@ -270,6 +270,7 @@ export default function AdminQuotes() {
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const [activeTab, setActiveTab] = useState("Overview");
   const [selectedStatus, setSelectedStatus] = useState("Draft");
+  const [selectedIds, setSelectedIds] = useState([]);
 
   // Resolve current user id
   useEffect(() => {
@@ -703,6 +704,25 @@ export default function AdminQuotes() {
     setShowModal(true);
   };
 
+  const handleSelectAll = (e) => {
+    if (e.target.checked) {
+      const allIds = paginatedQuotes.map((item) => item.id);
+      setSelectedIds(allIds);
+    } else {
+      setSelectedIds([]);
+    }
+  };
+
+  const handleCheckboxChange = (id) => {
+    setSelectedIds((prev) => {
+      if (prev.includes(id)) {
+        return prev.filter((prevId) => prevId !== id);
+      } else {
+        return [...prev, id];
+      }
+    });
+  };
+
   const handleDelete = (quote) => {
     if (!quote) return;
     const quoteName = quote.quote_id || "this quote";
@@ -719,6 +739,28 @@ export default function AdminQuotes() {
       cancelLabel: "Cancel",
       variant: "danger",
       action: { type: "delete", targetId: quote.id, name: quoteName },
+    });
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedIds.length === 0) return;
+
+    setConfirmModalData({
+      title: "Bulk Delete Quotes",
+      message: (
+        <span>
+          Are you sure you want to delete{" "}
+          <span className="font-semibold">{selectedIds.length}</span> selected
+          quotes? This action cannot be undone.
+        </span>
+      ),
+      confirmLabel: `Delete ${selectedIds.length} Quotes`,
+      cancelLabel: "Cancel",
+      variant: "danger",
+      action: {
+        type: "bulk-delete",
+        quote_ids: selectedIds,
+      },
     });
   };
 
@@ -845,6 +887,13 @@ const [isSubmitted, setIsSubmitted] = useState(false);
             : null
         );
         if (currentSelectedId === targetId) setSelectedQuote(null);
+      } else if (type === "bulk-delete") {
+        await api.post("/quotes/admin/bulk-delete", {
+          quote_ids: selectedIds,
+        });
+        toast.success(`Successfully deleted ${selectedIds.length} quotes`);
+        setSelectedIds([]);
+        await fetchQuotes();
       }
     } catch (err) {
       console.error(err);
@@ -1328,7 +1377,7 @@ const [isSubmitted, setIsSubmitted] = useState(false);
           <FiFileText className="mr-2 text-blue-600" /> Quotes
         </h2>
 
-         <div className="flex justify-center lg:justify-end w-full sm:w-auto">
+         <div className="flex justify-center lg:justify-end w-full sm:w-auto gap-2">
         <button
             onClick={() => {
           handleOpenAddModal();  // open the modal
@@ -1372,6 +1421,14 @@ const [isSubmitted, setIsSubmitted] = useState(false);
         <table className="w-full min-w-[900px] border border-gray-200 rounded-lg bg-white shadow-sm text-sm">
           <thead className="bg-gray-100 text-left text-gray-600 text-sm tracking-wide font-semibold">
             <tr>
+              <th className="py-3 px-4 w-12">
+                <input
+                  type="checkbox"
+                  checked={paginatedQuotes.length > 0 && selectedIds.length === paginatedQuotes.length}
+                  onChange={handleSelectAll}
+                  className="cursor-pointer"
+                />
+              </th>
               <th className="py-3 px-4">Quote ID</th>
               <th className="py-3 px-4">Deal</th>
               <th className="py-3 px-4">Account</th>
@@ -1380,6 +1437,19 @@ const [isSubmitted, setIsSubmitted] = useState(false);
               <th className="py-3 px-4">Status</th>
               <th className="py-3 px-4">Assigned To</th>
               <th className="py-3 px-4">Expiry Date</th>
+              <th className="py-3 px-4 text-center w-24">
+                {selectedIds.length > 0 ? (
+                  <button
+                    onClick={handleBulkDelete}
+                    className="text-red-600 hover:text-red-800 transition p-1 rounded-full hover:bg-red-50"
+                    title={`Delete ${selectedIds.length} selected items`}
+                  >
+                    <FiTrash2 size={18} />
+                  </button>
+                ) : (
+                  ""
+                )}
+              </th>
             </tr>
           </thead>
 
@@ -1388,7 +1458,7 @@ const [isSubmitted, setIsSubmitted] = useState(false);
               <tr>
                 <td
                   className="py-4 px-4 text-center text-sm text-gray-500"
-                  colSpan={8}
+                  colSpan={10}
                 >
                   Loading quotes...
                 </td>
@@ -1405,6 +1475,14 @@ const [isSubmitted, setIsSubmitted] = useState(false);
                     className="hover:bg-gray-50 text-sm cursor-pointer transition"
                     onClick={() => handleQuoteClick(quote)}
                   >
+                    <td className="py-3 px-4 align-top w-12" onClick={(e) => e.stopPropagation()}>
+                      <input
+                        type="checkbox"
+                        checked={selectedIds.includes(quote.id)}
+                        onChange={() => handleCheckboxChange(quote.id)}
+                        className="cursor-pointer"
+                      />
+                    </td>
                     <td className="py-3 px-4 align-top">
                       <div className="font-medium text-blue-600 hover:underline whitespace-nowrap">
                         {formatQuoteId(quote.quote_id) || "--"}
@@ -1460,6 +1538,7 @@ const [isSubmitted, setIsSubmitted] = useState(false);
                         {formatDate(expiry) || "--"}
                       </div>
                     </td>
+                    <td className="py-3 px-4 align-top text-center w-24"></td>
                   </tr>
                 );
               })
@@ -1467,7 +1546,7 @@ const [isSubmitted, setIsSubmitted] = useState(false);
               <tr>
                 <td
                   className="py-4 px-4 text-center text-sm text-gray-500"
-                  colSpan={8}
+                  colSpan={10}
                 >
                   No quotes found.
                 </td>

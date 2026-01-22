@@ -44,6 +44,10 @@ class LeadCreate(LeadBase):
     lead_owner: int    
 
 
+class LeadBulkDelete(BaseModel):
+    lead_ids: List[int]
+
+
 class TerritoryBase(BaseModel):
     id: int
     name: str

@@ -10,6 +10,7 @@ import {
   FiSearch,
   FiPlus,
   FiTrash2,
+  FiCheckSquare,
 } from "react-icons/fi";
 import TaskModal from "../components/TaskModal";
 import PaginationControls from "../components/PaginationControls.jsx";
@@ -280,6 +281,7 @@ export default function AdminTask() {
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const [confirmModalData, setConfirmModalData] = useState(null);
   const [confirmProcessing, setConfirmProcessing] = useState(false);
+  const [selectedIds, setSelectedIds] = useState([]);
   
   const navigate = useNavigate();
   const location = useLocation();
@@ -454,6 +456,43 @@ export default function AdminTask() {
     });
   };
 
+  const handleSelectAll = () => {
+    if (displayTasks.every((t) => selectedIds.includes(t.id))) {
+      setSelectedIds(selectedIds.filter((id) => !displayTasks.map((t) => t.id).includes(id)));
+    } else {
+      const newIds = displayTasks.map((t) => t.id);
+      setSelectedIds([...new Set([...selectedIds, ...newIds])]);
+    }
+  };
+
+  const handleCheckboxChange = (id) => {
+    setSelectedIds((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+    );
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedIds.length === 0) return;
+
+    setConfirmModalData({
+      title: "Bulk Delete Tasks",
+      message: (
+        <span>
+          Are you sure you want to delete{" "}
+          <span className="font-semibold">{selectedIds.length}</span> selected
+          tasks? This action cannot be undone.
+        </span>
+      ),
+      confirmLabel: `Delete ${selectedIds.length} Tasks`,
+      cancelLabel: "Cancel",
+      variant: "danger",
+      action: {
+        type: "bulk-delete",
+        task_ids: selectedIds,
+      },
+    });
+  };
+
   const handleConfirmAction = async () => {
     if (!confirmModalData?.action) {
       setConfirmModalData(null);
@@ -466,6 +505,13 @@ export default function AdminTask() {
       if (action.type === "delete") {
         await api.delete(`/tasks/${action.targetId}`);
         toast.success("Task deleted successfully.");
+        await fetchTasks();
+      } else if (action.type === "bulk-delete") {
+        await api.delete("/tasks/admin/bulk-delete", {
+          data: { task_ids: action.task_ids },
+        });
+        toast.success(`Successfully deleted ${action.task_ids.length} tasks`);
+        setSelectedIds([]);
         await fetchTasks();
       } 
     } catch (error) {
@@ -747,12 +793,35 @@ export default function AdminTask() {
             <table className="min-w-full text-sm">
               <thead className="bg-gray-100 text-gray-600 text-left">
                 <tr>
+                  <th className="py-3 px-4 w-10">
+                    <input
+                      type="checkbox"
+                      className="w-4 h-4 accent-blue-600"
+                      checked={
+                        displayTasks.length > 0 &&
+                        displayTasks.every((t) => selectedIds.includes(t.id))
+                      }
+                      onChange={handleSelectAll}
+                    />
+                  </th>
                   <th className="py-3 px-4 font-medium">Task</th>
                   <th className="py-3 px-4 font-medium">Status</th>
                   <th className="py-3 px-4 font-medium">Priority</th>
                   <th className="py-3 px-4 font-medium">Assigned To</th>
                   <th className="py-3 px-4 font-medium">Date Assigned</th>
-                  <th className="py-3 px-4 font-medium">Actions</th>
+                  <th className="py-3 px-4 font-medium text-center w-24">
+                    {selectedIds.length > 0 ? (
+                      <button
+                        onClick={handleBulkDelete}
+                        className="text-red-600 hover:text-red-800 transition p-1 rounded-full hover:bg-red-50"
+                        title={`Delete ${selectedIds.length} selected tasks`}
+                      >
+                        <FiTrash2 size={18} />
+                      </button>
+                    ) : (
+                      ""
+                    )}
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -760,27 +829,27 @@ export default function AdminTask() {
                   <tr
                     key={task.id}
                     className="hover:bg-gray-50 transition-colors text-sm cursor-pointer"
-                    onClick={() => {
-                      console.log("Opening task in view mode:", task);
-                      handleOpenModal(task, true)}}
                   >
-                    <td className="py-3 px-4 text-gray-700 whitespace-nowrap font-medium">{task.title}</td>
-                    <td className="py-3 px-4 whitespace-nowrap">
+                    <td className="py-3 px-4" onClick={(e) => e.stopPropagation()}>
+                      <input
+                        type="checkbox"
+                        className="w-4 h-4 accent-blue-600"
+                        checked={selectedIds.includes(task.id)}
+                        onChange={() => handleCheckboxChange(task.id)}
+                      />
+                    </td>
+                    <td className="py-3 px-4 text-gray-700 whitespace-nowrap font-medium" onClick={() => handleOpenModal(task, true)}>{task.title}</td>
+                    <td className="py-3 px-4 whitespace-nowrap" onClick={() => handleOpenModal(task, true)}>
                       <span className={`px-2 py-1 rounded-full text-xs font-medium whitespace-nowrap ${getStatusBadgeClass(task.status || "Not started")}`}>{task.status || "Not started"}</span>
                     </td>
-                    <td className="py-3 px-4 whitespace-nowrap">
+                    <td className="py-3 px-4 whitespace-nowrap" onClick={() => handleOpenModal(task, true)}>
                       <span className={`px-2 py-1 rounded-full text-xs font-medium whitespace-nowrap ${getPriorityBadgeClass(task.priority || "Low")}`}>{task.priority || "Low"}</span>
                     </td>
-                    <td className="py-3 px-4 text-gray-700 whitespace-nowrap">{task.assignedToName || "Unassigned"}</td>
-                    <td className={`py-3 px-4 text-gray-700 whitespace-nowrap ${isTaskOverdue(task) ? "text-red-600 font-medium" : ""}`}>
+                    <td className="py-3 px-4 text-gray-700 whitespace-nowrap" onClick={() => handleOpenModal(task, true)}>{task.assignedToName || "Unassigned"}</td>
+                    <td className={`py-3 px-4 text-gray-700 whitespace-nowrap ${isTaskOverdue(task) ? "text-red-600 font-medium" : ""}`} onClick={() => handleOpenModal(task, true)}>
                       {task.dateAssigned ? formatDateDisplay(task.dateAssigned) : "—"}
                     </td>
-                    <td className="py-3 px-4 whitespace-nowrap">
-                      <div className="flex items-center gap-3" onClick={(e) => e.stopPropagation()}>
-                        <button type="button" onClick={() => handleOpenModal(task)} className="text-blue-500 hover:text-blue-700 flex items-center gap-1"><FiEdit2 /> Edit</button>
-                        <button type="button" onClick={() => handleDeleteTask(task)} className="text-red-500 hover:text-red-700 flex items-center gap-1"><FiTrash2 /> Delete</button>
-                      </div>
-                    </td>
+                    <td></td>
                   </tr>
                 ))}
               </tbody>

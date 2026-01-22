@@ -1,8 +1,8 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Request
+from fastapi import APIRouter, Depends, HTTPException, status, Request, Body
 from sqlalchemy.orm import Session
 from typing import List
 from database import get_db
-from schemas.auth import UserCreate, UserUpdate, UserResponse, UserMeUpdate
+from schemas.auth import UserCreate, UserUpdate, UserResponse, UserMeUpdate, UserBulkDelete
 from .auth_utils import get_current_user, hash_password, get_default_avatar, DEFAULT_AVATAR_BASE
 from models.auth import User
 from .logs_utils import serialize_instance, create_audit_log
@@ -15,6 +15,8 @@ router = APIRouter(
     prefix="/users",
     tags=["Users"]
 )
+
+ALLOWED_ADMIN_ROLES = {"CEO", "ADMIN", "GROUP MANAGER", "MANAGER", "SALES"}
 
 # ✅ GET all users with Sales role only (CEO/Admin/Manager can see subordinates from same company)
 @router.get("/sales/read", response_model=List[UserResponse])
@@ -446,3 +448,56 @@ def update_current_user(
     )
     
     return user
+
+
+@router.delete("/admin/bulk-delete", status_code=status.HTTP_200_OK)
+def admin_bulk_delete_users(
+    data: UserBulkDelete = Body(...),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    request: Request = None
+):
+    if current_user.role.upper() not in ALLOWED_ADMIN_ROLES:
+        raise HTTPException(status_code=403, detail="Permission denied")
+
+    if not data.user_ids:
+        return {"detail": "No users provided for deletion."}
+
+    company_users = (
+        db.query(User.id)
+        .where(User.related_to_company == current_user.related_to_company)
+        .subquery()
+    )
+
+    users_to_deactivate = db.query(User).filter(
+        User.id.in_(data.user_ids),
+        User.related_to_company == current_user.related_to_company
+    ).all()
+
+    if not users_to_deactivate:
+        raise HTTPException(status_code=404, detail="No matching users found for deactivation.")
+
+    deactivated_count = 0
+    for user in users_to_deactivate:
+        old_data = serialize_instance(user)
+        user_name = f"{user.first_name} {user.last_name}"
+        target_user_id = user.id
+
+        # Set user as inactive instead of deleting
+        user.is_active = False
+        
+        create_audit_log(
+            db=db,
+            current_user=current_user,
+            instance=user,
+            action="UPDATE",
+            request=request,
+            old_data=old_data,
+            target_user_id=target_user_id,
+            custom_message=f"bulk deactivate user '{user_name}' via admin panel"
+        )
+        deactivated_count += 1
+
+    db.commit()
+
+    return {"detail": f"Successfully deactivated {deactivated_count} user(s)."}

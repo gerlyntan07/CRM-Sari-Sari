@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Request
+from fastapi import APIRouter, Depends, HTTPException, status, Request, Body
 from sqlalchemy.orm import Session
 from typing import List
 from datetime import datetime
@@ -6,7 +6,7 @@ from sqlalchemy import or_
 from database import get_db
 from models.task import Task, PriorityCategory, StatusCategory
 from models.auth import User
-from schemas.task import TaskCreate, TaskUpdate, TaskResponse, TaskFetch
+from schemas.task import TaskCreate, TaskUpdate, TaskResponse, TaskFetch, TaskBulkDelete
 from .auth_utils import get_current_user
 from routers.ws_notification import broadcast_notification  # WebSocket broadcaster
 from models.account import Account
@@ -17,6 +17,8 @@ from models.deal import Deal
 from models.territory import Territory
 
 router = APIRouter(prefix="/tasks", tags=["Tasks"])
+
+ALLOWED_ADMIN_ROLES = {"CEO", "ADMIN", "GROUP MANAGER", "MANAGER", "SALES"}
 
 
 # -----------------------------------------
@@ -272,3 +274,55 @@ def get_task_notifications(
         }
         for t in tasks
     ]
+
+
+@router.delete("/admin/bulk-delete", status_code=status.HTTP_200_OK)
+def admin_bulk_delete_tasks(
+    data: TaskBulkDelete = Body(...),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    request: Request = None
+):
+    if current_user.role.upper() not in ALLOWED_ADMIN_ROLES:
+        raise HTTPException(status_code=403, detail="Permission denied")
+
+    if not data.task_ids:
+        return {"detail": "No tasks provided for deletion."}
+
+    company_users = (
+        db.query(User.id)
+        .where(User.related_to_company == current_user.related_to_company)
+        .subquery()
+    )
+
+    tasks_to_delete = db.query(Task).filter(
+        Task.id.in_(data.task_ids),
+        ((Task.created_by.in_(company_users)) | (Task.assigned_to.in_(company_users)))
+    ).all()
+
+    if not tasks_to_delete:
+        raise HTTPException(status_code=404, detail="No matching tasks found for deletion.")
+
+    deleted_count = 0
+    for task in tasks_to_delete:
+        deleted_data = serialize_instance(task)
+        task_name = task.title
+        target_user_id = task.assigned_to or task.created_by
+
+        db.delete(task)
+        
+        create_audit_log(
+            db=db,
+            current_user=current_user,
+            instance=task,
+            action="DELETE",
+            request=request,
+            old_data=deleted_data,
+            target_user_id=target_user_id,
+            custom_message=f"bulk delete task '{task_name}' via admin panel"
+        )
+        deleted_count += 1
+
+    db.commit()
+
+    return {"detail": f"Successfully deleted {deleted_count} task(s)."}

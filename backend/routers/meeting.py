@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Request
+from fastapi import APIRouter, Depends, HTTPException, status, Request, Body
 from sqlalchemy.orm import Session, joinedload
 from typing import List
 from datetime import datetime, timedelta
@@ -11,7 +11,7 @@ from models.account import Account
 from models.contact import Contact
 from models.lead import Lead
 from models.deal import Deal
-from schemas.meeting import MeetingCreate, MeetingUpdate, MeetingResponse
+from schemas.meeting import MeetingCreate, MeetingUpdate, MeetingResponse, MeetingBulkDelete
 from .auth_utils import get_current_user
 from .logs_utils import serialize_instance, create_audit_log
 from models.territory import Territory
@@ -20,6 +20,8 @@ router = APIRouter(
     prefix="/meetings",
     tags=["Meetings"]
 )
+
+ALLOWED_ADMIN_ROLES = {"CEO", "ADMIN", "GROUP MANAGER", "MANAGER", "SALES"}
 
 @router.post("/create", response_model=MeetingResponse, status_code=status.HTTP_201_CREATED)
 async def create_task(
@@ -341,4 +343,56 @@ def delete_meeting(
     db.commit()
     
     return {"message": "Meeting deleted successfully"}
+
+
+@router.delete("/admin/bulk-delete", status_code=status.HTTP_200_OK)
+def admin_bulk_delete_meetings(
+    data: MeetingBulkDelete = Body(...),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    request: Request = None
+):
+    if current_user.role.upper() not in ALLOWED_ADMIN_ROLES:
+        raise HTTPException(status_code=403, detail="Permission denied")
+
+    if not data.meeting_ids:
+        return {"detail": "No meetings provided for deletion."}
+
+    company_users = (
+        db.query(User.id)
+        .where(User.related_to_company == current_user.related_to_company)
+        .subquery()
+    )
+
+    meetings_to_delete = db.query(Meeting).filter(
+        Meeting.id.in_(data.meeting_ids),
+        ((Meeting.created_by.in_(company_users)) | (Meeting.assigned_to.in_(company_users)))
+    ).all()
+
+    if not meetings_to_delete:
+        raise HTTPException(status_code=404, detail="No matching meetings found for deletion.")
+
+    deleted_count = 0
+    for meeting in meetings_to_delete:
+        deleted_data = serialize_instance(meeting)
+        meeting_name = meeting.subject
+        target_user_id = meeting.assigned_to or meeting.created_by
+
+        db.delete(meeting)
+        
+        create_audit_log(
+            db=db,
+            current_user=current_user,
+            instance=meeting,
+            action="DELETE",
+            request=request,
+            old_data=deleted_data,
+            target_user_id=target_user_id,
+            custom_message=f"bulk delete meeting '{meeting_name}' via admin panel"
+        )
+        deleted_count += 1
+
+    db.commit()
+
+    return {"detail": f"Successfully deleted {deleted_count} meeting(s)."}
 

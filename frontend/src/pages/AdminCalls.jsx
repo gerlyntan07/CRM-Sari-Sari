@@ -113,6 +113,7 @@ export default function AdminCalls() {
   const [callsLoading, setCallsLoading] = useState(false);
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const [currentPage, setCurrentPage] = useState(1);
+  const [selectedIds, setSelectedIds] = useState([]);
 
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -254,6 +255,25 @@ export default function AdminCalls() {
   
   const handlePrevPage = () => setCurrentPage((p) => Math.max(1, p - 1));
   const handleNextPage = () => setCurrentPage((p) => Math.min(p + 1, Math.ceil(filteredCalls.length / itemsPerPage) || 1));
+
+  const handleSelectAll = (e) => {
+    if (e.target.checked) {
+      const allIds = paginatedCalls.map((item) => item.id);
+      setSelectedIds(allIds);
+    } else {
+      setSelectedIds([]);
+    }
+  };
+
+  const handleCheckboxChange = (id) => {
+    setSelectedIds((prev) => {
+      if (prev.includes(id)) {
+        return prev.filter((prevId) => prevId !== id);
+      } else {
+        return [...prev, id];
+      }
+    });
+  };
 
   // Metrics
   const totalCalls = calls.length;
@@ -397,6 +417,28 @@ export default function AdminCalls() {
     setCurrentCallId(null);
   };
 
+  const handleBulkDelete = async () => {
+    if (selectedIds.length === 0) return;
+
+    setConfirmModalData({
+      title: "Bulk Delete Calls",
+      message: (
+        <span>
+          Are you sure you want to delete{" "}
+          <span className="font-semibold">{selectedIds.length}</span> selected
+          calls? This action cannot be undone.
+        </span>
+      ),
+      confirmLabel: `Delete ${selectedIds.length} Calls`,
+      cancelLabel: "Cancel",
+      variant: "danger",
+      action: {
+        type: "bulk-delete",
+        call_ids: selectedIds,
+      },
+    });
+  };
+
   const handleConfirmAction = async () => {
     if (!confirmModalData?.action) {
       setConfirmModalData(null);
@@ -433,6 +475,13 @@ export default function AdminCalls() {
         await api.delete(`/calls/${targetId}`);
         toast.success(`Call "${name}" deleted successfully.`);
         if (selectedCall?.id === targetId) setSelectedCall(null);
+        await fetchCalls();
+      } else if (type === "bulk-delete") {
+        await api.delete("/calls/admin/bulk-delete", {
+          data: { call_ids: selectedIds },
+        });
+        toast.success(`Successfully deleted ${selectedIds.length} calls`);
+        setSelectedIds([]);
         await fetchCalls();
       }
     } catch (err) {
@@ -921,7 +970,7 @@ export default function AdminCalls() {
             <FiPhoneCall className="mr-2 text-blue-600" /> Calls
           </h1>
 
-          <div className="flex justify-center lg:justify-end w-full sm:w-auto">
+          <div className="flex justify-center lg:justify-end w-full sm:w-auto gap-2">
             <button
               onClick={() => {
                 setFormData(INITIAL_FORM_STATE);
@@ -986,18 +1035,39 @@ export default function AdminCalls() {
           <table className="w-full min-w-[500px] border border-gray-200 rounded-lg bg-white shadow-sm text-sm mb-4">
             <thead className="bg-gray-100 text-left text-gray-600 font-semibold">
               <tr>
+                <th className="py-3 px-4 w-12">
+                  <input
+                    type="checkbox"
+                    checked={paginatedCalls.length > 0 && selectedIds.length === paginatedCalls.length}
+                    onChange={handleSelectAll}
+                    className="cursor-pointer"
+                  />
+                </th>
                 <th className="py-3 px-4">Subject</th>
                 <th className="py-3 px-4">Related To</th>
                 <th className="py-3 px-4">Call Time</th>
                 <th className="py-3 px-4">Assigned To</th>
                 <th className="py-3 px-4">Status</th>
+                <th className="py-3 px-4 text-center w-24">
+                  {selectedIds.length > 0 ? (
+                    <button
+                      onClick={handleBulkDelete}
+                      className="text-red-600 hover:text-red-800 transition p-1 rounded-full hover:bg-red-50"
+                      title={`Delete ${selectedIds.length} selected calls`}
+                    >
+                      <FiTrash2 size={18} />
+                    </button>
+                  ) : (
+                    ""
+                  )}
+                </th>
               </tr>
             </thead>
 
             <tbody>
               {callsLoading ? (
                 <tr>
-                  <td colSpan={6} className="py-10">
+                  <td colSpan={7} className="py-10">
                     <LoadingSpinner message="Loading calls..." />
                   </td>
                 </tr>
@@ -1008,6 +1078,14 @@ export default function AdminCalls() {
                     onClick={() => handleCallClick(call)}
                     className="hover:bg-gray-50 cursor-pointer border-b border-gray-100"
                   >
+                    <td className="py-3 px-4 align-top w-12" onClick={(e) => e.stopPropagation()}>
+                      <input
+                        type="checkbox"
+                        checked={selectedIds.includes(call.id)}
+                        onChange={() => handleCheckboxChange(call.id)}
+                        className="cursor-pointer"
+                      />
+                    </td>
                     <td className="py-3 px-4 text-blue-600 font-medium">
                       {call.subject || "--"}
                     </td>
@@ -1042,11 +1120,12 @@ export default function AdminCalls() {
                         {formatAdminCallStatusLabel(call.status)}
                       </span>
                     </td>
+                    <td className="py-3 px-4"></td>
                   </tr>
                 ))
               ) : (
                 <tr>
-                  <td colSpan={6} className="text-center py-4 text-gray-500">
+                  <td colSpan={7} className="text-center py-4 text-gray-500">
                     No calls found.
                   </td>
                 </tr>
@@ -1079,6 +1158,8 @@ export default function AdminCalls() {
           title={confirmModalData.title}
           message={confirmModalData.message}
           confirmLabel={confirmModalData.confirmLabel}
+          cancelLabel={confirmModalData.cancelLabel}
+          variant={confirmModalData.variant}
           onConfirm={handleConfirmAction}
           onCancel={handleCancelConfirm}
           loading={confirmProcessing}

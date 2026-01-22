@@ -21,6 +21,9 @@ class TargetUpdate(BaseModel):
     end_date: Optional[date] = None
     target_amount: Optional[Decimal] = None
 
+class TargetBulkDelete(BaseModel):
+    target_ids: list[int]
+
 
 class UserBase(BaseModel):
     id: int

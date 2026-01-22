@@ -14,6 +14,9 @@ class TerritoryCreate(BaseModel):
     user_ids: List[int] = [] 
     company_id: int
 
+class TerritoryBulkDelete(BaseModel):
+    territory_ids: List[int]
+
 class UserBase(BaseModel):
     id: int
     first_name: str

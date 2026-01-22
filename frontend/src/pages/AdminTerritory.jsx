@@ -9,7 +9,8 @@ import {
   FiEdit2,
   FiTrash2,
   FiCheck,
-  FiChevronDown
+  FiChevronDown,
+  FiCheckSquare,
 } from "react-icons/fi";
 import { LuMapPin } from "react-icons/lu";
 import { useNavigate, useParams } from "react-router-dom";
@@ -183,6 +184,7 @@ export default function AdminTerritory() {
   const [deletingId, setDeletingId] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [selectedIds, setSelectedIds] = useState([]);
   const justUpdatedRef = useRef(false);
   const {userRole} = useAuth();
 
@@ -457,6 +459,47 @@ export default function AdminTerritory() {
     });
   };
 
+  const handleBulkDelete = async () => {
+    if (selectedIds.length === 0) return;
+
+    setConfirmModalData({
+      title: "Bulk Delete Territories",
+      message: (
+        <span>
+          Are you sure you want to delete{" "}
+          <span className="font-semibold">{selectedIds.length}</span> selected
+          territories? This action cannot be undone.
+        </span>
+      ),
+      confirmLabel: `Delete ${selectedIds.length} Territories`,
+      cancelLabel: "Cancel",
+      variant: "danger",
+      action: {
+        type: "bulk-delete",
+        territory_ids: selectedIds,
+      },
+    });
+  };
+
+  const handleSelectAll = (e) => {
+    if (e.target.checked) {
+      const allIds = paginatedTerritories.map((t) => t.id);
+      setSelectedIds(allIds);
+    } else {
+      setSelectedIds([]);
+    }
+  };
+
+  const handleCheckboxChange = (id) => {
+    setSelectedIds((prev) => {
+      if (prev.includes(id)) {
+        return prev.filter((prevId) => prevId !== id);
+      } else {
+        return [...prev, id];
+      }
+    });
+  };
+
   const handleConfirmAction = async () => {
     if (!confirmModalData?.action) { setConfirmModalData(null); return; }
     const { action } = confirmModalData;
@@ -497,6 +540,13 @@ export default function AdminTerritory() {
         toast.success(`Territory "${name}" deleted.`);
         await fetchTerritories();
         if (selectedTerritory?.id === targetId) setSelectedTerritory(null);
+      } else if (type === "bulk-delete") {
+        await api.delete("/territories/admin/bulk-delete", {
+          data: { territory_ids: action.territory_ids },
+        });
+        toast.success(`Successfully deleted ${action.territory_ids.length} territories`);
+        setSelectedIds([]);
+        await fetchTerritories();
       }
     } catch (error) {
        console.error(error);
@@ -627,34 +677,67 @@ export default function AdminTerritory() {
              <table className="min-w-full text-sm">
                 <thead className="bg-gray-100 text-gray-600 text-left">
                   <tr>
+                    <th className="py-3 px-4 w-10">
+                      <input
+                        type="checkbox"
+                        className="w-4 h-4 accent-blue-600"
+                        checked={
+                          paginatedTerritories.length > 0 &&
+                          paginatedTerritories.every((t) => selectedIds.includes(t.id))
+                        }
+                        onChange={handleSelectAll}
+                      />
+                    </th>
                     <th className="py-3 px-4">Territory</th>
                     <th className="py-3 px-4">Assigned To</th>
                     <th className="py-3 px-4">Manager</th>
+                    <th className="py-3 px-4 text-center w-24">
+                      {selectedIds.length > 0 ? (
+                        <button
+                          onClick={handleBulkDelete}
+                          className="text-red-600 hover:text-red-800 transition p-1 rounded-full hover:bg-red-50"
+                          title={`Delete ${selectedIds.length} selected territories`}
+                        >
+                          <FiTrash2 size={18} />
+                        </button>
+                      ) : (
+                        ""
+                      )}
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
                   {hasResults ? paginatedTerritories.map(t => (
-                    <tr key={t.id} onClick={() => { 
-                      setSelectedTerritory(t);
+                    <tr key={t.id} className="hover:bg-gray-50 cursor-pointer">
+                      <td className="py-3 px-4" onClick={(e) => e.stopPropagation()}>
+                        <input
+                          type="checkbox"
+                          className="w-4 h-4 accent-blue-600"
+                          checked={selectedIds.includes(t.id)}
+                          onChange={() => handleCheckboxChange(t.id)}
+                        />
+                      </td>
+                      <td className="py-3 px-4 font-medium" onClick={() => { 
+                        setSelectedTerritory(t);
 
-                      let role;
+                        let role;
 
-                  if (userRole.toLowerCase() === 'ceo' || userRole.toLowerCase() === 'admin') {
-                    role = 'admin';
-                  } else if(userRole.toLowerCase() === 'group manager' || userRole.toLowerCase() === 'group_manager') {
-                    role = 'group-manager';
-                  } else if(userRole.toLowerCase() === 'manager') {
-                    role = 'manager';
-                  } else {
-                    role = 'sales';
-                  }
-                      navigate(`/${role}/territory/${t.id}`); 
-                      }} className="hover:bg-gray-50 cursor-pointer">
-                      <td className="py-3 px-4 font-medium">{t.name}</td>
+                    if (userRole.toLowerCase() === 'ceo' || userRole.toLowerCase() === 'admin') {
+                      role = 'admin';
+                    } else if(userRole.toLowerCase() === 'group manager' || userRole.toLowerCase() === 'group_manager') {
+                      role = 'group-manager';
+                    } else if(userRole.toLowerCase() === 'manager') {
+                      role = 'manager';
+                    } else {
+                      role = 'sales';
+                    }
+                        navigate(`/${role}/territory/${t.id}`); 
+                      }}>{t.name}</td>
                       <td className="py-3 px-4">{renderAssignedUsers(t.assigned_users_list)}</td>
                       <td className="py-3 px-4">{t.managed_by ? `${t.managed_by.first_name}` : "—"}</td>
+                      <td></td>
                     </tr>
-                  )) : <tr><td colSpan={4} className="text-center py-4 text-gray-500">No territories found.</td></tr>}
+                  )) : <tr><td colSpan={5} className="text-center py-4 text-gray-500">No territories found.</td></tr>}
                 </tbody>
              </table>
            </div>

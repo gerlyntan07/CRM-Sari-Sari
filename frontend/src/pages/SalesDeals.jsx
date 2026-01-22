@@ -1027,9 +1027,8 @@ const [isSubmitted, setIsSubmitted] = useState(false);
                         placeholder="Search contact..."
                         disabled={isSubmitting}
                         currentItem={currentContact}
-                          required={true}               // <-- use required directly
-                        isSubmitted={isSubmitted} 
-                        disabled={isSubmitting}    
+                        required={true}
+                        isSubmitted={isSubmitted}
                     />
 
                     <SelectField

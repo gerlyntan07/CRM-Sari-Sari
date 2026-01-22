@@ -84,3 +84,6 @@ class CallUpdate(BaseModel):
     relatedTo1: Optional[int] = None
     relatedTo2: Optional[int] = None
 
+class CallBulkDelete(BaseModel):
+    call_ids: list[int]
+

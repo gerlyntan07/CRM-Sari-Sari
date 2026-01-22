@@ -71,6 +71,9 @@ class DealUpdate(BaseModel):
     description: Optional[str] = None
     assigned_to: Optional[int] = None
 
+class DealBulkDelete(BaseModel):
+    deal_ids: list[int]
+
 class DealResponse(DealBase):
     id: int
     deal_id: Optional[str] = None

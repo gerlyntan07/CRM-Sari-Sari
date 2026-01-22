@@ -9,6 +9,7 @@ import {
   FiPhone,
   FiMail,
   FiCalendar,
+  FiCheckSquare,
 } from "react-icons/fi";
 import { HiX } from "react-icons/hi";
 import { toast } from "react-toastify";
@@ -143,6 +144,7 @@ export default function AdminUser() {
   const [activeTab, setActiveTab] = useState("Overview");
   const [selectedStatus, setSelectedStatus] = useState("");
   const [updatingStatus, setUpdatingStatus] = useState(false);
+  const [selectedIds, setSelectedIds] = useState([]);
 
   const normalizedUserRole = normalizeRoleValue(currentUser?.role);
   const isAuthorized = ["ADMIN", "CEO"].includes(normalizedUserRole);
@@ -436,6 +438,47 @@ export default function AdminUser() {
     });
   };
 
+  const handleBulkDelete = async () => {
+    if (selectedIds.length === 0) return;
+
+    setConfirmModalData({
+      title: "Bulk Delete Users",
+      message: (
+        <span>
+          Are you sure you want to deactivate{" "}
+          <span className="font-semibold">{selectedIds.length}</span> selected
+          users? This action cannot be undone.
+        </span>
+      ),
+      confirmLabel: `Deactivate ${selectedIds.length} Users`,
+      cancelLabel: "Cancel",
+      variant: "danger",
+      action: {
+        type: "bulk-delete",
+        user_ids: selectedIds,
+      },
+    });
+  };
+
+  const handleSelectAll = (e) => {
+    if (e.target.checked) {
+      const allIds = paginatedUsers.map((u) => u.id);
+      setSelectedIds(allIds);
+    } else {
+      setSelectedIds([]);
+    }
+  };
+
+  const handleCheckboxChange = (id) => {
+    setSelectedIds((prev) => {
+      if (prev.includes(id)) {
+        return prev.filter((prevId) => prevId !== id);
+      } else {
+        return [...prev, id];
+      }
+    });
+  };
+
   const handleConfirmAction = async () => {
     if (!confirmModalData?.action) {
       setConfirmModalData(null);
@@ -492,6 +535,23 @@ export default function AdminUser() {
           setSelectedStatus("");
         }
         toast.success(`User "${name}" deactivated successfully.`);
+      } else if (type === "bulk-delete") {
+        await api.delete("/users/admin/bulk-delete", {
+          data: { user_ids: action.user_ids },
+        });
+        // Update users in the array to mark as inactive (don't remove from list)
+        setUsers((prev) =>
+          prev.map((user) =>
+            action.user_ids.includes(user.id) ? { ...user, is_active: false } : user
+          )
+        );
+        // Close the modal if the selected user is in the deactivated list
+        if (selectedUser && action.user_ids.includes(selectedUser.id)) {
+          setSelectedUser(null);
+          setSelectedStatus("");
+        }
+        toast.success(`Successfully deactivated ${action.user_ids.length} users`);
+        setSelectedIds([]);
       }
     } catch (error) {
       console.error("User management error:", error);
@@ -606,10 +666,34 @@ export default function AdminUser() {
         <table className="w-full min-w-[600px] border border-gray-200 rounded-lg bg-white shadow-sm text-sm">
           <thead className="bg-gray-100 text-left text-gray-600 text-sm tracking-wide font-semibold">
             <tr>
+              <th className="py-3 px-4 w-10">
+                <input
+                  type="checkbox"
+                  className="w-4 h-4 accent-blue-600"
+                  checked={
+                    paginatedUsers.length > 0 &&
+                    paginatedUsers.every((u) => selectedIds.includes(u.id))
+                  }
+                  onChange={handleSelectAll}
+                />
+              </th>
               <th className="py-3 px-4">Fullname</th>
               <th className="py-3 px-4">Email</th>
               <th className="py-3 px-4">Role</th>
               <th className="py-3 px-4">Status</th>
+              <th className="py-3 px-4 text-center w-24">
+                {selectedIds.length > 0 ? (
+                  <button
+                    onClick={handleBulkDelete}
+                    className="text-red-600 hover:text-red-800 transition p-1 rounded-full hover:bg-red-50"
+                    title={`Deactivate ${selectedIds.length} selected users`}
+                  >
+                    <FiTrash2 size={18} />
+                  </button>
+                ) : (
+                  ""
+                )}
+              </th>
             </tr>
           </thead>
           <tbody>
@@ -642,6 +726,14 @@ export default function AdminUser() {
                       !user.is_active ? "opacity-60 bg-gray-50" : ""
                     }`}
                   >
+                    <td className="py-3 px-4" onClick={(e) => e.stopPropagation()}>
+                      <input
+                        type="checkbox"
+                        className="w-4 h-4 accent-blue-600"
+                        checked={selectedIds.includes(user.id)}
+                        onChange={() => handleCheckboxChange(user.id)}
+                      />
+                    </td>
                     <td
                       className="py-3 px-4 cursor-pointer"
                       onClick={() => handleRowClick(user)}

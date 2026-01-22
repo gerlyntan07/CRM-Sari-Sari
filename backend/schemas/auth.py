@@ -41,6 +41,9 @@ class UserLogin(BaseModel):
     email: EmailStr
     password: str
 
+class UserBulkDelete(BaseModel):
+    user_ids: List[int]
+
 
 # ✅ For checking email availability
 class EmailCheck(BaseModel):

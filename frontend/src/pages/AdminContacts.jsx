@@ -83,6 +83,7 @@ export default function AdminContacts() {
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const [relatedActs, setRelatedActs] = useState({});
   const [expandedSection, setExpandedSection] = useState(null);
+  const [selectedIds, setSelectedIds] = useState([]);
 
   const fetchContacts = useCallback(
     async (preserveSelectedId = null) => {
@@ -257,6 +258,47 @@ export default function AdminContacts() {
   const handlePrevPage = () => setCurrentPage((prev) => Math.max(prev - 1, 1));
   const handleNextPage = () =>
     setCurrentPage((prev) => Math.min(prev + 1, totalPages));
+
+  const handleSelectAll = (e) => {
+    if (e.target.checked) {
+      const allIds = paginatedContacts.map((c) => c.id);
+      setSelectedIds(allIds);
+    } else {
+      setSelectedIds([]);
+    }
+  };
+
+  const handleCheckboxChange = (id) => {
+    setSelectedIds((prev) => {
+      if (prev.includes(id)) {
+        return prev.filter((prevId) => prevId !== id);
+      } else {
+        return [...prev, id];
+      }
+    });
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedIds.length === 0) return;
+
+    setConfirmModalData({
+      title: "Bulk Delete Contacts",
+      message: (
+        <span>
+          Are you sure you want to delete{" "}
+          <span className="font-semibold">{selectedIds.length}</span> selected
+          contacts? This action cannot be undone.
+        </span>
+      ),
+      confirmLabel: `Delete ${selectedIds.length} Contacts`,
+      cancelLabel: "Cancel",
+      variant: "danger",
+      action: {
+        type: "bulk-delete",
+        contact_ids: selectedIds,
+      },
+    });
+  };
 
   const closeModal = useCallback(() => {
     setShowModal(false);
@@ -482,6 +524,14 @@ if (domain !== "gmail.com") {
         if (currentSelectedId === targetId) {
           setSelectedContact(null);
         }
+      } else if (type === "bulk-delete") {
+        const contactIds = action.contact_ids;
+        await api.delete("/contacts/admin/bulk-delete", {
+          data: { contact_ids: contactIds },
+        });
+        toast.success(`Successfully deleted ${contactIds.length} contacts`);
+        setSelectedIds([]);
+        await fetchContacts();
       }
     } catch (err) {
       console.error(err);
@@ -490,6 +540,8 @@ if (domain !== "gmail.com") {
           ? "Failed to create contact. Please review the details and try again."
           : type === "update"
             ? "Failed to update contact. Please review the details and try again."
+            : type === "bulk-delete"
+            ? "Failed to delete selected contacts."
             : "Failed to delete contact. Please try again.";
       const message = err.response?.data?.detail || defaultMessage;
       toast.error(message);
@@ -1068,12 +1120,36 @@ if (domain !== "gmail.com") {
         <table className="w-full min-w-[600px] border border-gray-200 rounded-lg bg-white shadow-sm text-sm">
           <thead className="bg-gray-100 text-left text-gray-600 text-sm tracking-wide font-semibold">
             <tr>
+              <th className="py-3 px-4 text-center w-12">
+                <input
+                  type="checkbox"
+                  className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                  checked={
+                    paginatedContacts.length > 0 &&
+                    selectedIds.length === paginatedContacts.length
+                  }
+                  onChange={handleSelectAll}
+                />
+              </th>
               <th className="py-3 px-4 truncate">Contact</th>
               <th className="py-3 px-4">Account</th>
               <th className="py-3 px-4 truncate">Contact Info</th>
               <th className="py-3 px-4">Department</th>
               <th className="py-3 px-4">Assigned To</th>
               <th className="py-3 px-4">Created</th>
+              <th className="py-3 px-4 text-center w-24">
+                {selectedIds.length > 0 ? (
+                  <button
+                    onClick={handleBulkDelete}
+                    className="text-red-600 hover:text-red-800 transition p-1 rounded-full hover:bg-red-50"
+                    title={`Delete ${selectedIds.length} selected items`}
+                  >
+                    <FiTrash2 size={18} />
+                  </button>
+                ) : (
+                  ""
+                )}
+              </th>
             </tr>
           </thead>
           <tbody>
@@ -1081,7 +1157,7 @@ if (domain !== "gmail.com") {
               <tr>
                 <td
                   className="py-4 px-4 text-center text-sm text-gray-500"
-                  colSpan={6}
+                  colSpan={8}
                 >
                   Loading contacts...
                 </td>
@@ -1111,11 +1187,26 @@ if (domain !== "gmail.com") {
                   <tr
                     key={contact.id}
                     className="hover:bg-gray-50 text-sm cursor-pointer transition"
-                    onClick={() => {
-                      handleContactClick(contact)
-                      fetchRelatedActivities(contact.id)
+                    onClick={(e) => {
+                      // Prevent row click when clicking checkbox or action buttons
+                      if (
+                        e.target.closest('input[type="checkbox"]') ||
+                        e.target.closest("button")
+                      ) {
+                        return;
+                      }
+                      handleContactClick(contact);
+                      fetchRelatedActivities(contact.id);
                     }}
                   >
+                    <td className="py-3 px-4 text-center align-top">
+                      <input
+                        type="checkbox"
+                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                        checked={selectedIds.includes(contact.id)}
+                        onChange={() => handleCheckboxChange(contact.id)}
+                      />
+                    </td>
                     <td className="py-3 px-4 align-top">
                       <div className="font-medium text-blue-600 hover:underline break-all text-sm">
                         {getContactFullName(contact) || "--"}
@@ -1179,6 +1270,7 @@ if (domain !== "gmail.com") {
                         </span>
                       </div>
                     </td>
+                    <td className="py-3 px-4 align-top"></td>
                   </tr>
                 );
               })
@@ -1186,7 +1278,7 @@ if (domain !== "gmail.com") {
               <tr>
                 <td
                   className="py-4 px-4 text-center text-sm text-gray-500"
-                  colSpan={6}
+                  colSpan={8}
                 >
                   No contacts found.
                 </td>

@@ -47,6 +47,10 @@ class TaskUpdate(BaseModel):
     assigned_to: int
 
 
+class TaskBulkDelete(BaseModel):
+    task_ids: list[int]
+
+
 # ------------------------------
 # RESPONSE
 # ------------------------------

@@ -23,7 +23,7 @@ import api from "../api.js";
 import { toast } from "react-toastify";
 import PaginationControls from "../components/PaginationControls.jsx";
 import LoadingSpinner from "../components/LoadingSpinner.jsx";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 
 const INITIAL_FORM_STATE = {
   first_name: "",
@@ -58,6 +58,7 @@ const formattedDateTime = (datetime) => {
 
 export default function AdminContacts() {
   const navigate = useNavigate();
+  const location = useLocation();
 
   useEffect(() => {
     document.title = "Contacts | Sari-Sari CRM";
@@ -84,6 +85,28 @@ export default function AdminContacts() {
   const [relatedActs, setRelatedActs] = useState({});
   const [expandedSection, setExpandedSection] = useState(null);
   const [selectedIds, setSelectedIds] = useState([]);
+  const [pendingContactId, setPendingContactId] = useState(null);
+
+  useEffect(() => {
+    const contactIdFromState = location.state?.contactID;
+    if (contactIdFromState) {
+      // If contactID is passed from another page (e.g., AdminAccounts), store it
+      setPendingContactId(contactIdFromState);
+      navigate(location.pathname, { replace: true, state: {} });
+    }
+  }, [location, navigate])
+
+   useEffect(() => {
+      if (pendingContactId && contacts.length > 0 && !contactsLoading) {
+        const foundContact = contacts.find((contact) => contact.id === pendingContactId);
+        if (foundContact) {
+          setSelectedContact(foundContact); // Open in view mode
+        } else {
+          toast.error("Contact not found.");
+        }
+        setPendingContactId(null); // Clear pending contact ID
+      }
+    }, [pendingContactId, contacts, contactsLoading]);
 
   const fetchContacts = useCallback(
     async (preserveSelectedId = null) => {

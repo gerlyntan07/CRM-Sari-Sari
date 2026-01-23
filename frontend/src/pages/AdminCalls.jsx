@@ -114,6 +114,7 @@ export default function AdminCalls() {
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedIds, setSelectedIds] = useState([]);
+  const [pendingCallId, setPendingCallId] = useState(null);
 
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -146,6 +147,16 @@ export default function AdminCalls() {
   // ✅ Auto open modal if passed via state or query
   useEffect(() => {
     const state = location.state;
+    const callIdFromState = state?.callID;
+    
+    // Handle case where only callID is passed (e.g., from AdminAccounts related activities)
+    if (callIdFromState && !state?.openCallModal) {
+      setPendingCallId(callIdFromState);
+      navigate(location.pathname, { replace: true, state: {} });
+      return;
+    }
+
+    // Handle case where openCallModal is passed with initialCallData
     if (!state?.openCallModal || !state?.initialCallData) return;
 
     // Wait until related options are loaded
@@ -177,6 +188,18 @@ export default function AdminCalls() {
     navigate(location.pathname, { replace: true, state: {} });
 
   }, [location.state, relatedTo1Values]);
+
+  useEffect(() => {
+      if (pendingCallId && calls.length > 0 && !callsLoading) {
+        const foundCall = calls.find((call) => call.id === pendingCallId);
+        if (foundCall) {
+          setSelectedCall(foundCall);
+        } else {
+          toast.error("Call not found.");
+        }
+        setPendingCallId(null); // Clear pending call ID
+      }
+    }, [pendingCallId, calls, callsLoading]);
 
 
   const fetchCalls = async () => {

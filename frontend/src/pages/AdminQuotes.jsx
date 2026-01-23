@@ -15,7 +15,7 @@ import { toast } from "react-toastify";
 import api from "../api.js";
 import PaginationControls from "../components/PaginationControls.jsx";
 import LoadingSpinner from "../components/LoadingSpinner.jsx";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 
 const STATUS_OPTIONS = [
   { value: "Draft", label: "Draft" },
@@ -236,6 +236,7 @@ const extractDealContactId = (deal) => {
 
 export default function AdminQuotes() {
   const navigate = useNavigate();
+  const location = useLocation();
 
   useEffect(() => {
     document.title = "Quotes | Sari-Sari CRM";
@@ -271,6 +272,30 @@ export default function AdminQuotes() {
   const [activeTab, setActiveTab] = useState("Overview");
   const [selectedStatus, setSelectedStatus] = useState("Draft");
   const [selectedIds, setSelectedIds] = useState([]);
+  const [pendingQuoteId, setPendingQuoteId] = useState(null);
+
+  useEffect(() => {
+    const state = location.state;
+    const quoteIdFromState = state?.quoteID;
+
+    if (quoteIdFromState) {
+      setPendingQuoteId(quoteIdFromState);
+      navigate(location.pathname, { replace: true, state: {} });
+      return;
+    }
+  }, [location, navigate])
+
+  useEffect(() => {
+      if (pendingQuoteId && quotes.length > 0 && !quotesLoading) {
+        const foundQuote = quotes.find((quote) => quote.id === pendingQuoteId);
+        if (foundQuote) {
+          setSelectedQuote(foundQuote); // Open in view mode
+        } else {
+          toast.error("Quote not found.");
+        }
+        setPendingQuoteId(null); // Clear pending quote ID
+      }
+    }, [pendingQuoteId, contacts, quotesLoading]);
 
   // Resolve current user id
   useEffect(() => {

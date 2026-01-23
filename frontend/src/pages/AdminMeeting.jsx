@@ -90,11 +90,13 @@ const AdminMeeting = () => {
   const [confirmModalData, setConfirmModalData] = useState(null);
   const [confirmProcessing, setConfirmProcessing] = useState(false);
   const [selectedIds, setSelectedIds] = useState([]);
+  const [pendingMeetingId, setPendingMeetingId] = useState(null);
 
   // Auto-open logic
   useEffect(() => {
     const shouldOpen = location.state?.openMeetingModal;
     const incomingId = location.state?.initialMeetingData?.relatedTo || searchParams.get("id");
+    const meetingIdFromState = location.state?.meetingID;
 
     if (shouldOpen || incomingId) {
       setShowModal(true);
@@ -102,8 +104,24 @@ const AdminMeeting = () => {
         setFormData((prev) => ({ ...prev, ...location.state.initialMeetingData }));
       }
       navigate(location.pathname, { replace: true, state: {} });
+    } else if (meetingIdFromState) {
+      // If taskID is passed from another page (e.g., AdminAccounts), store it
+      setPendingMeetingId(meetingIdFromState);
+      navigate(location.pathname, { replace: true, state: {} });
     }
   }, [location, searchParams, navigate]);
+
+  useEffect(() => {
+    if (pendingMeetingId && meetings.length > 0 && !meetingsLoading) {
+      const foundMeeting = meetings.find((meeting) => meeting.id === pendingMeetingId);
+      if (foundMeeting) {
+        setSelectedMeeting(foundMeeting);
+      } else {
+        toast.error("Meeting not found.");
+      }
+      setPendingMeetingId(null); // Clear pending meeting ID
+    }
+  }, [pendingMeetingId, meetings, meetingsLoading]);
 
   const fetchMeetings = async () => {
     if (meetingIdFromQuery && isInfoRoute) {

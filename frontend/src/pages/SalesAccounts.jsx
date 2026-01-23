@@ -1002,7 +1002,7 @@ const [isSubmitted, setIsSubmitted] = useState(false);
                       {expandedSection === 'tasks' && (
                         <div className="border-t border-gray-200 p-2 space-y-2 max-h-60 overflow-y-auto hide-scrollbar">
                           {relatedActs.tasks.map((task, idx) => (
-                            <div key={`task-${idx}`} className="flex flex-col sm:flex-row justify-between items-start border border-gray-100 rounded-lg p-3 bg-gray-50 w-full break-words">
+                            <div key={`task-${idx}`} className="flex flex-col sm:flex-row justify-between items-start border border-gray-100 rounded-lg p-3 bg-gray-50 w-full break-words cursor-pointer" onClick={() => navigate(`/sales/tasks`, { state: { taskID: task.id } })}>
                               <div className="flex gap-3 mb-2 sm:mb-0 flex-1 min-w-0">
                                 <div className="text-blue-600 mt-1"><FiCheckSquare size={20} /></div>
                                 <div className="flex-1 min-w-0">

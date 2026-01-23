@@ -303,6 +303,8 @@ export default function AdminTask() {
     relatedTo2: "",
   });
 
+  const [pendingTaskId, setPendingTaskId] = useState(null);
+
   // Set default assignedTo to current user when modal opens for a new task (Sales only)
   useEffect(() => {
     if (showModal && !formData.id && isSales && currentUser && !formData.assignedTo) {
@@ -317,6 +319,7 @@ export default function AdminTask() {
   useEffect(() => {
     const shouldOpen = location.state?.openTaskModal;
     const initialData = location.state?.initialTaskData;
+    const taskIdFromState = location.state?.taskID;
 
     if (shouldOpen) {
       setShowModal(true);
@@ -327,8 +330,24 @@ export default function AdminTask() {
         }));
       }
       navigate(location.pathname, { replace: true, state: {} });
+    } else if (taskIdFromState) {
+      // If taskID is passed from another page (e.g., AdminAccounts), store it
+      setPendingTaskId(taskIdFromState);
+      navigate(location.pathname, { replace: true, state: {} });
     }
   }, [location, navigate]);
+
+  useEffect(() => {
+      if (pendingTaskId && tasks.length > 0 && !loading) {
+        const foundTask = tasks.find((task) => task.id === pendingTaskId);
+        if (foundTask) {
+          handleOpenModal(foundTask, true); // Open in view mode
+        } else {
+          toast.error("Task not found.");
+        }
+        setPendingTaskId(null); // Clear pending task ID
+      }
+    }, [pendingTaskId, tasks, loading]);
 
   // --- API Fetch Functions ---
 

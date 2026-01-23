@@ -439,22 +439,40 @@ def admin_bulk_delete_accounts(
     current_user: User = Depends(get_current_user),
     request: Request = None
 ):
-    if current_user.role.upper() not in ALLOWED_ADMIN_ROLES:
-        raise HTTPException(status_code=403, detail="Permission denied")
-
+    # Allow admins/managers to bulk-delete company accounts; allow SALES to bulk-delete
+    # only accounts they created.
     if not data.account_ids:
         return {"detail": "No accounts provided for deletion."}
 
-    company_users = (
-        select(User.id)
-        .where(User.related_to_company == current_user.related_to_company)
-        .subquery()
-    )
+    role = current_user.role.upper()
 
-    accounts_to_delete = db.query(Account).filter(
-        Account.id.in_(data.account_ids),
-        ((Account.created_by.in_(company_users)) | (Account.assigned_to.in_(company_users)))
-    ).all()
+    if role in ALLOWED_ADMIN_ROLES:
+        company_users = (
+            select(User.id)
+            .where(User.related_to_company == current_user.related_to_company)
+            .subquery()
+        )
+
+        accounts_to_delete = db.query(Account).filter(
+            Account.id.in_(data.account_ids),
+            ((Account.created_by.in_(company_users)) | (Account.assigned_to.in_(company_users)))
+        ).all()
+    elif role == "SALES":
+        # Sales may only delete accounts they themselves created
+        # First check if accounts exist
+        all_accounts = db.query(Account).filter(
+            Account.id.in_(data.account_ids)
+        ).all()
+        
+        if all_accounts and not all(acc.created_by == current_user.id for acc in all_accounts):
+            raise HTTPException(status_code=403, detail="Permission denied. You can only delete accounts you created.")
+        
+        accounts_to_delete = db.query(Account).filter(
+            Account.id.in_(data.account_ids),
+            Account.created_by == current_user.id,
+        ).all()
+    else:
+        raise HTTPException(status_code=403, detail="Permission denied")
 
     if not accounts_to_delete:
         raise HTTPException(status_code=404, detail="No matching accounts found for deletion.")
@@ -466,7 +484,7 @@ def admin_bulk_delete_accounts(
         target_user_id = account.assigned_to or account.created_by
 
         db.delete(account)
-        
+
         create_audit_log(
             db=db,
             current_user=current_user,
@@ -475,7 +493,11 @@ def admin_bulk_delete_accounts(
             request=request,
             old_data=deleted_data,
             target_user_id=target_user_id,
-            custom_message=f"bulk delete account '{account_name}' via admin panel"
+            custom_message=(
+                f"bulk delete account '{account_name}' via admin panel"
+                if role in ALLOWED_ADMIN_ROLES
+                else f"bulk delete account '{account_name}' by creator via sales panel"
+            ),
         )
         deleted_count += 1
 
@@ -599,19 +621,35 @@ def admin_delete_account(
     current_user: User = Depends(get_current_user),
     request: Request = None
 ):
-    if current_user.role.upper() not in ALLOWED_ADMIN_ROLES:
+    role = current_user.role.upper()
+
+    if role in ALLOWED_ADMIN_ROLES:
+        company_users = (
+            select(User.id)
+            .where(User.related_to_company == current_user.related_to_company)
+            .subquery()
+        )
+
+        account = db.query(Account).filter(
+            Account.id == account_id,
+            ((Account.created_by.in_(company_users)) | (Account.assigned_to.in_(company_users)))
+        ).first()
+    elif role == "SALES":
+        # Sales may only delete accounts they created
+        # First check if account exists
+        account_exists = db.query(Account).filter(
+            Account.id == account_id
+        ).first()
+        
+        if account_exists and account_exists.created_by != current_user.id:
+            raise HTTPException(status_code=403, detail="Permission denied. You can only delete accounts you created.")
+        
+        account = db.query(Account).filter(
+            Account.id == account_id,
+            Account.created_by == current_user.id,
+        ).first()
+    else:
         raise HTTPException(status_code=403, detail="Permission denied")
-
-    company_users = (
-        select(User.id)
-        .where(User.related_to_company == current_user.related_to_company)
-        .subquery()
-    )
-
-    account = db.query(Account).filter(
-        Account.id == account_id,
-        ((Account.created_by.in_(company_users)) | (Account.assigned_to.in_(company_users)))
-    ).first()
 
     if not account:
         raise HTTPException(status_code=404, detail="Account not found.")
@@ -631,7 +669,11 @@ def admin_delete_account(
         request=request,
         old_data=deleted_data,
         target_user_id=target_user_id,
-        custom_message=f"delete account '{account_name}' via admin panel"
+        custom_message=(
+            f"delete account '{account_name}' via admin panel"
+            if role in ALLOWED_ADMIN_ROLES
+            else f"delete account '{account_name}' by creator via sales panel"
+        )
     )
 
     return {"detail": f"Account '{account_name}' deleted successfully."}

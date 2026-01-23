@@ -97,8 +97,6 @@ const getTableBadgeClass = (status) => {
   }
 };
 
-const ITEMS_PER_PAGE = 10;
-
 export default function AdminAccounts() {
   const navigate = useNavigate();
   const { user: currentUser } = useFetchUser();
@@ -126,9 +124,11 @@ export default function AdminAccounts() {
   const [confirmModalData, setConfirmModalData] = useState(null);
   const [confirmProcessing, setConfirmProcessing] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
   const [activeTab, setActiveTab] = useState("Overview");
   const [selectedStatus, setSelectedStatus] = useState("");
   const [updatingStatus, setUpdatingStatus] = useState(false);
+  const [selectedIds, setSelectedIds] = useState([]);
   const [relatedActs, setRelatedActs] = useState({});
   const [expandedSection, setExpandedSection] = useState(null);
 
@@ -360,7 +360,7 @@ export default function AdminAccounts() {
 
   const totalPages = Math.max(
     1,
-    Math.ceil(filteredAccounts.length / ITEMS_PER_PAGE) || 1
+    Math.ceil(filteredAccounts.length / itemsPerPage) || 1
   );
 
   useEffect(() => {
@@ -371,21 +371,62 @@ export default function AdminAccounts() {
     setCurrentPage((prev) => {
       const maxPage = Math.max(
         1,
-        Math.ceil(filteredAccounts.length / ITEMS_PER_PAGE) || 1
+        Math.ceil(filteredAccounts.length / itemsPerPage) || 1
       );
       return prev > maxPage ? maxPage : prev;
     });
-  }, [filteredAccounts.length]);
+  }, [filteredAccounts.length, itemsPerPage]);
 
   const paginatedAccounts = useMemo(() => {
-    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-    return filteredAccounts.slice(startIndex, startIndex + ITEMS_PER_PAGE);
-  }, [filteredAccounts, currentPage]);
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    return filteredAccounts.slice(startIndex, startIndex + itemsPerPage);
+  }, [filteredAccounts, currentPage, itemsPerPage]);
+
+  const handleSelectAll = (e) => {
+    if (e.target.checked) {
+      const allIds = paginatedAccounts.map((a) => a.id);
+      setSelectedIds(allIds);
+    } else {
+      setSelectedIds([]);
+    }
+  };
+
+  const handleCheckboxChange = (id) => {
+    setSelectedIds((prev) => {
+      if (prev.includes(id)) {
+        return prev.filter((prevId) => prevId !== id);
+      } else {
+        return [...prev, id];
+      }
+    });
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedIds.length === 0) return;
+
+    setConfirmModalData({
+      title: "Bulk Delete Accounts",
+      message: (
+        <span>
+          Are you sure you want to delete{" "}
+          <span className="font-semibold">{selectedIds.length}</span> selected
+          accounts? This action cannot be undone.
+        </span>
+      ),
+      confirmLabel: `Delete ${selectedIds.length} Accounts`,
+      cancelLabel: "Cancel",
+      variant: "danger",
+      action: {
+        type: "bulk-delete",
+        accountIds: selectedIds,
+      },
+    });
+  };
 
   const pageStart =
-    filteredAccounts.length === 0 ? 0 : (currentPage - 1) * ITEMS_PER_PAGE + 1;
+    filteredAccounts.length === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1;
   const pageEnd = Math.min(
-    currentPage * ITEMS_PER_PAGE,
+    currentPage * itemsPerPage,
     filteredAccounts.length
   );
 
@@ -564,6 +605,14 @@ export default function AdminAccounts() {
         if (currentSelectedId === targetId) {
           setSelectedAccount(null);
         }
+      } else if (type === "bulk-delete") {
+        const { accountIds } = action;
+        await api.delete("/accounts/admin/bulk-delete", {
+          data: { account_ids: accountIds },
+        });
+        toast.success(`Successfully deleted ${accountIds.length} accounts`);
+        setSelectedIds([]);
+        await fetchAccounts();
       }
     } catch (err) {
       console.error(err);
@@ -572,6 +621,8 @@ export default function AdminAccounts() {
           ? "Failed to create account. Please review the details and try again."
           : type === "update"
           ? "Failed to update account. Please review the details and try again."
+          : type === "bulk-delete"
+          ? "Failed to delete selected accounts."
           : "Failed to delete account. Please try again.";
 
       const message = err.response?.data?.detail || defaultMessage;
@@ -1326,11 +1377,35 @@ const [isSubmitted, setIsSubmitted] = useState(false);
         <table className="w-full min-w-[500px] border border-gray-200 rounded-lg bg-white shadow-sm text-sm">
           <thead className="bg-gray-100 text-left text-gray-600 text-sm tracking-wide font-semibold">
             <tr>
+              <th className="py-3 px-4 text-center w-12">
+                <input
+                  type="checkbox"
+                  checked={
+                    paginatedAccounts.length > 0 &&
+                    paginatedAccounts.every((a) => selectedIds.includes(a.id))
+                  }
+                  onChange={handleSelectAll}
+                  className="form-checkbox h-4 w-4 text-blue-600 rounded focus:ring-blue-500 border-gray-300"
+                />
+              </th>
               <th className="py-3 px-4 truncate">Account</th>
               <th className="py-3 px-4">Status</th>
               <th className="py-3 px-4">Industry</th>
               <th className="py-3 px-4">Territory</th>
               <th className="py-3 px-4">Phone</th>
+              <th className="py-3 px-4 text-center w-24">
+                {selectedIds.length > 0 ? (
+                  <button
+                    onClick={handleBulkDelete}
+                    className="text-red-600 hover:text-red-800 transition p-1 rounded-full hover:bg-red-50"
+                    title={`Delete ${selectedIds.length} selected accounts`}
+                  >
+                    <FiTrash2 size={18} />
+                  </button>
+                ) : (
+                  ""
+                )}
+              </th>
             </tr>
           </thead>
           <tbody>
@@ -1338,7 +1413,7 @@ const [isSubmitted, setIsSubmitted] = useState(false);
               <tr>
                 <td
                   className="py-4 px-4 text-center text-sm text-gray-500"
-                  colSpan={5}
+                  colSpan={7}
                 >
                   Loading accounts...
                 </td>
@@ -1354,6 +1429,15 @@ const [isSubmitted, setIsSubmitted] = useState(false);
                       fetchRelatedActivities(acc.id);
                     }}
                   >
+                    <td className="py-3 px-4 text-center">
+                      <input
+                        type="checkbox"
+                        checked={selectedIds.includes(acc.id)}
+                        onChange={() => handleCheckboxChange(acc.id)}
+                        onClick={(e) => e.stopPropagation()}
+                        className="form-checkbox h-4 w-4 text-blue-600 rounded focus:ring-blue-500 border-gray-300"
+                      />
+                    </td>
                     <td className="py-3 px-4">
                       <div>
                         <div className="font-medium text-blue-600 hover:underline break-all text-sm">
@@ -1385,6 +1469,7 @@ const [isSubmitted, setIsSubmitted] = useState(false);
                         <span>{acc.phone_number || "--"}</span>
                       </div>
                     </td>
+                    <td className="py-3 px-4"></td>
                   </tr>
                 );
               })
@@ -1392,7 +1477,7 @@ const [isSubmitted, setIsSubmitted] = useState(false);
               <tr>
                 <td
                   className="py-4 px-4 text-center text-sm text-gray-500"
-                  colSpan={5}
+                  colSpan={7}
                 >
                   No accounts found.
                 </td>
@@ -1404,10 +1489,15 @@ const [isSubmitted, setIsSubmitted] = useState(false);
       <PaginationControls
         className="mt-4"
         totalItems={filteredAccounts.length}
-        pageSize={ITEMS_PER_PAGE}
+        pageSize={itemsPerPage}
         currentPage={currentPage}
         onPrev={handlePrevPage}
         onNext={handleNextPage}
+        onPageSizeChange={(newSize) => {
+          setItemsPerPage(newSize);
+          setCurrentPage(1);
+        }}
+        pageSizeOptions={[10, 20, 30, 40, 50]}
         label="accounts"
       />
     </div>

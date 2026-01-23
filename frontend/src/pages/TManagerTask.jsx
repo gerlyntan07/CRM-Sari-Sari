@@ -19,7 +19,7 @@ import useFetchUser from "../hooks/useFetchUser";
 import LoadingSpinner from "../components/LoadingSpinner.jsx";
 import { useLocation, useNavigate } from "react-router-dom";
 
-const BOARD_COLUMNS = ["To Do", "In Progress", "Review", "Completed"];
+const BOARD_COLUMNS = ["Not started", "In progress", "Deferred", "Completed"];
 const LIST_PAGE_SIZE = 10;
 
 // --- Utility Functions ---
@@ -564,9 +564,9 @@ export default function AdminTask() {
 
   const getTaskCardColor = (task) => {
     switch (task.status) {
-      case "To Do": return "bg-blue-50 hover:bg-blue-100 border-blue-200";
-      case "In Progress": return "bg-purple-50 hover:bg-purple-100 border-purple-200";
-      case "Review": return "bg-orange-50 hover:bg-orange-100 border-orange-200";
+      case "Not started": return "bg-blue-50 hover:bg-blue-100 border-blue-200";
+      case "In progress": return "bg-purple-50 hover:bg-purple-100 border-purple-200";
+      case "Deferred": return "bg-orange-50 hover:bg-orange-100 border-orange-200";
       case "Completed": return "bg-green-50 hover:bg-green-100 border-green-200";
       default: return "bg-gray-50 hover:bg-gray-100 border-gray-100";
     }
@@ -574,9 +574,9 @@ export default function AdminTask() {
 
   const getStatusBadgeClass = (status) => {
     switch (status) {
-      case "To Do": return "bg-blue-100 text-blue-700";
-      case "In Progress": return "bg-purple-100 text-purple-700";
-      case "Review": return "bg-orange-100 text-orange-700";
+      case "Not started": return "bg-blue-100 text-blue-700";
+      case "In progress": return "bg-purple-100 text-purple-700";
+      case "Deferred": return "bg-orange-100 text-orange-700";
       case "Completed": return "bg-green-100 text-green-700";
       default: return "bg-gray-100 text-gray-700";
     }
@@ -669,14 +669,9 @@ export default function AdminTask() {
         </button>
       </div>
 
-      {!loading && !userLoading && filteredTasks.length === 0 && (
-          <p className="text-center text-gray-500 mt-10 p-4 bg-white shadow rounded-lg">
-            No tasks found matching current filters.
-          </p>
-      )}
-
       {/* Board View */}
-      {!loading && !userLoading && filteredTasks.length > 0 && view === "board" && (
+      {!loading && !userLoading && view === "board" && (
+        filteredTasks.length > 0 ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 rounded-md">
           {BOARD_COLUMNS.map((column) => {
             const columnTasks = displayTasks.filter((task) => task.status === column);
@@ -724,17 +719,20 @@ export default function AdminTask() {
                       </div>
                     ))
                   ) : (
-                    <p className="text-sm text-gray-400 text-center py-4">No tasks</p>
+                    <div className="text-center py-10 text-gray-500">No tasks</div>
                   )}
                 </div>
               </div>
             );
           })}
         </div>
+        ) : (
+          <div className="col-span-4 text-center py-10 text-gray-500 border border-dashed rounded-xl">No tasks found.</div>
+        )
       )}
 
       {/* List View */}
-      {!loading && !userLoading && filteredTasks.length > 0 && view === "list" && (
+      {!loading && !userLoading && view === "list" && (
         <div className="bg-white rounded-md shadow-sm overflow-hidden">
           <div className="overflow-x-auto">
             <table className="min-w-full text-sm">
@@ -745,37 +743,34 @@ export default function AdminTask() {
                   <th className="py-3 px-4 font-medium">Priority</th>
                   <th className="py-3 px-4 font-medium">Assigned To</th>
                   <th className="py-3 px-4 font-medium">Date Assigned</th>
-                  <th className="py-3 px-4 font-medium">Actions</th>
                 </tr>
               </thead>
               <tbody>
-                {displayTasks.map((task) => (
-                  <tr
-                    key={task.id}
-                    className="hover:bg-gray-50 transition-colors text-sm cursor-pointer"
-                    onClick={() => {
-                      console.log("Opening task in view mode:", task);
-                      handleOpenModal(task, true)}}
-                  >
-                    <td className="py-3 px-4 text-gray-700 whitespace-nowrap font-medium">{task.title}</td>
-                    <td className="py-3 px-4 whitespace-nowrap">
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium whitespace-nowrap ${getStatusBadgeClass(task.status || "To Do")}`}>{task.status || "To Do"}</span>
-                    </td>
-                    <td className="py-3 px-4 whitespace-nowrap">
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium whitespace-nowrap ${getPriorityBadgeClass(task.priority || "Low")}`}>{task.priority || "Low"}</span>
-                    </td>
-                    <td className="py-3 px-4 text-gray-700 whitespace-nowrap">{task.assignedToName || "Unassigned"}</td>
-                    <td className={`py-3 px-4 text-gray-700 whitespace-nowrap ${isTaskOverdue(task) ? "text-red-600 font-medium" : ""}`}>
-                      {task.dateAssigned ? formatDateDisplay(task.dateAssigned) : "—"}
-                    </td>
-                    <td className="py-3 px-4 whitespace-nowrap">
-                      <div className="flex items-center gap-3" onClick={(e) => e.stopPropagation()}>
-                        <button type="button" onClick={() => handleOpenModal(task)} className="text-blue-500 hover:text-blue-700 flex items-center gap-1"><FiEdit2 /> Edit</button>
-                        <button type="button" onClick={() => handleDeleteTask(task)} className="text-red-500 hover:text-red-700 flex items-center gap-1"><FiTrash2 /> Delete</button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                {displayTasks.length > 0 ? (
+                  displayTasks.map((task) => (
+                    <tr
+                      key={task.id}
+                      className="hover:bg-gray-50 transition-colors text-sm cursor-pointer"
+                      onClick={() => {
+                        console.log("Opening task in view mode:", task);
+                        handleOpenModal(task, true)}}
+                    >
+                      <td className="py-3 px-4 text-gray-700 whitespace-nowrap font-medium">{task.title}</td>
+                      <td className="py-3 px-4 whitespace-nowrap">
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium whitespace-nowrap ${getStatusBadgeClass(task.status || "Not started")}`}>{task.status || "Not started"}</span>
+                      </td>
+                      <td className="py-3 px-4 whitespace-nowrap">
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium whitespace-nowrap ${getPriorityBadgeClass(task.priority || "Low")}`}>{task.priority || "Low"}</span>
+                      </td>
+                      <td className="py-3 px-4 text-gray-700 whitespace-nowrap">{task.assignedToName || "Unassigned"}</td>
+                      <td className={`py-3 px-4 text-gray-700 whitespace-nowrap ${isTaskOverdue(task) ? "text-red-600 font-medium" : ""}`}>
+                        {task.dateAssigned ? formatDateDisplay(task.dateAssigned) : "—"}
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr><td colSpan={5} className="text-center py-4 text-gray-500">No tasks found.</td></tr>
+                )}
               </tbody>
             </table>
           </div>

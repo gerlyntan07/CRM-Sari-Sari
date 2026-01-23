@@ -207,14 +207,36 @@ export default function AdminCalls() {
   // Filter & Pagination placeholders (keep your existing logic if you already have one)
   const users = [];
 
-  const searchQuery = "";
-  const statusFilter = "Filter by Status";
-  const userFilter = "Filter by Users";
-  const priorityFilter = "Filter by Priority";
-  const currentPage = 1;
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState("Filter by Status");
+  const [userFilter, setUserFilter] = useState("Filter by Users");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
 
   const filteredCalls = calls;
-  const paginatedCalls = calls;
+  const totalPages = Math.max(1, Math.ceil(filteredCalls.length / itemsPerPage) || 1);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, statusFilter, itemsPerPage]);
+
+  useEffect(() => {
+    setCurrentPage((prev) => {
+      const maxPage = Math.max(
+        1,
+        Math.ceil(filteredCalls.length / itemsPerPage) || 1
+      );
+      return prev > maxPage ? maxPage : prev;
+    });
+  }, [filteredCalls.length, itemsPerPage]);
+
+  const paginatedCalls = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    return filteredCalls.slice(startIndex, startIndex + itemsPerPage);
+  }, [filteredCalls, currentPage, itemsPerPage]);
+
+  const handlePrevPage = () => setCurrentPage((prev) => Math.max(prev - 1, 1));
+  const handleNextPage = () => setCurrentPage((prev) => Math.min(prev + 1, totalPages));
 
   // Metrics
   const totalCalls = calls.length;
@@ -1068,10 +1090,11 @@ export default function AdminCalls() {
 
         <PaginationControls
           totalItems={filteredCalls.length}
-          pageSize={ITEMS_PER_PAGE}
+          pageSize={itemsPerPage}
           currentPage={currentPage}
-          onPrev={() => {}}
-          onNext={() => {}}
+          onPrev={handlePrevPage}
+          onNext={handleNextPage}
+          onPageSizeChange={setItemsPerPage}
           label="calls"
         />
       </div>

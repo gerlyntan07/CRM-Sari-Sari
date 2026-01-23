@@ -82,6 +82,7 @@ export default function AdminContacts() {
   const [deletingId, setDeletingId] = useState(null);
   const [activeTab, setActiveTab] = useState("Overview");
   const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
   const [relatedActs, setRelatedActs] = useState({});
   const [expandedSection, setExpandedSection] = useState(null);
 
@@ -233,27 +234,27 @@ export default function AdminContacts() {
 
   const totalPages = Math.max(
     1,
-    Math.ceil(filteredContacts.length / ITEMS_PER_PAGE) || 1
+    Math.ceil(filteredContacts.length / itemsPerPage) || 1
   );
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchQuery, accountFilter]);
+  }, [searchQuery, accountFilter, itemsPerPage]);
 
   useEffect(() => {
     setCurrentPage((prev) => {
       const maxPage = Math.max(
         1,
-        Math.ceil(filteredContacts.length / ITEMS_PER_PAGE) || 1
+        Math.ceil(filteredContacts.length / itemsPerPage) || 1
       );
       return prev > maxPage ? maxPage : prev;
     });
-  }, [filteredContacts.length]);
+  }, [filteredContacts.length, itemsPerPage]);
 
   const paginatedContacts = useMemo(() => {
-    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-    return filteredContacts.slice(startIndex, startIndex + ITEMS_PER_PAGE);
-  }, [filteredContacts, currentPage]);
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    return filteredContacts.slice(startIndex, startIndex + itemsPerPage);
+  }, [filteredContacts, currentPage, itemsPerPage]);
 
   const handlePrevPage = () => setCurrentPage((prev) => Math.max(prev - 1, 1));
   const handleNextPage = () =>
@@ -1250,10 +1251,11 @@ if (domain !== "gmail.com") {
       <PaginationControls
         className="mt-4"
         totalItems={filteredContacts.length}
-        pageSize={ITEMS_PER_PAGE}
+        pageSize={itemsPerPage}
         currentPage={currentPage}
         onPrev={handlePrevPage}
         onNext={handleNextPage}
+        onPageSizeChange={setItemsPerPage}
         label="contacts"
       />
     </div>

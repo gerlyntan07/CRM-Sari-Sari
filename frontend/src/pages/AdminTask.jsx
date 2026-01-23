@@ -722,19 +722,14 @@ export default function AdminTask() {
         </button>
       </div>
 
-      {!loading && !userLoading && filteredTasks.length === 0 && (
-          <p className="text-center text-gray-500 mt-10 p-4 bg-white shadow rounded-lg">
-            No tasks found matching current filters.
-          </p>
-      )}
-
       {/* Board View */}
-      {!loading && !userLoading && filteredTasks.length > 0 && view === "board" && (
+      {!loading && !userLoading && view === "board" && (
+        filteredTasks.length > 0 ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 rounded-md">
           {BOARD_COLUMNS.map((column) => {
             const columnTasks = displayTasks.filter((task) => task.status === column);
             return (
-              <div key={column} className="bg-white p-4 shadow border border-gray-200 flex flex-col relative">
+              <div key={column} className="bg-white p-4 shadow border border-gray-200 flex flex-col relative rounded-md">
                 <div className="absolute top-0 left-0 w-full h-5 bg-secondary rounded-t-md" /> 
                 <div className="flex items-center justify-between mb-3 pt-7">
                   <h3 className="font-medium text-gray-900">{column}</h3>
@@ -777,17 +772,23 @@ export default function AdminTask() {
                       </div>
                     ))
                   ) : (
-                    <p className="text-sm text-gray-400 text-center py-4">No tasks</p>
+                    <div className="text-center py-6">
+                      <p className="text-sm text-gray-400">No tasks</p>
+                      <p className="text-xs text-gray-300 mt-1">Create tasks from Admin Territory</p>
+                    </div>
                   )}
                 </div>
               </div>
             );
           })}
         </div>
+        ) : (
+          <div className="col-span-4 text-center py-10 text-gray-500 border border-dashed rounded-xl">No tasks found.</div>
+        )
       )}
 
       {/* List View */}
-      {!loading && !userLoading && filteredTasks.length > 0 && view === "list" && (
+      {!loading && !userLoading && view === "list" && (
         <div className="bg-white rounded-md shadow-sm overflow-hidden">
           <div className="overflow-x-auto">
             <table className="min-w-full text-sm">
@@ -825,7 +826,7 @@ export default function AdminTask() {
                 </tr>
               </thead>
               <tbody>
-                {displayTasks.map((task) => (
+                {displayTasks.length > 0 ? displayTasks.map((task) => (
                   <tr
                     key={task.id}
                     className="hover:bg-gray-50 transition-colors text-sm cursor-pointer"
@@ -851,7 +852,7 @@ export default function AdminTask() {
                     </td>
                     <td></td>
                   </tr>
-                ))}
+                )) : <tr><td colSpan={7} className="text-center py-4 text-gray-500">No tasks found.</td></tr>}
               </tbody>
             </table>
           </div>

@@ -85,6 +85,7 @@ const AdminMeeting = () => {
   const [showModal, setShowModal] = useState(false);
   const [selectedMeeting, setSelectedMeeting] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
   const [formData, setFormData] = useState(INITIAL_FORM_STATE);
   const [isEditing, setIsEditing] = useState(false);
   const [currentMeetingId, setCurrentMeetingId] = useState(null);
@@ -194,9 +195,9 @@ const AdminMeeting = () => {
   }, [meetings, searchTerm, statusFilter]);
 
   const paginatedMeetings = useMemo(() => {
-    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-    return filteredMeetings.slice(startIndex, startIndex + ITEMS_PER_PAGE);
-  }, [filteredMeetings, currentPage]);
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    return filteredMeetings.slice(startIndex, startIndex + itemsPerPage);
+  }, [filteredMeetings, currentPage, itemsPerPage]);
 
   const closeModal = () => {
     setShowModal(false);
@@ -503,7 +504,7 @@ const AdminMeeting = () => {
         </table>
       </div>
 
-      <PaginationControls totalItems={filteredMeetings.length} pageSize={ITEMS_PER_PAGE} currentPage={currentPage} onPrev={() => setCurrentPage(p => Math.max(1, p-1))} onNext={() => setCurrentPage(p => p+1)} label="meetings" />
+      <PaginationControls totalItems={filteredMeetings.length} pageSize={itemsPerPage} currentPage={currentPage} onPrev={() => setCurrentPage(p => Math.max(1, p-1))} onNext={() => setCurrentPage(p => p+1)} onPageSizeChange={(newSize) => { setItemsPerPage(newSize); setCurrentPage(1); }} pageSizeOptions={[10, 20, 30, 40, 50]} label="meetings" />
 
       {/* MODALS */}
       {showModal && (

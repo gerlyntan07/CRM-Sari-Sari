@@ -82,6 +82,7 @@ export default function AdminContacts() {
   const [deletingId, setDeletingId] = useState(null);
   const [activeTab, setActiveTab] = useState("Overview");
   const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
   const [relatedActs, setRelatedActs] = useState({});
   const [expandedSection, setExpandedSection] = useState(null);
   const [currentUser, setCurrentUser] = useState(null);
@@ -246,7 +247,7 @@ export default function AdminContacts() {
 
   const totalPages = Math.max(
     1,
-    Math.ceil(filteredContacts.length / ITEMS_PER_PAGE) || 1
+    Math.ceil(filteredContacts.length / itemsPerPage) || 1
   );
 
   useEffect(() => {
@@ -257,16 +258,16 @@ export default function AdminContacts() {
     setCurrentPage((prev) => {
       const maxPage = Math.max(
         1,
-        Math.ceil(filteredContacts.length / ITEMS_PER_PAGE) || 1
+        Math.ceil(filteredContacts.length / itemsPerPage) || 1
       );
       return prev > maxPage ? maxPage : prev;
     });
-  }, [filteredContacts.length]);
+  }, [filteredContacts.length, itemsPerPage]);
 
   const paginatedContacts = useMemo(() => {
-    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-    return filteredContacts.slice(startIndex, startIndex + ITEMS_PER_PAGE);
-  }, [filteredContacts, currentPage]);
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    return filteredContacts.slice(startIndex, startIndex + itemsPerPage);
+  }, [filteredContacts, currentPage, itemsPerPage]);
 
   const handlePrevPage = () => setCurrentPage((prev) => Math.max(prev - 1, 1));
   const handleNextPage = () =>
@@ -1271,10 +1272,15 @@ if (domain !== "gmail.com") {
       <PaginationControls
         className="mt-4"
         totalItems={filteredContacts.length}
-        pageSize={ITEMS_PER_PAGE}
+        pageSize={itemsPerPage}
         currentPage={currentPage}
         onPrev={handlePrevPage}
         onNext={handleNextPage}
+        onPageSizeChange={(newSize) => {
+          setItemsPerPage(newSize);
+          setCurrentPage(1);
+        }}
+        pageSizeOptions={[10, 20, 30, 40, 50]}
         label="contacts"
       />
     </div>

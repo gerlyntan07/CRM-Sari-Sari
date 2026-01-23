@@ -793,10 +793,7 @@ export default function AdminTask() {
                       </div>
                     ))
                   ) : (
-                    <div className="text-center py-6">
-                      <p className="text-sm text-gray-400">No tasks</p>
-                      <p className="text-xs text-gray-300 mt-1">Create tasks from Admin Territory</p>
-                    </div>
+                    <div className="text-center py-10 text-gray-500">No tasks</div>
                   )}
                 </div>
               </div>

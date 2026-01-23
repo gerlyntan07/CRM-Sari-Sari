@@ -19,17 +19,17 @@ import useFetchUser from "../hooks/useFetchUser";
 import LoadingSpinner from "../components/LoadingSpinner.jsx";
 import { useLocation, useNavigate } from "react-router-dom";
 
-const BOARD_COLUMNS = ["To Do", "In Progress", "Review", "Completed"];
+const BOARD_COLUMNS = ["Not started", "In Progress", "Deferred", "Completed"];
 const LIST_PAGE_SIZE = 10;
 
 const mapStatusToColumn = (status) => {
-  if (!status) return "To Do";
+  if (!status) return "Not started";
   const lower = status.toLowerCase();
-  if (lower === "not started" || lower === "to do") return "To Do";
+  if (lower === "not started" || lower === "to do") return "Not started";
   if (lower === "in progress") return "In Progress";
-  if (lower === "review") return "Review";
+  if (lower === "review" || lower === "deferred") return "Deferred";
   if (lower === "completed") return "Completed";
-  return "To Do"; // Default fallback
+  return "Not started"; // Default fallback
 };
 
 // --- Utility Functions ---
@@ -604,9 +604,9 @@ export default function AdminTask() {
 
   const getTaskCardColor = (task) => {
     switch (mapStatusToColumn(task.status)) {
-      case "To Do": return "bg-blue-50 hover:bg-blue-100 border-blue-200";
+      case "Not started": return "bg-blue-50 hover:bg-blue-100 border-blue-200";
       case "In Progress": return "bg-purple-50 hover:bg-purple-100 border-purple-200";
-      case "Review": return "bg-orange-50 hover:bg-orange-100 border-orange-200";
+      case "Deferred": return "bg-orange-50 hover:bg-orange-100 border-orange-200";
       case "Completed": return "bg-green-50 hover:bg-green-100 border-green-200";
       default: return "bg-gray-50 hover:bg-gray-100 border-gray-100";
     }
@@ -614,9 +614,9 @@ export default function AdminTask() {
 
   const getStatusBadgeClass = (status) => {
     switch (mapStatusToColumn(status)) {
-      case "To Do": return "bg-blue-100 text-blue-700";
+      case "Not started": return "bg-blue-100 text-blue-700";
       case "In Progress": return "bg-purple-100 text-purple-700";
-      case "Review": return "bg-orange-100 text-orange-700";
+      case "Deferred": return "bg-orange-100 text-orange-700";
       case "Completed": return "bg-green-100 text-green-700";
       default: return "bg-gray-100 text-gray-700";
     }
@@ -709,14 +709,9 @@ export default function AdminTask() {
         </button>
       </div>
 
-      {!loading && !userLoading && filteredTasks.length === 0 && (
-          <p className="text-center text-gray-500 mt-10 p-4 bg-white shadow rounded-lg">
-            No tasks found matching current filters.
-          </p>
-      )}
-
       {/* Board View */}
-      {!loading && !userLoading && filteredTasks.length > 0 && view === "board" && (
+      {!loading && !userLoading && view === "board" && (
+        filteredTasks.length > 0 ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 rounded-md">
           {BOARD_COLUMNS.map((column) => {
             const columnTasks = displayTasks.filter((task) => mapStatusToColumn(task.status) === column);
@@ -771,10 +766,13 @@ export default function AdminTask() {
             );
           })}
         </div>
+        ) : (
+          <div className="col-span-4 text-center py-10 text-gray-500 border border-dashed rounded-xl">No tasks found.</div>
+        )
       )}
 
       {/* List View */}
-      {!loading && !userLoading && filteredTasks.length > 0 && view === "list" && (
+      {!loading && !userLoading && view === "list" && (
         <div className="bg-white rounded-md shadow-sm overflow-hidden">
           <div className="overflow-x-auto">
             <table className="min-w-full text-sm">
@@ -785,11 +783,10 @@ export default function AdminTask() {
                   <th className="py-3 px-4 font-medium">Priority</th>
                   <th className="py-3 px-4 font-medium">Assigned To</th>
                   <th className="py-3 px-4 font-medium">Date Assigned</th>
-                  <th className="py-3 px-4 font-medium">Actions</th>
                 </tr>
               </thead>
               <tbody>
-                {displayTasks.map((task) => (
+                {displayTasks.length > 0 ? displayTasks.map((task) => (
                   <tr
                     key={task.id}
                     className="hover:bg-gray-50 transition-colors text-sm cursor-pointer"
@@ -808,14 +805,8 @@ export default function AdminTask() {
                     <td className={`py-3 px-4 text-gray-700 whitespace-nowrap ${isTaskOverdue(task) ? "text-red-600 font-medium" : ""}`}>
                       {task.dateAssigned ? formatDateDisplay(task.dateAssigned) : "—"}
                     </td>
-                    <td className="py-3 px-4 whitespace-nowrap">
-                      <div className="flex items-center gap-3" onClick={(e) => e.stopPropagation()}>
-                        <button type="button" onClick={() => handleOpenModal(task)} className="text-blue-500 hover:text-blue-700 flex items-center gap-1"><FiEdit2 /> Edit</button>
-                        <button type="button" onClick={() => handleDeleteTask(task)} className="text-red-500 hover:text-red-700 flex items-center gap-1"><FiTrash2 /> Delete</button>
-                      </div>
-                    </td>
                   </tr>
-                ))}
+                )) : <tr><td colSpan={5} className="text-center py-4 text-gray-500">No tasks found.</td></tr>}
               </tbody>
             </table>
           </div>

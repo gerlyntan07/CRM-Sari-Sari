@@ -17,8 +17,6 @@ import PaginationControls from "../components/PaginationControls.jsx";
 import LoadingSpinner from "../components/LoadingSpinner.jsx";
 import { useNavigate } from "react-router-dom";
 
-const ITEMS_PER_PAGE = 10;
-
 const STATUS_OPTIONS = [
   { value: "Draft", label: "Draft" },
   { value: "Presented", label: "Presented" },
@@ -268,6 +266,7 @@ export default function TManagerQuotes() {
   const [deletingId, setDeletingId] = useState(null);
 
   const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
   const [activeTab, setActiveTab] = useState("Overview");
   const [selectedStatus, setSelectedStatus] = useState("Draft");
 
@@ -588,7 +587,7 @@ export default function TManagerQuotes() {
 
   const totalPages = Math.max(
     1,
-    Math.ceil(filteredQuotes.length / ITEMS_PER_PAGE) || 1
+    Math.ceil(filteredQuotes.length / itemsPerPage) || 1
   );
 
   useEffect(() => setCurrentPage(1), [searchQuery, statusFilter]);
@@ -597,15 +596,15 @@ export default function TManagerQuotes() {
     setCurrentPage((prev) => {
       const maxPage = Math.max(
         1,
-        Math.ceil(filteredQuotes.length / ITEMS_PER_PAGE) || 1
+        Math.ceil(filteredQuotes.length / itemsPerPage) || 1
       );
       return prev > maxPage ? maxPage : prev;
     });
   }, [filteredQuotes.length]);
 
   const paginatedQuotes = useMemo(() => {
-    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-    return filteredQuotes.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    return filteredQuotes.slice(startIndex, startIndex + itemsPerPage);
   }, [filteredQuotes, currentPage]);
 
   const handlePrevPage = () => setCurrentPage((prev) => Math.max(prev - 1, 1));
@@ -1492,10 +1491,15 @@ export default function TManagerQuotes() {
       <PaginationControls
         className="mt-4"
         totalItems={filteredQuotes.length}
-        pageSize={ITEMS_PER_PAGE}
+        pageSize={itemsPerPage}
         currentPage={currentPage}
         onPrev={handlePrevPage}
         onNext={handleNextPage}
+        onPageSizeChange={(newSize) => {
+          setItemsPerPage(newSize);
+          setCurrentPage(1);
+        }}
+        pageSizeOptions={[10, 20, 30, 40, 50]}
         label="quotes"
       />
     </div>

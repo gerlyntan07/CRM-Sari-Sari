@@ -17,8 +17,6 @@ import PaginationControls from "../components/PaginationControls.jsx";
 import AdminDealsInformation from "../components/AdminDealsInformation";
 import LoadingSpinner from "../components/LoadingSpinner.jsx";
 
-const ITEMS_PER_PAGE = 10;
-
 export default function AdminDeals() {
     useEffect(() => {
         document.title = "Deals | Sari-Sari CRM";
@@ -33,6 +31,7 @@ export default function AdminDeals() {
     const [deals, setDeals] = useState(null);
     const [dealsLoading, setDealsLoading] = useState(false);
     const [currentPage, setCurrentPage] = useState(1);
+    const [itemsPerPage, setItemsPerPage] = useState(10);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [confirmModalData, setConfirmModalData] = useState(null);
     const [confirmProcessing, setConfirmProcessing] = useState(false);
@@ -151,7 +150,7 @@ export default function AdminDeals() {
 
     const totalPages = Math.max(
         1,
-        Math.ceil(filteredDeals.length / ITEMS_PER_PAGE) || 1
+        Math.ceil(filteredDeals.length / itemsPerPage) || 1
     );
 
     useEffect(() => {
@@ -162,15 +161,15 @@ export default function AdminDeals() {
         setCurrentPage((prev) => {
             const maxPage = Math.max(
                 1,
-                Math.ceil(filteredDeals.length / ITEMS_PER_PAGE) || 1
+                Math.ceil(filteredDeals.length / itemsPerPage) || 1
             );
             return prev > maxPage ? maxPage : prev;
         });
     }, [filteredDeals.length]);
 
     const paginatedDeals = useMemo(() => {
-        const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-        return filteredDeals.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+        const startIndex = (currentPage - 1) * itemsPerPage;
+        return filteredDeals.slice(startIndex, startIndex + itemsPerPage);
     }, [filteredDeals, currentPage]);
 
     const handlePrevPage = () => setCurrentPage((prev) => Math.max(prev - 1, 1));
@@ -721,10 +720,15 @@ export default function AdminDeals() {
             <PaginationControls
                 className="mt-4"
                 totalItems={filteredDeals.length}
-                pageSize={ITEMS_PER_PAGE}
+                pageSize={itemsPerPage}
                 currentPage={currentPage}
                 onPrev={handlePrevPage}
                 onNext={handleNextPage}
+                onPageSizeChange={(newSize) => {
+                  setItemsPerPage(newSize);
+                  setCurrentPage(1);
+                }}
+                pageSizeOptions={[10, 20, 30, 40, 50]}
                 label="deals"
             />
 

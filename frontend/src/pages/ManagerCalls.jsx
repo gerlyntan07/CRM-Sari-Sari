@@ -28,10 +28,6 @@ const PRIORITY_OPTIONS = [
   { value: "MEDIUM", label: "Medium" },
   { value: "LOW", label: "Low" },
 ];
-
-const ITEMS_PER_PAGE = 10;
-
-// --- Helper Functions for UI Rendering ---
 const STATUS_OPTIONS = [
   { value: "PLANNED", label: "PLANNED" },
   { value: "HELD", label: "HELD" },
@@ -211,7 +207,8 @@ export default function AdminCalls() {
   const statusFilter = "Filter by Status";
   const userFilter = "Filter by Users";
   const priorityFilter = "Filter by Priority";
-  const currentPage = 1;
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
 
   const filteredCalls = calls;
   const paginatedCalls = calls;
@@ -1042,10 +1039,15 @@ export default function AdminCalls() {
 
         <PaginationControls
           totalItems={filteredCalls.length}
-          pageSize={ITEMS_PER_PAGE}
+          pageSize={itemsPerPage}
           currentPage={currentPage}
-          onPrev={() => {}}
-          onNext={() => {}}
+          onPrev={() => setCurrentPage(p => Math.max(1, p - 1))}
+          onNext={() => setCurrentPage(p => p + 1)}
+          onPageSizeChange={(newSize) => {
+            setItemsPerPage(newSize);
+            setCurrentPage(1);
+          }}
+          pageSizeOptions={[10, 20, 30, 40, 50]}
           label="calls"
         />
       </div>

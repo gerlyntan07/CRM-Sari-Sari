@@ -95,8 +95,6 @@ const getTableBadgeClass = (status) => {
   }
 };
 
-const ITEMS_PER_PAGE = 10;
-
 export default function AdminAccounts() {
   const navigate = useNavigate();
 
@@ -122,6 +120,7 @@ export default function AdminAccounts() {
   const [confirmModalData, setConfirmModalData] = useState(null);
   const [confirmProcessing, setConfirmProcessing] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
   const [activeTab, setActiveTab] = useState("Overview");
   const [selectedStatus, setSelectedStatus] = useState("");
   const [updatingStatus, setUpdatingStatus] = useState(false);
@@ -347,7 +346,7 @@ export default function AdminAccounts() {
 
   const totalPages = Math.max(
     1,
-    Math.ceil(filteredAccounts.length / ITEMS_PER_PAGE) || 1
+    Math.ceil(filteredAccounts.length / itemsPerPage) || 1
   );
 
   useEffect(() => {
@@ -358,21 +357,21 @@ export default function AdminAccounts() {
     setCurrentPage((prev) => {
       const maxPage = Math.max(
         1,
-        Math.ceil(filteredAccounts.length / ITEMS_PER_PAGE) || 1
+        Math.ceil(filteredAccounts.length / itemsPerPage) || 1
       );
       return prev > maxPage ? maxPage : prev;
     });
   }, [filteredAccounts.length]);
 
   const paginatedAccounts = useMemo(() => {
-    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-    return filteredAccounts.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    return filteredAccounts.slice(startIndex, startIndex + itemsPerPage);
   }, [filteredAccounts, currentPage]);
 
   const pageStart =
-    filteredAccounts.length === 0 ? 0 : (currentPage - 1) * ITEMS_PER_PAGE + 1;
+    filteredAccounts.length === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1;
   const pageEnd = Math.min(
-    currentPage * ITEMS_PER_PAGE,
+    currentPage * itemsPerPage,
     filteredAccounts.length
   );
 
@@ -1391,10 +1390,15 @@ const [isSubmitted, setIsSubmitted] = useState(false);
       <PaginationControls
         className="mt-4"
         totalItems={filteredAccounts.length}
-        pageSize={ITEMS_PER_PAGE}
+        pageSize={itemsPerPage}
         currentPage={currentPage}
         onPrev={handlePrevPage}
         onNext={handleNextPage}
+        onPageSizeChange={(newSize) => {
+          setItemsPerPage(newSize);
+          setCurrentPage(1);
+        }}
+        pageSizeOptions={[10, 20, 30, 40, 50]}
         label="accounts"
       />
     </div>

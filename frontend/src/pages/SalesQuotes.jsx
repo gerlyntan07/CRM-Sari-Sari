@@ -16,6 +16,7 @@ import api from "../api.js";
 import PaginationControls from "../components/PaginationControls.jsx";
 import LoadingSpinner from "../components/LoadingSpinner.jsx";
 import { useNavigate } from "react-router-dom";
+import useFetchUser from "../hooks/useFetchUser"; // ✅ Import User Hook
 
 const ITEMS_PER_PAGE = 10;
 
@@ -237,6 +238,10 @@ const extractDealContactId = (deal) => {
 
 export default function SalesQuotes() {
   const navigate = useNavigate();
+
+  // ✅ Get Currency from User Hook
+  const { user } = useFetchUser();
+  const currencySymbol = user?.company?.currency || "₱";
 
   useEffect(() => {
     document.title = "Quotes | Sari-Sari CRM";
@@ -757,16 +762,6 @@ export default function SalesQuotes() {
             return;
           }
 
-    // if (!formData.total_amount || Number(formData.total_amount) <= 0) {
-    //   toast.error("Total amount must be greater than 0.");
-    //   return;
-    // }
-
-    // if (formData.validity_days !== "" && Number(formData.validity_days) < 0) {
-    //   toast.error("Validity days must be 0 or higher.");
-    //   return;
-    // }
-
     const derived = deriveAccountAndContactFromDealId(formData.deal_id);
 
     const basePayload = {
@@ -1052,7 +1047,7 @@ export default function SalesQuotes() {
         </div>
 
         <div className="p-6 lg:p-4">
-              <div className="flex flex-col md:flex-row md:justify-between lg:flex-row lg:items-center lg:justify-between mt-3 gap-2 px-2 md:items-center lg:gap-4 md:mx-7 lg:mx-7">
+            <div className="flex flex-col md:flex-row md:justify-between lg:flex-row lg:items-center lg:justify-between mt-3 gap-2 px-2 md:items-center lg:gap-4 md:mx-7 lg:mx-7">
   <div className="flex flex-wrap items-center gap-2 sm:gap-3">
     <h1 className="text-xl sm:text-2xl font-semibold text-gray-800">
                 {resolveDealLabel(selectedQuote)}
@@ -1145,8 +1140,9 @@ export default function SalesQuotes() {
                       <div>
                         <p className="font-semibold">Total Amount:</p>
                         <p>
+                          {/* ✅ Use dynamic currency symbol in Detail View */}
                           {selectedQuote.total_amount
-                            ? `₱${Number(
+                            ? `${currencySymbol}${Number(
                                 selectedQuote.total_amount
                               ).toLocaleString()}`
                             : "N/A"}
@@ -1443,8 +1439,9 @@ export default function SalesQuotes() {
 
                     <td className="py-3 px-4 align-top">
                       <div className="text-gray-700">
+                        {/* ✅ Use dynamic currency symbol in List View */}
                         {quote.total_amount
-                          ? `₱${Number(quote.total_amount).toLocaleString()}`
+                          ? `${currencySymbol}${Number(quote.total_amount).toLocaleString()}`
                           : "--"}
                       </div>
                     </td>
@@ -1555,8 +1552,8 @@ export default function SalesQuotes() {
               return name;
             }}
             placeholder="Search deal..."
-            required={true}     
-          isSubmitted={isSubmitted} 
+             required={true}      
+          isSubmitted={isSubmitted}  
             disabled={isSubmitting || deals.length === 0}
             className="md:col-span-2"
           />
@@ -1621,8 +1618,8 @@ export default function SalesQuotes() {
               return item?.role ? `${name} (${item.role})` : name;
             }}
             placeholder="Search assignee..."
-            required={true}           
-            isSubmitted={isSubmitted} 
+            required={true}            
+             isSubmitted={isSubmitted} 
             disabled={isSubmitting || currentUser?.role === "Sales"}
           />
 
@@ -1651,9 +1648,9 @@ export default function SalesQuotes() {
           <div className="flex flex-col sm:flex-row justify-end space-y-2 sm:space-y-0 sm:space-x-2 md:col-span-2 mt-4">
             <button
               type="button"
-               onClick={() => {
-                closeModal();          
-                setIsSubmitted(false); 
+                onClick={() => {
+                closeModal();          // close the modal
+                setIsSubmitted(false); // reset validation errors
               }}
               className="w-full sm:w-auto px-4 py-2 text-white bg-red-400 border border-red-300 rounded hover:bg-red-500 transition disabled:opacity-70"
               disabled={isSubmitting || confirmProcessing}

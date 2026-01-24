@@ -16,6 +16,7 @@ import api from "../api.js";
 import PaginationControls from "../components/PaginationControls.jsx";
 import LoadingSpinner from "../components/LoadingSpinner.jsx";
 import { useLocation, useNavigate } from "react-router-dom";
+import useFetchUser from "../hooks/useFetchUser"; // ✅ Import User Hook
 
 const STATUS_OPTIONS = [
   { value: "Draft", label: "Draft" },
@@ -237,6 +238,10 @@ const extractDealContactId = (deal) => {
 export default function AdminQuotes() {
   const navigate = useNavigate();
   const location = useLocation();
+
+  // ✅ Get Currency from User Hook
+  const { user } = useFetchUser();
+  const currencySymbol = user?.company?.currency || "₱";
 
   useEffect(() => {
     document.title = "Quotes | Sari-Sari CRM";
@@ -1207,8 +1212,9 @@ const [isSubmitted, setIsSubmitted] = useState(false);
                       <div>
                         <p className="font-semibold">Total Amount:</p>
                         <p>
+                          {/* ✅ Use dynamic currency symbol in Detail View */}
                           {selectedQuote.total_amount
-                            ? `₱${Number(
+                            ? `${currencySymbol}${Number(
                                 selectedQuote.total_amount
                               ).toLocaleString()}`
                             : "N/A"}
@@ -1534,8 +1540,9 @@ const [isSubmitted, setIsSubmitted] = useState(false);
 
                     <td className="py-3 px-4 align-top">
                       <div className="text-gray-700">
+                        {/* ✅ Use dynamic currency symbol in Table */}
                         {quote.total_amount
-                          ? `₱${Number(quote.total_amount).toLocaleString()}`
+                          ? `${currencySymbol}${Number(quote.total_amount).toLocaleString()}`
                           : "--"}
                       </div>
                     </td>
@@ -1647,7 +1654,7 @@ const [isSubmitted, setIsSubmitted] = useState(false);
               return name;
             }}
             placeholder="Search deal..."
-             required={true}               // <-- use required directly
+             required={true}                // <-- use required directly
           isSubmitted={isSubmitted}  
             disabled={isSubmitting || deals.length === 0}
             className="md:col-span-2"
@@ -1713,7 +1720,7 @@ const [isSubmitted, setIsSubmitted] = useState(false);
               return item?.role ? `${name} (${item.role})` : name;
             }}
             placeholder="Search assignee..."
-            required={true}           
+            required={true}            
              isSubmitted={isSubmitted} 
             disabled={isSubmitting}
           />

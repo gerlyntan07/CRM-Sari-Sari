@@ -92,6 +92,7 @@ const AdminMeeting = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [confirmModalData, setConfirmModalData] = useState(null);
   const [confirmProcessing, setConfirmProcessing] = useState(false);
+  const [pendingMeetingId, setPendingMeetingId] = useState(null);
 
   // Set default assignedTo to current user when modal opens for a new meeting (Sales only)
   useEffect(() => {
@@ -105,17 +106,40 @@ const AdminMeeting = () => {
 
   // Auto-open logic
   useEffect(() => {
-    const shouldOpen = location.state?.openMeetingModal;
-    const incomingId = location.state?.initialMeetingData?.relatedTo || searchParams.get("id");
-
-    if (shouldOpen || incomingId) {
-      setShowModal(true);
-      if (location.state?.initialMeetingData) {
-        setFormData((prev) => ({ ...prev, ...location.state.initialMeetingData }));
+      const shouldOpen = location.state?.openMeetingModal;
+      const incomingId =
+        location.state?.initialMeetingData?.relatedTo || searchParams.get("id");
+      const meetingIdFromState = location.state?.meetingID;
+  
+      if (shouldOpen || incomingId) {
+        setShowModal(true);
+        if (location.state?.initialMeetingData) {
+          setFormData((prev) => ({
+            ...prev,
+            ...location.state.initialMeetingData,
+          }));
+        }
+        navigate(location.pathname, { replace: true, state: {} });
+      } else if (meetingIdFromState) {
+        // If taskID is passed from another page (e.g., AdminAccounts), store it
+        setPendingMeetingId(meetingIdFromState);
+        navigate(location.pathname, { replace: true, state: {} });
       }
-      navigate(location.pathname, { replace: true, state: {} });
-    }
-  }, [location, searchParams, navigate]);
+    }, [location, searchParams, navigate]);
+  
+    useEffect(() => {
+      if (pendingMeetingId && meetings.length > 0 && !meetingsLoading) {
+        const foundMeeting = meetings.find(
+          (meeting) => meeting.id === pendingMeetingId,
+        );
+        if (foundMeeting) {
+          setSelectedMeeting(foundMeeting);
+        } else {
+          toast.error("Meeting not found.");
+        }
+        setPendingMeetingId(null); // Clear pending meeting ID
+      }
+    }, [pendingMeetingId, meetings, meetingsLoading]);
 
   const fetchMeetings = async () => {
     if (meetingIdFromQuery && isInfoRoute) {
@@ -147,7 +171,6 @@ const AdminMeeting = () => {
         if (meeting) setSelectedMeeting(meeting);
       }
 
-      console.log(res.data);
     } catch (err) {
       toast.error("Failed to load meetings.");
     } finally {
@@ -358,7 +381,6 @@ const AdminMeeting = () => {
   const handleConfirmAction = async () => {
     if (!confirmModalData?.action) return;
     const { type, payload, targetId, name } = confirmModalData.action;
-    console.log(payload);
 
     setConfirmProcessing(true);
     try {

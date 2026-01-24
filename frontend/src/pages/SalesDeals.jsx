@@ -17,6 +17,7 @@ import { toast } from "react-toastify";
 import PaginationControls from "../components/PaginationControls.jsx";
 import AdminDealsInformation from "../components/AdminDealsInformation";
 import LoadingSpinner from "../components/LoadingSpinner.jsx";
+import { useLocation, useNavigate } from "react-router-dom";
 
 const ITEMS_PER_PAGE = 10;
 
@@ -24,6 +25,9 @@ export default function AdminDeals() {
     useEffect(() => {
         document.title = "Deals | Sari-Sari CRM";
     }, []);
+
+    const navigate = useNavigate();
+    const location = useLocation();
 
     const [searchQuery, setSearchQuery] = useState("");
     const [stageFilter, setStageFilter] = useState("Filter by Stage");
@@ -44,6 +48,32 @@ export default function AdminDeals() {
     const [contacts, setContacts] = useState([]);
     const [users, setUsers] = useState([]);
     const [relatedActs, setRelatedActs] = useState({});
+    const [pendingDealId, setPendingDealId] = useState(null);
+
+  useEffect(() => {
+    const state = location.state;
+    const dealIdFromState = state?.dealID;
+    
+    // Handle case where only dealID is passed (e.g., from AdminAccounts related activities)
+    if (dealIdFromState && !state?.openDealModal) {
+      setPendingDealId(dealIdFromState);
+      navigate(location.pathname, { replace: true, state: {} });
+      return;
+    }
+  }, [location, navigate])
+
+   useEffect(() => {
+      if (pendingDealId && deals?.length > 0 && !dealsLoading) {
+        const foundDeal = deals.find((deal) => deal.id === pendingDealId);
+        if (foundDeal) {
+          setSelectedDeal(foundDeal); // Open in view mode
+
+        } else {
+          toast.error("Deal not found.");
+        }
+        setPendingDealId(null); // Clear pending deal ID
+      }
+    }, [pendingDealId, deals, dealsLoading]);
 
     const [dealForm, setDealForm] = useState({
         id: null,

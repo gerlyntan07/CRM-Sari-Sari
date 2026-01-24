@@ -15,7 +15,7 @@ import { toast } from "react-toastify";
 import api from "../api.js";
 import PaginationControls from "../components/PaginationControls.jsx";
 import LoadingSpinner from "../components/LoadingSpinner.jsx";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import useFetchUser from "../hooks/useFetchUser"; // ✅ Import User Hook
 
 const ITEMS_PER_PAGE = 10;
@@ -238,6 +238,7 @@ const extractDealContactId = (deal) => {
 
 export default function SalesQuotes() {
   const navigate = useNavigate();
+  const location = useLocation();
 
   // ✅ Get Currency from User Hook
   const { user } = useFetchUser();
@@ -276,6 +277,30 @@ export default function SalesQuotes() {
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const [activeTab, setActiveTab] = useState("Overview");
   const [selectedStatus, setSelectedStatus] = useState("Draft");
+  const [pendingQuoteId, setPendingQuoteId] = useState(null);
+
+  useEffect(() => {
+    const state = location.state;
+    const quoteIdFromState = state?.quoteID;
+
+    if (quoteIdFromState) {
+      setPendingQuoteId(quoteIdFromState);
+      navigate(location.pathname, { replace: true, state: {} });
+      return;
+    }
+  }, [location, navigate])
+
+  useEffect(() => {
+      if (pendingQuoteId && quotes.length > 0 && !quotesLoading) {
+        const foundQuote = quotes.find((quote) => quote.id === pendingQuoteId);
+        if (foundQuote) {
+          setSelectedQuote(foundQuote); // Open in view mode
+        } else {
+          toast.error("Quote not found.");
+        }
+        setPendingQuoteId(null); // Clear pending quote ID
+      }
+    }, [pendingQuoteId, contacts, quotesLoading]);
 
   const [currentUser, setCurrentUser] = useState(null);
 

@@ -153,7 +153,6 @@ export default function AdminAccounts() {
           return new Date(bDate) - new Date(aDate);
         });
         setAccounts(sortedData);
-        console.log("Fetch from backend: ", res.data);
 
         if (preserveSelectedId) {
           const updatedSelection = sortedData.find(
@@ -217,7 +216,6 @@ export default function AdminAccounts() {
   const fetchRelatedActivities = useCallback(async (account_id) => {
     try {
       const res = await api.get(`/activities/accounts/${account_id}`);
-      console.log("Related activities: ", res.data);
       // API returns an object with grouped arrays: { tasks: [], meetings: [], calls: [], quotes: [], deals: [], contacts: [] }
       setRelatedActs(res.data && typeof res.data === 'object' ? res.data : {});
     } catch (err) {
@@ -503,7 +501,6 @@ export default function AdminAccounts() {
   const handleEditClick = (account) => {
     // Close the account details modal
     setSelectedAccount(null);
-    console.log("edit: ", account);
     
     // Set the selected user if the account has an assigned user
     if (account.assigned_accs) {
@@ -1059,7 +1056,7 @@ const [isSubmitted, setIsSubmitted] = useState(false);
                       {expandedSection === 'meetings' && (
                         <div className="border-t border-gray-200 p-2 space-y-2 max-h-60 overflow-y-auto hide-scrollbar">
                           {relatedActs.meetings.map((meeting, idx) => (
-                            <div key={`meeting-${idx}`} className="flex flex-col sm:flex-row justify-between items-start border border-gray-100 rounded-lg p-3 bg-gray-50 w-full break-words">
+                            <div key={`meeting-${idx}`} className="flex flex-col sm:flex-row justify-between items-start border border-gray-100 rounded-lg p-3 bg-gray-50 w-full break-words cursor-pointer" onClick={() => navigate(`/sales/meetings`, { state: { meetingID: meeting.id } })}>
                               <div className="flex gap-3 mb-2 sm:mb-0 flex-1 min-w-0">
                                 <div className="text-green-600 mt-1"><FiCalendar size={20} /></div>
                                 <div className="flex-1 min-w-0">
@@ -1097,7 +1094,7 @@ const [isSubmitted, setIsSubmitted] = useState(false);
                       {expandedSection === 'calls' && (
                         <div className="border-t border-gray-200 p-2 space-y-2 max-h-60 overflow-y-auto hide-scrollbar">
                           {relatedActs.calls.map((call, idx) => (
-                            <div key={`call-${idx}`} className="flex flex-col sm:flex-row justify-between items-start border border-gray-100 rounded-lg p-3 bg-gray-50 w-full break-words">
+                            <div key={`call-${idx}`} className="flex flex-col sm:flex-row justify-between items-start border border-gray-100 rounded-lg p-3 bg-gray-50 w-full break-words cursor-pointer" onClick={() => navigate(`/sales/calls`, { state: { callID: call.id } })}>
                               <div className="flex gap-3 mb-2 sm:mb-0 flex-1 min-w-0">
                                 <div className="text-purple-600 mt-1"><FiPhone size={20} /></div>
                                 <div className="flex-1 min-w-0">
@@ -1130,7 +1127,7 @@ const [isSubmitted, setIsSubmitted] = useState(false);
                       {expandedSection === 'contacts' && (
                         <div className="border-t border-gray-200 p-2 space-y-2 max-h-60 overflow-y-auto hide-scrollbar">
                           {relatedActs.contacts.map((contact, idx) => (
-                            <div key={`contact-${idx}`} className="flex flex-col sm:flex-row justify-between items-start border border-gray-100 rounded-lg p-3 bg-gray-50 w-full break-words">
+                            <div key={`contact-${idx}`} className="flex flex-col sm:flex-row justify-between items-start border border-gray-100 rounded-lg p-3 bg-gray-50 w-full break-words cursor-pointer" onClick={() => navigate(`/sales/contacts`, { state: { contactID: contact.id } })}>
                               <div className="flex gap-3 mb-2 sm:mb-0 flex-1 min-w-0">
                                 <div className="text-teal-600 mt-1"><FiUser size={20} /></div>
                                 <div className="flex-1 min-w-0">
@@ -1163,7 +1160,7 @@ const [isSubmitted, setIsSubmitted] = useState(false);
                       {expandedSection === 'deals' && (
                         <div className="border-t border-gray-200 p-2 space-y-2 max-h-60 overflow-y-auto hide-scrollbar">
                           {relatedActs.deals.map((deal, idx) => (
-                            <div key={`deal-${idx}`} className="flex flex-col sm:flex-row justify-between items-start border border-gray-100 rounded-lg p-3 bg-gray-50 w-full break-words">
+                            <div key={`deal-${idx}`} className="flex flex-col sm:flex-row justify-between items-start border border-gray-100 rounded-lg p-3 bg-gray-50 w-full break-words cursor-pointer" onClick={() => navigate(`/sales/deals`, { state: { dealID: deal.id } })}>
                               <div className="flex gap-3 mb-2 sm:mb-0 flex-1 min-w-0">
                                 <div className="text-indigo-600 mt-1"><FiBriefcase size={20} /></div>
                                 <div className="flex-1 min-w-0">
@@ -1196,7 +1193,7 @@ const [isSubmitted, setIsSubmitted] = useState(false);
                       {expandedSection === 'quotes' && (
                         <div className="border-t border-gray-200 p-2 space-y-2 max-h-60 overflow-y-auto hide-scrollbar">
                           {relatedActs.quotes.map((quote, idx) => (
-                            <div key={`quote-${idx}`} className="flex flex-col sm:flex-row justify-between items-start border border-gray-100 rounded-lg p-3 bg-gray-50 w-full break-words">
+                            <div key={`quote-${idx}`} className="flex flex-col sm:flex-row justify-between items-start border border-gray-100 rounded-lg p-3 bg-gray-50 w-full break-words cursor-pointer" onClick={() => navigate(`/sales/quotes`, { state: { quoteID: quote.id } })}>
                               <div className="flex gap-3 mb-2 sm:mb-0 flex-1 min-w-0">
                                 <div className="text-orange-600 mt-1"><FiFileText size={20} /></div>
                                 <div className="flex-1 min-w-0">

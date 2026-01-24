@@ -265,7 +265,7 @@ export default function AdminPanel() {
                   to="/admin/company-details"
                   className={({ isActive }) => (isActive ? activeLink : normalLink)}
                 >
-                  <FiShield /> Company Details
+                  <FiShield /> Settings
                 </NavLink>
               </div>
             )}

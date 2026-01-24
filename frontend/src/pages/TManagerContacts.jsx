@@ -792,7 +792,12 @@ if (domain !== "gmail.com") {
                       {expandedSection === 'tasks' && (
                         <div className="border-t border-gray-200 p-2 space-y-2 max-h-60 overflow-y-auto hide-scrollbar">
                           {relatedActs.tasks.map((task, idx) => (
-                            <div key={`task-${idx}`} className="flex flex-col sm:flex-row justify-between items-start border border-gray-100 rounded-lg p-3 bg-gray-50 w-full break-words">
+                            <div key={`task-${idx}`} className="flex flex-col sm:flex-row justify-between items-start border border-gray-100 rounded-lg p-3 bg-gray-50 w-full break-words cursor-pointer"
+                                onClick={() =>
+                                  navigate(`/group-manager/tasks`, {
+                                    state: { taskID: task.id },
+                                  })
+                                }>
                               <div className="flex gap-3 mb-2 sm:mb-0 flex-1 min-w-0">
                                 <div className="text-blue-600 mt-1"><FiCheckSquare size={20} /></div>
                                 <div className="flex-1 min-w-0">
@@ -830,7 +835,7 @@ if (domain !== "gmail.com") {
                       {expandedSection === 'meetings' && (
                         <div className="border-t border-gray-200 p-2 space-y-2 max-h-60 overflow-y-auto hide-scrollbar">
                           {relatedActs.meetings.map((meeting, idx) => (
-                            <div key={`meeting-${idx}`} className="flex flex-col sm:flex-row justify-between items-start border border-gray-100 rounded-lg p-3 bg-gray-50 w-full break-words">
+                            <div key={`meeting-${idx}`} className="flex flex-col sm:flex-row justify-between items-start border border-gray-100 rounded-lg p-3 bg-gray-50 w-full break-words cursor-pointer" onClick={() => navigate(`/group-manager/meetings`, { state: { meetingID: meeting.id } })}>
                               <div className="flex gap-3 mb-2 sm:mb-0 flex-1 min-w-0">
                                 <div className="text-green-600 mt-1"><FiCalendar size={20} /></div>
                                 <div className="flex-1 min-w-0">
@@ -868,7 +873,7 @@ if (domain !== "gmail.com") {
                       {expandedSection === 'calls' && (
                         <div className="border-t border-gray-200 p-2 space-y-2 max-h-60 overflow-y-auto hide-scrollbar">
                           {relatedActs.calls.map((call, idx) => (
-                            <div key={`call-${idx}`} className="flex flex-col sm:flex-row justify-between items-start border border-gray-100 rounded-lg p-3 bg-gray-50 w-full break-words">
+                            <div key={`call-${idx}`} className="flex flex-col sm:flex-row justify-between items-start border border-gray-100 rounded-lg p-3 bg-gray-50 w-full break-words cursor-pointer" onClick={() => navigate(`/group-manager/calls`, { state: { callID: call.id } })}>
                               <div className="flex gap-3 mb-2 sm:mb-0 flex-1 min-w-0">
                                 <div className="text-purple-600 mt-1"><FiPhone size={20} /></div>
                                 <div className="flex-1 min-w-0">
@@ -882,40 +887,7 @@ if (domain !== "gmail.com") {
                         </div>
                       )}
                     </div>
-                  )}
-
-                  {/* CONTACTS */}
-                  {relatedActs.contacts && relatedActs.contacts.length > 0 && (
-                    <div className="rounded-lg border border-gray-200 bg-white overflow-hidden">
-                      <button
-                        type="button"
-                        onClick={() => setExpandedSection(expandedSection === 'contacts' ? null : 'contacts')}
-                        className="w-full flex items-center justify-between p-3 hover:bg-gray-50 transition cursor-pointer"
-                      >
-                        <div className="flex items-center gap-2">
-                          <FiUser className="text-teal-600" />
-                          <span className="font-semibold text-gray-700">Contacts ({relatedActs.contacts.length})</span>
-                        </div>
-                        {expandedSection === 'contacts' ? <FiChevronDown className="text-gray-500" /> : <FiChevronRight className="text-gray-500" />}
-                      </button>
-                      {expandedSection === 'contacts' && (
-                        <div className="border-t border-gray-200 p-2 space-y-2 max-h-60 overflow-y-auto hide-scrollbar">
-                          {relatedActs.contacts.map((contact, idx) => (
-                            <div key={`contact-${idx}`} className="flex flex-col sm:flex-row justify-between items-start border border-gray-100 rounded-lg p-3 bg-gray-50 w-full break-words">
-                              <div className="flex gap-3 mb-2 sm:mb-0 flex-1 min-w-0">
-                                <div className="text-teal-600 mt-1"><FiUser size={20} /></div>
-                                <div className="flex-1 min-w-0">
-                                  <h4 className="font-medium text-blue-600 break-words text-sm">{contact.first_name ? `${contact.first_name} ` : ''}{contact.last_name}</h4>
-                                  <p className="text-xs text-gray-500 break-words">{contact.title || ""}</p>
-                                </div>
-                              </div>
-                              <p className="text-xs text-gray-500 break-words">{formattedDateTime(contact.created_at)}</p>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  )}
+                  )}                  
 
                   {/* DEALS */}
                   {relatedActs.deals && relatedActs.deals.length > 0 && (
@@ -934,7 +906,7 @@ if (domain !== "gmail.com") {
                       {expandedSection === 'deals' && (
                         <div className="border-t border-gray-200 p-2 space-y-2 max-h-60 overflow-y-auto hide-scrollbar">
                           {relatedActs.deals.map((deal, idx) => (
-                            <div key={`deal-${idx}`} className="flex flex-col sm:flex-row justify-between items-start border border-gray-100 rounded-lg p-3 bg-gray-50 w-full break-words">
+                            <div key={`deal-${idx}`} className="flex flex-col sm:flex-row justify-between items-start border border-gray-100 rounded-lg p-3 bg-gray-50 w-full break-words cursor-pointer" onClick={() => navigate(`/group-manager/deals`, { state: { dealID: deal.id } })}>
                               <div className="flex gap-3 mb-2 sm:mb-0 flex-1 min-w-0">
                                 <div className="text-indigo-600 mt-1"><FiBriefcase size={20} /></div>
                                 <div className="flex-1 min-w-0">
@@ -967,7 +939,7 @@ if (domain !== "gmail.com") {
                       {expandedSection === 'quotes' && (
                         <div className="border-t border-gray-200 p-2 space-y-2 max-h-60 overflow-y-auto hide-scrollbar">
                           {relatedActs.quotes.map((quote, idx) => (
-                            <div key={`quote-${idx}`} className="flex flex-col sm:flex-row justify-between items-start border border-gray-100 rounded-lg p-3 bg-gray-50 w-full break-words">
+                            <div key={`quote-${idx}`} className="flex flex-col sm:flex-row justify-between items-start border border-gray-100 rounded-lg p-3 bg-gray-50 w-full break-words cursor-pointer" onClick={() => navigate(`/group-manager/quotes`, { state: { quoteID: quote.id } })}>
                               <div className="flex gap-3 mb-2 sm:mb-0 flex-1 min-w-0">
                                 <div className="text-orange-600 mt-1"><FiFileText size={20} /></div>
                                 <div className="flex-1 min-w-0">

@@ -597,7 +597,7 @@ export default function AdminLeadsInformation({
                               {relatedActs.tasks.map((task, idx) => (
                                 <div
                                   key={`task-${idx}`}
-                                  className="flex flex-col sm:flex-row justify-between items-start border border-gray-100 rounded-lg p-3 bg-gray-50 w-full break-words"
+                                  className="flex flex-col sm:flex-row justify-between items-start border border-gray-100 rounded-lg p-3 bg-gray-50 w-full break-words cursor-pointer" onClick={() => navigate(`/group-manager/tasks`, { state: { taskID: task.id } })}
                                 >
                                   <div className="flex gap-3 mb-2 sm:mb-0 flex-1 min-w-0">
                                     <div className="text-blue-600 mt-1">
@@ -663,7 +663,7 @@ export default function AdminLeadsInformation({
                                 {relatedActs.meetings.map((meeting, idx) => (
                                   <div
                                     key={`meeting-${idx}`}
-                                    className="flex flex-col sm:flex-row justify-between items-start border border-gray-100 rounded-lg p-3 bg-gray-50 w-full break-words"
+                                    className="flex flex-col sm:flex-row justify-between items-start border border-gray-100 rounded-lg p-3 bg-gray-50 w-full break-words cursor-pointer" onClick={() => navigate(`/group-manager/meetings`, { state: { meetingID: meeting.id } })}
                                   >
                                     <div className="flex gap-3 mb-2 sm:mb-0 flex-1 min-w-0">
                                       <div className="text-green-600 mt-1">
@@ -730,7 +730,7 @@ export default function AdminLeadsInformation({
                               {relatedActs.calls.map((call, idx) => (
                                 <div
                                   key={`call-${idx}`}
-                                  className="flex flex-col sm:flex-row justify-between items-start border border-gray-100 rounded-lg p-3 bg-gray-50 w-full break-words"
+                                  className="flex flex-col sm:flex-row justify-between items-start border border-gray-100 rounded-lg p-3 bg-gray-50 w-full break-words cursor-pointer" onClick={() => navigate(`/group-manager/calls`, { state: { callID: call.id } })}
                                 >
                                   <div className="flex gap-3 mb-2 sm:mb-0 flex-1 min-w-0">
                                     <div className="text-purple-600 mt-1">

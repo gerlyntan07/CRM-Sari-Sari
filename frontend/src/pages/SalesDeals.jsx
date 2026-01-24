@@ -1145,6 +1145,7 @@ const [isSubmitted, setIsSubmitted] = useState(false);
                             return name || item?.email || "";
                         }}
                         placeholder="Search assignee..."
+                        required
                         disabled={isSubmitting || isSales}    
                         className="md:col-span-2"
                     />
@@ -1213,7 +1214,7 @@ function InputField({
                 placeholder={placeholder}
                 required={required}
                 disabled={disabled}
-                 className={`w-full rounded-md px-2 py-1.5 text-sm outline-none border focus:ring-2
+                 className={`w-full rounded-md px-2 py-1.5 text-sm outline-none border focus:ring-2 disabled:bg-gray-100
           ${hasError
             ? "border-red-500 focus:ring-red-500"
             : "border-gray-300 focus:ring-blue-400"
@@ -1343,7 +1344,7 @@ function SearchableSelect({
                     setQ(e.target.value);
                     if (!open) setOpen(true);
                 }}
-                className={`w-full border rounded-md px-2 py-1.5 text-sm outline-none focus:ring-2
+                className={`w-full border rounded-md px-2 py-1.5 text-sm outline-none focus:ring-2 disabled:bg-gray-100
           ${hasError
             ? "border-red-500 focus:ring-red-500"
             : "border-gray-300 focus:ring-blue-400"

@@ -185,13 +185,34 @@ const CreateMeetingModal = ({
     });
   };
 
+    //validation 
+const [isSubmitted, setIsSubmitted] = useState(false);
   const handleSubmit = (e) => {
     e.preventDefault();
+     setIsSubmitted(true);  
 
     if (formData.status === "--") {
       toast.warn("Please select a valid status."); // Optional: Notify the user
       return;
     }
+    
+     const subject = formData.subject;
+  if (!subject || subject.trim() === "") {
+    toast.error("Subject is required.");
+    return;
+  }
+
+     const assignedTo = formData.assignedTo;
+      if (!assignedTo) {
+        toast.error("Assigned To is required.");
+        return;
+      }
+      
+        const relatedTo1 = formData.relatedTo1;
+  if (!relatedTo1) {
+    toast.error(`Please select a ${formData.relatedType1 || "Lead/Account"}.`);
+    return;
+  }
 
     if (onSubmit) {
       onSubmit(formData);
@@ -200,6 +221,7 @@ const CreateMeetingModal = ({
       onClose();
     }
   };
+
 
   return (
   <div
@@ -223,6 +245,7 @@ const CreateMeetingModal = ({
       <form
         className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4 text-sm"
         onSubmit={handleSubmit}
+        noValidate  
       >
         <InputField
           label="Subject"
@@ -231,7 +254,7 @@ const CreateMeetingModal = ({
           onChange={handleInputChange}
           placeholder="e.g. Meeting with Client"
           required
-          disabled={isSubmitting}
+           isSubmitted={isSubmitted}
           className="md:col-span-2"
         />
 
@@ -264,6 +287,8 @@ const CreateMeetingModal = ({
                 relatedTo1: newId,
               }))
             }
+            required={true}       
+           isSubmitted={isSubmitted} 
           />
         </div>
 
@@ -321,7 +346,6 @@ const CreateMeetingModal = ({
             type="datetime-local"
             value={formData.startTime}
             onChange={handleInputChange}
-            required
             disabled={isSubmitting}
           />
           <InputField
@@ -330,15 +354,16 @@ const CreateMeetingModal = ({
             type="datetime-local"
             value={formData.endTime}
             onChange={handleInputChange}
-            required
             disabled={isSubmitting}
           />
         </div>
 
         <div className="flex flex-col">
           <label className="block text-gray-700 font-medium mb-1 text-sm">
-            Assign To
+           Assign To <span className="text-red-600 font-semibold">*</span>
           </label>
+          
+
           <SearchableSelect
             items={Array.isArray(users) ? users : []}
             value={formData.assignedTo ?? ""}
@@ -349,9 +374,11 @@ const CreateMeetingModal = ({
                 ...prev,
                 assignedTo: newId,
               }))
-            }
-            disabled={userRole === 'Sales'}
-          />
+            } 
+              disabled={userRole === 'Sales'}
+              required={true}       // optional or required
+           isSubmitted={isSubmitted} // form submit trigger
+            />
         </div>
 
         <SelectField
@@ -405,20 +432,34 @@ const CreateMeetingModal = ({
 };
 
 // ... InputField, SelectField, TextareaField (Same as before) ...
-function InputField({ label, name, value, onChange, placeholder, type = "text", required = false, disabled = false, className = "" }) {
+function InputField({ label, name, value, onChange, placeholder, type = "text", required = false, disabled = false, className = "",  isSubmitted = false, 
+  }) {
+     const hasError = isSubmitted && !value?.trim();
+
   return (
     <div className={className}>
-      <label className="block text-gray-700 font-medium mb-1 text-sm">{label}</label>
-      <input type={type} name={name} value={value ?? ""} onChange={onChange} placeholder={placeholder} required={required} disabled={disabled} className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-400 outline-none disabled:bg-gray-100" />
+      <label className="block text-gray-700 font-medium mb-1 text-sm">{label} {required && <span className="text-red-500">*</span>}</label>
+      <input type={type} name={name} value={value ?? ""} onChange={onChange} placeholder={placeholder} required={required} disabled={disabled}
+        className={`w-full rounded-md px-2 py-1.5 text-sm outline-none border focus:ring-2 outline-none disabled:bg-gray-100
+          ${hasError
+            ? "border-red-500 focus:ring-red-500"
+            : "border-gray-300 focus:ring-blue-400"
+          }
+          ${className}
+        `}/>
     </div>
   );
 }
 
-function SelectField({ label, name, value, onChange, options, required = false, disabled = false, className = "" }) {
+function SelectField({ label, name, value, onChange, options, required = false, disabled = false, className = "", isSubmitted = false,
+}) {
+  const hasError = isSubmitted && required && !value; 
+
   return (
     <div className={className}>
-      <label className="block text-gray-700 font-medium mb-1 text-sm">{label}</label>
-      <select name={name} value={value ?? ""} onChange={onChange} required={required} disabled={disabled} className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-400 outline-none disabled:bg-gray-100">
+      <label className="block text-gray-700 font-medium mb-1 text-sm">{label} {required && <span className="text-red-500">*</span>}
+</label>
+      <select name={name} value={value ?? ""} onChange={onChange} required={required} disabled={disabled} hasError={hasError} className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-400 outline-none disabled:bg-gray-100">
         {options.map((option) => (
           <option key={option.value} value={option.value}>{option.label}</option>
         ))}
@@ -444,6 +485,8 @@ function SearchableSelect({
   placeholder = "Search...",
   disabled = false,
   maxRender = 200,
+  required = false,
+  isSubmitted = false, // <-- new
 }) {
   const [open, setOpen] = useState(false);
   const [q, setQ] = useState("");
@@ -452,6 +495,9 @@ function SearchableSelect({
   const selectedItem = items.find((it) => String(it.id) === String(value));
   const selectedLabel = selectedItem ? getLabel(selectedItem) : "";
 
+   // ✅ DEFINE hasError HERE
+  const hasError = required && isSubmitted && !value;
+  
   const filtered = useMemo(() => {
     const query = q.trim().toLowerCase();
     const base = query
@@ -484,7 +530,12 @@ function SearchableSelect({
           setQ(e.target.value);
           if (!open) setOpen(true);
         }}
-        className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-400 outline-none disabled:bg-gray-100"
+
+         className={`w-full border rounded-md px-2 py-1.5 text-sm outline-none focus:ring-2 disabled:bg-gray-100
+          ${hasError
+            ? "border-red-500 focus:ring-red-500"
+            : "border-gray-300 focus:ring-blue-400"
+          }`}
       />
 
       {open && !disabled && (

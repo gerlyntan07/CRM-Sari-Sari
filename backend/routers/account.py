@@ -439,7 +439,7 @@ def admin_bulk_delete_accounts(
     current_user: User = Depends(get_current_user),
     request: Request = None
 ):
-    # Allow admins/managers to bulk-delete company accounts; allow SALES to bulk-delete
+    # Allow admins/managers to bulk-delete company accounts; allow SALES to bulk-mark as INACTIVE
     # only accounts they created.
     if not data.account_ids:
         return {"detail": "No accounts provided for deletion."}
@@ -458,7 +458,7 @@ def admin_bulk_delete_accounts(
             ((Account.created_by.in_(company_users)) | (Account.assigned_to.in_(company_users)))
         ).all()
     elif role == "SALES":
-        # Sales may only delete accounts they themselves created
+        # Sales may only mark as inactive accounts they themselves created
         # First check if accounts exist
         all_accounts = db.query(Account).filter(
             Account.id.in_(data.account_ids)
@@ -479,31 +479,47 @@ def admin_bulk_delete_accounts(
 
     deleted_count = 0
     for account in accounts_to_delete:
-        deleted_data = serialize_instance(account)
         account_name = account.name
         target_user_id = account.assigned_to or account.created_by
 
-        db.delete(account)
+        if role in ALLOWED_ADMIN_ROLES:
+            # Admins perform hard delete
+            deleted_data = serialize_instance(account)
+            db.delete(account)
 
-        create_audit_log(
-            db=db,
-            current_user=current_user,
-            instance=account,
-            action="DELETE",
-            request=request,
-            old_data=deleted_data,
-            target_user_id=target_user_id,
-            custom_message=(
-                f"bulk delete account '{account_name}' via admin panel"
-                if role in ALLOWED_ADMIN_ROLES
-                else f"bulk delete account '{account_name}' by creator via sales panel"
-            ),
-        )
+            create_audit_log(
+                db=db,
+                current_user=current_user,
+                instance=account,
+                action="DELETE",
+                request=request,
+                old_data=deleted_data,
+                target_user_id=target_user_id,
+                custom_message=f"bulk delete account '{account_name}' via admin panel",
+            )
+        else:
+            # Sales users perform soft delete (mark as INACTIVE)
+            old_status = account.status
+            account.status = AccountStatus.INACTIVE.value
+            db.commit()
+
+            create_audit_log(
+                db=db,
+                current_user=current_user,
+                instance=account,
+                action="UPDATE",
+                request=request,
+                old_data={"status": old_status},
+                new_data={"status": account.status},
+                target_user_id=target_user_id,
+                custom_message=f"bulk mark as inactive account '{account_name}' by creator via sales panel",
+            )
+        
         deleted_count += 1
 
     db.commit()
 
-    return {"detail": f"Successfully deleted {deleted_count} account(s)."}
+    return {"detail": f"Successfully {'deleted' if role in ALLOWED_ADMIN_ROLES else 'archived'} {deleted_count} account(s)."}
 
 
 @router.put("/admin/{account_id}", response_model=AccountResponse)
@@ -635,7 +651,7 @@ def admin_delete_account(
             ((Account.created_by.in_(company_users)) | (Account.assigned_to.in_(company_users)))
         ).first()
     elif role == "SALES":
-        # Sales may only delete accounts they created
+        # Sales may only mark as inactive accounts they created
         # First check if account exists
         account_exists = db.query(Account).filter(
             Account.id == account_id
@@ -654,26 +670,41 @@ def admin_delete_account(
     if not account:
         raise HTTPException(status_code=404, detail="Account not found.")
 
-    deleted_data = serialize_instance(account)
     account_name = account.name
     target_user_id = account.assigned_to or account.created_by
 
-    db.delete(account)
-    db.commit()
+    if role in ALLOWED_ADMIN_ROLES:
+        # Admins perform hard delete
+        deleted_data = serialize_instance(account)
+        db.delete(account)
+        db.commit()
 
-    create_audit_log(
-        db=db,
-        current_user=current_user,
-        instance=account,
-        action="DELETE",
-        request=request,
-        old_data=deleted_data,
-        target_user_id=target_user_id,
-        custom_message=(
-            f"delete account '{account_name}' via admin panel"
-            if role in ALLOWED_ADMIN_ROLES
-            else f"delete account '{account_name}' by creator via sales panel"
+        create_audit_log(
+            db=db,
+            current_user=current_user,
+            instance=account,
+            action="DELETE",
+            request=request,
+            old_data=deleted_data,
+            target_user_id=target_user_id,
+            custom_message=f"delete account '{account_name}' via admin panel"
         )
-    )
+        return {"detail": f"Account '{account_name}' deleted successfully."}
+    else:
+        # Sales users perform soft delete (mark as INACTIVE)
+        old_status = account.status
+        account.status = AccountStatus.INACTIVE.value
+        db.commit()
 
-    return {"detail": f"Account '{account_name}' deleted successfully."}
+        create_audit_log(
+            db=db,
+            current_user=current_user,
+            instance=account,
+            action="UPDATE",
+            request=request,
+            old_data={"status": old_status},
+            new_data={"status": account.status},
+            target_user_id=target_user_id,
+            custom_message=f"mark as inactive account '{account_name}' by creator via sales panel"
+        )
+        return {"detail": f"Account '{account_name}' archived successfully."}

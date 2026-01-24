@@ -335,6 +335,12 @@ export default function AdminAccounts() {
     const normalizedFilter = stageFilter.trim().toUpperCase();
 
     return accounts.filter((acc) => {
+      // If user is not admin, hide INACTIVE accounts
+      const isAdminUser = currentUser?.role === "Admin" || currentUser?.role === "CEO" || currentUser?.role === "MANAGER" || currentUser?.role === "GROUP MANAGER";
+      if (!isAdminUser && acc.status?.toUpperCase() === "INACTIVE") {
+        return false;
+      }
+
       const searchFields = [
         acc?.name,
         acc?.website,
@@ -356,7 +362,7 @@ export default function AdminAccounts() {
 
       return matchesSearch && matchesStage;
     });
-  }, [accounts, searchQuery, stageFilter]);
+  }, [accounts, searchQuery, stageFilter, currentUser]);
 
   const totalPages = Math.max(
     1,
@@ -404,16 +410,20 @@ export default function AdminAccounts() {
   const handleBulkDelete = async () => {
     if (selectedIds.length === 0) return;
 
+    const isAdminUser = currentUser?.role === "Admin" || currentUser?.role === "CEO" || currentUser?.role === "MANAGER" || currentUser?.role === "GROUP MANAGER";
+    const actionText = isAdminUser ? "delete" : "archive";
+    const warningText = isAdminUser ? "This action cannot be undone." : "These accounts will be hidden from your view but admins can still see them.";
+
     setConfirmModalData({
-      title: "Bulk Delete Accounts",
+      title: `Bulk ${actionText.charAt(0).toUpperCase() + actionText.slice(1)} Accounts`,
       message: (
         <span>
-          Are you sure you want to delete{" "}
+          Are you sure you want to {actionText}{" "}
           <span className="font-semibold">{selectedIds.length}</span> selected
-          accounts? This action cannot be undone.
+          accounts? {warningText}
         </span>
       ),
-      confirmLabel: `Delete ${selectedIds.length} Accounts`,
+      confirmLabel: `${actionText.charAt(0).toUpperCase() + actionText.slice(1)} ${selectedIds.length} Accounts`,
       cancelLabel: "Cancel",
       variant: "danger",
       action: {
@@ -523,16 +533,19 @@ export default function AdminAccounts() {
   const handleDelete = (account) => {
     if (!account) return;
 
+    const isAdminUser = currentUser?.role === "Admin" || currentUser?.role === "CEO" || currentUser?.role === "MANAGER" || currentUser?.role === "GROUP MANAGER";
+    const actionText = isAdminUser ? "delete" : "archive";
+    const warningText = isAdminUser ? "This action cannot be undone." : "This account will be hidden from your view but admins can still see it.";
+
     setConfirmModalData({
-      title: "Delete Account",
+      title: `${actionText.charAt(0).toUpperCase() + actionText.slice(1)} Account`,
       message: (
         <span>
-          Are you sure you want to permanently delete the account{" "}
-          <span className="font-semibold">{account.name}</span>? This action
-          cannot be undone.
+          Are you sure you want to {actionText} the account{" "}
+          <span className="font-semibold">{account.name}</span>? {warningText}
         </span>
       ),
-      confirmLabel: "Delete Account",
+      confirmLabel: `${actionText.charAt(0).toUpperCase() + actionText.slice(1)} Account`,
       cancelLabel: "Cancel",
       variant: "danger",
       action: {
@@ -593,8 +606,11 @@ export default function AdminAccounts() {
         }
         const currentSelectedId = selectedAccount?.id;
         setDeletingId(targetId);
+        const isAdminUser = currentUser?.role === "Admin" || currentUser?.role === "CEO" || currentUser?.role === "MANAGER" || currentUser?.role === "GROUP MANAGER";
+        const successMessage = isAdminUser ? `Account "${name}" deleted successfully.` : `Account "${name}" archived successfully.`;
+        
         await api.delete(`/accounts/admin/${targetId}`);
-        toast.success(`Account "${name}" deleted successfully.`);
+        toast.success(successMessage);
 
         const preserveId =
           currentSelectedId && currentSelectedId !== targetId
@@ -607,10 +623,13 @@ export default function AdminAccounts() {
         }
       } else if (type === "bulk-delete") {
         const { accountIds } = action;
+        const isAdminUser = currentUser?.role === "Admin" || currentUser?.role === "CEO" || currentUser?.role === "MANAGER" || currentUser?.role === "GROUP MANAGER";
+        const actionMessage = isAdminUser ? "deleted" : "archived";
+        
         await api.delete("/accounts/admin/bulk-delete", {
           data: { account_ids: accountIds },
         });
-        toast.success(`Successfully deleted ${accountIds.length} accounts`);
+        toast.success(`Successfully ${actionMessage} ${accountIds.length} accounts`);
         setSelectedIds([]);
         await fetchAccounts();
       }

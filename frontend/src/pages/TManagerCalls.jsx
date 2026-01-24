@@ -38,13 +38,15 @@ const STATUS_OPTIONS = [
   { value: "NOT_HELD", label: "NOT HELD" },
 ];
 
-const normalizeStatus = (status) => (status ? String(status).toUpperCase() : "");
+const normalizeStatus = (status) =>
+  status ? String(status).toUpperCase() : "";
 
 const toAdminCallStatus = (status) => {
   const s = normalizeStatus(status);
   if (s === "PLANNED" || s === "PENDING") return "PLANNED";
   if (s === "HELD" || s === "COMPLETED") return "HELD";
-  if (s === "NOT HELD" || s === "NOT_HELD" || s === "CANCELLED") return "NOT_HELD";
+  if (s === "NOT HELD" || s === "NOT_HELD" || s === "CANCELLED")
+    return "NOT_HELD";
   return "PLANNED";
 };
 
@@ -111,6 +113,7 @@ export default function AdminCalls() {
   const [statusSelection, setStatusSelection] = useState("PLANNED");
   const [updatingStatus, setUpdatingStatus] = useState(false);
   const [callsLoading, setCallsLoading] = useState(false);
+  const [pendingCallId, setPendingCallId] = useState(null);
 
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -119,8 +122,8 @@ export default function AdminCalls() {
   const getDefaultCallTime = () => {
     const today = new Date();
     const year = today.getFullYear();
-    const month = String(today.getMonth() + 1).padStart(2, '0');
-    const date = String(today.getDate()).padStart(2, '0');
+    const month = String(today.getMonth() + 1).padStart(2, "0");
+    const date = String(today.getDate()).padStart(2, "0");
     return `${year}-${month}-${date}T08:00`;
   };
 
@@ -142,31 +145,61 @@ export default function AdminCalls() {
 
   // ✅ Auto open modal if passed via state or query
   useEffect(() => {
-    const shouldOpen = location.state?.openCallModal;
-    const incomingId =
-      location.state?.initialCallData?.relatedTo1 || searchParams.get("id");
+    const state = location.state;
+    const callIdFromState = state?.callID;
 
-    if (shouldOpen || incomingId) {
-      setShowModal(true);
-
-      if (location.state?.initialCallData) {
-        setFormData((prev) => ({
-          ...prev,
-          ...location.state.initialCallData,
-        }));
-      }
-
-      if (incomingId) {
-        setFormData((prev) => ({
-          ...prev,
-          relatedTo1: incomingId,
-        }));
-      }
-
-      // Clear URL state so modal does not reopen on refresh
+    // Handle case where only callID is passed (e.g., from AdminAccounts related activities)
+    if (callIdFromState && !state?.openCallModal) {
+      setPendingCallId(callIdFromState);
       navigate(location.pathname, { replace: true, state: {} });
+      return;
     }
-  }, [location, searchParams, navigate]);
+
+    // Handle case where openCallModal is passed with initialCallData
+    if (!state?.openCallModal || !state?.initialCallData) return;
+
+    // Wait until related options are loaded
+    if (
+      state.initialCallData.relatedType1 === "Lead" &&
+      Array.isArray(relatedTo1Values) &&
+      relatedTo1Values.length === 0
+    )
+      return;
+
+    if (
+      state.initialCallData.relatedType1 === "Account" &&
+      (!Array.isArray(relatedTo1Values) || relatedTo1Values.length === 0)
+    )
+      return;
+
+    setShowModal(true);
+
+    setFormData((prev) => ({
+      ...prev,
+      ...state.initialCallData,
+      relatedTo1: state.initialCallData.relatedTo1
+        ? String(state.initialCallData.relatedTo1)
+        : "",
+      relatedTo2: state.initialCallData.relatedTo2
+        ? String(state.initialCallData.relatedTo2)
+        : "",
+    }));
+
+    // cleanup
+    navigate(location.pathname, { replace: true, state: {} });
+  }, [location.state, relatedTo1Values]);
+
+  useEffect(() => {
+    if (pendingCallId && calls.length > 0 && !callsLoading) {
+      const foundCall = calls.find((call) => call.id === pendingCallId);
+      if (foundCall) {
+        setSelectedCall(foundCall);
+      } else {
+        toast.error("Call not found.");
+      }
+      setPendingCallId(null); // Clear pending call ID
+    }
+  }, [pendingCallId, calls, callsLoading]);
 
   const fetchCalls = async () => {
     try {
@@ -214,7 +247,10 @@ export default function AdminCalls() {
   const [itemsPerPage, setItemsPerPage] = useState(10);
 
   const filteredCalls = calls;
-  const totalPages = Math.max(1, Math.ceil(filteredCalls.length / itemsPerPage) || 1);
+  const totalPages = Math.max(
+    1,
+    Math.ceil(filteredCalls.length / itemsPerPage) || 1,
+  );
 
   useEffect(() => {
     setCurrentPage(1);
@@ -224,7 +260,7 @@ export default function AdminCalls() {
     setCurrentPage((prev) => {
       const maxPage = Math.max(
         1,
-        Math.ceil(filteredCalls.length / itemsPerPage) || 1
+        Math.ceil(filteredCalls.length / itemsPerPage) || 1,
       );
       return prev > maxPage ? maxPage : prev;
     });
@@ -236,19 +272,50 @@ export default function AdminCalls() {
   }, [filteredCalls, currentPage, itemsPerPage]);
 
   const handlePrevPage = () => setCurrentPage((prev) => Math.max(prev - 1, 1));
-  const handleNextPage = () => setCurrentPage((prev) => Math.min(prev + 1, totalPages));
+  const handleNextPage = () =>
+    setCurrentPage((prev) => Math.min(prev + 1, totalPages));
 
   // Metrics
   const totalCalls = calls.length;
-  const plannedCalls = calls.filter((c) => toAdminCallStatus(c.status) === "PLANNED").length;
-  const heldCalls = calls.filter((c) => toAdminCallStatus(c.status) === "HELD").length;
-  const notHeldCalls = calls.filter((c) => toAdminCallStatus(c.status) === "NOT_HELD").length;
+  const plannedCalls = calls.filter(
+    (c) => toAdminCallStatus(c.status) === "PLANNED",
+  ).length;
+  const heldCalls = calls.filter(
+    (c) => toAdminCallStatus(c.status) === "HELD",
+  ).length;
+  const notHeldCalls = calls.filter(
+    (c) => toAdminCallStatus(c.status) === "NOT_HELD",
+  ).length;
 
   const metricCards = [
-    { title: "Total", value: totalCalls, icon: FiPhoneCall, color: "text-slate-600", bgColor: "bg-slate-100" },
-    { title: "Planned", value: plannedCalls, icon: FiClock, color: "text-indigo-600", bgColor: "bg-indigo-100" },
-    { title: "Held", value: heldCalls, icon: FiCheckCircle, color: "text-green-600", bgColor: "bg-green-100" },
-    { title: "Not Held", value: notHeldCalls, icon: FiXCircle, color: "text-gray-600", bgColor: "bg-gray-100" },
+    {
+      title: "Total",
+      value: totalCalls,
+      icon: FiPhoneCall,
+      color: "text-slate-600",
+      bgColor: "bg-slate-100",
+    },
+    {
+      title: "Planned",
+      value: plannedCalls,
+      icon: FiClock,
+      color: "text-indigo-600",
+      bgColor: "bg-indigo-100",
+    },
+    {
+      title: "Held",
+      value: heldCalls,
+      icon: FiCheckCircle,
+      color: "text-green-600",
+      bgColor: "bg-green-100",
+    },
+    {
+      title: "Not Held",
+      value: notHeldCalls,
+      icon: FiXCircle,
+      color: "text-gray-600",
+      bgColor: "bg-gray-100",
+    },
   ];
 
   const [activeTab, setActiveTab] = useState("Overview");
@@ -303,12 +370,16 @@ export default function AdminCalls() {
             if (formData.relatedType1 === "Lead") {
               specificRes = await api.get(`/leads/get/${formData.relatedTo1}`);
             } else if (formData.relatedType1 === "Account") {
-              specificRes = await api.get(`/accounts/get/${formData.relatedTo1}`);
+              specificRes = await api.get(
+                `/accounts/get/${formData.relatedTo1}`,
+              );
             }
 
             if (specificRes && specificRes.data) {
               // Check if item already exists in list (by id)
-              const exists = items.some(item => String(item.id) === String(formData.relatedTo1));
+              const exists = items.some(
+                (item) => String(item.id) === String(formData.relatedTo1),
+              );
               if (!exists) {
                 items = [specificRes.data, ...items];
               }
@@ -355,14 +426,18 @@ export default function AdminCalls() {
           try {
             let specificRes;
             if (formData.relatedType2 === "Contact") {
-              specificRes = await api.get(`/contacts/get/${formData.relatedTo2}`);
+              specificRes = await api.get(
+                `/contacts/get/${formData.relatedTo2}`,
+              );
             } else if (formData.relatedType2 === "Deal") {
               specificRes = await api.get(`/deals/get/${formData.relatedTo2}`);
             }
 
             if (specificRes && specificRes.data) {
               // Check if item already exists in list (by id)
-              const exists = items.some(item => String(item.id) === String(formData.relatedTo2));
+              const exists = items.some(
+                (item) => String(item.id) === String(formData.relatedTo2),
+              );
               if (!exists) {
                 items = [specificRes.data, ...items];
               }
@@ -380,7 +455,13 @@ export default function AdminCalls() {
     };
 
     if (formData.relatedType2) fetchData();
-  }, [formData.relatedType2, formData.relatedTo1, formData.relatedType1, isEditing, formData.relatedTo2]);
+  }, [
+    formData.relatedType2,
+    formData.relatedTo1,
+    formData.relatedType1,
+    isEditing,
+    formData.relatedTo2,
+  ]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -392,16 +473,23 @@ export default function AdminCalls() {
 
     const payload = {
       ...formData,
-      duration_minutes: formData.duration_minutes ? parseInt(formData.duration_minutes, 10) : null,
-      relatedTo1: formData.relatedTo1 ? parseInt(formData.relatedTo1, 10) : null,
+      duration_minutes: formData.duration_minutes
+        ? parseInt(formData.duration_minutes, 10)
+        : null,
+      relatedTo1: formData.relatedTo1
+        ? parseInt(formData.relatedTo1, 10)
+        : null,
       relatedTo2:
         formData.relatedType1 === "Lead"
           ? null
           : formData.relatedTo2
-          ? parseInt(formData.relatedTo2, 10)
-          : null,
-      relatedType2: formData.relatedType1 === "Lead" ? null : formData.relatedType2,
-      assigned_to: formData.assigned_to ? parseInt(formData.assigned_to, 10) : null,
+            ? parseInt(formData.relatedTo2, 10)
+            : null,
+      relatedType2:
+        formData.relatedType1 === "Lead" ? null : formData.relatedType2,
+      assigned_to: formData.assigned_to
+        ? parseInt(formData.assigned_to, 10)
+        : null,
     };
 
     const actionType = isEditing && currentCallId ? "update" : "create";
@@ -409,7 +497,10 @@ export default function AdminCalls() {
 
     setConfirmModalData({
       title: actionType === "create" ? "Confirm New Call" : "Confirm Update",
-      message: actionType === "create" ? `Create "${name}"?` : `Save changes to "${name}"?`,
+      message:
+        actionType === "create"
+          ? `Create "${name}"?`
+          : `Save changes to "${name}"?`,
       confirmLabel: actionType === "create" ? "Create Call" : "Update Call",
       cancelLabel: "Cancel",
       variant: "primary",
@@ -473,8 +564,8 @@ export default function AdminCalls() {
         type === "create"
           ? "Failed to create call. Please review the details and try again."
           : type === "update"
-          ? "Failed to update call. Please review the details and try again."
-          : "Failed to delete call. Please try again.";
+            ? "Failed to update call. Please review the details and try again."
+            : "Failed to delete call. Please try again.";
 
       const message = err?.response?.data?.detail || defaultMessage;
       toast.error(message);
@@ -495,11 +586,15 @@ export default function AdminCalls() {
     try {
       setUpdatingStatus(true);
       await api.put(`/calls/${selectedCall.id}`, { status: statusSelection });
-      toast.success(`Status updated to ${formatAdminCallStatusLabel(statusSelection)}`);
+      toast.success(
+        `Status updated to ${formatAdminCallStatusLabel(statusSelection)}`,
+      );
       setCalls((prev) =>
         Array.isArray(prev)
-          ? prev.map((c) => (c.id === selectedCall.id ? { ...c, status: statusSelection } : c))
-          : prev
+          ? prev.map((c) =>
+              c.id === selectedCall.id ? { ...c, status: statusSelection } : c,
+            )
+          : prev,
       );
       setSelectedCall(null);
     } catch (err) {
@@ -511,21 +606,26 @@ export default function AdminCalls() {
   };
 
   useEffect(() => {
-    if (selectedCall) setStatusSelection(toAdminCallStatus(selectedCall.status));
+    if (selectedCall)
+      setStatusSelection(toAdminCallStatus(selectedCall.status));
   }, [selectedCall]);
 
   // --- Detail View Modal ---
   const detailView = selectedCall ? (
     <div
       id="callModalBackdrop"
-      onClick={(e) => e.target.id === "callModalBackdrop" && setSelectedCall(null)}
+      onClick={(e) =>
+        e.target.id === "callModalBackdrop" && setSelectedCall(null)
+      }
       className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4"
     >
       {callsLoading && <LoadingSpinner message="Loading call details..." />}
 
-    <div className="bg-white rounded-xl shadow-lg w-full max-w-full lg:max-w-4xl max-h-[95vh] overflow-y-auto hide-scrollbar relative box-border">       
-       <div className="bg-tertiary w-full rounded-t-xl p-3 lg:p-3 relative">
-          <h1 className="lg:text-3xl text-xl text-white font-semibold text-center w-full">Calls</h1>
+      <div className="bg-white rounded-xl shadow-lg w-full max-w-full lg:max-w-4xl max-h-[95vh] overflow-y-auto hide-scrollbar relative box-border">
+        <div className="bg-tertiary w-full rounded-t-xl p-3 lg:p-3 relative">
+          <h1 className="lg:text-3xl text-xl text-white font-semibold text-center w-full">
+            Calls
+          </h1>
           <button
             onClick={() => setSelectedCall(null)}
             className="text-gray-500 hover:text-white transition cursor-pointer absolute top-3 right-3"
@@ -536,13 +636,13 @@ export default function AdminCalls() {
 
         <div className="mt-4 gap-2 px-2 lg:gap-4 lg:mx-7">
           <div className="flex flex-col md:flex-row md:justify-between lg:flex-row lg:items-center lg:justify-between mt-3 gap-2 px-2 md:items-center lg:gap-4 md:mx-7 lg:mx-7">
-  <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-    <h1 className="text-xl sm:text-2xl font-semibold text-gray-800">
+            <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+              <h1 className="text-xl sm:text-2xl font-semibold text-gray-800">
                 {selectedCall.subject}
               </h1>
               <span
                 className={`text-xs sm:text-sm font-medium px-2 sm:px-3 py-1 rounded-full ${getCallStatusBadgeClass(
-                  selectedCall.status
+                  selectedCall.status,
                 )}`}
               >
                 {formatAdminCallStatusLabel(selectedCall.status)}
@@ -567,32 +667,32 @@ export default function AdminCalls() {
                   const relatedType1 = selectedCall.lead
                     ? "Lead"
                     : selectedCall.account
-                    ? "Account"
-                    : "Lead";
+                      ? "Account"
+                      : "Lead";
 
                   const relatedTo1 = selectedCall.lead
                     ? selectedCall.lead.id
                     : selectedCall.account
-                    ? selectedCall.account.id
-                    : null;
+                      ? selectedCall.account.id
+                      : null;
 
                   const relatedType2 =
                     relatedType1 === "Lead"
                       ? null
                       : selectedCall.contact
-                      ? "Contact"
-                      : selectedCall.deal
-                      ? "Deal"
-                      : "Contact";
+                        ? "Contact"
+                        : selectedCall.deal
+                          ? "Deal"
+                          : "Contact";
 
                   const relatedTo2 =
                     relatedType1 === "Lead"
                       ? null
                       : selectedCall.contact
-                      ? selectedCall.contact.id
-                      : selectedCall.deal
-                      ? selectedCall.deal.id
-                      : null;
+                        ? selectedCall.contact.id
+                        : selectedCall.deal
+                          ? selectedCall.deal.id
+                          : null;
 
                   setFormData({
                     subject: selectedCall.subject || "",
@@ -671,80 +771,104 @@ export default function AdminCalls() {
               {activeTab === "Overview" && (
                 <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6 md:p-8 border border-gray-200">
                   <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-4 sm:gap-6 text-sm text-gray-700">
-                    <DetailRow label="Call Time" value={formattedDateTime(selectedCall.call_time)} />
+                    <DetailRow
+                      label="Call Time"
+                      value={formattedDateTime(selectedCall.call_time)}
+                    />
                     <DetailRow
                       label="Duration"
-                      value={selectedCall.duration_minutes ? `${selectedCall.duration_minutes} min` : null}
+                      value={
+                        selectedCall.duration_minutes
+                          ? `${selectedCall.duration_minutes} min`
+                          : null
+                      }
                     />
-                    <DetailRow label="Direction" value={selectedCall.direction || "--"} />
+                    <DetailRow
+                      label="Direction"
+                      value={selectedCall.direction || "--"}
+                    />
                     <DetailRow
                       label="Assigned To"
                       value={`${selectedCall.call_assign_to.first_name} ${selectedCall.call_assign_to.last_name}`}
                     />
 
-                    {selectedCall.lead && <DetailRow label="Lead" value={selectedCall.lead.title} />}
-                    {selectedCall.account && <DetailRow label="Account" value={selectedCall.account.name} />}
+                    {selectedCall.lead && (
+                      <DetailRow label="Lead" value={selectedCall.lead.title} />
+                    )}
+                    {selectedCall.account && (
+                      <DetailRow
+                        label="Account"
+                        value={selectedCall.account.name}
+                      />
+                    )}
                     {selectedCall.contact && (
                       <DetailRow
                         label="Contact"
                         value={`${selectedCall.contact.first_name} ${selectedCall.contact.last_name}`}
                       />
                     )}
-                    {selectedCall.deal && <DetailRow label="Deal" value={selectedCall.deal.name} />}
+                    {selectedCall.deal && (
+                      <DetailRow label="Deal" value={selectedCall.deal.name} />
+                    )}
 
-                    <DetailRow label="Created At" value={formattedDateTime(selectedCall.created_at)} />
+                    <DetailRow
+                      label="Created At"
+                      value={formattedDateTime(selectedCall.created_at)}
+                    />
                   </div>
                 </div>
               )}
 
-               {/* ------- Notes ------ */}
-            {activeTab === "Notes" && (
-              <div className="mt-4 w-full">
-                <div className="flex flex-wrap items-center justify-between mb-4 gap-2">
-                  <h3 className="text-lg font-semibold text-gray-800 break-words">Call Note</h3>
-                </div>
+              {/* ------- Notes ------ */}
+              {activeTab === "Notes" && (
+                <div className="mt-4 w-full">
+                  <div className="flex flex-wrap items-center justify-between mb-4 gap-2">
+                    <h3 className="text-lg font-semibold text-gray-800 break-words">
+                      Call Note
+                    </h3>
+                  </div>
 
-                <div className="bg-white border border-gray-100 rounded-lg p-4 shadow-sm break-words">
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-gray-800 break-words">
-                        Note
-                      </p>
+                  <div className="bg-white border border-gray-100 rounded-lg p-4 shadow-sm break-words">
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <p className="text-sm font-medium text-gray-800 break-words">
+                          Note
+                        </p>
+                      </div>
+                    </div>
+                    <div className="mt-3 text-sm text-gray-700 whitespace-pre-wrap break-words">
+                      {selectedCall.notes || "No notes available."}
                     </div>
                   </div>
-                  <div className="mt-3 text-sm text-gray-700 whitespace-pre-wrap break-words">
-                    {selectedCall.notes || "No notes available."}
-                  </div>
                 </div>
-              </div>
-            )}
-    </div>
+              )}
+            </div>
 
-  
-
-              <div className="bg-white border border-gray-100 rounded-lg p-3 sm:p-4 shadow-sm w-full">
-                <h4 className="font-semibold text-gray-800 mb-2 text-sm">Status</h4>
-                <select
-                  className="border border-gray-200 rounded-md px-2 py-1.5 w-full text-sm mb-2"
-                  value={statusSelection}
-                  onChange={(e) => setStatusSelection(e.target.value)}
-                >
-                  <option value="PLANNED">PLANNED</option>
-                  <option value="HELD">HELD</option>
-                  <option value="NOT_HELD">NOT HELD</option>
-                </select>
-                <button
-                  onClick={handleStatusUpdate}
-                  disabled={updatingStatus}
-                  className="w-full py-1.5 rounded-md text-sm bg-gray-900 text-white hover:bg-gray-800 disabled:opacity-50"
-                >
-                  {updatingStatus ? "Updating..." : "Update"}
-                </button>
-              </div>
+            <div className="bg-white border border-gray-100 rounded-lg p-3 sm:p-4 shadow-sm w-full">
+              <h4 className="font-semibold text-gray-800 mb-2 text-sm">
+                Status
+              </h4>
+              <select
+                className="border border-gray-200 rounded-md px-2 py-1.5 w-full text-sm mb-2"
+                value={statusSelection}
+                onChange={(e) => setStatusSelection(e.target.value)}
+              >
+                <option value="PLANNED">PLANNED</option>
+                <option value="HELD">HELD</option>
+                <option value="NOT_HELD">NOT HELD</option>
+              </select>
+              <button
+                onClick={handleStatusUpdate}
+                disabled={updatingStatus}
+                className="w-full py-1.5 rounded-md text-sm bg-gray-900 text-white hover:bg-gray-800 disabled:opacity-50"
+              >
+                {updatingStatus ? "Updating..." : "Update"}
+              </button>
             </div>
           </div>
         </div>
       </div>
+    </div>
   ) : null;
 
   // --- Form Modal ---
@@ -766,7 +890,10 @@ export default function AdminCalls() {
           {isEditing ? "Edit Call" : "Add New Call"}
         </h2>
 
-        <form className="grid grid-cols-1 md:grid-cols-2 w-full gap-4 text-sm" onSubmit={handleSubmit}>
+        <form
+          className="grid grid-cols-1 md:grid-cols-2 w-full gap-4 text-sm"
+          onSubmit={handleSubmit}
+        >
           <InputField
             label="Subject"
             className="md:col-span-2"
@@ -790,15 +917,14 @@ export default function AdminCalls() {
               <option value="Account">Account</option>
             </select>
 
-            <SearchableSelect              
+            <SearchableSelect
               items={Array.isArray(relatedTo1Values) ? relatedTo1Values : []}
               value={formData.relatedTo1 ?? ""}
-              placeholder={`Search ${formData.relatedType1 || 'here'}...`
-              }
+              placeholder={`Search ${formData.relatedType1 || "here"}...`}
               getLabel={(item) =>
                 formData.relatedType1 === "Lead"
                   ? item.title
-                  : item.name ?? ""
+                  : (item.name ?? "")
               }
               onChange={(newId) =>
                 setFormData((prev) => ({
@@ -807,7 +933,7 @@ export default function AdminCalls() {
                 }))
               }
               disabled={isSubmitting}
-            />            
+            />
           </div>
 
           {/* ✅ RELATED TYPE 2 + SEARCHABLE RELATED TO 2 (CONTACT / DEAL) */}
@@ -830,14 +956,15 @@ export default function AdminCalls() {
               placeholder={
                 formData.relatedType1 === "Lead"
                   ? ""
-                  : Array.isArray(relatedTo2Values) && relatedTo2Values.length > 0
-                  ? `Search ${formData.relatedType2 || "Contact"}...`
-                  : `No ${formData.relatedType2 || ""} data found`
+                  : Array.isArray(relatedTo2Values) &&
+                      relatedTo2Values.length > 0
+                    ? `Search ${formData.relatedType2 || "Contact"}...`
+                    : `No ${formData.relatedType2 || ""} data found`
               }
               getLabel={(item) =>
                 formData.relatedType2 === "Contact"
                   ? `${item.first_name ?? ""} ${item.last_name ?? ""}`.trim()
-                  : item.name ?? ""
+                  : (item.name ?? "")
               }
               onChange={(newId) =>
                 setFormData((prev) => ({
@@ -849,7 +976,9 @@ export default function AdminCalls() {
           </div>
 
           <div>
-            <label className="block text-gray-700 font-medium mb-1 text-sm">Call Time</label>
+            <label className="block text-gray-700 font-medium mb-1 text-sm">
+              Call Time
+            </label>
             <input
               type="datetime-local"
               value={formData.call_time}
@@ -860,7 +989,9 @@ export default function AdminCalls() {
           </div>
 
           <div className="w-full">
-            <label className="block text-gray-700 font-medium mb-1 text-sm">Duration</label>
+            <label className="block text-gray-700 font-medium mb-1 text-sm">
+              Duration
+            </label>
             <div className="w-full rounded-md text-sm flex flex-row items-center justify-start">
               <input
                 type="tel"
@@ -874,26 +1005,27 @@ export default function AdminCalls() {
           </div>
 
           <div className="col-span-2">
-            <label className="block text-gray-700 font-medium mb-1 text-sm">Assign To</label>            
-            <SearchableSelect              
+            <label className="block text-gray-700 font-medium mb-1 text-sm">
+              Assign To
+            </label>
+            <SearchableSelect
               items={Array.isArray(team) ? team : []}
               value={formData.assigned_to ?? ""}
-              placeholder={`Search an account...`
-              }
-              getLabel={(item) =>
-                `${item.first_name} ${item.last_name}`
-              }
+              placeholder={`Search an account...`}
+              getLabel={(item) => `${item.first_name} ${item.last_name}`}
               onChange={(newId) =>
                 setFormData((prev) => ({
                   ...prev,
                   assigned_to: newId, // keep string
                 }))
               }
-            /> 
+            />
           </div>
 
           <div>
-            <label className="block text-gray-700 font-medium mb-1 text-sm">Direction</label>
+            <label className="block text-gray-700 font-medium mb-1 text-sm">
+              Direction
+            </label>
             <select
               name="direction"
               onChange={handleInputChange}
@@ -906,7 +1038,9 @@ export default function AdminCalls() {
           </div>
 
           <div>
-            <label className="block text-gray-700 font-medium mb-1 text-sm">Status</label>
+            <label className="block text-gray-700 font-medium mb-1 text-sm">
+              Status
+            </label>
             <select
               name="status"
               onChange={handleInputChange}
@@ -941,7 +1075,11 @@ export default function AdminCalls() {
               disabled={isSubmitting}
               className="w-full sm:w-auto px-4 py-2 text-white bg-tertiary border border-tertiary rounded hover:bg-secondary transition"
             >
-              {isSubmitting ? "Saving..." : isEditing ? "Update Call" : "Save Call"}
+              {isSubmitting
+                ? "Saving..."
+                : isEditing
+                  ? "Update Call"
+                  : "Save Call"}
             </button>
           </div>
         </form>
@@ -957,19 +1095,19 @@ export default function AdminCalls() {
             <FiPhoneCall className="mr-2 text-blue-600" /> Calls
           </h1>
 
-       <div className="flex justify-center lg:justify-end w-full sm:w-auto">
-          <button
-            onClick={() => {
-              setFormData(INITIAL_FORM_STATE);
-              setIsEditing(false);
-              setCurrentCallId(null);
-              setShowModal(true);
-            }}
-        className="flex items-center bg-black text-white px-3 sm:px-4 py-2 my-1 lg:my-0 rounded-md hover:bg-gray-800 text-sm sm:text-base mx-auto sm:ml-auto cursor-pointer"
-          >
-            <FiPlus className="mr-2" /> Add Call
-          </button>
-        </div>
+          <div className="flex justify-center lg:justify-end w-full sm:w-auto">
+            <button
+              onClick={() => {
+                setFormData(INITIAL_FORM_STATE);
+                setIsEditing(false);
+                setCurrentCallId(null);
+                setShowModal(true);
+              }}
+              className="flex items-center bg-black text-white px-3 sm:px-4 py-2 my-1 lg:my-0 rounded-md hover:bg-gray-800 text-sm sm:text-base mx-auto sm:ml-auto cursor-pointer"
+            >
+              <FiPlus className="mr-2" /> Add Call
+            </button>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 mb-6 w-full break-words overflow-hidden lg:overflow-visible">
@@ -988,7 +1126,7 @@ export default function AdminCalls() {
               defaultValue={searchQuery}
             />
           </div>
-        <div className="flex flex-col sm:flex-row w-full lg:w-1/2 gap-2">
+          <div className="flex flex-col sm:flex-row w-full lg:w-1/2 gap-2">
             <select
               defaultValue={statusFilter}
               className="border border-gray-300 rounded-lg px-3 h-11 text-sm bg-white w-full"
@@ -1046,18 +1184,32 @@ export default function AdminCalls() {
                     </td>
 
                     <td className="py-3 px-4">
-                      {call.lead && <p className="font-medium text-blue-500 text-xs">{call.lead.title}</p>}
-                      {call.account && <p className="font-medium text-blue-500 text-xs">{call.account.name}</p>}
+                      {call.lead && (
+                        <p className="font-medium text-blue-500 text-xs">
+                          {call.lead.title}
+                        </p>
+                      )}
+                      {call.account && (
+                        <p className="font-medium text-blue-500 text-xs">
+                          {call.account.name}
+                        </p>
+                      )}
                       {call.contact && (
                         <p className="font-medium text-blue-500 text-xs">
                           {call.contact.first_name} {call.contact.last_name}
                         </p>
                       )}
-                      {call.deal && <p className="font-medium text-blue-500 text-xs">{call.deal.name}</p>}
+                      {call.deal && (
+                        <p className="font-medium text-blue-500 text-xs">
+                          {call.deal.name}
+                        </p>
+                      )}
                     </td>
 
                     <td className="py-3 px-4 text-gray-800">
-                      {call.call_time ? new Date(call.call_time).toLocaleString() : "--"}
+                      {call.call_time
+                        ? new Date(call.call_time).toLocaleString()
+                        : "--"}
                     </td>
 
                     <td className="py-3 px-4 text-gray-800">
@@ -1069,7 +1221,7 @@ export default function AdminCalls() {
                     <td className="py-3 px-4">
                       <span
                         className={`px-2 py-1 rounded-full text-xs font-medium ${getCallStatusBadgeClass(
-                          call.status
+                          call.status,
                         )}`}
                       >
                         {formatAdminCallStatusLabel(call.status)}
@@ -1136,7 +1288,9 @@ function MetricCard({ icon: Icon, title, value, color, bgColor }) {
 function InputField(props) {
   return (
     <div className={props.className}>
-      <label className="block text-gray-700 font-medium mb-1 text-sm">{props.label}</label>
+      <label className="block text-gray-700 font-medium mb-1 text-sm">
+        {props.label}
+      </label>
       <input
         {...props}
         className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-400 outline-none disabled:bg-gray-100"
@@ -1148,7 +1302,9 @@ function InputField(props) {
 function TextAreaField(props) {
   return (
     <div className={props.className}>
-      <label className="block text-gray-700 font-medium mb-1 text-sm">{props.label}</label>
+      <label className="block text-gray-700 font-medium mb-1 text-sm">
+        {props.label}
+      </label>
       <textarea
         {...props}
         className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-400 outline-none disabled:bg-gray-100 resize-none"
@@ -1188,7 +1344,9 @@ function ConfirmationModal({
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-[60]">
       <div className="bg-white w-full max-w-md rounded-xl shadow-lg p-6 border border-gray-200">
         <h3 className="text-lg font-semibold text-gray-800">{title}</h3>
-        <p className="text-sm text-gray-600 mt-2 whitespace-pre-line">{message}</p>
+        <p className="text-sm text-gray-600 mt-2 whitespace-pre-line">
+          {message}
+        </p>
 
         <div className="mt-6 flex flex-col sm:flex-row sm:justify-end sm:space-x-3 space-y-2 sm:space-y-0">
           <button
@@ -1245,7 +1403,8 @@ function SearchableSelect({
 
   useEffect(() => {
     const onDoc = (e) => {
-      if (wrapRef.current && !wrapRef.current.contains(e.target)) setOpen(false);
+      if (wrapRef.current && !wrapRef.current.contains(e.target))
+        setOpen(false);
     };
     document.addEventListener("mousedown", onDoc);
     return () => document.removeEventListener("mousedown", onDoc);

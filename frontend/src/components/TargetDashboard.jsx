@@ -16,20 +16,20 @@ import {
   FiTrash2,
   FiPlus,
   FiTarget,
-  FiDollarSign,
+  FiDollarSign, 
   FiX,
   FiTrendingUp,
   FiPieChart,
   FiBarChart2,
-  FiCheckSquare,
 } from "react-icons/fi";
-import { FaPesoSign } from "react-icons/fa6";
+import { FaPesoSign, FaDollarSign } from "react-icons/fa6"; 
 
 import { HiX } from "react-icons/hi";
 import { toast } from "react-toastify";
 import api from "../api";
 import PaginationControls from "./PaginationControls.jsx";
 import LoadingSpinner from "./LoadingSpinner.jsx";
+import useFetchUser from "../hooks/useFetchUser"; 
 
 /* ======================================================
    CONSTANTS
@@ -119,6 +119,29 @@ function SearchableSelect({ name, items = [], value = "", onChange, getLabel, pl
    TARGET DASHBOARD COMPONENT
 ====================================================== */
 export default function TargetDashboard({ currentUserRole, currentUserId }) {
+  // 1. Get Global User Context AND Mutate function
+  const { user, mutate } = useFetchUser();
+  
+  // 2. Determine Currency Symbol & Icon
+  // Optional chaining is critical here in case company is null during loading
+  const currencySymbol = user?.company?.currency || "₱";
+  const CurrencyIcon = currencySymbol === "$" ? FaDollarSign : FaPesoSign;
+
+  // 3. ✅ FORCE REFRESH: When this dashboard mounts, force a user data refresh
+  // This ensures we get the latest Currency setting immediately.
+  useEffect(() => {
+    if (mutate) {
+      mutate(); 
+    }
+  }, [mutate]);
+
+  // Debugging: Check console to see if the currency is arriving correctly
+  useEffect(() => {
+    if (user?.company) {
+      console.log("Dashboard detected Company Settings:", user.company);
+    }
+  }, [user]);
+
   useEffect(() => {
     document.title = "Targets | Sari-Sari CRM";
   }, []);
@@ -175,7 +198,6 @@ export default function TargetDashboard({ currentUserRole, currentUserId }) {
       }
     } catch (err) {
       console.error(err);
-      // Don't show error toast for users who can't access user list
     }
   }, [canCreateTarget]);
 
@@ -221,7 +243,6 @@ export default function TargetDashboard({ currentUserRole, currentUserId }) {
         let periodMatch = false;
 
         if (timeframe === "semiannual") {
-          // 6-month periods: Jan-Jun (period 1), Jul-Dec (period 2)
           const period1Start = 0, period1End = 5;
           const period2Start = 6, period2End = 11;
 
@@ -231,7 +252,6 @@ export default function TargetDashboard({ currentUserRole, currentUserId }) {
             periodMatch = (startMonth <= period2End && endMonth >= period2Start);
           }
         } else if (timeframe === "trimester") {
-          // 4-month periods: Jan-Apr (1), May-Aug (2), Sep-Dec (3)
           const trimesters = [
             { start: 0, end: 3 },   // Jan-Apr
             { start: 4, end: 7 },   // May-Aug
@@ -240,7 +260,6 @@ export default function TargetDashboard({ currentUserRole, currentUserId }) {
           const tri = trimesters[selectedPeriod - 1];
           periodMatch = (startMonth <= tri.end && endMonth >= tri.start);
         } else if (timeframe === "quarterly") {
-          // 3-month periods: Q1, Q2, Q3, Q4
           const quarters = [
             { start: 0, end: 2 },   // Jan-Mar
             { start: 3, end: 5 },   // Apr-Jun
@@ -471,7 +490,6 @@ export default function TargetDashboard({ currentUserRole, currentUserId }) {
           fetchTargets();
         } catch (err) {
           console.error(err);
-          // Display backend error message if available
           const errorMessage = err.response?.data?.detail || err.message || "Operation failed.";
           toast.error(errorMessage);
         } finally {
@@ -516,13 +534,13 @@ export default function TargetDashboard({ currentUserRole, currentUserId }) {
           />
           <MetricCard
             title="Target Amount"
-            value={`₱${metrics.totalTarget.toLocaleString("en-US", { maximumFractionDigits: 0 })}`}
-            icon={<FaPesoSign size={22} />}
+            value={`${currencySymbol}${metrics.totalTarget.toLocaleString("en-US", { maximumFractionDigits: 0 })}`}
+            icon={<CurrencyIcon size={22} />}
             color="green"
           />
           <MetricCard
             title="Achieved Amount"
-            value={`₱${metrics.totalAchieved.toLocaleString("en-US", { maximumFractionDigits: 0 })}`}
+            value={`${currencySymbol}${metrics.totalAchieved.toLocaleString("en-US", { maximumFractionDigits: 0 })}`}
             icon={<FiTrendingUp size={22} />}
             color="purple"
           />
@@ -588,11 +606,11 @@ export default function TargetDashboard({ currentUserRole, currentUserId }) {
 
                         if (name === "Achieved") {
                           return [
-                            `₱${achievement.toLocaleString()} (${percentage}%)`,
+                            `${currencySymbol}${achievement.toLocaleString()} (${percentage}%)`,
                             "Achieved",
                           ];
                         } else if (name === "Remaining") {
-                          return [`₱${remaining.toLocaleString()}`, "Remaining"];
+                          return [`${currencySymbol}${remaining.toLocaleString()}`, "Remaining"];
                         }
                         return [value, name];
                       }}
@@ -708,7 +726,7 @@ export default function TargetDashboard({ currentUserRole, currentUserId }) {
                             <div className="bg-white p-3 border border-gray-300 rounded shadow-lg">
                               <p className="text-sm font-semibold text-gray-800">{data.name}</p>
                               <p className="text-xs text-blue-600 mt-1">
-                                <span className="font-semibold">Target Amount:</span> ₱{Number(data.targetAmount || 0).toLocaleString("en-US", { maximumFractionDigits: 0 })}
+                                <span className="font-semibold">Target Amount:</span> {currencySymbol}{Number(data.targetAmount || 0).toLocaleString("en-US", { maximumFractionDigits: 0 })}
                               </p>
                               <p className="text-xs text-purple-600 font-semibold mt-2">
                                 Distribution: {data.percentage}%
@@ -830,10 +848,10 @@ export default function TargetDashboard({ currentUserRole, currentUserId }) {
                           : "Unknown"}
                       </td>
                       <td className="py-3 px-4 text-left" onClick={() => setSelectedTarget(t)}>
-                        ₱{Number(t.target_amount).toLocaleString()}
+                        {currencySymbol}{Number(t.target_amount).toLocaleString()}
                       </td>
                       <td className="py-3 px-4 text-left" onClick={() => setSelectedTarget(t)}>
-                        ₱{Number(t.achieved_amount).toLocaleString()}
+                        {currencySymbol}{Number(t.achieved_amount).toLocaleString()}
                       </td>
                       <td className="py-3 px-4 text-left" onClick={() => setSelectedTarget(t)}>
                         <span className={`px-2 py-1 rounded text-white text-xs font-semibold ${achievementPercent >= 100
@@ -884,6 +902,7 @@ export default function TargetDashboard({ currentUserRole, currentUserId }) {
       {selectedTarget && (
         <DetailModal
           target={selectedTarget}
+          currencySymbol={currencySymbol} // PASS SYMBOL TO MODAL
           onClose={() => setSelectedTarget(null)}
           onEdit={() => handleEditClick(selectedTarget)}
           onDelete={() => handleDelete(selectedTarget)}
@@ -945,7 +964,7 @@ function MetricCard({ title, value, icon, color = "blue" }) {
 /* ======================================================
    DETAIL MODAL
 ====================================================== */
-function DetailModal({ target, onClose, onEdit, onDelete, canEdit }) {
+function DetailModal({ target, onClose, onEdit, onDelete, canEdit, currencySymbol }) {
   const achievementPercent =
     Number(target.target_amount) > 0
       ? ((Number(target.achieved_amount) / Number(target.target_amount)) * 100).toFixed(1)
@@ -968,7 +987,7 @@ function DetailModal({ target, onClose, onEdit, onDelete, canEdit }) {
             onClick={onClose}
             className="text-gray-200 hover:text-white transition cursor-pointer"
           >
-            <HiX size={25} />
+            <FiX size={25} />
           </button>
         </div>
 
@@ -1021,11 +1040,11 @@ function DetailModal({ target, onClose, onEdit, onDelete, canEdit }) {
               </div>
               <div>
                 <p className="font-semibold text-gray-900">Target Amount:</p>
-                <p className="text-green-600 font-semibold">₱{Number(target.target_amount).toLocaleString()}</p>
+                <p className="text-green-600 font-semibold">{currencySymbol}{Number(target.target_amount).toLocaleString()}</p>
               </div>
               <div>
                 <p className="font-semibold text-gray-900">Achieved Amount:</p>
-                <p className="text-blue-600 font-semibold">₱{Number(target.achieved_amount).toLocaleString()}</p>
+                <p className="text-blue-600 font-semibold">{currencySymbol}{Number(target.achieved_amount).toLocaleString()}</p>
               </div>
               <div>
                 <p className="font-semibold text-gray-900">Achievement Rate:</p>

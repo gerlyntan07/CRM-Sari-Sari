@@ -59,6 +59,8 @@ class CompanyBase(BaseModel):
     company_number: str
     company_website: Optional[str] = None
     company_logo: Optional[str] = None
+    currency: Optional[str] = "₱"
+    quota_period: Optional[str] = "January"
 
     class Config:
         orm_mode = True

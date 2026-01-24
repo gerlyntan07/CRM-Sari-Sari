@@ -11,6 +11,8 @@ class Company(Base):
     company_number = Column(String, nullable=False)
     company_website = Column(String, nullable=True)
     company_logo = Column(String, nullable=True)    
+    currency = Column(String, default="₱", nullable=True)  
+    quota_period = Column(String, default="January", nullable=True) 
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 

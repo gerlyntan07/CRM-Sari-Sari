@@ -107,6 +107,7 @@ export default function AdminCalls() {
   const [statusSelection, setStatusSelection] = useState("PLANNED");
   const [updatingStatus, setUpdatingStatus] = useState(false);
   const [callsLoading, setCallsLoading] = useState(false);
+  const [pendingCallId, setPendingCallId] = useState(null);
 
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -138,31 +139,61 @@ export default function AdminCalls() {
 
   // ✅ Auto open modal if passed via state or query
   useEffect(() => {
-    const shouldOpen = location.state?.openCallModal;
-    const incomingId =
-      location.state?.initialCallData?.relatedTo1 || searchParams.get("id");
-
-    if (shouldOpen || incomingId) {
+      const state = location.state;
+      const callIdFromState = state?.callID;
+  
+      // Handle case where only callID is passed (e.g., from AdminAccounts related activities)
+      if (callIdFromState && !state?.openCallModal) {
+        setPendingCallId(callIdFromState);
+        navigate(location.pathname, { replace: true, state: {} });
+        return;
+      }
+  
+      // Handle case where openCallModal is passed with initialCallData
+      if (!state?.openCallModal || !state?.initialCallData) return;
+  
+      // Wait until related options are loaded
+      if (
+        state.initialCallData.relatedType1 === "Lead" &&
+        Array.isArray(relatedTo1Values) &&
+        relatedTo1Values.length === 0
+      )
+        return;
+  
+      if (
+        state.initialCallData.relatedType1 === "Account" &&
+        (!Array.isArray(relatedTo1Values) || relatedTo1Values.length === 0)
+      )
+        return;
+  
       setShowModal(true);
-
-      if (location.state?.initialCallData) {
-        setFormData((prev) => ({
-          ...prev,
-          ...location.state.initialCallData,
-        }));
-      }
-
-      if (incomingId) {
-        setFormData((prev) => ({
-          ...prev,
-          relatedTo1: incomingId,
-        }));
-      }
-
-      // Clear URL state so modal does not reopen on refresh
+  
+      setFormData((prev) => ({
+        ...prev,
+        ...state.initialCallData,
+        relatedTo1: state.initialCallData.relatedTo1
+          ? String(state.initialCallData.relatedTo1)
+          : "",
+        relatedTo2: state.initialCallData.relatedTo2
+          ? String(state.initialCallData.relatedTo2)
+          : "",
+      }));
+  
+      // cleanup
       navigate(location.pathname, { replace: true, state: {} });
-    }
-  }, [location, searchParams, navigate]);
+    }, [location.state, relatedTo1Values]);
+  
+    useEffect(() => {
+      if (pendingCallId && calls.length > 0 && !callsLoading) {
+        const foundCall = calls.find((call) => call.id === pendingCallId);
+        if (foundCall) {
+          setSelectedCall(foundCall);
+        } else {
+          toast.error("Call not found.");
+        }
+        setPendingCallId(null); // Clear pending call ID
+      }
+    }, [pendingCallId, calls, callsLoading]);
 
   const fetchCalls = async () => {
     try {

@@ -937,7 +937,7 @@ const [isSubmitted, setIsSubmitted] = useState(false);
                       {expandedSection === 'tasks' && (
                         <div className="border-t border-gray-200 p-2 space-y-2 max-h-60 overflow-y-auto hide-scrollbar">
                           {relatedActs.tasks.map((task, idx) => (
-                            <div key={`task-${idx}`} className="flex flex-col sm:flex-row justify-between items-start border border-gray-100 rounded-lg p-3 bg-gray-50 w-full break-words">
+                            <div key={`task-${idx}`} className="flex flex-col sm:flex-row justify-between items-start border border-gray-100 rounded-lg p-3 bg-gray-50 w-full break-words cursor-pointer" onClick={() => navigate(`/manager/tasks`, { state: { taskID: task.id } })}>
                               <div className="flex gap-3 mb-2 sm:mb-0 flex-1 min-w-0">
                                 <div className="text-blue-600 mt-1"><FiCheckSquare size={20} /></div>
                                 <div className="flex-1 min-w-0">
@@ -975,7 +975,7 @@ const [isSubmitted, setIsSubmitted] = useState(false);
                       {expandedSection === 'meetings' && (
                         <div className="border-t border-gray-200 p-2 space-y-2 max-h-60 overflow-y-auto hide-scrollbar">
                           {relatedActs.meetings.map((meeting, idx) => (
-                            <div key={`meeting-${idx}`} className="flex flex-col sm:flex-row justify-between items-start border border-gray-100 rounded-lg p-3 bg-gray-50 w-full break-words">
+                            <div key={`meeting-${idx}`} className="flex flex-col sm:flex-row justify-between items-start border border-gray-100 rounded-lg p-3 bg-gray-50 w-full break-words cursor-pointer" onClick={() => navigate(`/manager/meetings`, { state: { meetingID: meeting.id } })}>
                               <div className="flex gap-3 mb-2 sm:mb-0 flex-1 min-w-0">
                                 <div className="text-green-600 mt-1"><FiCalendar size={20} /></div>
                                 <div className="flex-1 min-w-0">
@@ -1013,7 +1013,7 @@ const [isSubmitted, setIsSubmitted] = useState(false);
                       {expandedSection === 'calls' && (
                         <div className="border-t border-gray-200 p-2 space-y-2 max-h-60 overflow-y-auto hide-scrollbar">
                           {relatedActs.calls.map((call, idx) => (
-                            <div key={`call-${idx}`} className="flex flex-col sm:flex-row justify-between items-start border border-gray-100 rounded-lg p-3 bg-gray-50 w-full break-words">
+                            <div key={`call-${idx}`} className="flex flex-col sm:flex-row justify-between items-start border border-gray-100 rounded-lg p-3 bg-gray-50 w-full break-words cursor-pointer" onClick={() => navigate(`/manager/calls`, { state: { callID: call.id } })}>
                               <div className="flex gap-3 mb-2 sm:mb-0 flex-1 min-w-0">
                                 <div className="text-purple-600 mt-1"><FiPhone size={20} /></div>
                                 <div className="flex-1 min-w-0">
@@ -1046,7 +1046,7 @@ const [isSubmitted, setIsSubmitted] = useState(false);
                       {expandedSection === 'contacts' && (
                         <div className="border-t border-gray-200 p-2 space-y-2 max-h-60 overflow-y-auto hide-scrollbar">
                           {relatedActs.contacts.map((contact, idx) => (
-                            <div key={`contact-${idx}`} className="flex flex-col sm:flex-row justify-between items-start border border-gray-100 rounded-lg p-3 bg-gray-50 w-full break-words">
+                            <div key={`contact-${idx}`} className="flex flex-col sm:flex-row justify-between items-start border border-gray-100 rounded-lg p-3 bg-gray-50 w-full break-words cursor-pointer" onClick={() => navigate(`/manager/contacts`, { state: { contactID: contact.id } })}>
                               <div className="flex gap-3 mb-2 sm:mb-0 flex-1 min-w-0">
                                 <div className="text-teal-600 mt-1"><FiUser size={20} /></div>
                                 <div className="flex-1 min-w-0">
@@ -1079,7 +1079,7 @@ const [isSubmitted, setIsSubmitted] = useState(false);
                       {expandedSection === 'deals' && (
                         <div className="border-t border-gray-200 p-2 space-y-2 max-h-60 overflow-y-auto hide-scrollbar">
                           {relatedActs.deals.map((deal, idx) => (
-                            <div key={`deal-${idx}`} className="flex flex-col sm:flex-row justify-between items-start border border-gray-100 rounded-lg p-3 bg-gray-50 w-full break-words">
+                            <div key={`deal-${idx}`} className="flex flex-col sm:flex-row justify-between items-start border border-gray-100 rounded-lg p-3 bg-gray-50 w-full break-words cursor-pointer" onClick={() => navigate(`/manager/deals`, { state: { dealID: deal.id } })}>
                               <div className="flex gap-3 mb-2 sm:mb-0 flex-1 min-w-0">
                                 <div className="text-indigo-600 mt-1"><FiBriefcase size={20} /></div>
                                 <div className="flex-1 min-w-0">
@@ -1112,7 +1112,7 @@ const [isSubmitted, setIsSubmitted] = useState(false);
                       {expandedSection === 'quotes' && (
                         <div className="border-t border-gray-200 p-2 space-y-2 max-h-60 overflow-y-auto hide-scrollbar">
                           {relatedActs.quotes.map((quote, idx) => (
-                            <div key={`quote-${idx}`} className="flex flex-col sm:flex-row justify-between items-start border border-gray-100 rounded-lg p-3 bg-gray-50 w-full break-words">
+                            <div key={`quote-${idx}`} className="flex flex-col sm:flex-row justify-between items-start border border-gray-100 rounded-lg p-3 bg-gray-50 w-full break-words cursor-pointer" onClick={() => navigate(`/manager/quotes`, { state: { quoteID: quote.id } })}>
                               <div className="flex gap-3 mb-2 sm:mb-0 flex-1 min-w-0">
                                 <div className="text-orange-600 mt-1"><FiFileText size={20} /></div>
                                 <div className="flex-1 min-w-0">

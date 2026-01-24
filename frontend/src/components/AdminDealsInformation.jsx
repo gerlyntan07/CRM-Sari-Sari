@@ -44,7 +44,9 @@ export default function AdminDealsInformation({
       setRole('admin');
     } else if (userRole.toLowerCase() === 'group manager' || userRole.toLowerCase() === 'group_manager') {
       setRole('group-manager');
-    } else if (userRole.toLowerCase() === 'sales') {
+    } else if (userRole.toLowerCase() === 'manager') {
+      setRole('manager');
+    }else if (userRole.toLowerCase() === 'sales') {
       setRole('sales');
     } else {
       setRole('guest');

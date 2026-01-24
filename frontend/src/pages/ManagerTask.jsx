@@ -298,6 +298,7 @@ export default function AdminTask() {
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const [confirmModalData, setConfirmModalData] = useState(null);
   const [confirmProcessing, setConfirmProcessing] = useState(false);
+  const [pendingTaskId, setPendingTaskId] = useState(null);
   
   const navigate = useNavigate();
   const location = useLocation();
@@ -321,6 +322,7 @@ export default function AdminTask() {
   useEffect(() => {
     const shouldOpen = location.state?.openTaskModal;
     const initialData = location.state?.initialTaskData;
+    const taskIdFromState = location.state?.taskID;
 
     if (shouldOpen) {
       setShowModal(true);
@@ -331,8 +333,24 @@ export default function AdminTask() {
         }));
       }
       navigate(location.pathname, { replace: true, state: {} });
+    } else if (taskIdFromState) {
+      // If taskID is passed from another page (e.g., AdminAccounts), store it
+      setPendingTaskId(taskIdFromState);
+      navigate(location.pathname, { replace: true, state: {} });
     }
   }, [location, navigate]);
+
+  useEffect(() => {
+    if (pendingTaskId && tasks.length > 0 && !loading) {
+      const foundTask = tasks.find((task) => task.id === pendingTaskId);
+      if (foundTask) {
+        handleOpenModal(foundTask, true); // Open in view mode
+      } else {
+        toast.error("Task not found.");
+      }
+      setPendingTaskId(null); // Clear pending task ID
+    }
+  }, [pendingTaskId, tasks, loading]);
 
   // --- API Fetch Functions ---
 
@@ -357,9 +375,7 @@ export default function AdminTask() {
         const aDate = a.createdAt ? new Date(a.createdAt) : 0;
         const bDate = b.createdAt ? new Date(b.createdAt) : 0;
         return bDate - aDate; 
-      });
-
-      console.log("Fetched Tasks:", formattedTasks);
+      });    
       
       setTasks(formattedTasks);
       if (view === "list") setCurrentPage(1);
@@ -777,7 +793,6 @@ export default function AdminTask() {
                       key={task.id}
                       className="hover:bg-gray-50 transition-colors text-sm cursor-pointer"
                       onClick={() => {
-                        console.log("Opening task in view mode:", task);
                         handleOpenModal(task, true)}}
                     >
                       <td className="py-3 px-4 text-gray-700 whitespace-nowrap font-medium">{task.title}</td>

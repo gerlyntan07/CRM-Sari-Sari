@@ -522,20 +522,11 @@ export default function AdminLeads() {
           toast.error("Please enter a valid email address with a dot in the domain.");
           return;
         }
-        const emailLower = leadData.email.toLowerCase();
-        const domain = emailLower.split("@")[1] || "";
-    
-        // Strict Gmail validation
-        if (domain !== "gmail.com") {
-          toast.error(`Please enter a valid Gmail address (must be gmail.com).`);
+        
+        if (!leadData.lead_owner) {
+          toast.error("Please assign a lead owner.");
           return;
-        }
-
-
-    if (!leadData.lead_owner) {
-      toast.error("Please assign a lead owner.");
-      return;
-    };
+        };
 
     const finalForm = {
       ...leadData,

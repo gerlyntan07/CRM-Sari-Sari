@@ -420,14 +420,7 @@ const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 if (!emailRegex.test(email)) {
   toast.error("Please enter a valid email address.");
   return;
-}
-const emailLower = email.toLowerCase();
-const domain = emailLower.split("@")[1] || "";
-
-if (domain !== "gmail.com") {
-  toast.error(`Please enter a valid Gmail address (must be gmail.com).`);
-  return;
-}
+};
 
     const payload = {
       first_name: trimmedFirstName,

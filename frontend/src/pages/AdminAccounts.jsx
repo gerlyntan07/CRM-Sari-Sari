@@ -855,7 +855,7 @@ export default function AdminAccounts() {
           <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 items-start">
             <div className="lg:col-span-3">
               {activeTab === "Overview" && (
-                <>
+                <div className="h-full max-h-100 md:max-h-70 overflow-y-auto hide-scrollbar">
                 <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6 md:p-8 border border-gray-200">
                   <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-4 sm:gap-6 text-sm text-gray-700">
                     <div>
@@ -929,11 +929,9 @@ export default function AdminAccounts() {
                     </div>
                   </div>
                 </div>
-
-                <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6 md:p-8 border border-gray-200">
-                  <CommentSection />
+                
+                  <CommentSection />                
                 </div>
-                </>
               )}
 
               {/* ------- Notes ------ */}

@@ -18,6 +18,7 @@ class Comment(Base):
     related_to_meeting = Column(Integer, ForeignKey("meetings.id", ondelete="CASCADE"), nullable=True)
     related_to_call = Column(Integer, ForeignKey("calls.id", ondelete="CASCADE"), nullable=True)
     related_to_quote = Column(Integer, ForeignKey("quotes.id", ondelete="CASCADE"), nullable=True)
+    is_private = Column(Boolean, default=False)
 
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())

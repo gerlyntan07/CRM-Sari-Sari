@@ -38,6 +38,7 @@ import AdminTerritory from "./pages/AdminTerritory";
 import AdminCalls from "./pages/AdminCalls";
 import AdminMeeting from "./pages/AdminMeeting";
 import AdminCompanyDetails from "./components/AdminCompanyDetails";
+import AdminFunnelPage from "./pages/AdminFunnelPage.jsx";
 
 // 🔹 Sales layout + pages
 import SalesPanel from "./components/SalesPanel";
@@ -145,6 +146,7 @@ function App() {
           <Route path="contacts" element={<AdminContacts />} />
           <Route path="leads" element={<AdminLeads />} />
           <Route path="leads/:leadID" element={<AdminLeadsInformation />} />
+          <Route path="funnel" element={<AdminFunnelPage />} />
           <Route path="audit" element={<AdminAudit />} />
           <Route path="targets" element={<AdminTargets />} />
           <Route path="quotes" element={<AdminQuotes />} />

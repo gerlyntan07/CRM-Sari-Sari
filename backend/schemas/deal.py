@@ -4,18 +4,18 @@ from typing import Optional
 from datetime import datetime
 from .auth import UserBase
 
-class DealBase(BaseModel):    
+class DealBase(BaseModel):
     name: str
     account_id: Optional[int] = None
     primary_contact_id: Optional[int] = None
     stage: str
-    probability: int
+    probability: Optional[int] = None  # ✅ Changed to Optional (Backend auto-fills this)
     amount: float
     currency: Optional[str] = 'PHP'
     close_date: Optional[datetime] = None
     description: Optional[str] = None
     assigned_to: Optional[int] = None
-    created_by: Optional[int] = None    
+    created_by: Optional[int] = None
     
 
 class UserBase(BaseModel):
@@ -54,6 +54,8 @@ class DealCreate(BaseModel):
     account_id: int
     primary_contact_id: Optional[int] = None
     stage: str
+    # ✅ Added probability here as optional override
+    probability: Optional[int] = None 
     amount: Optional[float] = None
     currency: Optional[str] = 'PHP'
     close_date: Optional[datetime] = None
@@ -65,6 +67,8 @@ class DealUpdate(BaseModel):
     account_id: Optional[int] = None
     primary_contact_id: Optional[int] = None
     stage: Optional[str] = None
+    # ✅ Added probability update support
+    probability: Optional[int] = None 
     amount: Optional[float] = None
     currency: Optional[str] = None
     close_date: Optional[datetime] = None
@@ -79,6 +83,10 @@ class DealResponse(DealBase):
     deal_id: Optional[str] = None
     created_at: datetime
     updated_at: Optional[datetime] = None    
+    
+    # ✅ 🆕 The Missing Link for your "Bottleneck" view
+    stage_updated_at: Optional[datetime] = None 
+
     account: Optional[AccountBase] = None
     contact: Optional[ContactBase] = None
     assigned_deals: Optional[UserBase] = None

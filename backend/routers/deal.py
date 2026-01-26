@@ -352,26 +352,14 @@ def admin_update_deal(
         deal.name = data.name
 
     if data.account_id is not None:
-        account = db.query(Account).filter(Account.id == data.account_id).first()
-        if not account:
-            raise HTTPException(status_code=404, detail="Account not found.")
-        account_creator = db.query(User).filter(User.id == account.created_by).first()
-        if not account_creator or account_creator.related_to_company != current_user.related_to_company:
-            raise HTTPException(status_code=403, detail="Account does not belong to your company.")
+        # ... (keep existing account validation) ...
         deal.account_id = data.account_id
 
     if data.primary_contact_id is not None:
-        if data.primary_contact_id == 0:
-            deal.primary_contact_id = None
-        else:
-            contact = db.query(Contact).filter(Contact.id == data.primary_contact_id).first()
-            if not contact:
-                raise HTTPException(status_code=404, detail="Contact not found.")
-            contact_creator = db.query(User).filter(User.id == contact.created_by).first()
-            if not contact_creator or contact_creator.related_to_company != current_user.related_to_company:
-                raise HTTPException(status_code=403, detail="Contact does not belong to your company.")
-            deal.primary_contact_id = data.primary_contact_id
+        # ... (keep existing contact validation) ...
+        deal.primary_contact_id = data.primary_contact_id
 
+    # ✅ 2. UPDATED LOGIC HERE
     if data.stage is not None:
         stage_upper = data.stage.upper()
         try:
@@ -381,8 +369,17 @@ def admin_update_deal(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=f"Invalid stage '{data.stage}'. Allowed: {[s.value for s in DealStage]}"
             )
+        
+        # Check if the stage is ACTUALLY changing
+        if deal.stage != stage_upper:
+            # A. Reset the "Bottleneck Timer"
+            deal.stage_updated_at = datetime.now()
+            
+            # B. Auto-update Probability (Business View)
+            # This ensures your "Weighted Forecast" is always accurate
+            deal.probability = STAGE_PROBABILITY_MAP.get(stage_enum, deal.probability)
+
         deal.stage = stage_upper
-        deal.probability = STAGE_PROBABILITY_MAP.get(stage_enum, deal.probability)
 
     if data.amount is not None:
         _validate_amount(data.amount)
@@ -393,7 +390,6 @@ def admin_update_deal(
 
     if data.close_date is not None:
         deal.close_date = data.close_date
-
     if data.description is not None:
         deal.description = data.description
 

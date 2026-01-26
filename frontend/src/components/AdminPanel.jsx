@@ -15,6 +15,7 @@ import {
   FiClipboard,
   FiSettings,
   FiShield,
+  FiFilter, // ✅ 1. Imported Filter icon for Funnel
 } from "react-icons/fi";
 import { LuMapPin } from "react-icons/lu";
 import AdminHeader from "./AdminHeader";
@@ -41,6 +42,7 @@ export default function AdminPanel() {
     "/admin/contacts",
     "/admin/leads",
     "/admin/deals",
+    "/admin/funnel", // ✅ 2. Added funnel route here so sidebar stays open
     "/admin/quotes",
     "/admin/targets",
   ];
@@ -141,6 +143,17 @@ export default function AdminPanel() {
                 >
                   <FiBriefcase /> Deals
                 </NavLink>
+                
+                {/* ✅ 3. NEW FUNNEL LINK ADDED HERE */}
+                <NavLink
+                  to="/admin/funnel"
+                  className={({ isActive }) =>
+                    isActive ? activeLink : normalLink
+                  }
+                >
+                  <FiFilter /> Funnel
+                </NavLink>
+
                 <NavLink
                   to="/admin/quotes"
                   className={({ isActive }) =>

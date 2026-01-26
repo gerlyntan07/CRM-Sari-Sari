@@ -45,6 +45,7 @@ class Deal(Base):
     currency = Column(String(3), default='PHP', nullable=True)
     close_date = Column(DateTime, nullable=True)
     probability = Column(Integer, default=STAGE_PROBABILITY_MAP[DealStage.PROSPECTING], nullable=True)
+    stage_updated_at = Column(DateTime(timezone=True), server_default=func.now())
     description = Column(String, nullable=True)
 
     assigned_to = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)

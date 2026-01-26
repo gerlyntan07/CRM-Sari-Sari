@@ -24,6 +24,7 @@ import { toast } from "react-toastify";
 import PaginationControls from "../components/PaginationControls.jsx";
 import LoadingSpinner from "../components/LoadingSpinner.jsx";
 import { useNavigate } from "react-router-dom";
+import CommentSection from "../components/CommentSection.jsx";
 
 const STATUS_OPTIONS = [
   { value: "CUSTOMER", label: "Customer" },
@@ -140,7 +141,6 @@ export default function AdminAccounts() {
           return new Date(bDate) - new Date(aDate);
         });
         setAccounts(sortedData);
-        console.log("Fetch from backend: ", res.data);
 
         if (preserveSelectedId) {
           const updatedSelection = sortedData.find(
@@ -204,7 +204,6 @@ export default function AdminAccounts() {
   const fetchRelatedActivities = useCallback(async (account_id) => {
     try {
       const res = await api.get(`/activities/accounts/${account_id}`);
-      console.log("Related activities: ", res.data);
       // API returns an object with grouped arrays: { tasks: [], meetings: [], calls: [], quotes: [], deals: [], contacts: [] }
       setRelatedActs(res.data && typeof res.data === 'object' ? res.data : {});
     } catch (err) {
@@ -475,7 +474,6 @@ export default function AdminAccounts() {
   const handleEditClick = (account) => {
     // Close the account details modal
     setSelectedAccount(null);
-    console.log("edit: ", account);
 
     // Set the selected user if the account has an assigned user
     if (account.assigned_accs) {
@@ -857,6 +855,7 @@ export default function AdminAccounts() {
           <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 items-start">
             <div className="lg:col-span-3">
               {activeTab === "Overview" && (
+                <>
                 <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6 md:p-8 border border-gray-200">
                   <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-4 sm:gap-6 text-sm text-gray-700">
                     <div>
@@ -930,6 +929,11 @@ export default function AdminAccounts() {
                     </div>
                   </div>
                 </div>
+
+                <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6 md:p-8 border border-gray-200">
+                  <CommentSection />
+                </div>
+                </>
               )}
 
               {/* ------- Notes ------ */}

@@ -30,9 +30,11 @@ class Task(Base):
     assigned_to = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    
     account = relationship("Account", back_populates="tasks")
     contact = relationship("Contact", back_populates="tasks")
     lead = relationship("Lead", back_populates="tasks")
     deal = relationship("Deal", back_populates="tasks")
     task_creator = relationship("User", back_populates="tasks_created", foreign_keys=[created_by])
-    task_assign_to = relationship("User", back_populates="tasks_assigned", foreign_keys=[assigned_to])        
+    task_assign_to = relationship("User", back_populates="tasks_assigned", foreign_keys=[assigned_to])      
+    comments = relationship("Comment", back_populates="task", cascade="all, delete-orphan")  

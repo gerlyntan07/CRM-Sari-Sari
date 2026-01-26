@@ -36,4 +36,5 @@ class Call(Base):
     lead = relationship("Lead", back_populates="calls")
     deal = relationship("Deal", back_populates="calls")
     call_creator = relationship("User", back_populates="calls_created", foreign_keys=[created_by])
-    call_assign_to = relationship("User", back_populates="calls_assigned", foreign_keys=[assigned_to])        
+    call_assign_to = relationship("User", back_populates="calls_assigned", foreign_keys=[assigned_to])      
+    comments = relationship("Comment", back_populates="call", cascade="all, delete-orphan")  

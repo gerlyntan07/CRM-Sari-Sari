@@ -34,3 +34,4 @@ class Meeting(Base):
     deal = relationship("Deal", back_populates="meetings")
     meet_creator = relationship("User", back_populates="meetings_created", foreign_keys=[created_by])
     meet_assign_to = relationship("User", back_populates="meetings_assigned", foreign_keys=[assigned_to])
+    comments = relationship("Comment", back_populates="meeting", cascade="all, delete-orphan")

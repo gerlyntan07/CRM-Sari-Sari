@@ -26,6 +26,7 @@ import models.subscription
 import models.target
 import models.task
 import models.territory
+import models.comment
 
 # Import routers
 import routers.auth as auth_router

@@ -12,9 +12,11 @@ from .subscription import Subscription
 from .target import Target
 from .task import Task
 from .territory import Territory
+from .comment import Comment
 
 __all__ = [
     "Account", "Auditlog", "User", "Call", "Company",
     "Contact", "Deal", "Lead", "Meeting", "Quote",
-    "Subscription", "Target", "Task", "Territory"
+    "Subscription", "Target", "Task", "Territory", 
+    "Comment"
 ]

@@ -42,6 +42,7 @@ class Quote(Base):
     contact = relationship("Contact", back_populates="quotes")
     assigned_user = relationship("User", back_populates="quotes_assigned", foreign_keys=[assigned_to])
     creator = relationship("User", back_populates="quotes_created", foreign_keys=[created_by])
+    comments = relationship("Comment", back_populates="quote", cascade="all, delete-orphan")
 
     # contact = relationship("Contact", foreign_keys=[contact_id])
     # account = relationship("Account", foreign_keys=[account_id])

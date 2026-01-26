@@ -24,6 +24,7 @@ import models.subscription
 import models.target
 import models.task
 import models.territory
+import models.comment
 
 # Alembic config
 config = context.config

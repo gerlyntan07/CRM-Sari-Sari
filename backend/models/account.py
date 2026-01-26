@@ -43,3 +43,4 @@ class Account(Base):
     calls = relationship("Call", back_populates="account", cascade="all, delete-orphan")
 
     quotes = relationship("Quote", back_populates="account", cascade="all, delete-orphan")
+    comments = relationship("Comment", back_populates="account", cascade="all, delete-orphan")

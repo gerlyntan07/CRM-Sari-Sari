@@ -62,6 +62,7 @@ class Deal(Base):
     tasks = relationship("Task", back_populates="deal", cascade="all, delete-orphan")
     calls = relationship("Call", back_populates="deal", cascade="all, delete-orphan")
     quotes = relationship("Quote", back_populates="deal", cascade="all, delete-orphan")
+    comments = relationship("Comment", back_populates="deal", cascade="all, delete-orphan")
 
     def generate_deal_id(self, db, year_prefix: str = None):
         """

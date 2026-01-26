@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException, status, Request, BackgroundTasks
 from sqlalchemy.orm import Session
+from datetime import datetime
 
 from database import get_db
 from schemas.deal import DealBase, DealResponse, DealCreate, DealUpdate, DealBulkDelete

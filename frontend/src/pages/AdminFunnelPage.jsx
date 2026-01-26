@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { 
   FiFilter, FiRefreshCw, FiAlertCircle, FiCheckCircle, 
-  FiClock, FiDollarSign, FiArrowRight, FiUser, FiLayout, FiPhone, FiMail
+  FiClock, FiDollarSign, FiArrowRight, FiUser, FiLayout, 
+  FiPhone, FiMail, FiArrowDown, FiArrowUp
 } from "react-icons/fi";
 import { useNavigate } from 'react-router-dom';
 import api from '../api';
@@ -27,59 +28,109 @@ const getDaysStuck = (dateString) => {
 
 // --- Sub-Components ---
 
-const FunnelBar = ({ label, count, value, width, color, onClick, isActive, isLead, weightedValue, currencySymbol }) => (
-  <div 
-    onClick={onClick}
-    className={`
-      relative group cursor-pointer transition-all duration-300 transform
-      ${isActive ? 'scale-105 z-10' : 'hover:scale-102 hover:opacity-90'}
-    `}
-  >
-    <div className="flex justify-between items-end mb-1 px-1">
-      <span className={`text-xs font-bold uppercase tracking-wider ${isActive ? 'text-blue-700' : 'text-gray-500'}`}>
-        {label}
-      </span>
-      <span className="text-xs text-gray-400">
-        {count} {isLead ? 'Leads' : 'Deals'}
-      </span>
-    </div>
+const FunnelBar = ({ label, count, value, width, color, onClick, isActive, isLead, weightedValue, currencySymbol, conversionRate }) => (
+  <div className="flex flex-col items-center w-full">
+    
+    {/* Conversion Connector (The Leaky Bucket) */}
+    {conversionRate && (
+       <div className="flex justify-center -my-2 relative z-0 mb-1">
+          <div className="bg-gray-100 text-gray-500 text-[10px] font-bold px-2 py-0.5 rounded-full border border-white shadow-sm flex items-center">
+             <FiArrowDown className="mr-1"/> {conversionRate}% conversion
+          </div>
+       </div>
+    )}
 
-    <div className="h-10 w-full bg-gray-100 rounded-r-lg overflow-hidden flex items-center relative shadow-sm">
-      <div 
-        className={`h-full ${color} transition-all duration-700 ease-out flex items-center px-3 text-white font-bold text-sm relative overflow-hidden`}
-        style={{ width: width }}
-      >
-        {isActive && <div className="absolute inset-0 bg-white opacity-20 animate-pulse"></div>}
-        <span className="z-10 drop-shadow-md">
-          {isLead ? count : formatCurrency(value, currencySymbol)}
+    <div 
+      onClick={onClick}
+      className={`
+        w-full relative group cursor-pointer transition-all duration-300 transform
+        ${isActive ? 'scale-105 z-10' : 'hover:scale-102 hover:opacity-90'}
+      `}
+    >
+      <div className="flex justify-between items-end mb-1 px-1">
+        <span className={`text-xs font-bold uppercase tracking-wider ${isActive ? 'text-blue-700' : 'text-gray-500'}`}>
+          {label}
+        </span>
+        <span className="text-xs text-gray-400">
+          {count} {isLead ? 'Leads' : 'Deals'}
         </span>
       </div>
-      
-      {!isLead && weightedValue > 0 && (
+
+      <div className="h-10 w-full bg-gray-100 rounded-r-lg overflow-hidden flex items-center relative shadow-sm">
         <div 
-           className="absolute left-0 top-0 h-1 bg-white opacity-30 z-20" 
-           style={{ width: `${(weightedValue / value) * parseFloat(width)}%` }} 
-           title="Weighted Probability"
-        />
+          className={`h-full ${color} transition-all duration-700 ease-out flex items-center px-3 text-white font-bold text-sm relative overflow-hidden`}
+          style={{ width: width }}
+        >
+          {isActive && <div className="absolute inset-0 bg-white opacity-20 animate-pulse"></div>}
+          <span className="z-10 drop-shadow-md">
+            {isLead ? count : formatCurrency(value, currencySymbol)}
+          </span>
+        </div>
+        
+        {/* Weighted Forecast Ghost Bar */}
+        {!isLead && weightedValue > 0 && (
+          <div 
+             className="absolute left-0 top-0 h-1 bg-white opacity-30 z-20" 
+             style={{ width: `${(weightedValue / value) * parseFloat(width)}%` }} 
+             title="Weighted Probability"
+          />
+        )}
+      </div>
+
+      {isActive && (
+        <div className="absolute right-0 top-1/2 transform -translate-y-1/2 translate-x-6 text-blue-500 animate-bounce-x">
+          <FiArrowRight size={24} />
+        </div>
       )}
     </div>
-
-    {isActive && (
-      <div className="absolute right-0 top-1/2 transform -translate-y-1/2 translate-x-6 text-blue-500 animate-bounce-x">
-        <FiArrowRight size={24} />
-      </div>
-    )}
   </div>
 );
 
-// ✅ UPDATED DETAIL TABLE: Changes columns based on Stage Type
+// ✅ UPDATED DETAIL TABLE: Supports Sorting
 const DetailTable = ({ data, stageKey, currencySymbol }) => {
   const navigate = useNavigate();
+  const [sortConfig, setSortConfig] = useState({ key: null, direction: 'desc' });
 
   const isLeadStage = stageKey === 'LEADS';
   const isClosedWon = stageKey === 'CLOSED_WON';
   const isClosedLost = stageKey === 'CLOSED_LOST';
   const isActiveDeal = !isLeadStage && !isClosedWon && !isClosedLost;
+
+  // Sorting Logic
+  const sortedData = useMemo(() => {
+    if (!sortConfig.key) return data;
+    return [...data].sort((a, b) => {
+      let aVal = a[sortConfig.key];
+      let bVal = b[sortConfig.key];
+
+      // Handle nested values or defaults
+      if (sortConfig.key === 'amount') {
+         aVal = parseFloat(a.amount || 0);
+         bVal = parseFloat(b.amount || 0);
+      } else if (sortConfig.key === 'probability') {
+         aVal = parseInt(a.probability || 0);
+         bVal = parseInt(b.probability || 0);
+      }
+
+      if (aVal < bVal) return sortConfig.direction === 'asc' ? -1 : 1;
+      if (aVal > bVal) return sortConfig.direction === 'asc' ? 1 : -1;
+      return 0;
+    });
+  }, [data, sortConfig]);
+
+  const handleSort = (key) => {
+    setSortConfig({
+      key,
+      direction: sortConfig.key === key && sortConfig.direction === 'desc' ? 'asc' : 'desc'
+    });
+  };
+
+  const SortIcon = ({ columnKey }) => {
+    if (sortConfig.key !== columnKey) return <FiArrowDown className="inline ml-1 opacity-0 group-hover:opacity-30" />;
+    return sortConfig.direction === 'asc' 
+      ? <FiArrowUp className="inline ml-1 text-blue-600" /> 
+      : <FiArrowDown className="inline ml-1 text-blue-600" />;
+  };
 
   if (!data || data.length === 0) {
     return (
@@ -96,32 +147,39 @@ const DetailTable = ({ data, stageKey, currencySymbol }) => {
         <table className="w-full text-left border-collapse">
           <thead className="bg-gray-50 sticky top-0 z-10">
             <tr>
-              <th className="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Name</th>
+              <th className="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider cursor-pointer group" onClick={() => handleSort('name')}>
+                Name <SortIcon columnKey="name"/>
+              </th>
               <th className="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Company</th>
               
-              {/* DYNAMIC COLUMNS */}
               {isLeadStage && (
                  <th className="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Contact Info</th>
               )}
 
               {isActiveDeal && (
                 <>
-                  <th className="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-right">Potential Value</th>
-                  <th className="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-center">Prob.</th>
+                  <th className="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-right cursor-pointer group" onClick={() => handleSort('amount')}>
+                    Potential Value <SortIcon columnKey="amount"/>
+                  </th>
+                  <th className="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-center cursor-pointer group" onClick={() => handleSort('probability')}>
+                    Prob. <SortIcon columnKey="probability"/>
+                  </th>
                   <th className="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-right">Forecast</th>
                   <th className="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-center">Age</th>
                 </>
               )}
 
               {isClosedWon && (
-                 <th className="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-right text-green-600">Revenue Booked</th>
+                 <th className="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-right text-green-600 cursor-pointer group" onClick={() => handleSort('amount')}>
+                    Revenue Booked <SortIcon columnKey="amount"/>
+                 </th>
               )}
               
               <th className="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-right">Owner</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
-            {data.map((item) => {
+            {sortedData.map((item) => {
               const daysStuck = !isLeadStage ? getDaysStuck(item.stage_updated_at || item.created_at) : 0;
               const isBottleneck = daysStuck > 30 && isActiveDeal;
               const weightedVal = !isLeadStage ? (parseFloat(item.amount || 0) * ((item.probability || 0) / 100)) : 0;
@@ -132,7 +190,6 @@ const DetailTable = ({ data, stageKey, currencySymbol }) => {
                   className="hover:bg-blue-50 transition-colors cursor-pointer group"
                   onClick={() => navigate(isLeadStage ? `/admin/leads/${item.id}` : `/admin/deals/info?id=${item.id}`)}
                 >
-                  {/* Name Column */}
                   <td className="p-4">
                     <p className="font-bold text-gray-800 text-sm group-hover:text-blue-600 transition-colors">
                       {isLeadStage ? `${item.first_name} ${item.last_name}` : item.name}
@@ -140,12 +197,10 @@ const DetailTable = ({ data, stageKey, currencySymbol }) => {
                     <p className="text-xs text-gray-400 mt-0.5">{formatDate(item.created_at)}</p>
                   </td>
                   
-                  {/* Company Column */}
                   <td className="p-4 text-sm text-gray-600">
                     {isLeadStage ? item.company_name : item.account?.name}
                   </td>
 
-                  {/* LEAD INFO: Contact Details */}
                   {isLeadStage && (
                     <td className="p-4 text-xs text-gray-500">
                         {item.email && <div className="flex items-center mb-1"><FiMail className="mr-1"/> {item.email}</div>}
@@ -153,7 +208,6 @@ const DetailTable = ({ data, stageKey, currencySymbol }) => {
                     </td>
                   )}
 
-                  {/* ACTIVE DEAL INFO: Forecast & Bottlenecks */}
                   {isActiveDeal && (
                     <>
                       <td className="p-4 text-right font-medium text-gray-700">
@@ -184,14 +238,12 @@ const DetailTable = ({ data, stageKey, currencySymbol }) => {
                     </>
                   )}
 
-                  {/* CLOSED WON INFO: Revenue */}
                   {isClosedWon && (
                      <td className="p-4 text-right font-bold text-green-700">
                         {formatCurrency(item.amount, currencySymbol)}
                      </td>
                   )}
 
-                  {/* Owner Column */}
                   <td className="p-4 text-right">
                     <div className="flex items-center justify-end text-gray-500 text-xs">
                       <FiUser className="mr-1" />
@@ -222,6 +274,10 @@ const AdminFunnelPage = () => {
   const [deals, setDeals] = useState([]);
   const [leads, setLeads] = useState([]);
   const [selectedStage, setSelectedStage] = useState('ALL'); 
+  
+  // ✅ 1. Filter States
+  const [filterTime, setFilterTime] = useState('ALL'); 
+  const [filterUser, setFilterUser] = useState('ALL');
 
   const fetchData = async () => {
     setLoading(true);
@@ -243,9 +299,52 @@ const AdminFunnelPage = () => {
     fetchData();
   }, []);
 
-  // --- Funnel Logic Calculation (Memoized) ---
+  // Extract unique users for the dropdown filter from loaded data
+  const usersList = useMemo(() => {
+    const users = new Map();
+    // Helper to add user
+    const addUser = (u) => {
+        if(u && u.id) users.set(u.id, `${u.first_name} ${u.last_name}`);
+    }
+    
+    leads.forEach(l => addUser(l.owner));
+    deals.forEach(d => {
+        addUser(d.assigned_deals);
+        addUser(d.deal_creator);
+    });
+    
+    return Array.from(users.entries()).map(([id, name]) => ({ id, name }));
+  }, [leads, deals]);
+
+  // --- Funnel Logic Calculation (Memoized & Filtered) ---
   const funnelMetrics = useMemo(() => {
-    // 1. Setup Stages
+    // A. Apply Filters
+    const now = new Date();
+    let startDate = null;
+    
+    if (filterTime === 'THIS_MONTH') startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+    else if (filterTime === 'THIS_QUARTER') startDate = new Date(now.getFullYear(), Math.floor(now.getMonth() / 3) * 3, 1);
+    else if (filterTime === 'THIS_YEAR') startDate = new Date(now.getFullYear(), 0, 1);
+
+    const filterItem = (item) => {
+      // Time Filter
+      const itemDate = new Date(item.created_at);
+      if (startDate && itemDate < startDate) return false;
+
+      // User Filter
+      if (filterUser !== 'ALL') {
+         const ownerId = item.assigned_to || item.created_by || item.owner_id; // Normalize ID check
+         // For Leads check 'owner', For Deals check 'assigned_deals'
+         const actualOwnerId = (item.assigned_deals?.id) || (item.owner?.id) || (item.created_by);
+         if (actualOwnerId !== parseInt(filterUser)) return false;
+      }
+      return true;
+    };
+
+    const filteredLeads = leads.filter(filterItem);
+    const filteredDeals = deals.filter(filterItem);
+
+    // B. Setup Stages
     const stages = [
       { key: 'LEADS', label: 'Top Leads', color: 'bg-blue-400', isDeal: false },
       { key: 'PROSPECTING', label: 'Prospecting', color: 'bg-blue-600', isDeal: true },
@@ -255,18 +354,18 @@ const AdminFunnelPage = () => {
       { key: 'CLOSED_WON', label: 'Closed Won', color: 'bg-emerald-500', isDeal: true },
     ];
 
-    // 2. Aggregate Data
+    // C. Aggregate Data
     const metrics = stages.reduce((acc, stage) => {
       acc[stage.key] = { ...stage, count: 0, value: 0, weightedValue: 0, items: [] };
       return acc;
     }, {});
 
     // Fill Leads
-    metrics['LEADS'].count = leads.length;
-    metrics['LEADS'].items = leads;
+    metrics['LEADS'].count = filteredLeads.length;
+    metrics['LEADS'].items = filteredLeads;
 
     // Fill Deals
-    deals.forEach(deal => {
+    filteredDeals.forEach(deal => {
       const stageKey = (deal.stage || '').toUpperCase();
       if (metrics[stageKey]) {
         metrics[stageKey].count++;
@@ -277,23 +376,19 @@ const AdminFunnelPage = () => {
       }
     });
 
-    // 3. Calculate Visuals (Widths)
+    // D. Calculate Visuals (Widths)
     const maxCount = Math.max(...Object.values(metrics).map(m => m.count), 1);
     
     Object.keys(metrics).forEach(key => {
       const item = metrics[key];
-      // Lead width is based on count vs deal max count to show drop off
       item.width = item.count === 0 ? '0%' : `${Math.max((item.count / maxCount) * 100, 15)}%`;
     });
 
-    return { stages, metrics };
-  }, [deals, leads]);
+    return { stages, metrics, filteredDeals };
+  }, [deals, leads, filterTime, filterUser]);
 
-  // --- Determine Table Data ---
   const activeTableData = useMemo(() => {
-    if (selectedStage === 'ALL') {
-        return []; 
-    }
+    if (selectedStage === 'ALL') return []; 
     return funnelMetrics.metrics[selectedStage]?.items || [];
   }, [selectedStage, funnelMetrics]);
 
@@ -316,21 +411,60 @@ const AdminFunnelPage = () => {
         </div>
       </div>
 
+      {/* ✅ 2. Filter Bar */}
+      <div className="flex flex-wrap gap-4 mb-8 bg-white p-4 rounded-xl shadow-sm border border-gray-100 items-center">
+         <span className="text-sm font-bold text-gray-500 uppercase tracking-wider flex items-center">
+            <FiFilter className="mr-2"/> Filters:
+         </span>
+         
+         <select 
+            value={filterTime} 
+            onChange={(e) => setFilterTime(e.target.value)}
+            className="bg-gray-50 border border-gray-200 text-gray-700 text-sm rounded-lg p-2.5 focus:ring-blue-500 focus:border-blue-500"
+         >
+            <option value="ALL">All Time</option>
+            <option value="THIS_MONTH">This Month</option>
+            <option value="THIS_QUARTER">This Quarter</option>
+            <option value="THIS_YEAR">This Year</option>
+         </select>
+
+         <select
+            value={filterUser}
+            onChange={(e) => setFilterUser(e.target.value)}
+            className="bg-gray-50 border border-gray-200 text-gray-700 text-sm rounded-lg p-2.5 focus:ring-blue-500 focus:border-blue-500"
+         >
+            <option value="ALL">All Users</option>
+            {usersList.map(u => (
+                <option key={u.id} value={u.id}>{u.name}</option>
+            ))}
+         </select>
+      </div>
+
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 h-full">
         
         {/* LEFT COLUMN: The Visual Funnel */}
         <div className="lg:col-span-4 flex flex-col space-y-4">
           <div className="bg-white p-6 rounded-xl shadow-lg border border-gray-100">
             <h3 className="text-lg font-bold text-gray-800 mb-6 flex items-center">
-              <FiFilter className="mr-2" /> Pipeline Stages
+              <FiLayout className="mr-2" /> Pipeline Stages
             </h3>
             
             <div className="space-y-4 relative">
-              {/* Connector Line running through the funnel */}
               <div className="absolute left-6 top-4 bottom-4 w-0.5 bg-gray-100 -z-0"></div>
 
-              {funnelMetrics.stages.map((stage) => {
+              {funnelMetrics.stages.map((stage, index) => {
                 const metric = funnelMetrics.metrics[stage.key];
+                
+                // ✅ 3. Conversion Rate Logic
+                let conversionRate = null;
+                if (index > 0) {
+                    const prevStageKey = funnelMetrics.stages[index - 1].key;
+                    const prevCount = funnelMetrics.metrics[prevStageKey].count;
+                    if (prevCount > 0) {
+                        conversionRate = ((metric.count / prevCount) * 100).toFixed(0);
+                    }
+                }
+
                 return (
                   <FunnelBar 
                     key={stage.key}
@@ -343,6 +477,7 @@ const AdminFunnelPage = () => {
                     weightedValue={metric.weightedValue}
                     currencySymbol={currencySymbol}
                     isActive={selectedStage === stage.key}
+                    conversionRate={conversionRate}
                     onClick={() => setSelectedStage(stage.key)}
                   />
                 );
@@ -352,15 +487,15 @@ const AdminFunnelPage = () => {
             {/* Global Summary */}
             <div className="mt-8 pt-6 border-t border-gray-100 grid grid-cols-2 gap-4 text-center">
                 <div>
-                    <p className="text-xs text-gray-400 uppercase font-bold">Total Pipeline</p>
+                    <p className="text-xs text-gray-400 uppercase font-bold">Pipeline Value</p>
                     <p className="text-xl font-bold text-gray-800">
-                        {formatCurrency(deals.reduce((a, b) => a + parseFloat(b.amount || 0), 0), currencySymbol)}
+                        {formatCurrency(funnelMetrics.filteredDeals.reduce((a, b) => a + parseFloat(b.amount || 0), 0), currencySymbol)}
                     </p>
                 </div>
                 <div>
                     <p className="text-xs text-blue-500 uppercase font-bold">Weighted Forecast</p>
                     <p className="text-xl font-bold text-blue-600">
-                        {formatCurrency(deals.reduce((a, b) => a + (parseFloat(b.amount || 0) * ((b.probability||0)/100)), 0), currencySymbol)}
+                        {formatCurrency(funnelMetrics.filteredDeals.reduce((a, b) => a + (parseFloat(b.amount || 0) * ((b.probability||0)/100)), 0), currencySymbol)}
                     </p>
                 </div>
             </div>
@@ -391,6 +526,9 @@ const AdminFunnelPage = () => {
                 <h4 className="text-xl font-semibold text-gray-600 mb-2">Detailed Breakdown</h4>
                 <p>Click on any stage bar on the left to inspect the specific Leads or Deals inside that stage.</p>
                 
+
+[Image of sales funnel visual representation]
+
              </div>
           ) : (
              <DetailTable 

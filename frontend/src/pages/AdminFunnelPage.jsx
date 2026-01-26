@@ -286,8 +286,9 @@ const DetailTable = ({ data, stageKey, currencySymbol }) => {
                   <td className="p-4 text-right">
                     <div className="flex items-center justify-end text-gray-500 text-xs">
                       <FiUser className="mr-1" />
+                      {/* ✅ FIX: Correctly finding Lead Owner or Deal Owner */}
                       {isLeadStage
-                        ? (item.owner?.first_name || 'Unassigned')
+                        ? (item.lead_owner?.first_name || item.owner?.first_name || item.assigned_to?.first_name || 'Unassigned')
                         : (item.assigned_deals?.first_name || 'Unassigned')
                       }
                     </div>
@@ -342,8 +343,11 @@ const AdminFunnelPage = () => {
   const usersList = useMemo(() => {
     const users = new Map();
     const addUser = (u) => { if(u && u.id) users.set(u.id, `${u.first_name} ${u.last_name}`); }
-    leads.forEach(l => addUser(l.owner));
+    
+    // ✅ FIX: Populate filter list correctly from leads and deals
+    leads.forEach(l => addUser(l.lead_owner || l.owner || l.assigned_to));
     deals.forEach(d => { addUser(d.assigned_deals); addUser(d.deal_creator); });
+    
     return Array.from(users.entries()).map(([id, name]) => ({ id, name }));
   }, [leads, deals]);
 
@@ -359,9 +363,20 @@ const AdminFunnelPage = () => {
     const filterItem = (item) => {
       const itemDate = new Date(item.created_at);
       if (startDate && itemDate < startDate) return false;
+      
       if (filterUser !== 'ALL') {
-         const actualOwnerId = (item.assigned_deals?.id) || (item.owner?.id) || (item.created_by);
-         if (actualOwnerId !== parseInt(filterUser)) return false;
+         // ✅ FIX: Robust User Filtering
+         const userId = parseInt(filterUser);
+         // Check Leads
+         if (item.lead_owner) return item.lead_owner.id === userId || item.lead_owner === userId; 
+         if (item.assigned_to?.id) return item.assigned_to.id === userId;
+         if (item.owner?.id) return item.owner.id === userId;
+         
+         // Check Deals
+         if (item.assigned_deals?.id) return item.assigned_deals.id === userId;
+         if (item.created_by) return item.created_by === userId;
+         
+         return false;
       }
       return true;
     };
@@ -420,7 +435,7 @@ const AdminFunnelPage = () => {
         const relevantUsers = filterUser === 'ALL' ? usersList : usersList.filter(u => u.id === parseInt(filterUser));
         
         relevantUsers.forEach(u => {
-            const uLeads = filteredLeads.filter(l => l.owner?.id === parseInt(u.id));
+            const uLeads = filteredLeads.filter(l => (l.lead_owner?.id || l.owner?.id || l.assigned_to?.id) === parseInt(u.id));
             const uDeals = filteredDeals.filter(d => (d.assigned_deals?.id || d.created_by) === parseInt(u.id));
             
             // Only show users with activity
@@ -608,6 +623,10 @@ const AdminFunnelPage = () => {
                     <FiFilter size={64} className="mb-4 text-blue-100" />
                     <h4 className="text-xl font-semibold text-gray-600 mb-2">Detailed Breakdown</h4>
                     <p>Click on any stage bar on the left to inspect the specific Leads or Deals inside that stage.</p>
+                    
+
+[Image of funnel stages with details]
+
                  </div>
               ) : (
                  <DetailTable 

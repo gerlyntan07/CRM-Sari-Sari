@@ -392,11 +392,26 @@ export default function AdminCalls() {
     if (formData.relatedType2) fetchData();
   }, [formData.relatedType2, formData.relatedTo1, formData.relatedType1]);
 
+   //validation 
+const [isSubmitted, setIsSubmitted] = useState(false);
   const handleSubmit = (e) => {
     e.preventDefault();
+    setIsSubmitted(true); 
+
+        const subject = formData.subject;
+  if (!subject || subject.trim() === "") {
+    toast.error("Subject is required.");
+    return;
+  }
+
+  const relatedTo1 = formData.relatedTo1;
+  if (!relatedTo1) {
+    toast.error(`Please select a ${formData.relatedType1 || "Lead/Account"}.`);
+    return;
+  }
 
     if (!formData.assigned_to) {
-      toast.error("Please assign the call to a user.");
+      toast.error("Subject is required.");
       return;
     }
 
@@ -792,7 +807,10 @@ export default function AdminCalls() {
     >
       <div className="bg-white w-full max-w-xl rounded-2xl shadow-lg p-4 sm:p-6 md:p-8 relative border border-gray-200 overflow-y-auto max-h-[90vh] hide-scrollbar">
         <button
-          onClick={handleCloseModal}
+            onClick={() => {
+            handleCloseModal();    
+            setIsSubmitted(false); 
+          }}
           className="absolute top-4 right-4 text-gray-500 hover:text-black transition"
         >
           <FiX size={22} />
@@ -802,14 +820,15 @@ export default function AdminCalls() {
           {isEditing ? "Edit Call" : "Add New Call"}
         </h2>
 
-        <form className="grid grid-cols-1 md:grid-cols-2 w-full gap-4 text-sm" onSubmit={handleSubmit}>
+        <form className="grid grid-cols-1 md:grid-cols-2 w-full gap-4 text-sm" onSubmit={handleSubmit} noValidate>
+         
           <InputField
             label="Subject"
             className="md:col-span-2"
             name="subject"
             value={formData.subject}
             onChange={handleInputChange}
-            disabled={isSubmitting}
+            isSubmitted={isSubmitted}
             required
           />
 
@@ -842,6 +861,8 @@ export default function AdminCalls() {
                   relatedTo1: newId, // keep string
                 }))
               }
+                  required={true}       
+              isSubmitted={isSubmitted} 
               disabled={isSubmitting || isEditing}
             />
           </div>
@@ -910,7 +931,7 @@ export default function AdminCalls() {
           </div>
 
           <div className="col-span-2">
-            <label className="block text-gray-700 font-medium mb-1 text-sm">Assign To</label>
+            <label className="block text-gray-700 font-medium mb-1 text-sm"> Assign To <span className="text-red-600 font-semibold">*</span></label>
             <SearchableSelect
               items={Array.isArray(team) ? team : []}
               value={formData.assigned_to ?? ""}
@@ -925,6 +946,8 @@ export default function AdminCalls() {
                   assigned_to: newId, // keep string
                 }))
               }
+              required={true}      
+           isSubmitted={isSubmitted} 
             />
           </div>
 
@@ -965,8 +988,11 @@ export default function AdminCalls() {
 
           <div className="flex flex-col md:flex-row justify-end col-span-2 mt-4 gap-2 w-full">
             <button
-              type="button"
-              onClick={handleCloseModal}
+                type="button"
+                onClick={() => {
+              handleCloseModal();    // close the modal
+              setIsSubmitted(false); // reset validation errors
+            }}
               className="w-full sm:w-auto px-4 py-2 text-white bg-red-400 border border-red-300 rounded hover:bg-red-500 transition"
             >
               Cancel
@@ -1000,6 +1026,7 @@ export default function AdminCalls() {
                 setIsEditing(false);
                 setCurrentCallId(null);
                 setShowModal(true);
+                setIsSubmitted(false); 
               }}
               className="flex items-center bg-black text-white px-3 sm:px-4 py-2 my-1 lg:my-0 rounded-md hover:bg-gray-800 text-sm sm:text-base mx-auto sm:ml-auto cursor-pointer"
             >
@@ -1208,17 +1235,44 @@ function MetricCard({ icon: Icon, title, value, color, bgColor }) {
   );
 }
 
-function InputField(props) {
+function InputField({
+  label,
+  name,
+  value,
+  onChange,
+  placeholder = "",
+  type = "text",
+  required = false,
+  disabled = false,
+  isSubmitted = false,
+  className = "",
+}) {
+  const hasError = isSubmitted && required && !value;
+
   return (
-    <div className={props.className}>
-      <label className="block text-gray-700 font-medium mb-1 text-sm">{props.label}</label>
+    <div className={className}>
+      <label className="block text-gray-700 font-medium mb-1 text-sm">
+        {label} {required && <span className="text-red-500">*</span>}
+      </label>
+
       <input
-        {...props}
-        className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-400 outline-none disabled:bg-gray-100"
+        type={type}
+        name={name}
+        value={value ?? ""}
+        onChange={onChange}
+        placeholder={placeholder}
+        disabled={disabled}
+        className={`w-full rounded-md px-2 py-1.5 text-sm outline-none border focus:ring-2 disabled:bg-gray-100
+          ${
+            hasError
+              ? "border-red-500 focus:ring-red-500"
+              : "border-gray-300 focus:ring-blue-400"
+          }
+        `}
       />
     </div>
   );
-}
+}	
 
 function TextAreaField(props) {
   return (
@@ -1301,6 +1355,8 @@ function SearchableSelect({
   placeholder = "Search...",
   disabled = false,
   maxRender = 200,
+   required = false,
+  isSubmitted = false, 
 }) {
   const [open, setOpen] = useState(false);
   const [q, setQ] = useState("");
@@ -1309,6 +1365,10 @@ function SearchableSelect({
   const selectedItem = items.find((it) => String(it.id) === String(value));
   const selectedLabel = selectedItem ? getLabel(selectedItem) : "";
 
+  // ✅ DEFINE hasError HERE
+  const hasError = required && isSubmitted && !value;
+
+  
   const filtered = useMemo(() => {
     const query = q.trim().toLowerCase();
     const base = query
@@ -1341,7 +1401,11 @@ function SearchableSelect({
           setQ(e.target.value);
           if (!open) setOpen(true);
         }}
-        className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-400 outline-none disabled:bg-gray-100"
+        className={`w-full border rounded-md px-2 py-1.5 text-sm outline-none focus:ring-2 disabled:bg-gray-100
+          ${hasError
+            ? "border-red-500 focus:ring-red-500"
+            : "border-gray-300 focus:ring-blue-400"
+          }`}
       />
 
       {open && !disabled && (

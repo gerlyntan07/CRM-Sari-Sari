@@ -37,6 +37,16 @@ export default function SalesHeader({ toggleSidebar }) {
   // Load user once
   useEffect(() => {
     fetchUser();
+    
+    // Listen for profile updates from manage account page
+    const handleProfileUpdate = () => {
+      fetchUser();
+    };
+    
+    window.addEventListener('userProfileUpdated', handleProfileUpdate);
+    return () => {
+      window.removeEventListener('userProfileUpdated', handleProfileUpdate);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

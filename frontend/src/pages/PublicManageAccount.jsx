@@ -418,6 +418,7 @@ export default function AdminManageAccount() {
                 <FiLock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
                 <input
                   type="text"
+                  style={showNewPassword ? undefined : { WebkitTextSecurity: "disc" }}
                   value={passwordData.newPassword}
                   onChange={(e) => handlePasswordChange("newPassword", e.target.value)}
                   placeholder="Enter new password (min. 8 characters)"
@@ -427,10 +428,15 @@ export default function AdminManageAccount() {
                 />
                 <button
                   type="button"
-                  onClick={() => setShowNewPassword(!showNewPassword)}
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  onClick={() => setShowNewPassword((prev) => !prev)}
+                  className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-700 hover:text-gray-900 focus:outline-none z-10 transition-colors cursor-pointer"
+                  aria-label={showNewPassword ? "Hide password" : "Show password"}
                 >
-                  {showNewPassword ? <FiEyeOff /> : <FiEye />}
+                  {showNewPassword ? (
+                    <FiEyeOff className="size-5" />
+                  ) : (
+                    <FiEye className="size-5" />
+                  )}
                 </button>
               </div>
             </div>
@@ -443,6 +449,9 @@ export default function AdminManageAccount() {
                 <FiLock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
                 <input
                   type="text"
+                  style={
+                    showConfirmPassword ? undefined : { WebkitTextSecurity: "disc" }
+                  }
                   value={passwordData.confirmPassword}
                   onChange={(e) => handlePasswordChange("confirmPassword", e.target.value)}
                   placeholder="Confirm new password"
@@ -452,10 +461,15 @@ export default function AdminManageAccount() {
                 />
                 <button
                   type="button"
-                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  onClick={() => setShowConfirmPassword((prev) => !prev)}
+                  className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-700 hover:text-gray-900 focus:outline-none z-10 transition-colors cursor-pointer"
+                  aria-label={showConfirmPassword ? "Hide password" : "Show password"}
                 >
-                  {showConfirmPassword ? <FiEyeOff /> : <FiEye />}
+                  {showConfirmPassword ? (
+                    <FiEyeOff className="size-5" />
+                  ) : (
+                    <FiEye className="size-5" />
+                  )}
                 </button>
               </div>
             </div>

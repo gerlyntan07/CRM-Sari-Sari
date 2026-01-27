@@ -2,16 +2,20 @@ from fastapi import APIRouter, Depends, HTTPException, status, Request, Query
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import select, text
 from typing import List
+from decimal import Decimal
 
 from database import get_db
-from schemas.quote import QuoteCreate, QuoteResponse, QuoteUpdate, QuoteBulkDelete
+from schemas.quote import (
+    QuoteCreate, QuoteResponse, QuoteUpdate, QuoteBulkDelete,
+    QuoteItemCreate, QuoteItemUpdate, QuoteItemResponse
+)
 from .auth_utils import get_current_user
 
 from models.auth import User
-from models.quote import Quote, QuoteStatus
+from models.quote import Quote, QuoteStatus, QuoteItem
 from models.contact import Contact
 from models.account import Account
-from models.deal import Deal  # ✅ make sure you have this model
+from models.deal import Deal
 from models.territory import Territory
 
 from .logs_utils import serialize_instance, create_audit_log
@@ -50,6 +54,7 @@ def admin_get_quotes(
     if current_user.role.upper() in ["CEO", "ADMIN"]:
         deals = (
             db.query(Quote)
+            .options(joinedload(Quote.items))
             .join(User, Quote.assigned_to == User.id)
             .filter(User.related_to_company == current_user.related_to_company)
             .all()
@@ -57,6 +62,7 @@ def admin_get_quotes(
     elif current_user.role.upper() == "GROUP MANAGER":
         deals = (
             db.query(Quote)
+            .options(joinedload(Quote.items))
             .join(User, Quote.assigned_to == User.id)
             .filter(User.related_to_company == current_user.related_to_company)
             .filter(~User.role.in_(["CEO", "Admin"]))
@@ -71,6 +77,7 @@ def admin_get_quotes(
 
         deals = (
             db.query(Quote)
+            .options(joinedload(Quote.items))
             .join(User, Quote.assigned_to == User.id)
             .filter(User.related_to_company == current_user.related_to_company)
             .filter(
@@ -82,6 +89,7 @@ def admin_get_quotes(
     else:
         deals = (
             db.query(Quote)
+            .options(joinedload(Quote.items))
             .filter(
                 (Quote.assigned_to == current_user.id) | 
                 (Quote.created_by == current_user.id)
@@ -157,7 +165,14 @@ def admin_create_quote(
         deal_id=data.deal_id,
         contact_id=data.contact_id,
         account_id=account_id_final,
+        subtotal=data.subtotal or Decimal('0'),
+        tax_rate=data.tax_rate or Decimal('0'),
+        tax_amount=data.tax_amount or Decimal('0'),
+        discount_type=data.discount_type,
+        discount_value=data.discount_value or Decimal('0'),
+        discount_amount=data.discount_amount or Decimal('0'),
         total_amount=data.total_amount,
+        currency=data.currency or "PHP",
         presented_date=data.presented_date,
         validity_days=data.validity_days,
         status=normalize_status(data.status),
@@ -170,6 +185,44 @@ def admin_create_quote(
     db.add(new_quote)
     db.commit()
     db.refresh(new_quote)
+
+    # Create quote items if provided
+    if data.items:
+        created_items = []
+        for idx, item_data in enumerate(data.items):
+            quote_item = QuoteItem(
+                quote_id=new_quote.id,
+                item_type=item_data.item_type,
+                name=item_data.name,
+                description=item_data.description,
+                sku=item_data.sku,
+                variant=item_data.variant,
+                unit=item_data.unit,
+                quantity=item_data.quantity,
+                unit_price=item_data.unit_price,
+                discount_percent=item_data.discount_percent or Decimal('0'),
+                sort_order=item_data.sort_order if item_data.sort_order is not None else idx,
+                line_total=Decimal('0'),  # Will be calculated
+            )
+            quote_item.calculate_line_total()
+            db.add(quote_item)
+            created_items.append(quote_item)
+        
+        db.commit()
+        
+        # Auto-generate SKU for items that don't have one
+        for item in created_items:
+            db.refresh(item)
+            if not item.sku:
+                item.generate_sku(db)
+        db.commit()
+        
+        db.refresh(new_quote)
+        
+        # Recalculate quote totals
+        new_quote.calculate_totals()
+        db.commit()
+        db.refresh(new_quote)
 
     # Generate quote_id AFTER commit (needs self.id)
     quote_id_value = new_quote.generate_quote_id(db)
@@ -219,6 +272,7 @@ def admin_update_quote(
     )
 
     quote = db.query(Quote).options(
+        joinedload(Quote.items),
         joinedload(Quote.deal),
         joinedload(Quote.account),
         joinedload(Quote.contact),
@@ -272,11 +326,57 @@ def admin_update_quote(
     if "status" in update_data:
         update_data["status"] = normalize_status(update_data["status"])
 
+    # Handle items update separately
+    items_data = update_data.pop("items", None)
+
     for field, value in update_data.items():
         setattr(quote, field, value)
 
     db.commit()
     db.refresh(quote)
+
+    # If items were provided, replace all existing items
+    if items_data is not None:
+        # Delete existing items
+        db.query(QuoteItem).filter(QuoteItem.quote_id == quote.id).delete()
+        db.commit()
+        
+        # Add new items (items_data is a list of dicts from model_dump)
+        created_items = []
+        for idx, item_data in enumerate(items_data):
+            quote_item = QuoteItem(
+                quote_id=quote.id,
+                item_type=item_data.get("item_type", "Product"),
+                name=item_data.get("name"),
+                description=item_data.get("description"),
+                sku=item_data.get("sku"),
+                variant=item_data.get("variant"),
+                unit=item_data.get("unit"),
+                quantity=item_data.get("quantity", 1),
+                unit_price=item_data.get("unit_price", 0),
+                discount_percent=item_data.get("discount_percent") or Decimal('0'),
+                sort_order=item_data.get("sort_order") if item_data.get("sort_order") is not None else idx,
+                line_total=Decimal('0'),
+            )
+            quote_item.calculate_line_total()
+            db.add(quote_item)
+            created_items.append(quote_item)
+        
+        db.commit()
+        
+        # Auto-generate SKU for items that don't have one
+        for item in created_items:
+            db.refresh(item)
+            if not item.sku:
+                item.generate_sku(db)
+        db.commit()
+        
+        db.refresh(quote)
+        
+        # Recalculate quote totals
+        quote.calculate_totals()
+        db.commit()
+        db.refresh(quote)
 
     new_data = serialize_instance(quote)
 
@@ -438,3 +538,388 @@ def admin_bulk_delete_quotes(
     db.commit()
 
     return {"detail": f"Successfully deleted {deleted_count} quote(s)."}
+
+
+# ==================== QUOTE ITEMS ENDPOINTS ====================
+
+def get_quote_for_user(db: Session, quote_id: int, current_user: User) -> Quote:
+    """Helper function to get a quote ensuring user has access."""
+    company_users = (
+        select(User.id)
+        .where(User.related_to_company == current_user.related_to_company)
+        .subquery()
+    )
+
+    quote = db.query(Quote).options(
+        joinedload(Quote.items),
+        joinedload(Quote.deal),
+        joinedload(Quote.account),
+        joinedload(Quote.contact),
+    ).filter(
+        Quote.id == quote_id,
+        ((Quote.created_by.in_(company_users)) | (Quote.assigned_to.in_(company_users)))
+    ).first()
+
+    return quote
+
+
+@router.get("/admin/{quote_id}/items", response_model=List[QuoteItemResponse])
+def get_quote_items(
+    quote_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Get all line items for a specific quote."""
+    if (current_user.role or "").upper() not in ALLOWED_ADMIN_ROLES:
+        raise HTTPException(status_code=403, detail="Permission denied")
+
+    quote = get_quote_for_user(db, quote_id, current_user)
+    if not quote:
+        raise HTTPException(status_code=404, detail="Quote not found.")
+
+    return quote.items
+
+
+@router.post("/admin/{quote_id}/items", response_model=QuoteItemResponse, status_code=status.HTTP_201_CREATED)
+def add_quote_item(
+    quote_id: int,
+    data: QuoteItemCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    request: Request = None,
+):
+    """Add a new line item to a quote."""
+    if (current_user.role or "").upper() not in ALLOWED_ADMIN_ROLES:
+        raise HTTPException(status_code=403, detail="Permission denied")
+
+    quote = get_quote_for_user(db, quote_id, current_user)
+    if not quote:
+        raise HTTPException(status_code=404, detail="Quote not found.")
+
+    # Determine sort order
+    max_sort = db.query(QuoteItem).filter(QuoteItem.quote_id == quote_id).count()
+    sort_order = data.sort_order if data.sort_order is not None else max_sort
+
+    quote_item = QuoteItem(
+        quote_id=quote_id,
+        item_type=data.item_type,
+        name=data.name,
+        description=data.description,
+        sku=data.sku,
+        variant=data.variant,
+        unit=data.unit,
+        quantity=data.quantity,
+        unit_price=data.unit_price,
+        discount_percent=data.discount_percent or Decimal('0'),
+        sort_order=sort_order,
+        line_total=Decimal('0'),
+    )
+    quote_item.calculate_line_total()
+
+    db.add(quote_item)
+    db.commit()
+    db.refresh(quote_item)
+
+    # Auto-generate SKU if not provided
+    if not quote_item.sku:
+        quote_item.generate_sku(db)
+        db.commit()
+        db.refresh(quote_item)
+
+    # Recalculate quote totals
+    db.refresh(quote)
+    quote.calculate_totals()
+    db.commit()
+
+    create_audit_log(
+        db=db,
+        current_user=current_user,
+        instance=quote,
+        action="UPDATE",
+        request=request,
+        custom_message=f"add item '{data.name}' to quote '{quote.quote_id or quote.id}'",
+    )
+
+    return quote_item
+
+
+@router.post("/admin/{quote_id}/items/bulk", response_model=List[QuoteItemResponse], status_code=status.HTTP_201_CREATED)
+def add_quote_items_bulk(
+    quote_id: int,
+    items: List[QuoteItemCreate],
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    request: Request = None,
+):
+    """Add multiple line items to a quote at once."""
+    if (current_user.role or "").upper() not in ALLOWED_ADMIN_ROLES:
+        raise HTTPException(status_code=403, detail="Permission denied")
+
+    quote = get_quote_for_user(db, quote_id, current_user)
+    if not quote:
+        raise HTTPException(status_code=404, detail="Quote not found.")
+
+    if not items:
+        raise HTTPException(status_code=400, detail="No items provided.")
+
+    max_sort = db.query(QuoteItem).filter(QuoteItem.quote_id == quote_id).count()
+    created_items = []
+
+    for idx, item_data in enumerate(items):
+        quote_item = QuoteItem(
+            quote_id=quote_id,
+            item_type=item_data.item_type,
+            name=item_data.name,
+            description=item_data.description,
+            sku=item_data.sku,
+            variant=item_data.variant,
+            unit=item_data.unit,
+            quantity=item_data.quantity,
+            unit_price=item_data.unit_price,
+            discount_percent=item_data.discount_percent or Decimal('0'),
+            sort_order=item_data.sort_order if item_data.sort_order is not None else max_sort + idx,
+            line_total=Decimal('0'),
+        )
+        quote_item.calculate_line_total()
+        db.add(quote_item)
+        created_items.append(quote_item)
+
+    db.commit()
+    
+    # Auto-generate SKU for items that don't have one
+    for item in created_items:
+        db.refresh(item)
+        if not item.sku:
+            item.generate_sku(db)
+    db.commit()
+    
+    for item in created_items:
+        db.refresh(item)
+
+    # Recalculate quote totals
+    db.refresh(quote)
+    quote.calculate_totals()
+    db.commit()
+
+    create_audit_log(
+        db=db,
+        current_user=current_user,
+        instance=quote,
+        action="UPDATE",
+        request=request,
+        custom_message=f"add {len(created_items)} items to quote '{quote.quote_id or quote.id}'",
+    )
+
+    return created_items
+
+
+@router.put("/admin/{quote_id}/items/{item_id}", response_model=QuoteItemResponse)
+def update_quote_item(
+    quote_id: int,
+    item_id: int,
+    data: QuoteItemUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    request: Request = None,
+):
+    """Update an existing line item in a quote."""
+    if (current_user.role or "").upper() not in ALLOWED_ADMIN_ROLES:
+        raise HTTPException(status_code=403, detail="Permission denied")
+
+    quote = get_quote_for_user(db, quote_id, current_user)
+    if not quote:
+        raise HTTPException(status_code=404, detail="Quote not found.")
+
+    quote_item = db.query(QuoteItem).filter(
+        QuoteItem.id == item_id,
+        QuoteItem.quote_id == quote_id
+    ).first()
+
+    if not quote_item:
+        raise HTTPException(status_code=404, detail="Quote item not found.")
+
+    update_data = data.model_dump(exclude_unset=True)
+    for field, value in update_data.items():
+        setattr(quote_item, field, value)
+
+    # Recalculate line total
+    quote_item.calculate_line_total()
+
+    db.commit()
+    db.refresh(quote_item)
+
+    # Recalculate quote totals
+    db.refresh(quote)
+    quote.calculate_totals()
+    db.commit()
+
+    create_audit_log(
+        db=db,
+        current_user=current_user,
+        instance=quote,
+        action="UPDATE",
+        request=request,
+        custom_message=f"update item '{quote_item.name}' in quote '{quote.quote_id or quote.id}'",
+    )
+
+    return quote_item
+
+
+@router.delete("/admin/{quote_id}/items/{item_id}", status_code=status.HTTP_200_OK)
+def delete_quote_item(
+    quote_id: int,
+    item_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    request: Request = None,
+):
+    """Delete a line item from a quote."""
+    if (current_user.role or "").upper() not in ALLOWED_ADMIN_ROLES:
+        raise HTTPException(status_code=403, detail="Permission denied")
+
+    quote = get_quote_for_user(db, quote_id, current_user)
+    if not quote:
+        raise HTTPException(status_code=404, detail="Quote not found.")
+
+    quote_item = db.query(QuoteItem).filter(
+        QuoteItem.id == item_id,
+        QuoteItem.quote_id == quote_id
+    ).first()
+
+    if not quote_item:
+        raise HTTPException(status_code=404, detail="Quote item not found.")
+
+    item_name = quote_item.name
+    db.delete(quote_item)
+    db.commit()
+
+    # Recalculate quote totals
+    db.refresh(quote)
+    quote.calculate_totals()
+    db.commit()
+
+    create_audit_log(
+        db=db,
+        current_user=current_user,
+        instance=quote,
+        action="UPDATE",
+        request=request,
+        custom_message=f"delete item '{item_name}' from quote '{quote.quote_id or quote.id}'",
+    )
+
+    return {"detail": f"Item '{item_name}' deleted successfully."}
+
+
+@router.delete("/admin/{quote_id}/items", status_code=status.HTTP_200_OK)
+def delete_all_quote_items(
+    quote_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    request: Request = None,
+):
+    """Delete all line items from a quote."""
+    if (current_user.role or "").upper() not in ALLOWED_ADMIN_ROLES:
+        raise HTTPException(status_code=403, detail="Permission denied")
+
+    quote = get_quote_for_user(db, quote_id, current_user)
+    if not quote:
+        raise HTTPException(status_code=404, detail="Quote not found.")
+
+    item_count = db.query(QuoteItem).filter(QuoteItem.quote_id == quote_id).count()
+    db.query(QuoteItem).filter(QuoteItem.quote_id == quote_id).delete()
+    db.commit()
+
+    # Recalculate quote totals (will be 0)
+    db.refresh(quote)
+    quote.calculate_totals()
+    db.commit()
+
+    create_audit_log(
+        db=db,
+        current_user=current_user,
+        instance=quote,
+        action="UPDATE",
+        request=request,
+        custom_message=f"delete all {item_count} items from quote '{quote.quote_id or quote.id}'",
+    )
+
+    return {"detail": f"Deleted {item_count} items from quote."}
+
+
+@router.post("/admin/{quote_id}/recalculate", response_model=QuoteResponse)
+def recalculate_quote_totals(
+    quote_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    request: Request = None,
+):
+    """Recalculate quote totals based on line items, tax, and discount settings."""
+    if (current_user.role or "").upper() not in ALLOWED_ADMIN_ROLES:
+        raise HTTPException(status_code=403, detail="Permission denied")
+
+    quote = get_quote_for_user(db, quote_id, current_user)
+    if not quote:
+        raise HTTPException(status_code=404, detail="Quote not found.")
+
+    old_total = quote.total_amount
+
+    # Recalculate all line item totals first
+    for item in quote.items:
+        item.calculate_line_total()
+
+    # Recalculate quote totals
+    quote.calculate_totals()
+    db.commit()
+    db.refresh(quote)
+
+    create_audit_log(
+        db=db,
+        current_user=current_user,
+        instance=quote,
+        action="UPDATE",
+        request=request,
+        custom_message=f"recalculate quote '{quote.quote_id or quote.id}' totals: {old_total} -> {quote.total_amount}",
+    )
+
+    return quote
+
+
+@router.patch("/admin/{quote_id}/items/reorder", response_model=List[QuoteItemResponse])
+def reorder_quote_items(
+    quote_id: int,
+    item_order: List[int] = Query(..., description="List of item IDs in desired order"),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    request: Request = None,
+):
+    """Reorder line items in a quote by providing item IDs in desired order."""
+    if (current_user.role or "").upper() not in ALLOWED_ADMIN_ROLES:
+        raise HTTPException(status_code=403, detail="Permission denied")
+
+    quote = get_quote_for_user(db, quote_id, current_user)
+    if not quote:
+        raise HTTPException(status_code=404, detail="Quote not found.")
+
+    # Update sort_order for each item
+    for idx, item_id in enumerate(item_order):
+        item = db.query(QuoteItem).filter(
+            QuoteItem.id == item_id,
+            QuoteItem.quote_id == quote_id
+        ).first()
+        if item:
+            item.sort_order = idx
+
+    db.commit()
+    db.refresh(quote)
+
+    create_audit_log(
+        db=db,
+        current_user=current_user,
+        instance=quote,
+        action="UPDATE",
+        request=request,
+        custom_message=f"reorder items in quote '{quote.quote_id or quote.id}'",
+    )
+
+    return quote.items
+

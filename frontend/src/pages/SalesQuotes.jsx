@@ -15,6 +15,7 @@ import { toast } from "react-toastify";
 import api from "../api.js";
 import PaginationControls from "../components/PaginationControls.jsx";
 import LoadingSpinner from "../components/LoadingSpinner.jsx";
+import QuoteItemsEditor from "../components/QuoteItemsEditor.jsx";
 import { useNavigate, useLocation } from "react-router-dom";
 import useFetchUser from "../hooks/useFetchUser"; // ✅ Import User Hook
 
@@ -37,6 +38,16 @@ const INITIAL_FORM_STATE = {
   status: "Draft",
   assigned_to: "",
   notes: "",
+  // New pricing fields
+  subtotal: 0,
+  tax_rate: 0,
+  tax_amount: 0,
+  discount_type: "",
+  discount_value: 0,
+  discount_amount: 0,
+  currency: "PHP",
+  // Line items
+  items: [],
 };
 
 const normalizeStatus = (status) => {

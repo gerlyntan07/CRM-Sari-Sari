@@ -15,6 +15,7 @@ import { toast } from "react-toastify";
 import api from "../api.js";
 import PaginationControls from "../components/PaginationControls.jsx";
 import LoadingSpinner from "../components/LoadingSpinner.jsx";
+import QuoteItemsEditor from "../components/QuoteItemsEditor.jsx";
 import { useLocation, useNavigate } from "react-router-dom";
 import useFetchUser from "../hooks/useFetchUser"; // ✅ Import User Hook
 
@@ -35,6 +36,16 @@ const INITIAL_FORM_STATE = {
   status: "Draft",
   assigned_to: "",
   notes: "",
+  // New pricing fields
+  subtotal: 0,
+  tax_rate: 0,
+  tax_amount: 0,
+  discount_type: "",
+  discount_value: 0,
+  discount_amount: 0,
+  currency: "PHP",
+  // Line items
+  items: [],
 };
 
 const normalizeStatus = (status) => {
@@ -727,6 +738,30 @@ export default function AdminQuotes() {
       status: normalizeStatus(quote.status) || "Draft",
       assigned_to: assignedToId,
       notes: quote.notes || "",
+      // New pricing fields
+      subtotal: parseFloat(quote.subtotal) || 0,
+      tax_rate: parseFloat(quote.tax_rate) || 0,
+      tax_amount: parseFloat(quote.tax_amount) || 0,
+      discount_type: quote.discount_type || "",
+      discount_value: parseFloat(quote.discount_value) || 0,
+      discount_amount: parseFloat(quote.discount_amount) || 0,
+      currency: quote.currency || "PHP",
+      // Line items
+      items: Array.isArray(quote.items) ? quote.items.map(item => ({
+        id: item.id,
+        item_type: item.item_type || "Product",
+        name: item.name || "",
+        description: item.description || "",
+        sku: item.sku || "",
+        variant: item.variant || "",
+        unit: item.unit || "pcs",
+        quantity: parseFloat(item.quantity) || 1,
+        unit_price: parseFloat(item.unit_price) || 0,
+        discount_percent: parseFloat(item.discount_percent) || 0,
+        discount_amount: parseFloat(item.discount_amount) || 0,
+        line_total: parseFloat(item.line_total) || 0,
+        sort_order: item.sort_order || 0,
+      })) : [],
     });
 
     setIsEditing(true);
@@ -829,17 +864,42 @@ const [isSubmitted, setIsSubmitted] = useState(false);
 
     const derived = deriveAccountAndContactFromDealId(formData.deal_id);
 
+    // Prepare items for API (strip temporary fields, ensure proper format)
+    const preparedItems = formData.items.map((item, idx) => ({
+      item_type: item.item_type || "Product",
+      name: item.name,
+      description: item.description || null,
+      sku: item.sku || null,
+      variant: item.variant || null,
+      unit: item.unit || null,
+      quantity: parseFloat(item.quantity) || 1,
+      unit_price: parseFloat(item.unit_price) || 0,
+      discount_percent: parseFloat(item.discount_percent) || 0,
+      sort_order: item.sort_order ?? idx,
+    }));
+
     const basePayload = {
       deal_id: Number(formData.deal_id),
       account_id: derived.accountId ? Number(derived.accountId) : null,
       contact_id: derived.contactId ? Number(derived.contactId) : null,
-      total_amount: Number(formData.total_amount),
+      // Pricing fields
+      subtotal: parseFloat(formData.subtotal) || 0,
+      tax_rate: parseFloat(formData.tax_rate) || 0,
+      tax_amount: parseFloat(formData.tax_amount) || 0,
+      discount_type: formData.discount_type || null,
+      discount_value: parseFloat(formData.discount_value) || 0,
+      discount_amount: parseFloat(formData.discount_amount) || 0,
+      total_amount: parseFloat(formData.total_amount) || 0,
+      currency: formData.currency || "PHP",
+      // Other fields
       presented_date: formData.presented_date || null,
       validity_days:
         formData.validity_days === "" ? null : Number(formData.validity_days),
       status: formData.status || "Draft",
       assigned_to: formData.assigned_to ? Number(formData.assigned_to) : null,
       notes: formData.notes?.trim() || null,
+      // Line items (only for create, update handles items separately)
+      items: preparedItems,
     };
 
     const actionType = isEditing && currentQuoteId ? "update" : "create";
@@ -1287,6 +1347,21 @@ const [isSubmitted, setIsSubmitted] = useState(false);
                         </p>
                       </div>
                     </div>
+
+                    {/* Line Items Section in Detail View */}
+                    {selectedQuote.items && selectedQuote.items.length > 0 && (
+                      <div className="mt-6">
+                        <QuoteItemsEditor
+                          items={selectedQuote.items}
+                          onChange={() => {}}
+                          currencySymbol={currencySymbol}
+                          readOnly={true}
+                          taxRate={parseFloat(selectedQuote.tax_rate) || 0}
+                          discountType={selectedQuote.discount_type}
+                          discountValue={parseFloat(selectedQuote.discount_value) || 0}
+                        />
+                      </div>
+                    )}
                   </div>
                 )}
 
@@ -1678,15 +1753,83 @@ const [isSubmitted, setIsSubmitted] = useState(false);
             disabled
           />
 
-          <InputField
-            label="Total Amount"
-            name="total_amount"
-            type="number"
-            value={formData.total_amount}
-            onChange={handleInputChange}
-            placeholder="0.00"
-            disabled={isSubmitting}
-          />
+          {/* Line Items Section */}
+          <div className="md:col-span-2 mt-2">
+            <QuoteItemsEditor
+              items={formData.items}
+              onChange={(newItems) => setFormData((prev) => ({ ...prev, items: newItems }))}
+              currencySymbol={currencySymbol}
+              readOnly={isSubmitting}
+              taxRate={formData.tax_rate}
+              discountType={formData.discount_type}
+              discountValue={formData.discount_value}
+              onTotalsChange={(totals) => {
+                setFormData((prev) => ({
+                  ...prev,
+                  subtotal: totals.subtotal,
+                  discount_amount: totals.discount_amount,
+                  tax_amount: totals.tax_amount,
+                  total_amount: totals.total_amount,
+                }));
+              }}
+            />
+          </div>
+
+          {/* Pricing Settings */}
+          <div className="md:col-span-2 mt-2 p-4 bg-gray-50 rounded-lg">
+            <h4 className="font-medium text-gray-700 mb-3">Pricing Settings</h4>
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+              <div>
+                <label className="block text-gray-600 text-xs mb-1">Discount Type</label>
+                <select
+                  value={formData.discount_type || ""}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, discount_type: e.target.value }))}
+                  className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm"
+                  disabled={isSubmitting}
+                >
+                  <option value="">No Discount</option>
+                  <option value="percentage">Percentage (%)</option>
+                  <option value="fixed">Fixed Amount</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-gray-600 text-xs mb-1">
+                  Discount {formData.discount_type === "percentage" ? "%" : "Amount"}
+                </label>
+                <input
+                  type="number"
+                  value={formData.discount_value || ""}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, discount_value: e.target.value }))}
+                  className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm"
+                  placeholder="0"
+                  min="0"
+                  max={formData.discount_type === "percentage" ? "100" : undefined}
+                  step="0.01"
+                  disabled={isSubmitting || !formData.discount_type}
+                />
+              </div>
+              <div>
+                <label className="block text-gray-600 text-xs mb-1">Tax Rate (%)</label>
+                <input
+                  type="number"
+                  value={formData.tax_rate || ""}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, tax_rate: e.target.value }))}
+                  className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm"
+                  placeholder="0"
+                  min="0"
+                  max="100"
+                  step="0.01"
+                  disabled={isSubmitting}
+                />
+              </div>
+              <div>
+                <label className="block text-gray-600 text-xs mb-1">Total Amount</label>
+                <div className="w-full bg-gray-100 border border-gray-300 rounded-md px-2 py-1.5 text-sm font-medium">
+                  {currencySymbol}{parseFloat(formData.total_amount || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </div>
+              </div>
+            </div>
+          </div>
 
           <InputField
             label="Presented Date"

@@ -7,7 +7,7 @@ from .contact import Contact
 from .deal import Deal
 from .lead import Lead
 from .meeting import Meeting
-from .quote import Quote
+from .quote import Quote, QuoteItem
 from .subscription import Subscription
 from .target import Target
 from .task import Task
@@ -16,7 +16,7 @@ from .comment import Comment
 
 __all__ = [
     "Account", "Auditlog", "User", "Call", "Company",
-    "Contact", "Deal", "Lead", "Meeting", "Quote",
+    "Contact", "Deal", "Lead", "Meeting", "Quote", "QuoteItem",
     "Subscription", "Target", "Task", "Territory", 
     "Comment"
 ]

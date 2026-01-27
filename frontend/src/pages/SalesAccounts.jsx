@@ -241,36 +241,43 @@ export default function AdminAccounts() {
     }
   }, [selectedAccount]);
 
-  const total = accounts.length;
+  // Filter accounts to only include those created by and assigned to the current user
+  const userAccounts = accounts.filter(
+    (acc) =>
+      acc.acc_creator?.id === currentUser?.id &&
+      acc.assigned_accs?.id === currentUser?.id
+  );
+
+  const total = userAccounts.length;
   const customers = useMemo(
     () =>
-      accounts.filter((acc) => acc.status?.toLowerCase() === "customer").length,
-    [accounts]
+      userAccounts.filter((acc) => acc.status?.toLowerCase() === "customer").length,
+    [userAccounts]
   );
   const prospects = useMemo(
     () =>
-      accounts.filter((acc) => acc.status?.toLowerCase() === "prospect").length,
-    [accounts]
+      userAccounts.filter((acc) => acc.status?.toLowerCase() === "prospect").length,
+    [userAccounts]
   );
   const partners = useMemo(
     () =>
-      accounts.filter((acc) => acc.status?.toLowerCase() === "partner").length,
-    [accounts]
+      userAccounts.filter((acc) => acc.status?.toLowerCase() === "partner").length,
+    [userAccounts]
   );
   const active = useMemo(
     () =>
-      accounts.filter((acc) => acc.status?.toLowerCase() === "active").length,
-    [accounts]
+      userAccounts.filter((acc) => acc.status?.toLowerCase() === "active").length,
+    [userAccounts]
   );
   const inactive = useMemo(
     () =>
-      accounts.filter((acc) => acc.status?.toLowerCase() === "inactive").length,
-    [accounts]
+      userAccounts.filter((acc) => acc.status?.toLowerCase() === "inactive").length,
+    [userAccounts]
   );
   const former = useMemo(
     () =>
-      accounts.filter((acc) => acc.status?.toLowerCase() === "former").length,
-    [accounts]
+      userAccounts.filter((acc) => acc.status?.toLowerCase() === "former").length,
+    [userAccounts]
   );
 
   const metricCards = useMemo(
@@ -388,8 +395,11 @@ export default function AdminAccounts() {
 
   const handleSelectAll = (e) => {
     if (e.target.checked) {
-      const allIds = paginatedAccounts.map((a) => a.id);
-      setSelectedIds(allIds);
+      // Only select accounts created by and assigned to current user
+      const selectableIds = paginatedAccounts
+        .filter((a) => a.assigned_accs?.id === currentUser?.id && a.acc_creator?.id === currentUser?.id)
+        .map((a) => a.id);
+      setSelectedIds(selectableIds);
     } else {
       setSelectedIds([]);
     }
@@ -840,31 +850,35 @@ const [isSubmitted, setIsSubmitted] = useState(false);
           </div>
 
           <div className="flex flex-col sm:flex-row sm:space-x-3 space-y-2 sm:space-y-0">
-            <button
-              className="inline-flex items-center justify-center w-full sm:w-auto bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 disabled:opacity-70 transition text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
-              onClick={() => handleEditClick(selectedAccount)}
-              disabled={
-                confirmModalData?.action?.type === "update" &&
-                confirmModalData.action.targetId === selectedAccount.id
-              }
-            >
-              <FiEdit className="mr-2" />
-              Edit
-            </button>
-            <button
-              className="inline-flex items-center justify-center w-full sm:w-auto px-4 py-2 rounded-md text-sm bg-red-500 text-white hover:bg-red-600 transition focus:outline-none focus:ring-2 focus:ring-red-400"
-              onClick={() => handleDelete(selectedAccount)}
-              disabled={Boolean(selectedAccountDeleteDisabled)}
-            >
-              {selectedAccountDeleting ? (
-                "Deleting..."
-              ) : (
-                <>
-                  <FiTrash2 className="mr-2" />
-                  Delete
-                </>
-              )}
-            </button>
+            {selectedAccount.assigned_accs && selectedAccount.assigned_accs.id === currentUser?.id && selectedAccount.acc_creator && selectedAccount.acc_creator.id === currentUser?.id && (
+              <>
+                <button
+                  className="inline-flex items-center justify-center w-full sm:w-auto bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 disabled:opacity-70 transition text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+                  onClick={() => handleEditClick(selectedAccount)}
+                  disabled={
+                    confirmModalData?.action?.type === "update" &&
+                    confirmModalData.action.targetId === selectedAccount.id
+                  }
+                >
+                  <FiEdit className="mr-2" />
+                  Edit
+                </button>
+                <button
+                  className="inline-flex items-center justify-center w-full sm:w-auto px-4 py-2 rounded-md text-sm bg-red-500 text-white hover:bg-red-600 transition focus:outline-none focus:ring-2 focus:ring-red-400"
+                  onClick={() => handleDelete(selectedAccount)}
+                  disabled={Boolean(selectedAccountDeleteDisabled)}
+                >
+                  {selectedAccountDeleting ? (
+                    "Deleting..."
+                  ) : (
+                    <>
+                      <FiTrash2 className="mr-2" />
+                      Delete
+                    </>
+                  )}
+                </button>
+              </>
+            )}
           </div>
         </div>
 
@@ -1398,7 +1412,10 @@ const [isSubmitted, setIsSubmitted] = useState(false);
                   type="checkbox"
                   checked={
                     paginatedAccounts.length > 0 &&
-                    paginatedAccounts.every((a) => selectedIds.includes(a.id))
+                    paginatedAccounts
+                      .filter((a) => a.assigned_accs?.id === currentUser?.id && a.acc_creator?.id === currentUser?.id)
+                      .every((a) => selectedIds.includes(a.id)) &&
+                    paginatedAccounts.some((a) => a.assigned_accs?.id === currentUser?.id && a.acc_creator?.id === currentUser?.id)
                   }
                   onChange={handleSelectAll}
                   className="form-checkbox h-4 w-4 text-blue-600 rounded focus:ring-blue-500 border-gray-300"
@@ -1446,13 +1463,15 @@ const [isSubmitted, setIsSubmitted] = useState(false);
                     }}
                   >
                     <td className="py-3 px-4 text-center">
-                      <input
-                        type="checkbox"
-                        checked={selectedIds.includes(acc.id)}
-                        onChange={() => handleCheckboxChange(acc.id)}
-                        onClick={(e) => e.stopPropagation()}
-                        className="form-checkbox h-4 w-4 text-blue-600 rounded focus:ring-blue-500 border-gray-300"
-                      />
+                      {acc.assigned_accs?.id === currentUser?.id && acc.acc_creator?.id === currentUser?.id ? (
+                        <input
+                          type="checkbox"
+                          checked={selectedIds.includes(acc.id)}
+                          onChange={() => handleCheckboxChange(acc.id)}
+                          onClick={(e) => e.stopPropagation()}
+                          className="form-checkbox h-4 w-4 text-blue-600 rounded focus:ring-blue-500 border-gray-300"
+                        />
+                      ) : null}
                     </td>
                     <td className="py-3 px-4">
                       <div>

@@ -458,18 +458,19 @@ def admin_bulk_delete_accounts(
             ((Account.created_by.in_(company_users)) | (Account.assigned_to.in_(company_users)))
         ).all()
     elif role == "SALES":
-        # Sales may only mark as inactive accounts they themselves created
+        # Sales may only mark as inactive accounts they themselves created AND assigned to themselves
         # First check if accounts exist
         all_accounts = db.query(Account).filter(
             Account.id.in_(data.account_ids)
         ).all()
         
-        if all_accounts and not all(acc.created_by == current_user.id for acc in all_accounts):
-            raise HTTPException(status_code=403, detail="Permission denied. You can only delete accounts you created.")
+        if all_accounts and not all(acc.created_by == current_user.id and acc.assigned_to == current_user.id for acc in all_accounts):
+            raise HTTPException(status_code=403, detail="Permission denied. You can only delete accounts you created and assigned to yourself.")
         
         accounts_to_delete = db.query(Account).filter(
             Account.id.in_(data.account_ids),
             Account.created_by == current_user.id,
+            Account.assigned_to == current_user.id,
         ).all()
     else:
         raise HTTPException(status_code=403, detail="Permission denied")
@@ -651,18 +652,19 @@ def admin_delete_account(
             ((Account.created_by.in_(company_users)) | (Account.assigned_to.in_(company_users)))
         ).first()
     elif role == "SALES":
-        # Sales may only mark as inactive accounts they created
+        # Sales may only mark as inactive accounts they created AND assigned to themselves
         # First check if account exists
         account_exists = db.query(Account).filter(
             Account.id == account_id
         ).first()
         
-        if account_exists and account_exists.created_by != current_user.id:
-            raise HTTPException(status_code=403, detail="Permission denied. You can only delete accounts you created.")
+        if account_exists and (account_exists.created_by != current_user.id or account_exists.assigned_to != current_user.id):
+            raise HTTPException(status_code=403, detail="Permission denied. You can only delete accounts you created and assigned to yourself.")
         
         account = db.query(Account).filter(
             Account.id == account_id,
             Account.created_by == current_user.id,
+            Account.assigned_to == current_user.id,
         ).first()
     else:
         raise HTTPException(status_code=403, detail="Permission denied")

@@ -459,7 +459,7 @@ const [isSubmitted, setIsSubmitted] = useState(false);
     if (selectedIds.length === 0) return;
 
     setConfirmModalData({
-      title: "Bulk Delete Calls",
+      title: "Delete Calls",
       message: (
         <span>
           Are you sure you want to delete{" "}
@@ -467,7 +467,7 @@ const [isSubmitted, setIsSubmitted] = useState(false);
           calls? This action cannot be undone.
         </span>
       ),
-      confirmLabel: `Delete ${selectedIds.length} Calls`,
+      confirmLabel: `Delete ${selectedIds.length} Call(s)`,
       cancelLabel: "Cancel",
       variant: "danger",
       action: {

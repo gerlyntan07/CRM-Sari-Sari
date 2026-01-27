@@ -316,7 +316,7 @@ export default function AdminContacts() {
     if (selectedIds.length === 0) return;
 
     setConfirmModalData({
-      title: "Bulk Delete Contacts",
+      title: "Delete Contacts",
       message: (
         <span>
           Are you sure you want to delete{" "}
@@ -324,7 +324,7 @@ export default function AdminContacts() {
           contacts? This action cannot be undone.
         </span>
       ),
-      confirmLabel: `Delete ${selectedIds.length} Contacts`,
+      confirmLabel: `Delete ${selectedIds.length} Contact(s)`,
       cancelLabel: "Cancel",
       variant: "danger",
       action: {

@@ -463,7 +463,7 @@ export default function AdminTerritory() {
     if (selectedIds.length === 0) return;
 
     setConfirmModalData({
-      title: "Bulk Delete Territories",
+      title: "Delete Territories",
       message: (
         <span>
           Are you sure you want to delete{" "}
@@ -471,7 +471,7 @@ export default function AdminTerritory() {
           territories? This action cannot be undone.
         </span>
       ),
-      confirmLabel: `Delete ${selectedIds.length} Territories`,
+      confirmLabel: `Delete ${selectedIds.length} Territory(ies)`,
       cancelLabel: "Cancel",
       variant: "danger",
       action: {

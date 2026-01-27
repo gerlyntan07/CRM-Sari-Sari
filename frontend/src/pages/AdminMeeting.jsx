@@ -430,7 +430,7 @@ const AdminMeeting = () => {
     if (selectedIds.length === 0) return;
 
     setConfirmModalData({
-      title: "Bulk Delete Meetings",
+      title: "Delete Meetings",
       message: (
         <span>
           Are you sure you want to delete{" "}
@@ -438,7 +438,7 @@ const AdminMeeting = () => {
           meetings? This action cannot be undone.
         </span>
       ),
-      confirmLabel: `Delete ${selectedIds.length} Meetings`,
+      confirmLabel: `Delete ${selectedIds.length} Meeting(s)`,
       cancelLabel: "Cancel",
       variant: "danger",
       action: {

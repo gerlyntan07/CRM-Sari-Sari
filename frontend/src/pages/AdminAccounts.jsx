@@ -290,7 +290,7 @@ export default function AdminAccounts() {
     if (selectedIds.length === 0) return;
 
     setConfirmModalData({
-      title: "Bulk Delete Accounts",
+      title: "Delete Accounts",
       message: (
         <span>
           Are you sure you want to delete{" "}
@@ -298,7 +298,7 @@ export default function AdminAccounts() {
           accounts? This action cannot be undone.
         </span>
       ),
-      confirmLabel: `Delete ${selectedIds.length} Accounts`,
+      confirmLabel: `Delete ${selectedIds.length} Account(s)`,
       cancelLabel: "Cancel",
       variant: "danger",
       action: {

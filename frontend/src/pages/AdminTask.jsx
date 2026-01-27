@@ -496,7 +496,7 @@ export default function AdminTask() {
     if (selectedIds.length === 0) return;
 
     setConfirmModalData({
-      title: "Bulk Delete Tasks",
+      title: "Delete Tasks",
       message: (
         <span>
           Are you sure you want to delete{" "}
@@ -504,7 +504,7 @@ export default function AdminTask() {
           tasks? This action cannot be undone.
         </span>
       ),
-      confirmLabel: `Delete ${selectedIds.length} Tasks`,
+      confirmLabel: `Delete ${selectedIds.length} Task(s)`,
       cancelLabel: "Cancel",
       variant: "danger",
       action: {

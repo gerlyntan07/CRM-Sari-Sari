@@ -618,7 +618,7 @@ export default function AdminLeads() {
     if (selectedIds.length === 0) return;
 
     setConfirmModalData({
-      title: "Bulk Delete Leads",
+      title: "Delete Leads",
       message: (
         <span>
           Are you sure you want to delete{" "}
@@ -626,7 +626,7 @@ export default function AdminLeads() {
           leads? This action cannot be undone.
         </span>
       ),
-      confirmLabel: `Delete ${selectedIds.length} Leads`,
+      confirmLabel: `Delete ${selectedIds.length} Lead(s)`,
       cancelLabel: "Cancel",
       variant: "danger",
       action: {

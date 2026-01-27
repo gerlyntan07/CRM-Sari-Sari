@@ -521,7 +521,7 @@ export default function TargetDashboard({ currentUserRole, currentUserId }) {
     if (selectedIds.length === 0) return;
 
     setConfirmModalData({
-      title: "Bulk Delete Targets",
+      title: "Delete Targets",
       message: (
         <span>
           Are you sure you want to delete{" "}
@@ -529,7 +529,7 @@ export default function TargetDashboard({ currentUserRole, currentUserId }) {
           targets? This action cannot be undone.
         </span>
       ),
-      confirmLabel: `Delete ${selectedIds.length} Targets`,
+      confirmLabel: `Delete ${selectedIds.length} Target(s)`,
       cancelLabel: "Cancel",
       variant: "danger",
       action: async () => {

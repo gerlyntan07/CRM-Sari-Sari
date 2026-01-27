@@ -811,7 +811,7 @@ export default function AdminQuotes() {
     if (selectedIds.length === 0) return;
 
     setConfirmModalData({
-      title: "Bulk Delete Quotes",
+      title: "Delete Quotes",
       message: (
         <span>
           Are you sure you want to delete{" "}
@@ -819,7 +819,7 @@ export default function AdminQuotes() {
           quotes? This action cannot be undone.
         </span>
       ),
-      confirmLabel: `Delete ${selectedIds.length} Quotes`,
+      confirmLabel: `Delete ${selectedIds.length} Quote(s)`,
       cancelLabel: "Cancel",
       variant: "danger",
       action: {

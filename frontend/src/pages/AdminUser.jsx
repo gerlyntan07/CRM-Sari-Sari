@@ -441,7 +441,7 @@ export default function AdminUser() {
     if (selectedIds.length === 0) return;
 
     setConfirmModalData({
-      title: "Bulk Delete Users",
+      title: "Delete Users",
       message: (
         <span>
           Are you sure you want to deactivate{" "}
@@ -449,7 +449,7 @@ export default function AdminUser() {
           users? This action cannot be undone.
         </span>
       ),
-      confirmLabel: `Deactivate ${selectedIds.length} Users`,
+      confirmLabel: `Deactivate ${selectedIds.length} User(s)`,
       cancelLabel: "Cancel",
       variant: "danger",
       action: {

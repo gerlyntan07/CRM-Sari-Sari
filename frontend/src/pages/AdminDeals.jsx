@@ -442,7 +442,7 @@ export default function AdminDeals() {
         if (selectedIds.length === 0) return;
 
         setConfirmModalData({
-            title: "Bulk Delete Deals",
+            title: "Delete Deals",
             message: (
                 <span>
                     Are you sure you want to delete{" "}
@@ -450,7 +450,7 @@ export default function AdminDeals() {
                     deals? This action cannot be undone.
                 </span>
             ),
-            confirmLabel: `Delete ${selectedIds.length} Deals`,
+            confirmLabel: `Delete ${selectedIds.length} Deal(s)`,
             cancelLabel: "Cancel",
             variant: "danger",
             action: {

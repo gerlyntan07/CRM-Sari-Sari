@@ -38,11 +38,13 @@ const STATUS_FILTER_OPTIONS = [
 // --- NEW COMPONENT: Searchable Multi-Select ---
 function SearchableMultiSelect({
   label,
-  options, // [{value: '1', label: 'John Doe'}]
-  selectedValues, // ['1', '2']
-  onChange, // (newValues) => {}
+  options,
+  selectedValues,
+  onChange,
   disabled = false,
   placeholder = "Select users...",
+  isSubmitted = false,
+  required = false,
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const [search, setSearch] = useState("");
@@ -86,12 +88,16 @@ function SearchableMultiSelect({
       <label className="block text-gray-700 font-medium mb-1 text-sm">{label}</label>
       
       {/* Trigger / Input Area */}
-      <div
-        onClick={() => !disabled && setIsOpen(!isOpen)}
-        className={`w-full border ${isOpen ? 'border-gray-500 ring-1 ring-gray-400' : 'border-gray-300'} 
-          rounded-md px-3 py-2 text-sm bg-white cursor-pointer min-h-[38px] flex flex-wrap items-center gap-2
-          ${disabled ? 'bg-gray-100 cursor-not-allowed' : ''}`}
-      >
+     <div
+  onClick={() => !disabled && setIsOpen(!isOpen)}
+  className={`w-full border ${
+  required && isSubmitted && selectedValues.length === 0
+    ? 'border-red-500 ring-red-500'
+    : isOpen ? 'border-gray-500 ring-1 ring-gray-400' : 'border-gray-300'
+} 
+  rounded-md px-3 py-2 text-sm bg-white cursor-pointer min-h-[38px] flex flex-wrap items-center gap-2
+  ${disabled ? 'bg-gray-100 cursor-not-allowed' : ''}`}
+>
         {selectedValues.length === 0 && (
           <span className="text-gray-400 select-none">{placeholder}</span>
         )}
@@ -391,13 +397,22 @@ export default function AdminTerritory() {
     setShowFormModal(true);
   };
 
+    //validation
+const [isSubmitted, setIsSubmitted] = useState(false);
   const handleSubmit = (e) => {
     e.preventDefault();
+    setIsSubmitted(true);  
+
     const trimmedName = territoryData.name.trim();
     if (!trimmedName) {
       toast.error("Territory name is required.");
       return;
     }
+
+    if (!territoryData.manager_id) {
+  toast.error("Territory manager is required.");
+  return;
+}
 
     if (territoryData.user_ids.length === 0) {
       toast.error("Please assign at least one user.");
@@ -553,6 +568,7 @@ export default function AdminTerritory() {
        toast.error("An error occurred.");
     } finally {
        setIsSubmitting(false);
+      setIsSubmitted(false);
        setDeletingId(null);
        setConfirmProcessing(false);
        setConfirmModalData(null);
@@ -802,31 +818,53 @@ export default function AdminTerritory() {
         {showFormModal && (
           <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
              <div className="bg-white rounded-2xl shadow-lg w-full max-w-xl p-6 relative">
-                <button className="absolute top-4 right-4" onClick={() => handleCloseFormModal()}><FiX size={22} /></button>
-                <h2 className="text-xl font-semibold text-center mb-6">{isEditing ? "Edit Territory" : "Create Territory"}</h2>
+                <button className="absolute top-4 right-4"  onClick={() => {
+                          handleCloseFormModal();
+                          setIsSubmitted(false); // reset validation borders
+                        }}
+                      ><FiX size={22} /> </button>
+     <h2 className="text-xl font-semibold text-center mb-6">{isEditing ? "Edit Territory" : "Create Territory"}</h2>
                 
-                <form className="space-y-4" onSubmit={handleSubmit}>
-                   <InputField label="Territory Name" name="name" value={territoryData.name} onChange={handleTerritoryChange} required />
-                   
-                   <SelectField label="Territory Manager" name="manager_id" value={territoryData.manager_id} onChange={handleTerritoryChange}
-                      options={[{value: "", label: "Assign Manager"}, ...users.map(u => ({value: String(u.id), label: `${u.first_name} ${u.last_name}`}))]} 
-                   />
+               <form className="space-y-4" onSubmit={handleSubmit} noValidate>
+  <InputField label="Territory Name" name="name" value={territoryData.name} onChange={handleTerritoryChange} required isSubmitted={isSubmitted}/>
+  
+  <SelectField label="Territory Manager" name="manager_id" value={territoryData.manager_id} onChange={handleTerritoryChange}
+    options={[{value: "", label: "Assign Manager"}, ...users.map(u => ({value: String(u.id), label: `${u.first_name} ${u.last_name}`}))]} 
+    required isSubmitted={isSubmitted}
+  />
 
-                   <SearchableMultiSelect 
-                      label="Assign Users" 
-                      placeholder="Search and select users..."
-                      options={users.map(u => ({value: String(u.id), label: `${u.first_name} ${u.last_name}`}))}
-                      selectedValues={territoryData.user_ids}
-                      onChange={handleAssignedUsersChange}
-                   />
+ <SearchableMultiSelect 
+  label={
+    <>
+      Assign Users <span className="text-red-600 font-semibold">*</span>
+    </>
+  }
+    placeholder="Search and select users..."
+    options={users.map(u => ({value: String(u.id), label: `${u.first_name} ${u.last_name}`}))}
+    selectedValues={territoryData.user_ids}
+    onChange={handleAssignedUsersChange}
+    required
+    isSubmitted={isSubmitted}
+  />
 
-                   <TextareaField label="Description" name="description" value={territoryData.description} onChange={handleTerritoryChange} />
-                   
-                   <div className="flex justify-end gap-2 pt-2">
-                      <button type="button" onClick={() => handleCloseFormModal()} className="px-4 py-2 bg-red-400 text-white rounded">Cancel</button>
-                      <button type="submit" disabled={isSubmitting} className="px-4 py-2 bg-tertiary text-white rounded">{isSubmitting ? "Saving..." : "Save Territory"}</button>
-                   </div>
-                </form>
+  <TextareaField label="Description" name="description" value={territoryData.description} onChange={handleTerritoryChange} />
+  
+  <div className="flex justify-end gap-2 pt-2">
+
+<button
+  type="button"
+  onClick={() => {
+    handleCloseFormModal(); 
+    setIsSubmitted(false);  
+  }}
+  className="px-4 py-2 bg-red-400 text-white rounded"
+>
+  Cancel
+</button>
+
+    <button type="submit" disabled={isSubmitting} className="px-4 py-2 bg-tertiary text-white rounded">{isSubmitting ? "Saving..." : "Save Territory"}</button>
+  </div>
+</form>
              </div>
           </div>
         )}
@@ -855,22 +893,43 @@ export default function AdminTerritory() {
   );
 }
 
-function InputField({ label, name, value, onChange, placeholder, type = "text", required = false, disabled = false }) {
+function InputField({ label, name, value, onChange, placeholder, type = "text", required = false, disabled = false,
+    isSubmitted = false, 
+  className = "",
+}) {
+  const hasError = isSubmitted && required && !value?.trim();
+
   return (
     <div>
-      <label className="block text-gray-700 font-medium mb-1 text-sm">{label}</label>
+      <label className="block text-gray-700 font-medium mb-1 text-sm">
+          {label} {required && <span className="text-red-500">*</span>}
+      </label>
       <input type={type} name={name} value={value ?? ""} onChange={onChange} placeholder={placeholder} required={required} disabled={disabled}
-        className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-gray-400 outline-none disabled:bg-gray-100" />
-    </div>
+className={`w-full rounded-md px-2 py-1.5 text-sm outline-none border focus:ring-2 disabled:bg-gray-100 ${
+  hasError
+    ? "border-red-500 focus:ring-red-500"
+    : "border-gray-300 focus:ring-blue-400"
+}
+${className}
+`}/>     
+</div>
   );
 }
 
-function SelectField({ label, name, value, onChange, options, disabled = false }) {
+function SelectField({ label, name, value, onChange, options, disabled = false, required = false, isSubmitted = false }) {
+  const hasError = isSubmitted && required && !value;
+
   return (
     <div>
-      <label className="block text-gray-700 font-medium mb-1 text-sm">{label}</label>
+      <label className="block text-gray-700 font-medium mb-1 text-sm">
+        {label} {required && <span className="text-red-500">*</span>}
+      </label>
       <select name={name} value={value ?? ""} onChange={onChange} disabled={disabled}
-        className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-gray-400 outline-none disabled:bg-gray-100">
+        className={`w-full border rounded-md px-3 py-2 text-sm bg-white focus:ring-2 outline-none disabled:bg-gray-100 ${
+          hasError
+            ? "border-red-500 focus:ring-red-500"
+            : "border-gray-300 focus:ring-gray-400"
+        }`}>
         {options.map((option) => (
           <option key={option.value} value={option.value}>{option.label}</option>
         ))}
@@ -878,6 +937,7 @@ function SelectField({ label, name, value, onChange, options, disabled = false }
     </div>
   );
 }
+
 
 function TextareaField({ label, name, value, onChange, placeholder, rows = 3, disabled = false }) {
   return (

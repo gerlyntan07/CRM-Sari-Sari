@@ -2,6 +2,7 @@
 import { Dialog, Transition } from "@headlessui/react";
 import { Fragment, useState, useEffect, useRef } from "react";
 import api from "../api";
+import {toast} from 'react-toastify';
 import { useMemo } from "react";
 import { HiX } from "react-icons/hi";
 import { FiTrash2 } from "react-icons/fi";
@@ -22,33 +23,38 @@ export default function TaskModal({
   // Local state for the dropdown options
   const [relatedTo1Values, setRelatedTo1Values] = useState([]);
   const [relatedTo2Values, setRelatedTo2Values] = useState([]);
+  const [errors, setErrors] = useState({}); // ✅ missing piece
 
   // --- Logic to Handle Input Changes ---
-  const handleChange = (e) => {
-    const { name, value } = e.target;
+ const handleChange = (e) => {
+  const { name, value } = e.target;
 
-    setFormData((prev) => {
-      const updated = { ...prev, [name]: value };
+  if (name === "subject" && value.trim()) {
+    setErrors((prev) => ({ ...prev, subject: false }));
+  }
 
-      // Logic from Calls: Reset dependent fields when parent type changes
-      if (name === "relatedType1") {
-        updated.relatedTo1 = "";
-        if (value === "Lead") {
-          updated.relatedType2 = null;
-          updated.relatedTo2 = null;
-          setRelatedTo2Values([]);
-        } else if (value === "Account") {
-          updated.relatedType2 = "Contact";
-        }
+  setFormData((prev) => {
+    const updated = { ...prev, [name]: value };
+
+    if (name === "relatedType1") {
+      updated.relatedTo1 = "";
+      if (value === "Lead") {
+        updated.relatedType2 = null;
+        updated.relatedTo2 = null;
+        setRelatedTo2Values([]);
+      } else if (value === "Account") {
+        updated.relatedType2 = "Contact";
       }
+    }
 
-      if (name === "relatedType2") {
-        updated.relatedTo2 = "";
-      }
+    if (name === "relatedType2") {
+      updated.relatedTo2 = "";
+    }
 
-      return updated;
-    });
-  };
+    return updated;
+  });
+};
+
 
   // --- Effect 1: Fetch Level 1 Options (Leads or Accounts) ---
   useEffect(() => {
@@ -165,8 +171,44 @@ export default function TaskModal({
     isEditing,
   ]);
 
+   //validation 
+const [isSubmitted, setIsSubmitted] = useState(false);
+ useEffect(() => {
+    if (isOpen) {
+      setIsSubmitted(false);
+      setErrors({});
+    }
+  }, [isOpen]);
+  
   const handleSubmit = (e) => {
     e.preventDefault();
+    setIsSubmitted(true); 
+    
+  const newErrors = {};
+
+   // Validate title/subject
+  if (!formData.subject?.trim()) {
+    newErrors.subject = true;
+    toast.error("Title is required");
+  }
+  setErrors(newErrors);
+
+  // Validate related entity (Lead/Account)
+  const relatedTo1 = formData.relatedTo1;
+  if (!relatedTo1) {
+    newErrors.relatedTo1 = true;
+    toast.error(`Please select a ${formData.relatedType1 || "Lead/Account"}.`);
+  }
+
+  // --- Validate "Assign To" ---
+  if (!formData.assignedTo) {
+    newErrors.assignedTo = true;
+    toast.error("Assigned To is required.");
+  }
+
+  // stop submit if errors exist
+  if (Object.keys(newErrors).length > 0) return;
+
     onSave?.(formData);
   };
 
@@ -205,7 +247,11 @@ export default function TaskModal({
               <Dialog.Panel className="w-full max-w-full sm:max-w-3xl text-left align-middle transform transition-all">
                 <div className="bg-white w-full min-w-sm md:min-w-lg rounded-2xl shadow-lg p-4 sm:p-6 md:p-8 relative border border-gray-200 overflow-y-auto max-h-[90vh] flex flex-col hide-scrollbar">
             <button
-              onClick={onClose}
+              onClick={() => {
+            onClose();             // close the modal
+            setIsSubmitted(false); // reset validation errors
+            setErrors({});
+          }}
               className="absolute top-4 right-4 text-gray-500 hover:text-black transition"
             >
               <HiX size={25} />
@@ -232,7 +278,10 @@ export default function TaskModal({
           Tasks
         </h1>
           <button
-            onClick={onClose}
+             onClick={() => {
+            onClose();             // close the modal
+            setIsSubmitted(false); // reset validation errors
+          }}
             className="text-gray-500 hover:text-white transition cursor-pointer"
           >
             <HiX size={25} />
@@ -330,21 +379,25 @@ export default function TaskModal({
 
                     <div className="md:col-span-2">
                       <label className="block text-gray-700 font-medium mb-1 text-sm">
-                        Title
+                        Title <span className="text-red-600 font-semibold">*</span>
                       </label>
                       <input
                         type="text"
                         name="subject"
                         value={formData.subject}
                         onChange={handleChange}
-                        required
                         disabled={viewMode}
                         placeholder="Enter task title"
-                        className={`w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-400 outline-none ${
-                          viewMode ? "bg-gray-50 cursor-not-allowed" : ""
-                        }`}
-                      />
-                    </div>
+                          className={`w-full rounded-md px-2 py-1.5 text-sm outline-none border focus:ring-2
+                            ${
+                              errors.subject
+                                ? "border-red-500 focus:ring-red-500"
+                                : "border-gray-300 focus:ring-blue-400"
+                            }
+                            ${viewMode ? "bg-gray-50 cursor-not-allowed" : ""}
+                          `}
+                        />
+                      </div>
 
                     {/* --- Related Section Starts Here (Updated to match Calls) --- */}
                     <div className="w-full flex flex-col">
@@ -383,6 +436,8 @@ export default function TaskModal({
                             relatedTo1: newId, // keep string
                           }))
                         }
+                          required={true}       
+                          isSubmitted={isSubmitted} 
                       />
                     </div>
 
@@ -476,7 +531,6 @@ export default function TaskModal({
                         name="dueDate"
                         value={formData.dueDate}
                         onChange={handleChange}
-                        required
                         disabled={viewMode}
                         className={`w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-400 outline-none ${
                           viewMode ? "bg-gray-50 cursor-not-allowed" : ""
@@ -486,7 +540,7 @@ export default function TaskModal({
 
                     <div>
                       <label className="block text-gray-700 font-medium mb-1 text-sm">
-                        Assign To
+                        Assign To <span className="text-red-600 font-semibold">*</span>
                       </label>
                       <SearchableSelect
                         items={Array.isArray(users) ? users : []}
@@ -502,6 +556,8 @@ export default function TaskModal({
                           }))
                         }
                         disabled={viewMode || currentUser?.role === 'Sales'}
+                          required={true}      
+                         isSubmitted={isSubmitted} 
                       />
                     </div>
 
@@ -528,8 +584,12 @@ export default function TaskModal({
                     {!viewMode && (
                       <div className="flex flex-col sm:flex-row justify-end sm:justify-end space-y-2 sm:space-y-0 sm:space-x-2 col-span-1 md:col-span-2 mt-4 w-full">
                         <button
-                          type="button"
-                          onClick={onClose}
+                            type="button"
+                            onClick={() => {
+                              onClose();            // close the modal
+                              setIsSubmitted(false); // reset validation errors
+                              setErrors({});
+                            }}
                           className="w-full sm:w-auto px-4 py-2 text-white bg-red-400 border border-red-300 rounded hover:bg-red-500 transition"
                         >
                           Cancel
@@ -562,6 +622,8 @@ function SearchableSelect({
   placeholder = "Search...",
   disabled = false,
   maxRender = 200,
+  required = false,
+  isSubmitted = false, 
 }) {
   const [open, setOpen] = useState(false);
   const [q, setQ] = useState("");
@@ -569,6 +631,8 @@ function SearchableSelect({
 
   const selectedItem = items.find((it) => String(it.id) === String(value));
   const selectedLabel = selectedItem ? getLabel(selectedItem) : "";
+
+   const hasError = required && isSubmitted && !value;
 
   const filtered = useMemo(() => {
     const query = q.trim().toLowerCase();
@@ -603,8 +667,11 @@ function SearchableSelect({
           setQ(e.target.value);
           if (!open) setOpen(true);
         }}
-        className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-400 outline-none disabled:bg-gray-100"
-      />
+ className={`w-full border rounded-md px-2 py-1.5 text-sm outline-none focus:ring-2 disabled:bg-gray-100
+          ${hasError
+            ? "border-red-500 focus:ring-red-500"
+            : "border-gray-300 focus:ring-blue-400"
+          }`}/>
 
       {open && !disabled && (
         <div className="absolute z-50 mt-1 w-full bg-white border border-gray-200 rounded-md shadow-lg overflow-hidden">

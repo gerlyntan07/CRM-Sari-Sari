@@ -20,7 +20,7 @@ class TaskBase(BaseModel):
 # ------------------------------
 class TaskCreate(BaseModel):
     title: str
-    due_date: datetime
+    due_date: Optional[datetime] = None
     status: str
     priority: str
     description: Optional[str] = None
@@ -36,7 +36,7 @@ class TaskCreate(BaseModel):
 # ------------------------------
 class TaskUpdate(BaseModel):
     title: str
-    due_date: datetime
+    due_date: Optional[datetime] = None
     status: str
     priority: str
     description: Optional[str] = None

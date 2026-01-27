@@ -20,10 +20,9 @@ import LoadingSpinner from "../components/LoadingSpinner.jsx";
 
 const ROLE_OPTIONS = [
   { value: "CEO", label: "CEO" },
-  { value: "Admin", label: "Admin" },
   { value: "Group Manager", label: "Group Manager" },
   { value: "Manager", label: "Manager" },
-  { value: "Marketing", label: "Marketing" },
+  // { value: "Marketing", label: "Marketing" },
   { value: "Sales", label: "Sales" },
 ];
 

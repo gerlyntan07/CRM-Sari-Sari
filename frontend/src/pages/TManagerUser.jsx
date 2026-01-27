@@ -19,7 +19,7 @@ import LoadingSpinner from "../components/LoadingSpinner.jsx";
 
 const ROLE_OPTIONS = [
   { value: "Manager", label: "Manager" },
-  { value: "Marketing", label: "Marketing" },
+  // { value: "Marketing", label: "Marketing" },
   { value: "Sales", label: "Sales" },
 ];
 

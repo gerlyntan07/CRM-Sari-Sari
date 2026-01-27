@@ -2,17 +2,20 @@ import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 
 import {
   FiSearch, FiUsers, FiDollarSign, FiUserPlus, FiClock, FiBriefcase, FiTarget, FiArrowUpRight, FiArrowDownRight,
-  FiUser, FiCalendar, FiCheckCircle, FiFileText, FiPhone, FiList, FiBookmark, FiEdit, FiArrowRight, FiPhoneCall, FiClipboard,
-  FiFilter
+  FiUser, FiCalendar, FiCheckCircle, FiFileText, FiPhone, FiList, FiBookmark, FiEdit, FiArrowRight, FiPhoneCall,
+  FiClipboard
 } from "react-icons/fi";
 import { LuMapPin } from "react-icons/lu";
 import { HiOutlineOfficeBuilding } from "react-icons/hi";
 import { FaHandshakeAngle } from "react-icons/fa6";
 import { useNavigate } from 'react-router-dom';
+import { LineChart } from '@mui/x-charts/LineChart';
 import api from '../api';
 import useFetchUser from '../hooks/useFetchUser';
 import LoadingSpinner from '../components/LoadingSpinner';
-import { LineChart } from '@mui/x-charts/LineChart';
+
+// --- NEW IMPORT ---
+import FunnelWidget from '../components/FunnelWidget';
 
 // --- Icon Components using React Icons ---
 
@@ -45,7 +48,7 @@ export const IconFiClipboard = (props) => <FiClipboard {...props} />;
 
 // --- Constants ---
 
-// ✅ UPDATED: Dynamic Currency Formatter
+// Dynamic Currency Formatter
 const formatCurrency = (amount, symbol = "₱") => {
   return `${symbol} ${new Intl.NumberFormat('en-US', { minimumFractionDigits: 0 }).format(amount)}`;
 };
@@ -97,7 +100,7 @@ const getPriorityClasses = (priority) => {
   }
 };
 
-// ... [TopBar component remains unchanged] ...
+// ... [TopBar component] ...
 const TopBar = ({ searchQuery, onSearchChange, searchResults, onSearchResultClick }) => {
   const navigate = useNavigate();
   const [showResults, setShowResults] = useState(false);
@@ -181,12 +184,6 @@ const TopBar = ({ searchQuery, onSearchChange, searchResults, onSearchResultClic
             ))}
           </div>
         )}
-
-        {showResults && searchQuery.trim().length > 0 && (!Array.isArray(searchResults) || searchResults.length === 0) && (
-          <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-2 w-full max-w-md md:max-w-lg lg:max-w-2xl bg-white rounded-lg shadow-xl border border-gray-200 z-50 p-4 text-center text-sm text-gray-500">
-            No results found
-          </div>
-        )}
       </div>
 
       <div className="w-full overflow-x-auto lg:overflow-x-hidden scroll-smooth flex justify-center">
@@ -197,20 +194,20 @@ const TopBar = ({ searchQuery, onSearchChange, searchResults, onSearchResultClic
                 className="p-3 text-gray-500 hover:text-gray-900 transition duration-150 rounded-full hover:bg-gray-100 focus:outline-none cursor-pointer"
                 aria-label={item.label}
                 onClick={() => {
-                  switch (item.label) {
-                    case "Account": navigate("/admin/accounts"); break;
-                    case "Contact": navigate("/admin/contacts"); break;
-                    case "Leads": navigate("/admin/leads"); break;
-                    case "Deals": navigate("/admin/deals"); break;
-                    case "Quotes": navigate("/admin/quotes"); break;
-                    case "Target": navigate("/admin/targets"); break;
-                    case "Task": navigate("/admin/tasks"); break;
-                    case "Meeting": navigate("/admin/meetings"); break;
-                    case "Call": navigate("/admin/calls"); break;
-                    case "Audit": navigate("/admin/audit"); break;
-                    case "Territory": navigate("/admin/territory"); break;
-                    default: console.log(`Clicked ${item.label}`);
-                  }
+                  const routes = {
+                     "Account": "/admin/accounts",
+                     "Contact": "/admin/contacts",
+                     "Leads": "/admin/leads",
+                     "Deals": "/admin/deals",
+                     "Quotes": "/admin/quotes",
+                     "Target": "/admin/targets",
+                     "Task": "/admin/tasks",
+                     "Meeting": "/admin/meetings",
+                     "Call": "/admin/calls",
+                     "Audit": "/admin/audit",
+                     "Territory": "/admin/territory"
+                  };
+                  if(routes[item.label]) navigate(routes[item.label]);
                 }}
               >
                 <item.icon size={24} className="lg:scale-95" />
@@ -226,7 +223,6 @@ const TopBar = ({ searchQuery, onSearchChange, searchResults, onSearchResultClic
   );
 };
 
-// ... [AuditLogItem and RecentLogsCard remain unchanged] ...
 const AuditLogItem = ({ action, description, entity_type, entity_name, timestamp }) => {
   const navigate = useNavigate();
 
@@ -291,7 +287,6 @@ const RecentLogsCard = ({ logs, loading }) => {
   );
 };
 
-// ... [MetricCard remains unchanged] ...
 const MetricCard = ({ icon: Icon, title, value, color, bgColor, loading, onClick }) => (
   <div
     className="flex items-center p-4 bg-white rounded-xl shadow-md border border-gray-200 transition-all duration-300"
@@ -307,7 +302,6 @@ const MetricCard = ({ icon: Icon, title, value, color, bgColor, loading, onClick
   </div>
 );
 
-// ... [RevenueChart remains unchanged] ...
 const RevenueChart = ({ revenueData, loading }) => {
   const navigate = useNavigate();
   const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
@@ -449,241 +443,7 @@ const RevenueChart = ({ revenueData, loading }) => {
   );
 };
 
-// ✅ UPDATED: Now calculates Weighted Forecast (Business View)
-// ✅ UPDATED: Includes "Leads" at the top (Top of Funnel)
-const SalesFunnel = ({ pipelineData, loading, currencySymbol, leadCount = 0 }) => {
-  const navigate = useNavigate();
 
-  const allStages = [
-    { key: 'PROSPECTING', label: 'Prospecting', color: 'bg-blue-500', isOutcome: false },
-    { key: 'QUALIFICATION', label: 'Qualification', color: 'bg-indigo-500', isOutcome: false },
-    { key: 'PROPOSAL', label: 'Proposal', color: 'bg-purple-500', isOutcome: false },
-    { key: 'NEGOTIATION', label: 'Negotiation', color: 'bg-pink-500', isOutcome: false },
-    { key: 'CLOSED_WON', label: 'Closed Won', color: 'bg-emerald-500', isOutcome: true },
-    { key: 'CLOSED_LOST', label: 'Closed Lost', color: 'bg-red-500', isOutcome: true },
-  ];
-
-  const { activeStages, outcomeStages, totalValue, totalWeightedValue, totalDeals, maxCount } = useMemo(() => {
-    const counts = {};
-    const values = {};
-    const weightedValues = {};
-
-    allStages.forEach(s => {
-      counts[s.key] = 0;
-      values[s.key] = 0;
-      weightedValues[s.key] = 0;
-    });
-
-    if (pipelineData) {
-      pipelineData.forEach(deal => {
-        const stage = (deal.stage || '').toUpperCase();
-        if (counts[stage] !== undefined) {
-          counts[stage]++;
-          const amount = parseFloat(deal.amount || 0);
-          values[stage] += amount;
-          const prob = deal.probability || 0;
-          weightedValues[stage] += (amount * (prob / 100));
-        }
-      });
-    }
-
-    // ✅ Include Leads in the Max Count calculation so the funnel scales correctly
-    const maxCount = Math.max(...Object.values(counts), leadCount, 1);
-
-    const processStage = (stage, index, array) => {
-      const count = counts[stage.key];
-      // If first stage, compare to Leads. Otherwise compare to previous stage.
-      const prevCount = index === 0 ? leadCount : counts[array[index - 1].key];
-
-      let conversionLabel = "—";
-      let conversionColor = "text-gray-300";
-
-      if (prevCount > 0) {
-        const rate = ((count / prevCount) * 100);
-        conversionLabel = `${rate.toFixed(0)}%`;
-        conversionColor = rate >= 50 ? "text-green-600" : "text-gray-400";
-      }
-
-      const widthPercent = (count / maxCount) * 100;
-      const isEmpty = count === 0;
-
-      return {
-        ...stage,
-        count,
-        value: values[stage.key],
-        weightedValue: weightedValues[stage.key],
-        width: isEmpty ? "100%" : `${Math.max(widthPercent, 12)}%`,
-        conversionLabel,
-        conversionColor,
-        isEmpty,
-        prevCount,
-        showConnector: true // Always show connector in main flow
-      };
-    };
-
-    const active = allStages.filter(s => !s.isOutcome).map(processStage);
-    const outcomes = allStages.filter(s => s.isOutcome).map((s) => ({
-      ...s,
-      count: counts[s.key],
-      value: values[s.key],
-      isEmpty: counts[s.key] === 0,
-      width: counts[s.key] === 0 ? "100%" : `${Math.max((counts[s.key] / maxCount) * 100, 12)}%`
-    }));
-
-    const totalValue = Object.values(values).reduce((a, b) => a + b, 0);
-    const totalWeightedValue = Object.values(weightedValues).reduce((a, b) => a + b, 0);
-    const totalDeals = Object.values(counts).reduce((a, b) => a + b, 0);
-
-    return { activeStages: active, outcomeStages: outcomes, totalValue, totalWeightedValue, totalDeals, maxCount };
-
-  }, [pipelineData, leadCount]);
-
-  // Lead Width Calculation
-  const leadWidth = maxCount > 0 ? (leadCount / maxCount) * 100 : 100;
-
-  return (
-    <div className="bg-white p-6 rounded-xl shadow-lg h-full flex flex-col font-inter border border-gray-100">
-
-      <div className="flex justify-between items-start mb-6">
-        <div>
-          <h2 className="text-lg font-bold text-gray-800">Overall Sales Funnel</h2>
-          <p className="text-xs text-gray-400 mt-1">Leads <IconArrowRight className="inline mx-1" size={10} /> Deals <IconArrowRight className="inline mx-1" size={10} /> Revenue</p>
-        </div>
-        <button onClick={() => navigate('/admin/deals')} className="p-2 hover:bg-gray-100 rounded-full transition-colors text-gray-500">
-          <IconArrowRight size={18} className="transform -rotate-45" />
-        </button>
-      </div>
-
-      <div className="flex-col items-center justify-center space-y-0">
-
-        {/* 🆕 TOP OF FUNNEL: LEADS */}
-        <div className="w-full flex items-center group cursor-pointer py-1.5" onClick={() => navigate('/admin/leads')}>
-          <div className="w-28 text-right pr-4 flex-shrink-0">
-            <p className="text-xs font-bold text-blue-600">Total Leads</p>
-          </div>
-          <div className="flex-grow flex justify-center relative h-9">
-            <div
-              className="h-full rounded-md flex items-center justify-center text-xs font-bold relative transition-all duration-500 bg-blue-100 text-blue-700 hover:bg-blue-200"
-              style={{ width: `${Math.max(leadWidth, 12)}%` }}
-            >
-              <span>{leadCount}</span>
-              {/* Info Tooltip: Just Name & Number */}
-              <div className="absolute bottom-full mb-2 bg-gray-900 text-white text-xs rounded px-2 py-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-20">
-                Potential Clients (Not Contacted)
-              </div>
-            </div>
-          </div>
-          <div className="w-28 pl-4 flex-shrink-0 text-left">
-            <p className="text-xs text-gray-400">Target</p>
-          </div>
-        </div>
-
-        {/* MIDDLE OF FUNNEL: DEALS */}
-        {activeStages.map((stage) => (
-          <React.Fragment key={stage.key}>
-            {/* Connector */}
-            <div className="h-5 w-full flex items-center justify-center relative my-0.5">
-              <div className="absolute h-full w-px bg-gray-100 z-0"></div>
-              {/* Conversion logic handles Lead -> Prospecting now */}
-              <div className={`z-10 px-2 py-0.5 rounded-full text-[10px] font-bold border border-gray-200 bg-white shadow-sm ${stage.conversionColor}`}>
-                {stage.conversionLabel}
-              </div>
-            </div>
-
-            <div className="w-full flex items-center group cursor-pointer py-1.5" onClick={() => navigate('/admin/deals')}>
-              <div className="w-28 text-right pr-4 flex-shrink-0">
-                <p className={`text-xs font-semibold transition-colors ${stage.isEmpty ? 'text-gray-300' : 'text-gray-600 group-hover:text-blue-600'}`}>
-                  {stage.label}
-                </p>
-              </div>
-
-              <div className="flex-grow flex justify-center relative h-9">
-                <div
-                  className={`h-full rounded-md flex items-center justify-center text-xs font-bold relative transition-all duration-500 ${stage.isEmpty ? 'bg-gray-50 text-gray-300 border border-dashed border-gray-200' : `${stage.color} text-white shadow-sm hover:brightness-110 hover:shadow-md`}`}
-                  style={{ width: stage.isEmpty ? '60%' : stage.width }}
-                >
-                  {stage.isEmpty ? <span className="text-[10px] font-normal opacity-50">0</span> : <span>{stage.count}</span>}
-
-                  {/* Info Tooltip: Potential Value & Probability */}
-                  <div className="absolute bottom-full mb-2 bg-gray-900 text-white text-xs rounded px-2 py-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-20">
-                    <div>Total: {formatCurrency(stage.value, currencySymbol)}</div>
-                    <div className="text-gray-400 text-[10px]">Forecast: {formatCurrency(stage.weightedValue, currencySymbol)}</div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="w-28 pl-4 flex-shrink-0 text-left">
-                <p className={`text-xs font-medium ${stage.isEmpty ? 'text-gray-200' : 'text-gray-500'}`}>
-                  {stage.isEmpty ? "—" : formatCurrency(stage.value, currencySymbol)}
-                </p>
-              </div>
-            </div>
-          </React.Fragment>
-        ))}
-      </div>
-
-      <div className="relative py-4">
-        <div className="absolute inset-0 flex items-center" aria-hidden="true">
-          <div className="w-full border-t border-gray-200 border-dashed"></div>
-        </div>
-        <div className="relative flex justify-center">
-          <span className="px-3 bg-white text-[10px] font-bold text-gray-400 uppercase tracking-widest">
-            Final Outcome
-          </span>
-        </div>
-      </div>
-
-      {/* BOTTOM OF FUNNEL: CLOSED */}
-      <div className="flex-col items-center justify-center space-y-2">
-        {outcomeStages.map((stage) => (
-          <div key={stage.key} className="w-full flex items-center group cursor-pointer py-1" onClick={() => navigate('/admin/deals')}>
-            <div className="w-28 text-right pr-4 flex-shrink-0">
-              <p className="text-xs font-bold text-gray-700">{stage.label}</p>
-            </div>
-            <div className="flex-grow flex justify-center relative h-9">
-              <div
-                className={`h-full rounded-md flex items-center justify-center text-xs font-bold relative transition-all duration-500 ${stage.isEmpty ? 'bg-gray-50 text-gray-300 border border-dashed border-gray-200' : `${stage.color} text-white shadow-sm hover:brightness-110 hover:shadow-md`}`}
-                style={{ width: stage.isEmpty ? '60%' : stage.width }}
-              >
-                {stage.isEmpty ? <span className="text-[10px] font-normal opacity-50">0</span> : <span>{stage.count}</span>}
-
-                {/* Info Tooltip: Final Revenue */}
-                <div className="absolute bottom-full mb-2 bg-gray-900 text-white text-xs rounded px-2 py-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-20">
-                  {stage.isEmpty ? "No deals finalized" : `Booked: ${formatCurrency(stage.value, currencySymbol)}`}
-                </div>
-              </div>
-            </div>
-            <div className="w-28 pl-4 flex-shrink-0 text-left">
-              <p className={`text-xs font-medium ${stage.isEmpty ? 'text-gray-200' : 'text-gray-700'}`}>
-                {stage.isEmpty ? "—" : formatCurrency(stage.value, currencySymbol)}
-              </p>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* Footer Summary */}
-      <div className="mt-auto pt-6 border-t border-gray-50 flex justify-between mt-4">
-        <div>
-          <span className="text-[10px] text-gray-400 uppercase font-bold tracking-wider">Total Pipeline</span>
-          <p className="text-sm font-bold text-gray-800 mt-0.5">
-            {formatCurrency(totalValue, currencySymbol)}
-          </p>
-        </div>
-        <div className="text-center">
-          <span className="text-[10px] text-blue-500 uppercase font-bold tracking-wider">Weighted Forecast</span>
-          <p className="text-sm font-bold text-blue-600 mt-0.5">
-            {formatCurrency(totalWeightedValue, currencySymbol)}
-          </p>
-        </div>
-        <div className="text-right">
-          <span className="text-[10px] text-gray-400 uppercase font-bold tracking-wider">Total Deals</span>
-          <p className="text-sm font-bold text-gray-800 mt-0.5">{totalDeals}</p>
-        </div>
-      </div>
-    </div>
-  );
-};
 const SalesPipeline = ({ pipelineData, loading, currencySymbol }) => {
   const navigate = useNavigate();
 
@@ -789,7 +549,6 @@ const SalesPipeline = ({ pipelineData, loading, currencySymbol }) => {
   );
 };
 
-// ... [ListCard, LeadItem, DealItem, ActivityItem remain unchanged] ...
 const ListCard = ({ title, items, children, onSeeAll }) => {
   const navigate = useNavigate();
 
@@ -866,7 +625,6 @@ const LeadItem = ({ first_name, last_name, company_name, source, created_at, id 
   );
 };
 
-// ✅ UPDATED: Now shows "Stuck" warnings based on stage_updated_at
 const DealItem = ({ name, amount, account, stage, created_at, stage_updated_at, id, previousAmount, currencySymbol }) => {
   const navigate = useNavigate();
 
@@ -1483,25 +1241,18 @@ const AdminDashboard = () => {
           </div>
         </div>
 
-        {/* ROW 2: Revenue Chart (Wider) & Pipeline List */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-          <div className="lg:col-span-2">
-            <RevenueChart revenueData={revenueData} loading={loading} />
-          </div>
-          <div className="lg:col-span-1">
-            <SalesPipeline pipelineData={salesPipeline} loading={loading} currencySymbol={currencySymbol} />
-          </div>
+        {/* ROW 2: NEW Funnel Intelligence Section (Replaces Old Pipeline) */}
+        <div className="mb-8">
+            <FunnelWidget 
+                leads={allLeads} 
+                deals={allDeals} 
+                currencySymbol={currencySymbol} 
+            />
         </div>
 
-        {/* ROW 3: Sales Funnel (Full Width for Clarity) */}
-        <div className="w-full mb-8">
-          <SalesFunnel
-            pipelineData={salesPipeline}
-            loading={loading}
-            currencySymbol={currencySymbol}
-            // ✅ ADD THIS LINE:
-            leadCount={metrics.activeLeads}
-          />
+        {/* ROW 3: Revenue Chart */}
+        <div className="grid grid-cols-1 mb-8">
+           <RevenueChart revenueData={revenueData} loading={loading} />
         </div>
 
         {/* ROW 4: Detailed Lists */}
@@ -1527,7 +1278,6 @@ const AdminDashboard = () => {
                 <DealItem
                   key={deal.id || index}
                   {...deal}
-                  // ✅ Ensure this is passed down (it comes from {...deal} but explicit is safe)
                   stage_updated_at={deal.stage_updated_at}
                   currencySymbol={currencySymbol}
                 />

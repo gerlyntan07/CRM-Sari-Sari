@@ -4,6 +4,10 @@ from sqlalchemy.orm import relationship
 from database import Base
 from enum import Enum
 
+class ContactStatus(str, Enum):
+    ACTIVE = 'Active'
+    INACTIVE = 'Inactive'
+
 class Contact(Base):
     __tablename__ = "contacts"
 
@@ -18,6 +22,7 @@ class Contact(Base):
     mobile_phone_1 = Column(String(20), nullable=True)
     mobile_phone_2 = Column(String(20), nullable=True)
     notes = Column(String, nullable=True)
+    status = Column(String, default=ContactStatus.ACTIVE.value, nullable=True)
     assigned_to = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     created_by = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())

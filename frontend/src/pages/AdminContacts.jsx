@@ -1308,6 +1308,7 @@ export default function AdminContacts() {
               <th className="py-3 px-4">Department</th>
               <th className="py-3 px-4">Assigned To</th>
               <th className="py-3 px-4">Created</th>
+              <th className="py-3 px-4">Status</th>
               <th className="py-3 px-4 text-center w-24">
                 {selectedIds.length > 0 ? (
                   <button
@@ -1328,7 +1329,7 @@ export default function AdminContacts() {
               <tr>
                 <td
                   className="py-4 px-4 text-center text-sm text-gray-500"
-                  colSpan={8}
+                  colSpan={9}
                 >
                   Loading contacts...
                 </td>
@@ -1441,6 +1442,17 @@ export default function AdminContacts() {
                         </span>
                       </div>
                     </td>
+                    <td className="py-3 px-4 align-top">
+                      <span
+                        className={`px-3 py-1 rounded-full text-xs font-medium ${
+                          contact.status === "Inactive"
+                            ? "bg-red-100 text-red-800"
+                            : "bg-green-100 text-green-800"
+                        }`}
+                      >
+                        {contact.status || "Active"}
+                      </span>
+                    </td>
                     <td className="py-3 px-4 align-top"></td>
                   </tr>
                 );
@@ -1449,7 +1461,7 @@ export default function AdminContacts() {
               <tr>
                 <td
                   className="py-4 px-4 text-center text-sm text-gray-500"
-                  colSpan={8}
+                  colSpan={9}
                 >
                   No contacts found.
                 </td>

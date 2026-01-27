@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import {
   FiSearch,
   FiEdit,
-  FiTrash2,
+  FiArchive,
   FiPlus,
   FiPhone,
   FiUsers,
@@ -88,6 +88,7 @@ export default function AdminContacts() {
   const [expandedSection, setExpandedSection] = useState(null);
   const [currentUser, setCurrentUser] = useState(null);
   const [pendingContactId, setPendingContactId] = useState(null);
+  const [selectedIds, setSelectedIds] = useState([]);
   
   useEffect(() => {
     const contactIdFromState = location.state?.contactID;
@@ -379,22 +380,78 @@ export default function AdminContacts() {
   const handleDelete = (contact) => {
     if (!contact) return;
     const name = getContactFullName(contact) || "this contact";
+    const isAdminUser = currentUser?.role === "Admin" || currentUser?.role === "CEO" || currentUser?.role === "MANAGER" || currentUser?.role === "GROUP MANAGER";
+    const actionText = isAdminUser ? "delete" : "archive";
+    const warningText = isAdminUser ? "This action cannot be undone." : "This contact will be hidden from your view but admins can still see it.";
+    const isArchiveAction = !isAdminUser;
+    
     setConfirmModalData({
-      title: "Delete Contact",
+      title: `${actionText.charAt(0).toUpperCase() + actionText.slice(1)} Contact`,
       message: (
         <span>
-          Are you sure you want to permanently delete{" "}
-          <span className="font-semibold">{name}</span>? This action cannot be
-          undone.
+          Are you sure you want to {actionText}{" "}
+          <span className="font-semibold">{name}</span>? {warningText}
         </span>
       ),
-      confirmLabel: "Delete Contact",
+      confirmLabel: `${actionText.charAt(0).toUpperCase() + actionText.slice(1)} Contact`,
       cancelLabel: "Cancel",
       variant: "danger",
+      icon: isArchiveAction ? FiArchive : null,
+      isArchive: isArchiveAction,
       action: {
         type: "delete",
         targetId: contact.id,
         name,
+      },
+    });
+  };
+
+  const handleSelectAll = () => {
+    const selectableContacts = paginatedContacts.filter(
+      (contact) => contact.assigned_contact?.id === currentUser?.id && contact.contact_creator?.id === currentUser?.id
+    );
+    if (selectedIds.length === selectableContacts.length && selectableContacts.length > 0) {
+      setSelectedIds([]);
+    } else {
+      setSelectedIds(selectableContacts.map((contact) => contact.id));
+    }
+  };
+
+  const handleSelectContact = (id) => {
+    setSelectedIds((prev) => {
+      if (prev.includes(id)) {
+        return prev.filter((prevId) => prevId !== id);
+      } else {
+        return [...prev, id];
+      }
+    });
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedIds.length === 0) return;
+
+    const isAdminUser = currentUser?.role === "Admin" || currentUser?.role === "CEO" || currentUser?.role === "MANAGER" || currentUser?.role === "GROUP MANAGER";
+    const actionText = isAdminUser ? "delete" : "archive";
+    const warningText = isAdminUser ? "This action cannot be undone." : "These contacts will be hidden from your view but admins can still see them.";
+    const isArchiveAction = !isAdminUser;
+
+    setConfirmModalData({
+      title: `${actionText.charAt(0).toUpperCase() + actionText.slice(1)} Contacts`,
+      message: (
+        <span>
+          Are you sure you want to {actionText}{" "}
+          <span className="font-semibold">{selectedIds.length}</span> selected
+          contacts? {warningText}
+        </span>
+      ),
+      confirmLabel: `${actionText.charAt(0).toUpperCase() + actionText.slice(1)} ${selectedIds.length} contact(s)`,
+      cancelLabel: "Cancel",
+      variant: "danger",
+      icon: isArchiveAction ? FiArchive : null,
+      isArchive: isArchiveAction,
+      action: {
+        type: "bulk-delete",
+        contactIds: selectedIds,
       },
     });
   };
@@ -528,8 +585,11 @@ if (!emailRegex.test(email)) {
         }
         const currentSelectedId = selectedContact?.id;
         setDeletingId(targetId);
+        const isAdminUser = currentUser?.role === "Admin" || currentUser?.role === "CEO" || currentUser?.role === "MANAGER" || currentUser?.role === "GROUP MANAGER";
+        const successMessage = isAdminUser ? `Contact "${name}" deleted successfully.` : `Contact "${name}" archived successfully.`;
+        
         await api.delete(`/contacts/admin/${targetId}`);
-        toast.success(`Contact "${name}" deleted successfully.`);
+        toast.success(successMessage);
         const preserveId =
           currentSelectedId && currentSelectedId !== targetId
             ? currentSelectedId
@@ -538,6 +598,21 @@ if (!emailRegex.test(email)) {
         if (currentSelectedId === targetId) {
           setSelectedContact(null);
         }
+      } else if (type === "bulk-delete") {
+        const { contactIds } = action;
+        if (!contactIds || contactIds.length === 0) {
+          throw new Error("No contacts provided for bulk deletion.");
+        }
+        const isAdminUser = currentUser?.role === "Admin" || currentUser?.role === "CEO" || currentUser?.role === "MANAGER" || currentUser?.role === "GROUP MANAGER";
+        const successMessage = isAdminUser ? `Successfully deleted ${contactIds.length} contact(s).` : `Successfully archived ${contactIds.length} contact(s).`;
+        
+        await api.delete("/contacts/admin/bulk-delete", {
+          data: { contact_ids: contactIds },
+        });
+        toast.success(successMessage);
+        setSelectedIds([]);
+        await fetchContacts();
+        setSelectedContact(null);
       }
     } catch (err) {
       console.error(err);
@@ -546,7 +621,9 @@ if (!emailRegex.test(email)) {
           ? "Failed to create contact. Please review the details and try again."
           : type === "update"
             ? "Failed to update contact. Please review the details and try again."
-            : "Failed to delete contact. Please try again.";
+            : type === "bulk-delete"
+              ? "Failed to delete contacts. Please try again."
+              : "Failed to delete contact. Please try again.";
       const message = err.response?.data?.detail || defaultMessage;
       toast.error(message);
     } finally {
@@ -625,32 +702,36 @@ if (!emailRegex.test(email)) {
           </div>          
 
           <div className="flex flex-col sm:flex-row sm:space-x-3 space-y-2 sm:space-y-0">
-            <button
-              className="inline-flex items-center justify-center w-full sm:w-auto bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 disabled:opacity-70 transition text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
-              onClick={() => handleEditClick(selectedContact)}
-              disabled={
-                confirmProcessing ||
-                (confirmModalData?.action?.type === "update" &&
-                  confirmModalData.action.targetId === selectedContact.id)
-              }
-            >
-              <FiEdit className="mr-2" />
-              Edit
-            </button>
-            <button
-              className="inline-flex items-center justify-center w-full sm:w-auto px-4 py-2 rounded-md text-sm bg-red-500 text-white hover:bg-red-600 transition focus:outline-none focus:ring-2 focus:ring-red-400"
-              onClick={() => handleDelete(selectedContact)}
-              disabled={Boolean(selectedContactDeleteDisabled)}
-            >
-              {selectedContactDeleting ? (
-                "Deleting..."
-              ) : (
-                <>
-                  <FiTrash2 className="mr-2" />
-                  Delete
-                </>
-              )}
-            </button>
+            {selectedContact.assigned_contact && selectedContact.assigned_contact.id === currentUser?.id && selectedContact.contact_creator && selectedContact.contact_creator.id === currentUser?.id && (
+              <>
+                <button
+                  className="inline-flex items-center justify-center w-full sm:w-auto bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 disabled:opacity-70 transition text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+                  onClick={() => handleEditClick(selectedContact)}
+                  disabled={
+                    confirmProcessing ||
+                    (confirmModalData?.action?.type === "update" &&
+                      confirmModalData.action.targetId === selectedContact.id)
+                  }
+                >
+                  <FiEdit className="mr-2" />
+                  Edit
+                </button>
+                <button
+                  className="inline-flex items-center justify-center w-full sm:w-auto px-4 py-2 rounded-md text-sm bg-orange-500 text-white hover:bg-orange-600 transition focus:outline-none focus:ring-2 focus:ring-orange-400"
+                  onClick={() => handleDelete(selectedContact)}
+                  disabled={Boolean(selectedContactDeleteDisabled)}
+                >
+                  {selectedContactDeleting ? (
+                    "Archiving..."
+                  ) : (
+                    <>
+                      <FiArchive className="mr-2" />
+                      Archive
+                    </>
+                  )}
+                </button>
+              </>
+            )}
           </div>
        
          </div>
@@ -1158,12 +1239,39 @@ if (!emailRegex.test(email)) {
         <table className="w-full min-w-[600px] border border-gray-200 rounded-lg bg-white shadow-sm text-sm">
           <thead className="bg-gray-100 text-left text-gray-600 text-sm tracking-wide font-semibold">
             <tr>
+              <th className="py-3 px-4 text-center w-12">
+                <input
+                  type="checkbox"
+                  checked={
+                    paginatedContacts.length > 0 &&
+                    paginatedContacts
+                      .filter((c) => c.assigned_contact?.id === currentUser?.id && c.contact_creator?.id === currentUser?.id)
+                      .every((c) => selectedIds.includes(c.id)) &&
+                    paginatedContacts.some((c) => c.assigned_contact?.id === currentUser?.id && c.contact_creator?.id === currentUser?.id)
+                  }
+                  onChange={handleSelectAll}
+                  className="form-checkbox h-4 w-4 text-blue-600 rounded focus:ring-blue-500 border-gray-300"
+                />
+              </th>
               <th className="py-3 px-4 truncate">Contact</th>
               <th className="py-3 px-4">Account</th>
               <th className="py-3 px-4 truncate">Contact Info</th>
               <th className="py-3 px-4">Department</th>
               <th className="py-3 px-4">Assigned To</th>
               <th className="py-3 px-4">Created</th>
+              <th className="py-3 px-4 text-center w-24">
+                {selectedIds.length > 0 ? (
+                  <button
+                    onClick={handleBulkDelete}
+                    className="text-orange-600 hover:text-orange-800 transition p-1 rounded-full hover:bg-orange-50"
+                    title={`Archive ${selectedIds.length} selected contacts`}
+                  >
+                    <FiArchive size={18} />
+                  </button>
+                ) : (
+                  ""
+                )}
+              </th>
             </tr>
           </thead>
           <tbody>
@@ -1171,7 +1279,7 @@ if (!emailRegex.test(email)) {
               <tr>
                 <td
                   className="py-4 px-4 text-center text-sm text-gray-500"
-                  colSpan={6}
+                  colSpan={8}
                 >
                   Loading contacts...
                 </td>
@@ -1201,12 +1309,22 @@ if (!emailRegex.test(email)) {
                   <tr
                     key={contact.id}
                     className="hover:bg-gray-50 text-sm cursor-pointer transition"
-                    onClick={() => {
+                  >
+                    <td className="py-3 px-4 align-top text-center" onClick={(e) => e.stopPropagation()}>
+                      {contact.assigned_contact && contact.assigned_contact.id === currentUser?.id && contact.contact_creator && contact.contact_creator.id === currentUser?.id ? (
+                        <input
+                          type="checkbox"
+                          checked={selectedIds.includes(contact.id)}
+                          onChange={() => handleSelectContact(contact.id)}
+                          className="form-checkbox h-4 w-4 text-blue-600 rounded focus:ring-blue-500 border-gray-300"
+                          onClick={(e) => e.stopPropagation()}
+                        />
+                      ) : null}
+                    </td>
+                    <td className="py-3 px-4 align-top" onClick={() => {
                       handleContactClick(contact)
                       fetchRelatedActivities(contact.id)
-                    }}
-                  >
-                    <td className="py-3 px-4 align-top">
+                    }}>
                       <div className="font-medium text-blue-600 hover:underline break-all text-sm">
                         {getContactFullName(contact) || "--"}
                       </div>
@@ -1214,7 +1332,10 @@ if (!emailRegex.test(email)) {
                         {contact.title || "No title"}
                       </div>
                     </td>
-                    <td className="py-3 px-4 align-top">
+                    <td className="py-3 px-4 align-top" onClick={() => {
+                      handleContactClick(contact)
+                      fetchRelatedActivities(contact.id)
+                    }}>
                       <div className="flex items-center space-x-2 text-sm text-gray-700">
                         <BsBuilding className="text-gray-500 flex-shrink-0" />
                         <span className="break-words">
@@ -1222,7 +1343,10 @@ if (!emailRegex.test(email)) {
                         </span>
                       </div>
                     </td>
-                    <td className="py-3 px-4 align-top">
+                    <td className="py-3 px-4 align-top" onClick={() => {
+                      handleContactClick(contact)
+                      fetchRelatedActivities(contact.id)
+                    }}>
                       {contactInfoItems.length > 0 ? (
                         <div className="space-y-1 text-gray-700">
                           {contactInfoItems.map(({ Icon, value, key }) => {
@@ -1245,13 +1369,19 @@ if (!emailRegex.test(email)) {
                         <span className="text-gray-400 text-sm">--</span>
                       )}
                     </td>
-                    <td className="py-3 px-4 align-top">
+                    <td className="py-3 px-4 align-top" onClick={() => {
+                      handleContactClick(contact)
+                      fetchRelatedActivities(contact.id)
+                    }}>
                       <div className="flex items-center space-x-2 text-gray-700 text-sm">
                         <FiBriefcase className="text-gray-500 flex-shrink-0" />
                         <span>{contact.department || "--"}</span>
                       </div>
                     </td>
-                    <td className="py-3 px-4 align-top">
+                    <td className="py-3 px-4 align-top" onClick={() => {
+                      handleContactClick(contact)
+                      fetchRelatedActivities(contact.id)
+                    }}>
                       <div className="flex items-center space-x-2 text-sm">
                         <FiUser className="text-gray-500 flex-shrink-0" />
                         <span>
@@ -1261,7 +1391,10 @@ if (!emailRegex.test(email)) {
                         </span>
                       </div>
                     </td>
-                    <td className="py-3 px-4 align-top">
+                    <td className="py-3 px-4 align-top" onClick={() => {
+                      handleContactClick(contact)
+                      fetchRelatedActivities(contact.id)
+                    }}>
                       <div className="flex items-center space-x-2 text-gray-500">
                         <FiCalendar className="text-gray-500 flex-shrink-0" />
                         <span className="text-xs">
@@ -1276,7 +1409,7 @@ if (!emailRegex.test(email)) {
               <tr>
                 <td
                   className="py-4 px-4 text-center text-sm text-gray-500"
-                  colSpan={6}
+                  colSpan={8}
                 >
                   No contacts found.
                 </td>
@@ -1485,6 +1618,8 @@ if (!emailRegex.test(email)) {
       onConfirm={handleConfirmAction}
       onCancel={handleCancelConfirm}
       loading={confirmProcessing}
+      icon={confirmModalData.icon}
+      isArchive={confirmModalData.isArchive}
     />
   ) : null;
 
@@ -1746,13 +1881,16 @@ function ConfirmationModal({
   loading = false,
   onConfirm,
   onCancel,
+  icon: Icon = null,
+  isArchive = false,
 }) {
   if (!open) return null;
 
-  const confirmClasses =
-    variant === "danger"
-      ? "bg-red-500 hover:bg-red-600 border border-red-400"
-      : "bg-tertiary hover:bg-secondary border border-tertiary";
+  const confirmClasses = isArchive
+    ? "bg-orange-500 hover:bg-orange-600 border border-orange-400"
+    : variant === "danger"
+    ? "bg-red-500 hover:bg-red-600 border border-red-400"
+    : "bg-tertiary hover:bg-secondary border border-tertiary";
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-[60]">
@@ -1774,9 +1912,10 @@ function ConfirmationModal({
           <button
             type="button"
             onClick={onConfirm}
-            className={`w-full sm:w-auto px-4 py-2 rounded-md text-white transition disabled:opacity-70 ${confirmClasses}`}
+            className={`w-full sm:w-auto px-4 py-2 rounded-md text-white transition disabled:opacity-70 flex items-center justify-center ${confirmClasses}`}
             disabled={loading}
           >
+            {Icon && <Icon className="mr-2" size={18} />}
             {loading ? "Processing..." : confirmLabel}
           </button>
         </div>

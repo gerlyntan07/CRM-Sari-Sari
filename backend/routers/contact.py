@@ -9,7 +9,7 @@ from database import get_db
 from schemas.contact import ContactBase, ContactResponse, ContactCreate, ContactUpdate, ContactBulkDelete
 from .auth_utils import get_current_user
 from models.auth import User
-from models.contact import Contact
+from models.contact import Contact, ContactStatus
 from models.account import Account
 from .logs_utils import serialize_instance, create_audit_log
 from .ws_notification import broadcast_notification
@@ -121,14 +121,16 @@ def admin_get_contacts(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    if current_user.role.upper() in ["CEO", "ADMIN"]:
+    role = current_user.role.upper()
+    
+    if role in ["CEO", "ADMIN"]:
         contacts = (
             db.query(Contact)
             .join(User, Contact.assigned_to == User.id)
             .filter(User.related_to_company == current_user.related_to_company)
             .all()
         )
-    elif current_user.role.upper() == "GROUP MANAGER":
+    elif role == "GROUP MANAGER":
         contacts = (
             db.query(Contact)
             .join(User, Contact.assigned_to == User.id)
@@ -136,7 +138,7 @@ def admin_get_contacts(
             .filter(~User.role.in_(["CEO", "Admin"]))
             .all()
         )
-    elif current_user.role.upper() == "MANAGER":
+    elif role == "MANAGER":
         subquery_user_ids = (
             db.query(Territory.user_id)
             .filter(Territory.manager_id == current_user.id)
@@ -154,12 +156,15 @@ def admin_get_contacts(
             ).all()
         )
     else:
+        # Sales users - exclude INACTIVE contacts
         contacts = (
             db.query(Contact)
             .filter(
                 (Contact.assigned_to == current_user.id) | 
                 (Contact.created_by == current_user.id)
-            ).all()
+            )
+            .filter(Contact.status != ContactStatus.INACTIVE.value)
+            .all()
         )
 
     return contacts
@@ -502,44 +507,80 @@ def admin_bulk_delete_contacts(
     current_user: User = Depends(get_current_user),
     request: Request = None
 ):
-    if current_user.role.upper() not in ALLOWED_ADMIN_ROLES:
-        raise HTTPException(status_code=403, detail="Permission denied")
+    role = current_user.role.upper()
 
     if not data.contact_ids:
         return {"detail": "No contacts provided for deletion."}
 
-    company_users = (
-        select(User.id)
-        .where(User.related_to_company == current_user.related_to_company)
-        .subquery()
-    )
+    if role in ALLOWED_ADMIN_ROLES:
+        company_users = (
+            select(User.id)
+            .where(User.related_to_company == current_user.related_to_company)
+            .subquery()
+        )
 
-    contacts_to_delete = db.query(Contact).filter(
-        Contact.id.in_(data.contact_ids),
-        ((Contact.created_by.in_(company_users)) | (Contact.assigned_to.in_(company_users)))
-    ).all()
+        contacts_to_delete = db.query(Contact).filter(
+            Contact.id.in_(data.contact_ids),
+            ((Contact.created_by.in_(company_users)) | (Contact.assigned_to.in_(company_users)))
+        ).all()
+    elif role == "SALES":
+        # Sales may only mark as inactive contacts they created AND assigned to themselves
+        # First check if contacts exist
+        all_contacts = db.query(Contact).filter(
+            Contact.id.in_(data.contact_ids)
+        ).all()
+        
+        if all_contacts and not all(con.created_by == current_user.id and con.assigned_to == current_user.id for con in all_contacts):
+            raise HTTPException(status_code=403, detail="Permission denied. You can only delete contacts you created and assigned to yourself.")
+        
+        contacts_to_delete = db.query(Contact).filter(
+            Contact.id.in_(data.contact_ids),
+            Contact.created_by == current_user.id,
+            Contact.assigned_to == current_user.id,
+        ).all()
+    else:
+        raise HTTPException(status_code=403, detail="Permission denied")
 
     if not contacts_to_delete:
         raise HTTPException(status_code=404, detail="No matching contacts found for deletion.")
 
     deleted_count = 0
     for contact in contacts_to_delete:
-        deleted_data = serialize_instance(contact)
         contact_name = f"{contact.first_name} {contact.last_name}"
         target_user_id = contact.assigned_to or contact.created_by
 
-        db.delete(contact)
-        
-        create_audit_log(
-            db=db,
-            current_user=current_user,
-            instance=contact,
-            action="DELETE",
-            request=request,
-            old_data=deleted_data,
-            target_user_id=target_user_id,
-            custom_message=f"bulk delete contact '{contact_name}' via admin panel"
-        )
+        if role in ALLOWED_ADMIN_ROLES:
+            # Admins perform hard delete
+            deleted_data = serialize_instance(contact)
+            db.delete(contact)
+
+            create_audit_log(
+                db=db,
+                current_user=current_user,
+                instance=contact,
+                action="DELETE",
+                request=request,
+                old_data=deleted_data,
+                target_user_id=target_user_id,
+                custom_message=f"bulk delete contact '{contact_name}' via admin panel",
+            )
+        else:
+            # Sales users perform soft delete (mark as INACTIVE)
+            old_status = contact.status
+            contact.status = ContactStatus.INACTIVE.value
+            db.commit()
+
+            create_audit_log(
+                db=db,
+                current_user=current_user,
+                instance=contact,
+                action="UPDATE",
+                request=request,
+                old_data={"status": old_status},
+                new_data={"status": contact.status},
+                target_user_id=target_user_id,
+                custom_message=f"bulk mark as inactive contact '{contact_name}' by creator via sales panel"
+            )
         deleted_count += 1
 
     db.commit()
@@ -554,44 +595,82 @@ def admin_delete_contact(
     current_user: User = Depends(get_current_user),
     request: Request = None,
 ):
+    role = current_user.role.upper()
 
-    company_users = (
-        select(User.id)
-        .where(User.related_to_company == current_user.related_to_company)
-        .subquery()
-    )
-
-    contact = (
-        db.query(Contact)
-        .filter(
-            Contact.id == contact_id,
-            (
-                (Contact.created_by.in_(company_users))
-                | (Contact.assigned_to.in_(company_users))
-            ),
+    if role in ALLOWED_ADMIN_ROLES:
+        company_users = (
+            select(User.id)
+            .where(User.related_to_company == current_user.related_to_company)
+            .subquery()
         )
-        .first()
-    )
+
+        contact = (
+            db.query(Contact)
+            .filter(
+                Contact.id == contact_id,
+                (
+                    (Contact.created_by.in_(company_users))
+                    | (Contact.assigned_to.in_(company_users))
+                ),
+            )
+            .first()
+        )
+    elif role == "SALES":
+        # Sales may only mark as inactive contacts they created AND assigned to themselves
+        # First check if contact exists
+        contact_exists = db.query(Contact).filter(
+            Contact.id == contact_id
+        ).first()
+        
+        if contact_exists and (contact_exists.created_by != current_user.id or contact_exists.assigned_to != current_user.id):
+            raise HTTPException(status_code=403, detail="Permission denied. You can only delete contacts you created and assigned to yourself.")
+        
+        contact = db.query(Contact).filter(
+            Contact.id == contact_id,
+            Contact.created_by == current_user.id,
+            Contact.assigned_to == current_user.id,
+        ).first()
+    else:
+        raise HTTPException(status_code=403, detail="Permission denied")
 
     if not contact:
         raise HTTPException(status_code=404, detail="Contact not found.")
 
-    deleted_data = serialize_instance(contact)
     contact_name = f"{contact.first_name} {contact.last_name}"
+    target_user_id = contact.assigned_to or contact.created_by
 
-    db.delete(contact)
-    db.commit()
+    if role in ALLOWED_ADMIN_ROLES:
+        # Admins perform hard delete
+        deleted_data = serialize_instance(contact)
+        db.delete(contact)
+        db.commit()
 
-    create_audit_log(
-        db=db,
-        current_user=current_user,
-        instance=contact,
-        action="DELETE",
-        request=request,
-        old_data=deleted_data,
-        # optional: if you want this to appear in the target user's history
-        target_user_id=(contact.assigned_to or contact.created_by),
-        custom_message=(f"delete contact '{contact_name}' via admin panel"),
-    )
+        create_audit_log(
+            db=db,
+            current_user=current_user,
+            instance=contact,
+            action="DELETE",
+            request=request,
+            old_data=deleted_data,
+            target_user_id=target_user_id,
+            custom_message=f"delete contact '{contact_name}' via admin panel"
+        )
+        return {"detail": f"Contact '{contact_name}' deleted successfully."}
+    else:
+        # Sales users perform soft delete (mark as INACTIVE)
+        old_status = contact.status
+        contact.status = ContactStatus.INACTIVE.value
+        db.commit()
 
-    return {"detail": f"Contact '{contact_name}' deleted successfully."}
+        create_audit_log(
+            db=db,
+            current_user=current_user,
+            instance=contact,
+            action="UPDATE",
+            request=request,
+            old_data={"status": old_status},
+            new_data={"status": contact.status},
+            target_user_id=target_user_id,
+            custom_message=f"mark as inactive contact '{contact_name}' by creator via sales panel"
+        )
+        return {"detail": f"Contact '{contact_name}' archived successfully."}

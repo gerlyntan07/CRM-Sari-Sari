@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import {
   FiSearch,
   FiEdit,
-  FiTrash2,
+  FiArchive,
   FiPlus,
   FiPhone,
   FiUsers,
@@ -421,9 +421,10 @@ export default function AdminAccounts() {
     const isAdminUser = currentUser?.role === "Admin" || currentUser?.role === "CEO" || currentUser?.role === "MANAGER" || currentUser?.role === "GROUP MANAGER";
     const actionText = isAdminUser ? "delete" : "archive";
     const warningText = isAdminUser ? "This action cannot be undone." : "These accounts will be hidden from your view but admins can still see them.";
+    const isArchiveAction = !isAdminUser;
 
     setConfirmModalData({
-      title: `Bulk ${actionText.charAt(0).toUpperCase() + actionText.slice(1)} Accounts`,
+      title: `${actionText.charAt(0).toUpperCase() + actionText.slice(1)} Accounts`,
       message: (
         <span>
           Are you sure you want to {actionText}{" "}
@@ -431,9 +432,11 @@ export default function AdminAccounts() {
           accounts? {warningText}
         </span>
       ),
-      confirmLabel: `${actionText.charAt(0).toUpperCase() + actionText.slice(1)} ${selectedIds.length} Accounts`,
+      confirmLabel: `${actionText.charAt(0).toUpperCase() + actionText.slice(1)} ${selectedIds.length} account(s)`,
       cancelLabel: "Cancel",
       variant: "danger",
+      icon: isArchiveAction ? FiArchive : null,
+      isArchive: isArchiveAction,
       action: {
         type: "bulk-delete",
         accountIds: selectedIds,
@@ -543,6 +546,7 @@ export default function AdminAccounts() {
     const isAdminUser = currentUser?.role === "Admin" || currentUser?.role === "CEO" || currentUser?.role === "MANAGER" || currentUser?.role === "GROUP MANAGER";
     const actionText = isAdminUser ? "delete" : "archive";
     const warningText = isAdminUser ? "This action cannot be undone." : "This account will be hidden from your view but admins can still see it.";
+    const isArchiveAction = !isAdminUser;
 
     setConfirmModalData({
       title: `${actionText.charAt(0).toUpperCase() + actionText.slice(1)} Account`,
@@ -555,6 +559,8 @@ export default function AdminAccounts() {
       confirmLabel: `${actionText.charAt(0).toUpperCase() + actionText.slice(1)} Account`,
       cancelLabel: "Cancel",
       variant: "danger",
+      icon: isArchiveAction ? FiArchive : null,
+      isArchive: isArchiveAction,
       action: {
         type: "delete",
         targetId: account.id,
@@ -864,16 +870,16 @@ const [isSubmitted, setIsSubmitted] = useState(false);
                   Edit
                 </button>
                 <button
-                  className="inline-flex items-center justify-center w-full sm:w-auto px-4 py-2 rounded-md text-sm bg-red-500 text-white hover:bg-red-600 transition focus:outline-none focus:ring-2 focus:ring-red-400"
+                  className="inline-flex items-center justify-center w-full sm:w-auto px-4 py-2 rounded-md text-sm bg-orange-500 text-white hover:bg-orange-600 transition focus:outline-none focus:ring-2 focus:ring-orange-400"
                   onClick={() => handleDelete(selectedAccount)}
                   disabled={Boolean(selectedAccountDeleteDisabled)}
                 >
                   {selectedAccountDeleting ? (
-                    "Deleting..."
+                    "Archiving..."
                   ) : (
                     <>
-                      <FiTrash2 className="mr-2" />
-                      Delete
+                      <FiArchive className="mr-2" />
+                      Archive
                     </>
                   )}
                 </button>
@@ -1430,10 +1436,10 @@ const [isSubmitted, setIsSubmitted] = useState(false);
                 {selectedIds.length > 0 ? (
                   <button
                     onClick={handleBulkDelete}
-                    className="text-red-600 hover:text-red-800 transition p-1 rounded-full hover:bg-red-50"
-                    title={`Delete ${selectedIds.length} selected accounts`}
+                    className="text-orange-600 hover:text-orange-800 transition p-1 rounded-full hover:bg-orange-50"
+                    title={`Archive ${selectedIds.length} selected accounts`}
                   >
-                    <FiTrash2 size={18} />
+                    <FiArchive size={18} />
                   </button>
                 ) : (
                   ""
@@ -1735,6 +1741,8 @@ const [isSubmitted, setIsSubmitted] = useState(false);
       onConfirm={handleConfirmAction}
       onCancel={handleCancelConfirm}
       loading={confirmProcessing}
+      icon={confirmModalData.icon}
+      isArchive={confirmModalData.isArchive}
     />
   ) : null;
 
@@ -2016,13 +2024,16 @@ function ConfirmationModal({
   loading = false,
   onConfirm,
   onCancel,
+  icon: Icon = null,
+  isArchive = false,
 }) {
   if (!open) return null;
 
-  const confirmClasses =
-    variant === "danger"
-      ? "bg-red-500 hover:bg-red-600 border border-red-400"
-      : "bg-tertiary hover:bg-secondary border border-tertiary";
+  const confirmClasses = isArchive
+    ? "bg-orange-500 hover:bg-orange-600 border border-orange-400"
+    : variant === "danger"
+    ? "bg-red-500 hover:bg-red-600 border border-red-400"
+    : "bg-tertiary hover:bg-secondary border border-tertiary";
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-[60]">
@@ -2044,9 +2055,10 @@ function ConfirmationModal({
           <button
             type="button"
             onClick={onConfirm}
-            className={`w-full sm:w-auto px-4 py-2 rounded-md text-white transition disabled:opacity-70 ${confirmClasses}`}
+            className={`w-full sm:w-auto px-4 py-2 rounded-md text-white transition disabled:opacity-70 flex items-center justify-center ${confirmClasses}`}
             disabled={loading}
           >
+            {Icon && <Icon className="mr-2" size={18} />}
             {loading ? "Processing..." : confirmLabel}
           </button>
         </div>

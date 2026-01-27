@@ -15,6 +15,7 @@ class ContactBase(BaseModel):
     mobile_phone_1: Optional[str] = None
     mobile_phone_2: Optional[str] = None
     notes: Optional[str] = None
+    status: Optional[str] = None
     assigned_to: Optional[int] = None
     created_by: Optional[int] = None    
 

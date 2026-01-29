@@ -153,15 +153,15 @@ useEffect(() => {
     to="/sales/overview"
     className={({ isActive }) => (isActive ? activeLink : normalLink)}
   >
-    <FiHome /> Overview
+    <FiHome /> Dashboard
   </NavLink>
 
-  <NavLink
+  {/* <NavLink
     to="/sales/hub"
     className={({ isActive }) => (isActive ? activeLink : normalLink)}
   >
     <FiGrid /> Sales Hub
-  </NavLink>
+  </NavLink> */}
 
 {/* Sales Dropdown */}
   <div>

@@ -20,8 +20,8 @@ export default function SalesHeader({ toggleSidebar }) {
   const { user, fetchUser } = useFetchUser();
 
   const routeTitles = {
-    "/sales/overview": "Overview",
-    "/sales/hub": "Sales Hub",
+    "/sales/overview": "Dashboard",
+    // "/sales/hub": "Sales Hub",
     "/sales/accounts": "Accounts",
     "/sales/contacts": "Contacts",
     "/sales/leads": "Leads",

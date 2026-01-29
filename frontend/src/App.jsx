@@ -42,7 +42,7 @@ import AdminCompanyDetails from "./components/AdminCompanyDetails";
 // 🔹 Sales layout + pages
 import SalesPanel from "./components/SalesPanel";
 import SalesOverview from "./pages/SalesOverview";
-import SalesHub from "./pages/SalesHub"; // ✅ fixed typo
+//import SalesHub from "./pages/SalesHub"; // ✅ fixed typo
 import SalesActivities from "./pages/SalesActivities";
 import SalesMyTask from "./pages/SalesMyTask"; // ✅ add this new page
 import SalesPipeline from "./pages/SalesPipeline";
@@ -190,13 +190,13 @@ function App() {
           <Route path="calls" element={<SalesCalls />} />
           <Route path="tasks" element={<SalesTask />} />
 
-          <Route path="hub/*" element={<SalesHub />}>
+        {/* <Route path="hub/*" element={<SalesHub />}>
             <Route index element={<Navigate to="mytasks" replace />} />
             <Route path="activities" element={<SalesActivities />} />
             <Route path="mytasks" element={<SalesMyTask />} />
             <Route path="pipeline" element={<SalesPipeline />} />
             <Route path="performance" element={<SalesPerformance />} />            
-          </Route>
+          </Route> */}
         </Route>
 
         {/* ================= Manager Layout ================= */}

@@ -193,6 +193,7 @@ const TopBar = ({ searchQuery, onSearchChange, searchResults, onSearchResultClic
               <button
                 className="p-3 text-gray-500 hover:text-gray-900 transition duration-150 rounded-full hover:bg-gray-100 focus:outline-none cursor-pointer"
                 aria-label={item.label}
+                title={item.label}
                 onClick={() => {
                   const routes = {
                     "Account": "/admin/accounts",
@@ -212,9 +213,12 @@ const TopBar = ({ searchQuery, onSearchChange, searchResults, onSearchResultClic
               >
                 <item.icon size={24} className="lg:scale-95" />
               </button>
-              <span className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-1 bg-gray-700 text-white text-xs font-medium rounded-lg whitespace-nowrap opacity-0 invisible group-hover:opacity-100 group-hover:visible transition duration-200 pointer-events-none z-20 shadow-md">
-                {item.label}
-              </span>
+              
+              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-1.5 bg-gray-900 text-white text-xs font-semibold rounded-md whitespace-nowrap opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-75 ease-in-out z-50 shadow-lg">
+              {item.label}
+              <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-1 border-4 border-transparent border-t-gray-900"></div>
+            </div>
+            
             </div>
           ))}
         </div>

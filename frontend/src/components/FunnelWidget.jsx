@@ -1,8 +1,8 @@
 import React, { useState, useMemo } from 'react';
 import { 
-  FiFilter, FiRefreshCw, FiAlertCircle, FiLayout, FiMail, 
-  FiArrowDown, FiArrowUp, FiGrid, FiDownload, FiPhone, FiUser 
-} from "react-icons/fi";
+  FiFilter, FiLayout, FiMail, 
+  FiArrowDown, FiArrowUp, FiDownload, FiPhone, FiUser, FiTarget
+} from "react-icons/fi"; 
 import { useNavigate } from 'react-router-dom';
 
 // --- Local Helpers ---
@@ -79,8 +79,8 @@ const FunnelBar = ({ label, count, value, width, color, onClick, isActive, isLea
         </div>
         {!isLead && weightedValue > 0 && (
           <div 
-             className="absolute left-0 top-0 h-full bg-white opacity-20 z-20" 
-             style={{ width: `${(weightedValue / value) * parseFloat(width)}%` }} 
+              className="absolute left-0 top-0 h-full bg-white opacity-20 z-20" 
+              style={{ width: `${(weightedValue / value) * parseFloat(width)}%` }} 
           />
         )}
       </div>
@@ -88,26 +88,59 @@ const FunnelBar = ({ label, count, value, width, color, onClick, isActive, isLea
   </div>
 );
 
-const UserComparisonCard = ({ user, metrics, stages, currencySymbol }) => {
+const UserComparisonCard = ({ user, metrics, stages, currencySymbol, target }) => {
     const weightedForecast = metrics.filteredDeals.reduce((a, b) => a + (parseFloat(b.amount || 0) * ((b.probability||0)/100)), 0);
+    const closedWonAmount = metrics.metrics['CLOSED_WON']?.value || 0;
+    
+    // Win Rate Calculation
     const winRate = metrics.metrics['CLOSED_WON'].count > 0 
         ? ((metrics.metrics['CLOSED_WON'].count / (metrics.metrics['CLOSED_WON'].count + metrics.metrics['CLOSED_LOST'].count)) * 100).toFixed(0)
         : 0;
+    
+    // Target Progress Calculation
+    const progress = target > 0 ? (closedWonAmount / target) * 100 : 0;
 
     return (
         <div className="bg-white p-4 rounded-xl shadow-md border border-gray-100 flex flex-col h-full hover:shadow-lg transition-shadow">
-            <div className="flex items-center mb-4 pb-4 border-b border-gray-100">
-                <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold mr-3">
-                    {user.name.charAt(0)}
-                </div>
-                <div>
-                    <h4 className="font-bold text-gray-800">{user.name}</h4>
-                    <div className="flex gap-2 text-xs mt-1">
-                        <span className="text-green-600 bg-green-50 px-1.5 py-0.5 rounded border border-green-100">Win Rate: {winRate}%</span>
-                        <span className="text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded border border-blue-100">Fcst: {formatCurrency(weightedForecast, currencySymbol)}</span>
+            <div className="flex flex-col mb-4 pb-4 border-b border-gray-100">
+                <div className="flex items-center mb-2">
+                    <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold mr-3 flex-shrink-0">
+                        {user.name.charAt(0)}
+                    </div>
+                    <div>
+                        <h4 className="font-bold text-gray-800 text-sm">{user.name}</h4>
+                        <div className="flex gap-2 text-[10px] mt-1">
+                            <span className="text-green-600 bg-green-50 px-1.5 py-0.5 rounded border border-green-100">Win: {winRate}%</span>
+                            <span className="text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded border border-blue-100">Fcst: {formatCurrency(weightedForecast, currencySymbol)}</span>
+                        </div>
                     </div>
                 </div>
+
+                {/* --- INDIVIDUAL TARGET PROGRESS --- */}
+                {target > 0 ? (
+                    <div className="w-full mt-2 bg-gray-50 p-2 rounded-lg border border-gray-100">
+                        <div className="flex justify-between items-center text-[10px] text-gray-500 mb-1">
+                             <span className="font-semibold text-gray-600">Target Achievement</span>
+                             <span className={progress >= 100 ? "text-green-600 font-bold" : "text-blue-600 font-bold"}>{progress.toFixed(0)}%</span>
+                        </div>
+                        
+                        <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden mb-1">
+                            <div 
+                                className={`h-full rounded-full transition-all duration-1000 ${progress >= 100 ? 'bg-green-500' : 'bg-blue-500'}`} 
+                                style={{ width: `${Math.min(progress, 100)}%` }}
+                            ></div>
+                        </div>
+
+                        <div className="flex justify-between text-[9px] text-gray-400">
+                            <span>Achieved: <span className="text-gray-700 font-medium">{formatCurrency(closedWonAmount, currencySymbol)}</span></span>
+                            <span>Target: {formatCurrency(target, currencySymbol)}</span>
+                        </div>
+                    </div>
+                ) : (
+                    <div className="text-[10px] text-gray-400 italic mt-1 text-center bg-gray-50 p-1 rounded">No target assigned</div>
+                )}
             </div>
+            
             <div className="flex-grow space-y-2">
                 {stages.map((stage, index) => {
                     const metric = metrics.metrics[stage.key];
@@ -290,12 +323,49 @@ const DetailTable = ({ data, stageKey, currencySymbol }) => {
 
 // --- MAIN EXPORTED WIDGET ---
 
-const FunnelWidget = ({ leads, deals, currencySymbol }) => {
+// ✅ Accepts `targets` as a prop
+const FunnelWidget = ({ leads, deals, currencySymbol, targets = [] }) => {
     const [selectedStage, setSelectedStage] = useState('ALL'); 
     const [filterTime, setFilterTime] = useState('ALL'); 
     const [filterUser, setFilterUser] = useState('ALL');
     const [viewMode, setViewMode] = useState('AGGREGATE'); 
   
+    // 1. Determine Date Range based on filterTime (Used to filter relevant targets)
+    const dateRange = useMemo(() => {
+        const now = new Date();
+        if (filterTime === 'THIS_MONTH') {
+            return { start: new Date(now.getFullYear(), now.getMonth(), 1), end: new Date(now.getFullYear(), now.getMonth() + 1, 0) };
+        }
+        if (filterTime === 'THIS_QUARTER') {
+            const qStart = Math.floor(now.getMonth() / 3) * 3;
+            return { start: new Date(now.getFullYear(), qStart, 1), end: new Date(now.getFullYear(), qStart + 3, 0) };
+        }
+        if (filterTime === 'THIS_YEAR') {
+            return { start: new Date(now.getFullYear(), 0, 1), end: new Date(now.getFullYear(), 11, 31) };
+        }
+        return null; // ALL TIME
+    }, [filterTime]);
+
+    // 2. Filter Targets dynamically based on selected Time AND User
+    const filteredTargets = useMemo(() => {
+        return targets.filter(t => {
+            // Filter by User
+            if (filterUser !== 'ALL') {
+                const tUserId = t.user?.id || t.user_id || t.assigned_to;
+                if (parseInt(tUserId) !== parseInt(filterUser)) return false;
+            }
+
+            // Filter by Time (Overlap Logic)
+            if (dateRange) {
+                const tStart = new Date(t.start_date);
+                const tEnd = new Date(t.end_date);
+                // Check if target overlaps with the selected date range
+                return tStart <= dateRange.end && tEnd >= dateRange.start;
+            }
+            return true;
+        });
+    }, [targets, filterUser, dateRange]);
+
     const usersList = useMemo(() => {
       const users = new Map();
       const addUser = (u) => { if(u && u.id) users.set(u.id, `${u.first_name} ${u.last_name}`); }
@@ -384,17 +454,41 @@ const FunnelWidget = ({ leads, deals, currencySymbol }) => {
                   return oid === uid;
               });
               const uDeals = filteredDeals.filter(d => (d.assigned_deals?.id || d.created_by) === uid);
-              if (uLeads.length > 0 || uDeals.length > 0) {
+              
+              // ✅ Find specific target for this user (matching current time filters)
+              // We use filteredTargets here because it already respects the Date Range
+              const userTargetObj = filteredTargets.find(t => {
+                   const tUserId = t.user?.id || t.user_id || t.assigned_to;
+                   return parseInt(tUserId) === uid;
+              });
+              const userTargetAmount = parseFloat(userTargetObj?.amount || userTargetObj?.target_amount || userTargetObj?.value || 0);
+
+              if (uLeads.length > 0 || uDeals.length > 0 || userTargetAmount > 0) {
                   userGroups.push({
                       user: u,
-                      data: calculateMetrics(uLeads, uDeals)
+                      data: calculateMetrics(uLeads, uDeals),
+                      target: userTargetAmount // ✅ Pass specific user target
                   });
               }
           });
       }
       return { stages, aggregate, userGroups };
-    }, [deals, leads, filterTime, filterUser, viewMode, usersList]);
+    }, [deals, leads, filterTime, filterUser, viewMode, usersList, filteredTargets]); // added filteredTargets dependency
   
+    // 3. Calculate Global Totals from the filtered list (Aggregate View)
+    const globalTargetMetrics = useMemo(() => {
+        const totalTarget = filteredTargets.reduce((acc, t) => acc + parseFloat(t.amount || t.target_amount || t.value || 0), 0);
+        
+        // Sum of all CLOSED WON deals visible in the current view
+        const totalAchieved = funnelData.aggregate.filteredDeals
+            .filter(d => (d.stage || '').toUpperCase() === 'CLOSED_WON')
+            .reduce((acc, d) => acc + parseFloat(d.amount || 0), 0);
+            
+        const progress = totalTarget > 0 ? (totalAchieved / totalTarget) * 100 : 0;
+        
+        return { totalTarget, totalAchieved, progress };
+    }, [filteredTargets, funnelData]);
+
     const activeTableData = useMemo(() => {
       if (selectedStage === 'ALL') return []; 
       return funnelData.aggregate.metrics[selectedStage]?.items || [];
@@ -459,6 +553,7 @@ const FunnelWidget = ({ leads, deals, currencySymbol }) => {
                          metrics={group.data}
                          stages={funnelData.stages.filter(s => s.key !== 'CLOSED_LOST')} 
                          currencySymbol={currencySymbol}
+                         target={group.target} // ✅ Correct target passed here
                      />
                  ))}
                  {funnelData.userGroups.length === 0 && (
@@ -494,19 +589,43 @@ const FunnelWidget = ({ leads, deals, currencySymbol }) => {
                         />
                       );
                   })}
-                  <div className="mt-4 pt-4 border-t border-gray-100 grid grid-cols-2 gap-2 text-center">
-                       <div>
-                           <p className="text-[10px] text-gray-400 uppercase font-bold">Pipeline Value</p>
-                           <p className="text-lg font-bold text-gray-800">
-                               {formatCurrency(funnelData.aggregate.filteredDeals.reduce((a, b) => a + parseFloat(b.amount || 0), 0), currencySymbol)}
-                           </p>
-                       </div>
-                       <div>
-                           <p className="text-[10px] text-blue-500 uppercase font-bold">Weighted Forecast</p>
-                           <p className="text-lg font-bold text-blue-600">
-                               {formatCurrency(funnelData.aggregate.filteredDeals.reduce((a, b) => a + (parseFloat(b.amount || 0) * ((b.probability||0)/100)), 0), currencySymbol)}
-                           </p>
-                       </div>
+                  
+                  {/* --- NEW: GLOBAL TARGET METRIC BAR (Dynamic Sum of Visible Targets) --- */}
+                  <div className="mt-4 pt-4 border-t border-gray-100">
+                        <div className="grid grid-cols-2 gap-2 text-center mb-3">
+                            <div>
+                               <p className="text-[10px] text-gray-400 uppercase font-bold">Pipeline Value</p>
+                               <p className="text-md font-bold text-gray-800">
+                                   {formatCurrency(funnelData.aggregate.filteredDeals.reduce((a, b) => a + parseFloat(b.amount || 0), 0), currencySymbol)}
+                               </p>
+                            </div>
+                            <div>
+                               <p className="text-[10px] text-blue-500 uppercase font-bold">Forecast</p>
+                               <p className="text-md font-bold text-blue-600">
+                                   {formatCurrency(funnelData.aggregate.filteredDeals.reduce((a, b) => a + (parseFloat(b.amount || 0) * ((b.probability||0)/100)), 0), currencySymbol)}
+                               </p>
+                            </div>
+                        </div>
+
+                        {/* Total Target Progress Bar */}
+                        <div className="bg-gray-50 p-2 rounded-lg border border-gray-100">
+                            <div className="flex justify-between items-center text-[10px] mb-1">
+                                <span className="font-bold text-gray-600 flex items-center"><FiTarget className="mr-1"/> Total Target</span>
+                                <span className={globalTargetMetrics.progress >= 100 ? "text-green-600 font-bold" : "text-blue-600 font-bold"}>
+                                    {globalTargetMetrics.progress.toFixed(0)}%
+                                </span>
+                            </div>
+                            <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden mb-1">
+                                <div 
+                                    className={`h-full rounded-full transition-all duration-1000 ${globalTargetMetrics.progress >= 100 ? 'bg-green-500' : 'bg-blue-500'}`} 
+                                    style={{ width: `${Math.min(globalTargetMetrics.progress, 100)}%` }}
+                                ></div>
+                            </div>
+                            <div className="flex justify-between text-[9px] text-gray-400">
+                                <span>Achieved: <span className="text-gray-700 font-medium">{formatCurrency(globalTargetMetrics.totalAchieved, currencySymbol)}</span></span>
+                                <span>Goal: {formatCurrency(globalTargetMetrics.totalTarget, currencySymbol)}</span>
+                            </div>
+                        </div>
                    </div>
                </div>
   

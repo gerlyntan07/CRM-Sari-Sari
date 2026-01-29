@@ -1,8 +1,8 @@
-"""reset to clean start
+"""db cleanup
 
-Revision ID: 0c70503ba41b
+Revision ID: a9c3268d6633
 Revises: 
-Create Date: 2025-12-18 08:44:55.615969
+Create Date: 2026-01-29 14:15:50.106237
 
 """
 from typing import Sequence, Union
@@ -12,7 +12,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = '0c70503ba41b'
+revision: str = 'a9c3268d6633'
 down_revision: Union[str, Sequence[str], None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -27,6 +27,8 @@ def upgrade() -> None:
     sa.Column('company_number', sa.String(), nullable=False),
     sa.Column('company_website', sa.String(), nullable=True),
     sa.Column('company_logo', sa.String(), nullable=True),
+    sa.Column('currency', sa.String(), nullable=True),
+    sa.Column('quota_period', sa.String(), nullable=True),
     sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=True),
     sa.Column('updated_at', sa.DateTime(timezone=True), nullable=True),
     sa.PrimaryKeyConstraint('id')
@@ -80,6 +82,7 @@ def upgrade() -> None:
     sa.Column('new_data', sa.JSON(), nullable=True),
     sa.Column('ip_address', sa.String(), nullable=True),
     sa.Column('success', sa.Boolean(), nullable=True),
+    sa.Column('is_read', sa.Boolean(), nullable=True),
     sa.Column('timestamp', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=True),
     sa.Column('updated_at', sa.DateTime(timezone=True), nullable=True),
     sa.ForeignKeyConstraint(['user_id'], ['users.id'], ondelete='SET NULL'),
@@ -92,6 +95,9 @@ def upgrade() -> None:
     sa.Column('target_amount', sa.Numeric(precision=14, scale=2), nullable=False),
     sa.Column('start_date', sa.Date(), nullable=False),
     sa.Column('end_date', sa.Date(), nullable=False),
+    sa.Column('period_type', sa.String(length=20), nullable=False),
+    sa.Column('period_year', sa.Integer(), nullable=True),
+    sa.Column('period_number', sa.Integer(), nullable=True),
     sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
     sa.Column('updated_at', sa.DateTime(timezone=True), nullable=True),
     sa.ForeignKeyConstraint(['user_id'], ['users.id'], ondelete='CASCADE'),
@@ -99,6 +105,8 @@ def upgrade() -> None:
     )
     op.create_index(op.f('ix_targets_end_date'), 'targets', ['end_date'], unique=False)
     op.create_index(op.f('ix_targets_id'), 'targets', ['id'], unique=False)
+    op.create_index(op.f('ix_targets_period_type'), 'targets', ['period_type'], unique=False)
+    op.create_index(op.f('ix_targets_period_year'), 'targets', ['period_year'], unique=False)
     op.create_index(op.f('ix_targets_start_date'), 'targets', ['start_date'], unique=False)
     op.create_index(op.f('ix_targets_user_id'), 'targets', ['user_id'], unique=False)
     op.create_table('territories',
@@ -120,6 +128,7 @@ def upgrade() -> None:
     op.create_table('accounts',
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('name', sa.String(), nullable=False),
+    sa.Column('parent_company', sa.String(), nullable=True),
     sa.Column('website', sa.String(), nullable=True),
     sa.Column('phone_number', sa.String(), nullable=True),
     sa.Column('billing_address', sa.String(), nullable=True),
@@ -179,6 +188,7 @@ def upgrade() -> None:
     sa.Column('mobile_phone_1', sa.String(length=20), nullable=True),
     sa.Column('mobile_phone_2', sa.String(length=20), nullable=True),
     sa.Column('notes', sa.String(), nullable=True),
+    sa.Column('status', sa.String(), nullable=True),
     sa.Column('assigned_to', sa.Integer(), nullable=True),
     sa.Column('created_by', sa.Integer(), nullable=True),
     sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=True),
@@ -202,6 +212,7 @@ def upgrade() -> None:
     sa.Column('currency', sa.String(length=3), nullable=True),
     sa.Column('close_date', sa.DateTime(), nullable=True),
     sa.Column('probability', sa.Integer(), nullable=True),
+    sa.Column('stage_updated_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=True),
     sa.Column('description', sa.String(), nullable=True),
     sa.Column('assigned_to', sa.Integer(), nullable=True),
     sa.Column('created_by', sa.Integer(), nullable=True),
@@ -275,7 +286,14 @@ def upgrade() -> None:
     sa.Column('presented_date', sa.Date(), nullable=True),
     sa.Column('validity_days', sa.Integer(), nullable=True),
     sa.Column('status', sa.String(), nullable=False),
+    sa.Column('subtotal', sa.Numeric(precision=12, scale=2), nullable=True),
+    sa.Column('tax_rate', sa.Numeric(precision=5, scale=2), nullable=True),
+    sa.Column('tax_amount', sa.Numeric(precision=12, scale=2), nullable=True),
+    sa.Column('discount_type', sa.String(length=20), nullable=True),
+    sa.Column('discount_value', sa.Numeric(precision=12, scale=2), nullable=True),
+    sa.Column('discount_amount', sa.Numeric(precision=12, scale=2), nullable=True),
     sa.Column('total_amount', sa.Numeric(precision=12, scale=2), nullable=False),
+    sa.Column('currency', sa.String(length=3), nullable=False),
     sa.Column('notes', sa.String(), nullable=True),
     sa.Column('assigned_to', sa.Integer(), nullable=True),
     sa.Column('created_by', sa.Integer(), nullable=False),
@@ -314,12 +332,62 @@ def upgrade() -> None:
     sa.PrimaryKeyConstraint('id')
     )
     op.create_index(op.f('ix_tasks_id'), 'tasks', ['id'], unique=False)
+    op.create_table('comments',
+    sa.Column('id', sa.Integer(), nullable=False),
+    sa.Column('comment', sa.String(), nullable=True),
+    sa.Column('comment_by', sa.Integer(), nullable=True),
+    sa.Column('related_to_account', sa.Integer(), nullable=True),
+    sa.Column('related_to_contact', sa.Integer(), nullable=True),
+    sa.Column('related_to_deal', sa.Integer(), nullable=True),
+    sa.Column('related_to_task', sa.Integer(), nullable=True),
+    sa.Column('related_to_meeting', sa.Integer(), nullable=True),
+    sa.Column('related_to_call', sa.Integer(), nullable=True),
+    sa.Column('related_to_quote', sa.Integer(), nullable=True),
+    sa.Column('is_private', sa.Boolean(), nullable=True),
+    sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=True),
+    sa.Column('updated_at', sa.DateTime(timezone=True), nullable=True),
+    sa.ForeignKeyConstraint(['comment_by'], ['users.id'], ondelete='SET NULL'),
+    sa.ForeignKeyConstraint(['related_to_account'], ['accounts.id'], ondelete='CASCADE'),
+    sa.ForeignKeyConstraint(['related_to_call'], ['calls.id'], ondelete='CASCADE'),
+    sa.ForeignKeyConstraint(['related_to_contact'], ['contacts.id'], ondelete='CASCADE'),
+    sa.ForeignKeyConstraint(['related_to_deal'], ['deals.id'], ondelete='CASCADE'),
+    sa.ForeignKeyConstraint(['related_to_meeting'], ['meetings.id'], ondelete='CASCADE'),
+    sa.ForeignKeyConstraint(['related_to_quote'], ['quotes.id'], ondelete='CASCADE'),
+    sa.ForeignKeyConstraint(['related_to_task'], ['tasks.id'], ondelete='CASCADE'),
+    sa.PrimaryKeyConstraint('id')
+    )
+    op.create_index(op.f('ix_comments_id'), 'comments', ['id'], unique=False)
+    op.create_table('quote_items',
+    sa.Column('id', sa.Integer(), nullable=False),
+    sa.Column('quote_id', sa.Integer(), nullable=False),
+    sa.Column('item_type', sa.String(length=20), nullable=False),
+    sa.Column('name', sa.String(length=255), nullable=False),
+    sa.Column('description', sa.Text(), nullable=True),
+    sa.Column('sku', sa.String(length=50), nullable=True),
+    sa.Column('variant', sa.String(length=100), nullable=True),
+    sa.Column('unit', sa.String(length=50), nullable=True),
+    sa.Column('quantity', sa.Numeric(precision=10, scale=2), nullable=False),
+    sa.Column('unit_price', sa.Numeric(precision=12, scale=2), nullable=False),
+    sa.Column('discount_percent', sa.Numeric(precision=5, scale=2), nullable=True),
+    sa.Column('discount_amount', sa.Numeric(precision=12, scale=2), nullable=True),
+    sa.Column('line_total', sa.Numeric(precision=12, scale=2), nullable=False),
+    sa.Column('sort_order', sa.Integer(), nullable=True),
+    sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=True),
+    sa.Column('updated_at', sa.DateTime(timezone=True), nullable=True),
+    sa.ForeignKeyConstraint(['quote_id'], ['quotes.id'], ondelete='CASCADE'),
+    sa.PrimaryKeyConstraint('id')
+    )
+    op.create_index(op.f('ix_quote_items_id'), 'quote_items', ['id'], unique=False)
     # ### end Alembic commands ###
 
 
 def downgrade() -> None:
     """Downgrade schema."""
     # ### commands auto generated by Alembic - please adjust! ###
+    op.drop_index(op.f('ix_quote_items_id'), table_name='quote_items')
+    op.drop_table('quote_items')
+    op.drop_index(op.f('ix_comments_id'), table_name='comments')
+    op.drop_table('comments')
     op.drop_index(op.f('ix_tasks_id'), table_name='tasks')
     op.drop_table('tasks')
     op.drop_index(op.f('ix_quotes_quote_id'), table_name='quotes')
@@ -349,6 +417,8 @@ def downgrade() -> None:
     op.drop_table('territories')
     op.drop_index(op.f('ix_targets_user_id'), table_name='targets')
     op.drop_index(op.f('ix_targets_start_date'), table_name='targets')
+    op.drop_index(op.f('ix_targets_period_year'), table_name='targets')
+    op.drop_index(op.f('ix_targets_period_type'), table_name='targets')
     op.drop_index(op.f('ix_targets_id'), table_name='targets')
     op.drop_index(op.f('ix_targets_end_date'), table_name='targets')
     op.drop_table('targets')

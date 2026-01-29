@@ -78,7 +78,7 @@ app.include_router(ws_notification.router)
 app.include_router(activities_router.router, prefix='/api')
 
 # === Database initialization ===
-Base.metadata.create_all(bind=engine)
+#Base.metadata.create_all(bind=engine)
 
 # === CORS setup ===
 origins = [

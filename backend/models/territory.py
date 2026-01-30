@@ -2,6 +2,11 @@
 from sqlalchemy import Column, Integer, String, DateTime, func, ForeignKey, UniqueConstraint
 from sqlalchemy.orm import relationship
 from database import Base
+from enum import Enum
+
+class TerritoryStatus(str, Enum):
+    ACTIVE = 'Active'
+    INACTIVE = 'Inactive'
 
 class Territory(Base):
     __tablename__ = "territories"
@@ -17,6 +22,7 @@ class Territory(Base):
     user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=True)
     
     company_id = Column(Integer, ForeignKey("companies.id", ondelete="CASCADE"), nullable=False)
+    status = Column(String, default=TerritoryStatus.ACTIVE.value, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 

@@ -10,6 +10,7 @@ class LeadStatus(str, Enum):
     QUALIFIED = 'Qualified'
     LOST = 'Lost'
     CONVERTED = 'Converted'
+    INACTIVE = 'Inactive'
 
 class Lead(Base):
     __tablename__ = "leads"

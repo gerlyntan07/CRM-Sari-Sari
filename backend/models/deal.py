@@ -29,6 +29,10 @@ STAGE_PROBABILITY_MAP = {
 
 }
 
+class DealStatus(str, Enum):
+    ACTIVE = 'Active'
+    INACTIVE = 'Inactive'
+
 
 class Deal(Base):
     __tablename__ = "deals"
@@ -48,6 +52,7 @@ class Deal(Base):
     stage_updated_at = Column(DateTime(timezone=True), server_default=func.now())
     description = Column(String, nullable=True)
 
+    status = Column(String, default=DealStatus.ACTIVE.value, nullable=True)
     assigned_to = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     created_by = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
 

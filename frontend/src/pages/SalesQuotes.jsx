@@ -16,10 +16,8 @@ import api from "../api.js";
 import PaginationControls from "../components/PaginationControls.jsx";
 import LoadingSpinner from "../components/LoadingSpinner.jsx";
 import QuoteItemsEditor from "../components/QuoteItemsEditor.jsx";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import useFetchUser from "../hooks/useFetchUser"; // ✅ Import User Hook
-
-const ITEMS_PER_PAGE = 10;
 
 const STATUS_OPTIONS = [
   { value: "Draft", label: "Draft" },
@@ -157,6 +155,7 @@ const computeExpiryDate = (presented_date, validity_days) => {
   return base.toISOString().slice(0, 10);
 };
 
+// --------- Format deal_id to hide company ID ----------
 const formatDealId = (dealId) => {
   if (!dealId) return "";
   // Convert D25-1-00001 to D25-00001 (remove middle company ID)
@@ -247,7 +246,7 @@ const extractDealContactId = (deal) => {
   return found ? String(found) : "";
 };
 
-export default function SalesQuotes() {
+export default function AdminQuotes() {
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -288,6 +287,7 @@ export default function SalesQuotes() {
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const [activeTab, setActiveTab] = useState("Overview");
   const [selectedStatus, setSelectedStatus] = useState("Draft");
+  const [selectedIds, setSelectedIds] = useState([]);
   const [pendingQuoteId, setPendingQuoteId] = useState(null);
 
   useEffect(() => {
@@ -313,20 +313,6 @@ export default function SalesQuotes() {
       }
     }, [pendingQuoteId, contacts, quotesLoading]);
 
-  const [currentUser, setCurrentUser] = useState(null);
-
-  useEffect(() => {
-    async function fetchCurrentUser() {
-      try {
-        const res = await api.get("/auth/me"); // or your endpoint
-        setCurrentUser(res.data);
-      } catch (err) {
-        console.error(err);
-      }
-    }
-    fetchCurrentUser();
-  }, []);
-
   // Resolve current user id
   useEffect(() => {
     let mounted = true;
@@ -340,6 +326,15 @@ export default function SalesQuotes() {
 
       try {
         const res = await api.get("/auth/me");
+        const id = tryExtractUserId(res?.data);
+        if (id && mounted) {
+          setCurrentUserId(id);
+          return;
+        }
+      } catch {}
+
+      try {
+        const res = await api.get("/users/me");
         const id = tryExtractUserId(res?.data);
         if (id && mounted) {
           setCurrentUserId(id);
@@ -696,13 +691,6 @@ export default function SalesQuotes() {
     setIsEditing(false);
     setCurrentQuoteId(null);
     setShowModal(true);
-
-    if (currentUser?.role === "Sales") {
-      setFormData((prev) => ({
-        ...prev,
-        assigned_to: currentUser.id,
-      }));
-    }
   };
 
   const handleEditClick = (quote) => {
@@ -750,11 +738,54 @@ export default function SalesQuotes() {
       status: normalizeStatus(quote.status) || "Draft",
       assigned_to: assignedToId,
       notes: quote.notes || "",
+      // New pricing fields
+      subtotal: parseFloat(quote.subtotal) || 0,
+      tax_rate: parseFloat(quote.tax_rate) || 0,
+      tax_amount: parseFloat(quote.tax_amount) || 0,
+      discount_type: quote.discount_type || "",
+      discount_value: parseFloat(quote.discount_value) || 0,
+      discount_amount: parseFloat(quote.discount_amount) || 0,
+      currency: quote.currency || "PHP",
+      // Line items
+      items: Array.isArray(quote.items) ? quote.items.map(item => ({
+        id: item.id,
+        item_type: item.item_type || "Product",
+        name: item.name || "",
+        description: item.description || "",
+        sku: item.sku || "",
+        variant: item.variant || "",
+        unit: item.unit || "pcs",
+        quantity: parseFloat(item.quantity) || 1,
+        unit_price: parseFloat(item.unit_price) || 0,
+        discount_percent: parseFloat(item.discount_percent) || 0,
+        discount_amount: parseFloat(item.discount_amount) || 0,
+        line_total: parseFloat(item.line_total) || 0,
+        sort_order: item.sort_order || 0,
+      })) : [],
     });
 
     setIsEditing(true);
     setCurrentQuoteId(quote.id);
     setShowModal(true);
+  };
+
+  const handleSelectAll = (e) => {
+    if (e.target.checked) {
+      const allIds = paginatedQuotes.map((item) => item.id);
+      setSelectedIds(allIds);
+    } else {
+      setSelectedIds([]);
+    }
+  };
+
+  const handleCheckboxChange = (id) => {
+    setSelectedIds((prev) => {
+      if (prev.includes(id)) {
+        return prev.filter((prevId) => prevId !== id);
+      } else {
+        return [...prev, id];
+      }
+    });
   };
 
   const handleDelete = (quote) => {
@@ -776,11 +807,33 @@ export default function SalesQuotes() {
     });
   };
 
-    //validation 
-  const [isSubmitted, setIsSubmitted] = useState(false);
+  const handleBulkDelete = async () => {
+    if (selectedIds.length === 0) return;
+
+    setConfirmModalData({
+      title: "Delete Quotes",
+      message: (
+        <span>
+          Are you sure you want to delete{" "}
+          <span className="font-semibold">{selectedIds.length}</span> selected
+          quotes? This action cannot be undone.
+        </span>
+      ),
+      confirmLabel: `Delete ${selectedIds.length} Quote(s)`,
+      cancelLabel: "Cancel",
+      variant: "danger",
+      action: {
+        type: "bulk-delete",
+        quote_ids: selectedIds,
+      },
+    });
+  };
+
+//validation 
+const [isSubmitted, setIsSubmitted] = useState(false);
   const handleSubmit = (e) => {
     e.preventDefault();
-    setIsSubmitted(true);
+    setIsSubmitted(true);  
 
     if (!currentUserId) {
       toast.error("Unable to determine current user. Please log in again.");
@@ -798,19 +851,55 @@ export default function SalesQuotes() {
             return;
           }
 
+
+   {/* if (!formData.total_amount || Number(formData.total_amount) <= 0) {
+      toast.error("Total amount must be greater than 0.");
+      return;
+    }
+
+    if (formData.validity_days !== "" && Number(formData.validity_days) < 0) {
+      toast.error("Validity days must be 0 or higher.");
+      return;
+    } */}
+
     const derived = deriveAccountAndContactFromDealId(formData.deal_id);
+
+    // Prepare items for API (strip temporary fields, ensure proper format)
+    const preparedItems = formData.items.map((item, idx) => ({
+      item_type: item.item_type || "Product",
+      name: item.name,
+      description: item.description || null,
+      sku: item.sku || null,
+      variant: item.variant || null,
+      unit: item.unit || null,
+      quantity: parseFloat(item.quantity) || 1,
+      unit_price: parseFloat(item.unit_price) || 0,
+      discount_percent: parseFloat(item.discount_percent) || 0,
+      sort_order: item.sort_order ?? idx,
+    }));
 
     const basePayload = {
       deal_id: Number(formData.deal_id),
       account_id: derived.accountId ? Number(derived.accountId) : null,
       contact_id: derived.contactId ? Number(derived.contactId) : null,
-      total_amount: Number(formData.total_amount),
+      // Pricing fields
+      subtotal: parseFloat(formData.subtotal) || 0,
+      tax_rate: parseFloat(formData.tax_rate) || 0,
+      tax_amount: parseFloat(formData.tax_amount) || 0,
+      discount_type: formData.discount_type || null,
+      discount_value: parseFloat(formData.discount_value) || 0,
+      discount_amount: parseFloat(formData.discount_amount) || 0,
+      total_amount: parseFloat(formData.total_amount) || 0,
+      currency: formData.currency || "PHP",
+      // Other fields
       presented_date: formData.presented_date || null,
       validity_days:
         formData.validity_days === "" ? null : Number(formData.validity_days),
       status: formData.status || "Draft",
       assigned_to: formData.assigned_to ? Number(formData.assigned_to) : null,
       notes: formData.notes?.trim() || null,
+      // Line items (only for create, update handles items separately)
+      items: preparedItems,
     };
 
     const actionType = isEditing && currentQuoteId ? "update" : "create";
@@ -888,6 +977,13 @@ export default function SalesQuotes() {
             : null
         );
         if (currentSelectedId === targetId) setSelectedQuote(null);
+      } else if (type === "bulk-delete") {
+        await api.post("/quotes/admin/bulk-delete", {
+          quote_ids: selectedIds,
+        });
+        toast.success(`Successfully deleted ${selectedIds.length} quotes`);
+        setSelectedIds([]);
+        await fetchQuotes();
       }
     } catch (err) {
       console.error(err);
@@ -1083,7 +1179,7 @@ export default function SalesQuotes() {
         </div>
 
         <div className="p-6 lg:p-4">
-            <div className="flex flex-col md:flex-row md:justify-between lg:flex-row lg:items-center lg:justify-between mt-3 gap-2 px-2 md:items-center lg:gap-4 md:mx-7 lg:mx-7">
+        <div className="flex flex-col md:flex-row md:justify-between lg:flex-row lg:items-center lg:justify-between mt-3 gap-2 px-2 md:items-center lg:gap-4 md:mx-7 lg:mx-7">
   <div className="flex flex-wrap items-center gap-2 sm:gap-3">
     <h1 className="text-xl sm:text-2xl font-semibold text-gray-800">
                 {resolveDealLabel(selectedQuote)}
@@ -1251,6 +1347,21 @@ export default function SalesQuotes() {
                         </p>
                       </div>
                     </div>
+
+                    {/* Line Items Section in Detail View */}
+                    {selectedQuote.items && selectedQuote.items.length > 0 && (
+                      <div className="mt-6">
+                        <QuoteItemsEditor
+                          items={selectedQuote.items}
+                          onChange={() => {}}
+                          currencySymbol={currencySymbol}
+                          readOnly={true}
+                          taxRate={parseFloat(selectedQuote.tax_rate) || 0}
+                          discountType={selectedQuote.discount_type}
+                          discountValue={parseFloat(selectedQuote.discount_value) || 0}
+                        />
+                      </div>
+                    )}
                   </div>
                 )}
 
@@ -1273,7 +1384,7 @@ export default function SalesQuotes() {
                   <div className="flex flex-col gap-2 w-full">
                     <button
                       onClick={() =>
-                        navigate("/sales/calls", {
+                        navigate("/admin/calls", {
                           state: {
                             openCallModal: true,
                             initialCallData: { relatedType1: "Quotes" },
@@ -1289,7 +1400,7 @@ export default function SalesQuotes() {
                     <button
                       className="flex items-center gap-2 border border-gray-100 rounded-md py-1.5 px-2 sm:px-3 hover:bg-gray-50 transition text-sm"
                       onClick={() =>
-                        navigate("/sales/meetings", {
+                        navigate("/admin/meetings", {
                           state: {
                             openMeetingModal: true,
                             initialMeetingData: { relatedType: "Quotes" },
@@ -1303,7 +1414,7 @@ export default function SalesQuotes() {
 
                     <button
                       onClick={() =>
-                        navigate("/sales/tasks", {
+                        navigate("/admin/tasks", {
                           state: {
                             openTaskModal: true,
                             initialTaskData: { relatedTo: "Quotes" },
@@ -1372,17 +1483,17 @@ export default function SalesQuotes() {
           <FiFileText className="mr-2 text-blue-600" /> Quotes
         </h2>
 
-        <div className="flex justify-center lg:justify-end w-full sm:w-auto">
-          <button
-               onClick={() => {
+         <div className="flex justify-center lg:justify-end w-full sm:w-auto gap-2">
+        <button
+            onClick={() => {
           handleOpenAddModal();  // open the modal
           setIsSubmitted(false); // reset all error borders
         }}
-            className="flex items-center bg-black text-white px-3 sm:px-4 py-2 rounded-md hover:bg-gray-800 text-sm sm:text-base mx-auto sm:ml-auto cursor-pointer"
-          >
-            <FiPlus className="mr-2" /> Add Quote
-          </button>
-        </div>
+        className="flex items-center bg-black text-white px-3 sm:px-4 py-2 rounded-md hover:bg-gray-800 text-sm sm:text-base mx-auto sm:ml-auto cursor-pointer"
+        >
+          <FiPlus className="mr-2" /> Add Quote
+        </button>
+      </div>
       </div>
 
       <div className="bg-white rounded-xl p-4 shadow-sm mb-6 flex flex-col lg:flex-row items-center justify-between gap-3 w-full">
@@ -1416,6 +1527,14 @@ export default function SalesQuotes() {
         <table className="w-full min-w-[900px] border border-gray-200 rounded-lg bg-white shadow-sm text-sm">
           <thead className="bg-gray-100 text-left text-gray-600 text-sm tracking-wide font-semibold">
             <tr>
+              <th className="py-3 px-4 w-12">
+                <input
+                  type="checkbox"
+                  checked={paginatedQuotes.length > 0 && selectedIds.length === paginatedQuotes.length}
+                  onChange={handleSelectAll}
+                  className="cursor-pointer"
+                />
+              </th>
               <th className="py-3 px-4">Quote ID</th>
               <th className="py-3 px-4">Deal</th>
               <th className="py-3 px-4">Account</th>
@@ -1424,6 +1543,19 @@ export default function SalesQuotes() {
               <th className="py-3 px-4">Status</th>
               <th className="py-3 px-4">Assigned To</th>
               <th className="py-3 px-4">Expiry Date</th>
+              <th className="py-3 px-4 text-center w-24">
+                {selectedIds.length > 0 ? (
+                  <button
+                    onClick={handleBulkDelete}
+                    className="text-red-600 hover:text-red-800 transition p-1 rounded-full hover:bg-red-50"
+                    title={`Delete ${selectedIds.length} selected items`}
+                  >
+                    <FiTrash2 size={18} />
+                  </button>
+                ) : (
+                  ""
+                )}
+              </th>
             </tr>
           </thead>
 
@@ -1432,7 +1564,7 @@ export default function SalesQuotes() {
               <tr>
                 <td
                   className="py-4 px-4 text-center text-sm text-gray-500"
-                  colSpan={8}
+                  colSpan={10}
                 >
                   Loading quotes...
                 </td>
@@ -1449,6 +1581,14 @@ export default function SalesQuotes() {
                     className="hover:bg-gray-50 text-sm cursor-pointer transition"
                     onClick={() => handleQuoteClick(quote)}
                   >
+                    <td className="py-3 px-4 align-top w-12" onClick={(e) => e.stopPropagation()}>
+                      <input
+                        type="checkbox"
+                        checked={selectedIds.includes(quote.id)}
+                        onChange={() => handleCheckboxChange(quote.id)}
+                        className="cursor-pointer"
+                      />
+                    </td>
                     <td className="py-3 px-4 align-top">
                       <div className="font-medium text-blue-600 hover:underline whitespace-nowrap">
                         {formatQuoteId(quote.quote_id) || "--"}
@@ -1475,7 +1615,7 @@ export default function SalesQuotes() {
 
                     <td className="py-3 px-4 align-top">
                       <div className="text-gray-700">
-                        {/* ✅ Use dynamic currency symbol in List View */}
+                        {/* ✅ Use dynamic currency symbol in Table */}
                         {quote.total_amount
                           ? `${currencySymbol}${Number(quote.total_amount).toLocaleString()}`
                           : "--"}
@@ -1505,6 +1645,7 @@ export default function SalesQuotes() {
                         {formatDate(expiry) || "--"}
                       </div>
                     </td>
+                    <td className="py-3 px-4 align-top text-center w-24"></td>
                   </tr>
                 );
               })
@@ -1512,7 +1653,7 @@ export default function SalesQuotes() {
               <tr>
                 <td
                   className="py-4 px-4 text-center text-sm text-gray-500"
-                  colSpan={8}
+                  colSpan={10}
                 >
                   No quotes found.
                 </td>
@@ -1523,19 +1664,19 @@ export default function SalesQuotes() {
       </div>
 
       <PaginationControls
-        className="mt-4"
-        totalItems={filteredQuotes.length}
-        pageSize={itemsPerPage}
-        currentPage={currentPage}
-        onPrev={handlePrevPage}
-        onNext={handleNextPage}
-        onPageSizeChange={(newSize) => {
-          setItemsPerPage(newSize);
-          setCurrentPage(1);
-        }}
-        pageSizeOptions={[10, 20, 30, 40, 50]}
-        label="quotes"
-      />
+              className="mt-4"
+              totalItems={filteredQuotes.length}
+              pageSize={itemsPerPage}
+              currentPage={currentPage}
+              onPrev={handlePrevPage}
+              onNext={handleNextPage}
+              onPageSizeChange={(newSize) => {
+                setItemsPerPage(newSize);
+                setCurrentPage(1);
+              }}
+              pageSizeOptions={[10, 20, 30, 40, 50]}
+              label="quotes"
+            />
     </div>
   );
 
@@ -1588,7 +1729,7 @@ export default function SalesQuotes() {
               return name;
             }}
             placeholder="Search deal..."
-             required={true}      
+             required={true}                // <-- use required directly
           isSubmitted={isSubmitted}  
             disabled={isSubmitting || deals.length === 0}
             className="md:col-span-2"
@@ -1612,15 +1753,83 @@ export default function SalesQuotes() {
             disabled
           />
 
-          <InputField
-            label="Total Amount"
-            name="total_amount"
-            type="number"
-            value={formData.total_amount}
-            onChange={handleInputChange}
-            placeholder="0.00"
-            disabled={isSubmitting}
-          />
+          {/* Line Items Section */}
+          <div className="md:col-span-2 mt-2">
+            <QuoteItemsEditor
+              items={formData.items}
+              onChange={(newItems) => setFormData((prev) => ({ ...prev, items: newItems }))}
+              currencySymbol={currencySymbol}
+              readOnly={isSubmitting}
+              taxRate={formData.tax_rate}
+              discountType={formData.discount_type}
+              discountValue={formData.discount_value}
+              onTotalsChange={(totals) => {
+                setFormData((prev) => ({
+                  ...prev,
+                  subtotal: totals.subtotal,
+                  discount_amount: totals.discount_amount,
+                  tax_amount: totals.tax_amount,
+                  total_amount: totals.total_amount,
+                }));
+              }}
+            />
+          </div>
+
+          {/* Pricing Settings */}
+          <div className="md:col-span-2 mt-2 p-4 bg-gray-50 rounded-lg">
+            <h4 className="font-medium text-gray-700 mb-3">Pricing Settings</h4>
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+              <div>
+                <label className="block text-gray-600 text-xs mb-1">Discount Type</label>
+                <select
+                  value={formData.discount_type || ""}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, discount_type: e.target.value }))}
+                  className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm"
+                  disabled={isSubmitting}
+                >
+                  <option value="">No Discount</option>
+                  <option value="percentage">Percentage (%)</option>
+                  <option value="fixed">Fixed Amount</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-gray-600 text-xs mb-1">
+                  Discount {formData.discount_type === "percentage" ? "%" : "Amount"}
+                </label>
+                <input
+                  type="number"
+                  value={formData.discount_value || ""}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, discount_value: e.target.value }))}
+                  className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm"
+                  placeholder="0"
+                  min="0"
+                  max={formData.discount_type === "percentage" ? "100" : undefined}
+                  step="0.01"
+                  disabled={isSubmitting || !formData.discount_type}
+                />
+              </div>
+              <div>
+                <label className="block text-gray-600 text-xs mb-1">Tax Rate (%)</label>
+                <input
+                  type="number"
+                  value={formData.tax_rate || ""}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, tax_rate: e.target.value }))}
+                  className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm"
+                  placeholder="0"
+                  min="0"
+                  max="100"
+                  step="0.01"
+                  disabled={isSubmitting}
+                />
+              </div>
+              <div>
+                <label className="block text-gray-600 text-xs mb-1">Total Amount</label>
+                <div className="w-full bg-gray-100 border border-gray-300 rounded-md px-2 py-1.5 text-sm font-medium">
+                  {currencySymbol}{parseFloat(formData.total_amount || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </div>
+              </div>
+            </div>
+          </div>
 
           <InputField
             label="Presented Date"
@@ -1656,7 +1865,7 @@ export default function SalesQuotes() {
             placeholder="Search assignee..."
             required={true}            
              isSubmitted={isSubmitted} 
-            disabled={isSubmitting || currentUser?.role === "Sales"}
+            disabled={isSubmitting}
           />
 
           <SelectField
@@ -1746,12 +1955,12 @@ function InputField({
   className = "",
   isSubmitted = false, 
 }) {
-   const hasError = isSubmitted && !value?.trim();
+  const hasError = isSubmitted && !value?.trim();
 
   return (
     <div className={className}>
       <label className="block text-gray-700 font-medium mb-1 text-sm">
-          {label} {required && <span className="text-red-500">*</span>}
+         {label} {required && <span className="text-red-500">*</span>}
       </label>
       <input
         type={type}
@@ -1761,13 +1970,13 @@ function InputField({
         placeholder={placeholder}
         required={required}
         disabled={disabled}
-        className={`w-full rounded-md px-2 py-1.5 text-sm outline-none border focus:ring-2
+         className={`w-full rounded-md px-2 py-1.5 text-sm outline-none border focus:ring-2
           ${hasError
             ? "border-red-500 focus:ring-red-500"
             : "border-gray-300 focus:ring-blue-400"
           }
           ${className}
-        `}/> 
+        `}/>  
     </div>
   );
 }
@@ -1840,14 +2049,15 @@ function SearchableSelectField({
   placeholder = "Search...",
   disabled = false,
   className = "",
- required = false,
+  required = false,
   isSubmitted = false,
 }) {
-    const hasError = isSubmitted && required && !value;
+  const hasError = isSubmitted && required && !value;
+
   return (
     <div className={className}>
       <label className="block text-gray-700 font-medium mb-1 text-sm">
-       {label} {required && <span className="text-red-500">*</span>}
+        {label} {required && <span className="text-red-500">*</span>}
       </label>
       <SearchableSelect
         items={items}
@@ -1913,7 +2123,7 @@ function SearchableSelect({
           setQ(e.target.value);
           if (!open) setOpen(true);
         }}
-         className={`w-full border rounded-md px-2 py-1.5 text-sm outline-none focus:ring-2 disabled:bg-gray-100
+ className={`w-full border rounded-md px-2 py-1.5 text-sm outline-none focus:ring-2
           ${hasError
             ? "border-red-500 focus:ring-red-500"
             : "border-gray-300 focus:ring-blue-400"

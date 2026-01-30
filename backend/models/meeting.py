@@ -8,6 +8,7 @@ class MeetingStatus(str, enum.Enum):
     PLANNED = 'Planned'
     HELD = 'Held'
     NOT_HELD = 'Not held'
+    INACTIVE = 'Inactive'
 
 class Meeting(Base):
     __tablename__ = "meetings"

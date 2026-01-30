@@ -8,6 +8,7 @@ class StatusCategory(str, enum.Enum):
     COMPLETED = "Completed"
     DEFERRED = "Deferred"
     NOT_STARTED = "Not started"
+    INACTIVE = "Inactive"
 class PriorityCategory(str, enum.Enum):
     LOW = "Low"
     NORMAL = "Normal"

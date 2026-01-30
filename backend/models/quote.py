@@ -13,6 +13,7 @@ class QuoteStatus(str, Enum):
     PRESENTED = 'Presented'
     ACCEPTED = 'Accepted'
     REJECTED = 'Rejected'
+    INACTIVE = 'Inactive'
 
 
 class ItemType(str, Enum):

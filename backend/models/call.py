@@ -10,7 +10,8 @@ class CallDirection(str, enum.Enum):
 class CallStatus(str, enum.Enum):
     PLANNED = "Planned"
     HELD = "Held"
-    NOT_HELD = "Not held"
+    NOT_HELD = "Not held"    
+    INACTIVE = "Inactive"
 
 class Call(Base):
     __tablename__ = "calls"

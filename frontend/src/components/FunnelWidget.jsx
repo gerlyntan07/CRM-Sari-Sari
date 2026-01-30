@@ -1,11 +1,30 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { 
   FiFilter, FiLayout, FiMail, 
-  FiArrowDown, FiArrowUp, FiDownload, FiPhone, FiUser, FiTarget, FiActivity, FiXCircle, FiCheckCircle
+  FiArrowDown, FiArrowUp, FiDownload, FiPhone, FiUser, FiTarget, 
+  FiActivity, FiXCircle, FiCheckCircle, FiMove 
 } from "react-icons/fi"; 
 import { useNavigate } from 'react-router-dom';
 
-// --- Local Helpers ---
+// --- NEW IMPORTS FOR DRAG AND DROP ---
+import {
+  DndContext, 
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  rectSortingStrategy,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+
+// --- Local Helpers (Unchanged) ---
 const formatCurrency = (amount, symbol = "₱") => {
   return `${symbol} ${new Intl.NumberFormat('en-US', { minimumFractionDigits: 0 }).format(amount || 0)}`;
 };
@@ -88,37 +107,77 @@ const FunnelBar = ({ label, count, value, width, color, onClick, isActive, isLea
   </div>
 );
 
-const UserComparisonCard = ({ user, metrics, stages, currencySymbol, target }) => {
+// --- NEW: Sortable Wrapper Component ---
+const SortableUserItem = ({ id, children }) => {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging
+  } = useSortable({ id: id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    zIndex: isDragging ? 50 : 'auto',
+    opacity: isDragging ? 0.5 : 1,
+    position: 'relative', // Ensure positioning context
+  };
+
+  return (
+    <div ref={setNodeRef} style={style} className="h-full">
+       {/* Pass drag handlers to the child component */}
+       {React.cloneElement(children, { dragHandleProps: { ...attributes, ...listeners } })}
+    </div>
+  );
+};
+
+const UserComparisonCard = ({ user, metrics, stages, currencySymbol, target, dragHandleProps }) => {
     const weightedForecast = metrics.filteredDeals.reduce((a, b) => a + (parseFloat(b.amount || 0) * ((b.probability||0)/100)), 0);
     const closedWonAmount = metrics.metrics['CLOSED_WON']?.value || 0;
     const closedLostAmount = metrics.metrics['CLOSED_LOST']?.value || 0;
     
-    // Win Rate Calculation (Won / (Won + Lost))
     const totalClosed = metrics.metrics['CLOSED_WON'].count + metrics.metrics['CLOSED_LOST'].count;
     const winRate = totalClosed > 0 
         ? ((metrics.metrics['CLOSED_WON'].count / totalClosed) * 100).toFixed(0)
         : 0;
     
-    // Target Progress Calculation
     const progress = target > 0 ? (closedWonAmount / target) * 100 : 0;
 
     return (
-        <div className="bg-white p-4 rounded-xl shadow-md border border-gray-100 flex flex-col h-full hover:shadow-lg transition-shadow">
+        <div className="bg-white p-4 rounded-xl shadow-md border border-gray-100 flex flex-col h-full hover:shadow-lg transition-shadow relative group">
+            
+            {/* Header Section with Drag Handle */}
             <div className="flex flex-col mb-4 pb-4 border-b border-gray-100">
-                <div className="flex items-center mb-2">
-                    <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold mr-3 flex-shrink-0">
-                        {user.name.charAt(0)}
-                    </div>
-                    <div>
-                        <h4 className="font-bold text-gray-800 text-sm">{user.name}</h4>
-                        <div className="flex gap-2 text-[10px] mt-1">
-                            <span className="text-green-600 bg-green-50 px-1.5 py-0.5 rounded border border-green-100">Win: {winRate}%</span>
-                            <span className="text-red-600 bg-red-50 px-1.5 py-0.5 rounded border border-red-100">Lost: {formatCurrency(closedLostAmount, currencySymbol)}</span>
+                <div className="flex items-start justify-between mb-2">
+                    <div className="flex items-center">
+                        <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold mr-3 flex-shrink-0">
+                            {user.name.charAt(0)}
+                        </div>
+                        <div>
+                            <h4 className="font-bold text-gray-800 text-sm">{user.name}</h4>
+                            <div className="flex gap-2 text-[10px] mt-1">
+                                <span className="text-green-600 bg-green-50 px-1.5 py-0.5 rounded border border-green-100">Win: {winRate}%</span>
+                                <span className="text-red-600 bg-red-50 px-1.5 py-0.5 rounded border border-red-100">Lost: {formatCurrency(closedLostAmount, currencySymbol)}</span>
+                            </div>
                         </div>
                     </div>
+                    
+                    {/* --- DRAG HANDLE --- */}
+                    {dragHandleProps && (
+                        <button 
+                            {...dragHandleProps} 
+                            className="p-1.5 text-gray-300 hover:text-blue-500 hover:bg-blue-50 rounded-md cursor-grab active:cursor-grabbing transition-colors touch-none"
+                            title="Drag to reorder"
+                        >
+                            <FiMove size={16} />
+                        </button>
+                    )}
                 </div>
 
-                {/* --- INDIVIDUAL TARGET PROGRESS --- */}
+                {/* Target Progress */}
                 {target > 0 ? (
                     <div className="w-full mt-2 bg-gray-50 p-2 rounded-lg border border-gray-100">
                         <div className="flex justify-between items-center text-[10px] text-gray-500 mb-1">
@@ -175,190 +234,199 @@ const UserComparisonCard = ({ user, metrics, stages, currencySymbol, target }) =
     );
 };
 
+// ... [DetailTable Component remains exactly the same as before] ...
 const DetailTable = ({ data, stageKey, currencySymbol }) => {
-  const navigate = useNavigate();
-  const [sortConfig, setSortConfig] = useState({ key: null, direction: 'desc' });
-
-  const isLeadStage = stageKey === 'LEADS';
-  const isClosedWon = stageKey === 'CLOSED_WON';
-  const isClosedLost = stageKey === 'CLOSED_LOST';
-  const isActiveDeal = !isLeadStage && !isClosedWon && !isClosedLost;
-
-  const sortedData = useMemo(() => {
-    if (!sortConfig.key) return data;
-    return [...data].sort((a, b) => {
-      let aVal = a[sortConfig.key];
-      let bVal = b[sortConfig.key];
-      if (sortConfig.key === 'amount' || sortConfig.key === 'probability') {
-         aVal = parseFloat(a[sortConfig.key] || 0);
-         bVal = parseFloat(b[sortConfig.key] || 0);
-      }
-      if (aVal < bVal) return sortConfig.direction === 'asc' ? -1 : 1;
-      if (aVal > bVal) return sortConfig.direction === 'asc' ? 1 : -1;
-      return 0;
-    });
-  }, [data, sortConfig]);
-
-  const handleSort = (key) => {
-    setSortConfig({
-      key,
-      direction: sortConfig.key === key && sortConfig.direction === 'desc' ? 'asc' : 'desc'
-    });
-  };
-
-  const SortIcon = ({ columnKey }) => {
-    if (sortConfig.key !== columnKey) return <FiArrowDown className="inline ml-1 opacity-0 group-hover:opacity-30" />;
-    return sortConfig.direction === 'asc' 
-      ? <FiArrowUp className="inline ml-1 text-blue-600" /> 
-      : <FiArrowDown className="inline ml-1 text-blue-600" />;
-  };
-
-  if (!data || data.length === 0) {
+    const navigate = useNavigate();
+    const [sortConfig, setSortConfig] = useState({ key: null, direction: 'desc' });
+  
+    const isLeadStage = stageKey === 'LEADS';
+    const isClosedWon = stageKey === 'CLOSED_WON';
+    const isClosedLost = stageKey === 'CLOSED_LOST';
+    const isActiveDeal = !isLeadStage && !isClosedWon && !isClosedLost;
+  
+    const sortedData = useMemo(() => {
+      if (!sortConfig.key) return data;
+      return [...data].sort((a, b) => {
+        let aVal = a[sortConfig.key];
+        let bVal = b[sortConfig.key];
+        if (sortConfig.key === 'amount' || sortConfig.key === 'probability') {
+           aVal = parseFloat(a[sortConfig.key] || 0);
+           bVal = parseFloat(b[sortConfig.key] || 0);
+        }
+        if (aVal < bVal) return sortConfig.direction === 'asc' ? -1 : 1;
+        if (aVal > bVal) return sortConfig.direction === 'asc' ? 1 : -1;
+        return 0;
+      });
+    }, [data, sortConfig]);
+  
+    const handleSort = (key) => {
+      setSortConfig({
+        key,
+        direction: sortConfig.key === key && sortConfig.direction === 'desc' ? 'asc' : 'desc'
+      });
+    };
+  
+    const SortIcon = ({ columnKey }) => {
+      if (sortConfig.key !== columnKey) return <FiArrowDown className="inline ml-1 opacity-0 group-hover:opacity-30" />;
+      return sortConfig.direction === 'asc' 
+        ? <FiArrowUp className="inline ml-1 text-blue-600" /> 
+        : <FiArrowDown className="inline ml-1 text-blue-600" />;
+    };
+  
+    if (!data || data.length === 0) {
+      return (
+        <div className="h-full flex flex-col items-center justify-center text-gray-400 bg-gray-50 rounded-xl border-2 border-dashed border-gray-200">
+          <FiLayout size={48} className="mb-4 opacity-50" />
+          <p className="font-medium">No records in this stage</p>
+        </div>
+      );
+    }
+  
     return (
-      <div className="h-full flex flex-col items-center justify-center text-gray-400 bg-gray-50 rounded-xl border-2 border-dashed border-gray-200">
-        <FiLayout size={48} className="mb-4 opacity-50" />
-        <p className="font-medium">No records in this stage</p>
-      </div>
-    );
-  }
-
-  return (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden flex flex-col h-full">
-      <div className="overflow-x-auto flex-grow">
-        <table className="w-full text-left border-collapse">
-          <thead className="bg-gray-50 sticky top-0 z-10">
-            <tr>
-              <th className="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider cursor-pointer group" onClick={() => handleSort('name')}>
-                Name <SortIcon columnKey="name"/>
-              </th>
-              <th className="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Company</th>
-              {isLeadStage && <th className="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Contact Info</th>}
-              
-              {/* Active Deal Columns */}
-              {isActiveDeal && (
-                <>
-                  <th className="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-right cursor-pointer group" onClick={() => handleSort('amount')}>
-                    Value <SortIcon columnKey="amount"/>
-                  </th>
-                  <th className="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-center cursor-pointer group" onClick={() => handleSort('probability')}>
-                    Prob. <SortIcon columnKey="probability"/>
-                  </th>
-                  <th className="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-center">Age</th>
-                </>
-              )}
-
-              {/* Closed Won Columns */}
-              {isClosedWon && (
-                  <th className="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-right text-green-600 cursor-pointer group" onClick={() => handleSort('amount')}>
-                    Booked <SortIcon columnKey="amount"/>
-                  </th>
-              )}
-
-              {/* Closed Lost Columns - NEW */}
-              {isClosedLost && (
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden flex flex-col h-full">
+        <div className="overflow-x-auto flex-grow">
+          <table className="w-full text-left border-collapse">
+            <thead className="bg-gray-50 sticky top-0 z-10">
+              <tr>
+                <th className="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider cursor-pointer group" onClick={() => handleSort('name')}>
+                  Name <SortIcon columnKey="name"/>
+                </th>
+                <th className="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Company</th>
+                {isLeadStage && <th className="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Contact Info</th>}
+                
+                {/* Active Deal Columns */}
+                {isActiveDeal && (
                   <>
-                    <th className="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-right text-red-600 cursor-pointer group" onClick={() => handleSort('amount')}>
-                        Lost Value <SortIcon columnKey="amount"/>
+                    <th className="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-right cursor-pointer group" onClick={() => handleSort('amount')}>
+                      Value <SortIcon columnKey="amount"/>
                     </th>
-                    <th className="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-center">
-                        Lost Date
+                    <th className="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-center cursor-pointer group" onClick={() => handleSort('probability')}>
+                      Prob. <SortIcon columnKey="probability"/>
                     </th>
+                    <th className="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-center">Age</th>
                   </>
-              )}
-
-              <th className="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-right">Owner</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-100">
-            {sortedData.map((item) => {
-              const daysStuck = !isLeadStage ? getDaysStuck(item.stage_updated_at || item.created_at) : 0;
-              const isBottleneck = daysStuck > 30 && isActiveDeal;
-              return (
-                <tr 
-                  key={item.id} 
-                  className="hover:bg-blue-50 transition-colors cursor-pointer group"
-                  onClick={() => navigate(isLeadStage ? `/admin/leads/${item.id}` : `/admin/deals/info?id=${item.id}`)}
-                >
-                  <td className="p-4">
-                    <p className="font-bold text-gray-800 text-sm group-hover:text-blue-600 transition-colors">
-                      {isLeadStage ? `${item.first_name} ${item.last_name}` : item.name}
-                    </p>
-                    <p className="text-xs text-gray-400 mt-0.5">{formatDate(item.created_at)}</p>
-                  </td>
-                  <td className="p-4 text-sm text-gray-600">
-                    {isLeadStage ? item.company_name : item.account?.name}
-                  </td>
-                  {isLeadStage && (
-                    <td className="p-4 text-xs text-gray-500">
-                        {item.email && <div className="flex items-center mb-1"><FiMail className="mr-1"/> {item.email}</div>}
-                        {item.phone && <div className="flex items-center"><FiPhone className="mr-1"/> {item.phone}</div>}
-                    </td>
-                  )}
-                  {isActiveDeal && (
+                )}
+  
+                {/* Closed Won Columns */}
+                {isClosedWon && (
+                    <th className="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-right text-green-600 cursor-pointer group" onClick={() => handleSort('amount')}>
+                      Booked <SortIcon columnKey="amount"/>
+                    </th>
+                )}
+  
+                {/* Closed Lost Columns - NEW */}
+                {isClosedLost && (
                     <>
-                      <td className="p-4 text-right font-medium text-gray-700">
-                        {formatCurrency(item.amount, currencySymbol)}
-                      </td>
-                      <td className="p-4 text-center">
-                        <span className={`inline-block px-2 py-1 rounded text-xs font-bold ${
-                          item.probability >= 80 ? 'bg-green-100 text-green-700' :
-                          item.probability >= 50 ? 'bg-yellow-100 text-yellow-700' : 'bg-gray-100 text-gray-600'
-                        }`}>
-                          {item.probability}%
-                        </span>
-                      </td>
-                      <td className="p-4 text-center">
-                        {isBottleneck ? (
-                          <div className="flex items-center justify-center text-red-600 bg-red-50 px-2 py-1 rounded border border-red-100" title="Stuck for >30 days">
-                            <FiActivity size={14} className="mr-1" />
-                            <span className="text-xs font-bold">{daysStuck}d</span>
-                          </div>
-                        ) : <span className="text-xs text-gray-400">{daysStuck}d</span>}
-                      </td>
+                      <th className="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-right text-red-600 cursor-pointer group" onClick={() => handleSort('amount')}>
+                          Lost Value <SortIcon columnKey="amount"/>
+                      </th>
+                      <th className="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-center">
+                          Lost Date
+                      </th>
                     </>
-                  )}
-                  {isClosedWon && (
-                      <td className="p-4 text-right font-bold text-green-700">
-                        {formatCurrency(item.amount, currencySymbol)}
+                )}
+  
+                <th className="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-right">Owner</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {sortedData.map((item) => {
+                const daysStuck = !isLeadStage ? getDaysStuck(item.stage_updated_at || item.created_at) : 0;
+                const isBottleneck = daysStuck > 30 && isActiveDeal;
+                return (
+                  <tr 
+                    key={item.id} 
+                    className="hover:bg-blue-50 transition-colors cursor-pointer group"
+                    onClick={() => navigate(isLeadStage ? `/admin/leads/${item.id}` : `/admin/deals/info?id=${item.id}`)}
+                  >
+                    <td className="p-4">
+                      <p className="font-bold text-gray-800 text-sm group-hover:text-blue-600 transition-colors">
+                        {isLeadStage ? `${item.first_name} ${item.last_name}` : item.name}
+                      </p>
+                      <p className="text-xs text-gray-400 mt-0.5">{formatDate(item.created_at)}</p>
+                    </td>
+                    <td className="p-4 text-sm text-gray-600">
+                      {isLeadStage ? item.company_name : item.account?.name}
+                    </td>
+                    {isLeadStage && (
+                      <td className="p-4 text-xs text-gray-500">
+                          {item.email && <div className="flex items-center mb-1"><FiMail className="mr-1"/> {item.email}</div>}
+                          {item.phone && <div className="flex items-center"><FiPhone className="mr-1"/> {item.phone}</div>}
                       </td>
-                  )}
-                  {isClosedLost && (
+                    )}
+                    {isActiveDeal && (
                       <>
-                        <td className="p-4 text-right font-bold text-red-600 opacity-75">
-                            {formatCurrency(item.amount, currencySymbol)}
+                        <td className="p-4 text-right font-medium text-gray-700">
+                          {formatCurrency(item.amount, currencySymbol)}
                         </td>
-                        <td className="p-4 text-center text-xs text-gray-500">
-                            {formatDate(item.stage_updated_at)}
+                        <td className="p-4 text-center">
+                          <span className={`inline-block px-2 py-1 rounded text-xs font-bold ${
+                            item.probability >= 80 ? 'bg-green-100 text-green-700' :
+                            item.probability >= 50 ? 'bg-yellow-100 text-yellow-700' : 'bg-gray-100 text-gray-600'
+                          }`}>
+                            {item.probability}%
+                          </span>
+                        </td>
+                        <td className="p-4 text-center">
+                          {isBottleneck ? (
+                            <div className="flex items-center justify-center text-red-600 bg-red-50 px-2 py-1 rounded border border-red-100" title="Stuck for >30 days">
+                              <FiActivity size={14} className="mr-1" />
+                              <span className="text-xs font-bold">{daysStuck}d</span>
+                            </div>
+                          ) : <span className="text-xs text-gray-400">{daysStuck}d</span>}
                         </td>
                       </>
-                  )}
-                  <td className="p-4 text-right">
-                    <div className="flex items-center justify-end text-gray-500 text-xs">
-                      <FiUser className="mr-1" />
-                      {isLeadStage
-                        ? (item.lead_owner?.first_name || item.owner?.first_name || item.assigned_to?.first_name || 'Unassigned')
-                        : (item.assigned_deals?.first_name || item.deal_creator?.first_name || 'Unassigned')
-                      }
-                    </div>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+                    )}
+                    {isClosedWon && (
+                        <td className="p-4 text-right font-bold text-green-700">
+                          {formatCurrency(item.amount, currencySymbol)}
+                        </td>
+                    )}
+                    {isClosedLost && (
+                        <>
+                          <td className="p-4 text-right font-bold text-red-600 opacity-75">
+                              {formatCurrency(item.amount, currencySymbol)}
+                          </td>
+                          <td className="p-4 text-center text-xs text-gray-500">
+                              {formatDate(item.stage_updated_at)}
+                          </td>
+                        </>
+                    )}
+                    <td className="p-4 text-right">
+                      <div className="flex items-center justify-end text-gray-500 text-xs">
+                        <FiUser className="mr-1" />
+                        {isLeadStage
+                          ? (item.lead_owner?.first_name || item.owner?.first_name || item.assigned_to?.first_name || 'Unassigned')
+                          : (item.assigned_deals?.first_name || item.deal_creator?.first_name || 'Unassigned')
+                        }
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
       </div>
-    </div>
-  );
-};
+    );
+  };
 
 // --- MAIN EXPORTED WIDGET ---
 
-// ✅ Accepts `targets` as a prop
 const FunnelWidget = ({ leads, deals, currencySymbol, targets = [] }) => {
     const [selectedStage, setSelectedStage] = useState('ALL'); 
     const [filterTime, setFilterTime] = useState('ALL'); 
     const [filterUser, setFilterUser] = useState('ALL');
     const [viewMode, setViewMode] = useState('AGGREGATE'); 
+    
+    // --- DRAG AND DROP STATE ---
+    const [userOrder, setUserOrder] = useState([]); 
+
+    // Sensors for drag detection (Pointer + Keyboard for accessibility)
+    const sensors = useSensors(
+        useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+        useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+    );
   
     // 1. Determine Date Range
     const dateRange = useMemo(() => {
@@ -498,6 +566,44 @@ const FunnelWidget = ({ leads, deals, currencySymbol, targets = [] }) => {
       }
       return { stages, aggregate, userGroups };
     }, [deals, leads, filterTime, filterUser, viewMode, usersList, filteredTargets]);
+
+    // --- SORTED USER GROUPS LOGIC ---
+    const sortedUserGroups = useMemo(() => {
+        if (!funnelData.userGroups.length) return [];
+        
+        // If we have a custom order, use it to sort the groups.
+        // Users not in 'userOrder' (new ones) are appended at the end.
+        const items = [...funnelData.userGroups];
+        if (userOrder.length > 0) {
+            items.sort((a, b) => {
+                const indexA = userOrder.indexOf(a.user.id);
+                const indexB = userOrder.indexOf(b.user.id);
+                
+                // If both are found, sort by index
+                if (indexA !== -1 && indexB !== -1) return indexA - indexB;
+                // If A found, it comes first
+                if (indexA !== -1) return -1;
+                // If B found, it comes first
+                if (indexB !== -1) return 1;
+                // If neither found, keep original order
+                return 0;
+            });
+        }
+        return items;
+    }, [funnelData.userGroups, userOrder]);
+
+    const handleDragEnd = (event) => {
+        const { active, over } = event;
+        if (active.id !== over.id) {
+            setUserOrder((prevOrder) => {
+                // Determine the current order of IDs
+                const currentIds = sortedUserGroups.map(g => g.user.id);
+                const oldIndex = currentIds.indexOf(active.id);
+                const newIndex = currentIds.indexOf(over.id);
+                return arrayMove(currentIds, oldIndex, newIndex);
+            });
+        }
+    };
   
     // 3. Calculate Global Totals & Health Metrics
     const globalMetrics = useMemo(() => {
@@ -514,11 +620,8 @@ const FunnelWidget = ({ leads, deals, currencySymbol, targets = [] }) => {
         
         const progress = totalTarget > 0 ? (totalWon / totalTarget) * 100 : 0;
         
-        // Win Rate = Won / (Won + Lost)
         const totalClosedCount = totalWonCount + totalLostCount;
         const winRate = totalClosedCount > 0 ? (totalWonCount / totalClosedCount) * 100 : 0;
-        
-        // Overall Lead Conversion = Won / Total Leads (if available)
         const conversionRate = totalLeads > 0 ? (totalWonCount / totalLeads) * 100 : 0;
 
         return { totalTarget, totalWon, totalLost, progress, winRate, conversionRate };
@@ -580,21 +683,33 @@ const FunnelWidget = ({ leads, deals, currencySymbol, targets = [] }) => {
          </div>
   
          {viewMode === 'COMPARE' ? (
-             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 overflow-x-auto pb-4">
-                 {funnelData.userGroups.map((group) => (
-                     <UserComparisonCard 
-                         key={group.user.id}
-                         user={group.user}
-                         metrics={group.data}
-                         stages={funnelData.stages.filter(s => s.key !== 'CLOSED_LOST')} 
-                         currencySymbol={currencySymbol}
-                         target={group.target}
-                     />
-                 ))}
-                 {funnelData.userGroups.length === 0 && (
-                     <div className="col-span-full text-center py-10 text-gray-400">No data for selected filters.</div>
-                 )}
-             </div>
+             <DndContext 
+                sensors={sensors}
+                collisionDetection={closestCenter}
+                onDragEnd={handleDragEnd}
+             >
+                <SortableContext 
+                    items={sortedUserGroups.map(g => g.user.id)}
+                    strategy={rectSortingStrategy}
+                >
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 overflow-x-auto pb-4">
+                        {sortedUserGroups.map((group) => (
+                            <SortableUserItem key={group.user.id} id={group.user.id}>
+                                <UserComparisonCard 
+                                    user={group.user}
+                                    metrics={group.data}
+                                    stages={funnelData.stages.filter(s => s.key !== 'CLOSED_LOST')} 
+                                    currencySymbol={currencySymbol}
+                                    target={group.target}
+                                />
+                            </SortableUserItem>
+                        ))}
+                        {sortedUserGroups.length === 0 && (
+                            <div className="col-span-full text-center py-10 text-gray-400">No data for selected filters.</div>
+                        )}
+                    </div>
+                </SortableContext>
+             </DndContext>
          ) : (
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
                <div className="lg:col-span-4 flex flex-col space-y-2 relative">

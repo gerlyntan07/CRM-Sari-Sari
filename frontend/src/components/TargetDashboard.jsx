@@ -203,9 +203,15 @@ export default function TargetDashboard({ currentUserRole, currentUserId }) {
   const [filterPeriodType, setFilterPeriodType] = useState("");
   const [filterPeriodNumber, setFilterPeriodNumber] = useState(1);
 
-  // Determine if user can create targets
+  // Determine if user can create targets (SALES is read-only)
   const canCreateTarget = useMemo(
-    () => ["CEO", "ADMIN", "GROUP MANAGER", "MANAGER", "SALES"].includes(currentUserRole?.toUpperCase()),
+    () => ["CEO", "ADMIN", "GROUP MANAGER", "MANAGER"].includes(currentUserRole?.toUpperCase()),
+    [currentUserRole]
+  );
+
+  // Determine if user can delete targets (SALES is read-only)
+  const canDeleteTarget = useMemo(
+    () => ["CEO", "ADMIN", "GROUP MANAGER", "MANAGER"].includes(currentUserRole?.toUpperCase()),
     [currentUserRole]
   );
 
@@ -615,7 +621,7 @@ export default function TargetDashboard({ currentUserRole, currentUserId }) {
           <h1 className="flex items-center text-xl sm:text-2xl font-semibold">
             <FiTarget className="mr-2 text-blue-600" /> Targets
           </h1>
-          {(canCreateTarget && currentUserRole.toLowerCase() !== "sales") && (
+          {canCreateTarget && (
             <div className="flex justify-center lg:justify-end w-full sm:w-auto">
               <button
                 onClick={handleOpenAddModal}
@@ -915,7 +921,7 @@ export default function TargetDashboard({ currentUserRole, currentUserId }) {
         </div>
 
         {/* Search Bar */}
-        {(canCreateTarget && currentUserRole.toLowerCase() !== "sales") && (
+        {canCreateTarget && (
           <div className="bg-white rounded-xl p-4 shadow-sm mb-6 flex flex-col lg:flex-row items-center justify-between gap-3 w-full">
             <div className="flex items-center border border-gray-300 rounded-lg px-4 h-11 w-full focus-within:ring-2 focus-within:ring-indigo-500 transition">
               <FiSearch className="text-gray-400 mr-3" />
@@ -935,36 +941,40 @@ export default function TargetDashboard({ currentUserRole, currentUserId }) {
           <table className="w-full border border-gray-200 rounded-lg bg-white shadow-sm text-sm">
             <thead className="bg-gray-100 font-semibold text-gray-600">
               <tr>
-                <th className="py-3 px-4 w-10">
-                  <input
-                    type="checkbox"
-                    className="w-4 h-4 accent-blue-600"
-                    checked={
-                      paginatedTargets.length > 0 &&
-                      paginatedTargets.every((t) => selectedIds.includes(t.id))
-                    }
-                    onChange={handleSelectAll}
-                  />
-                </th>
+                {canDeleteTarget && (
+                  <th className="py-3 px-4 w-10">
+                    <input
+                      type="checkbox"
+                      className="w-4 h-4 accent-blue-600"
+                      checked={
+                        paginatedTargets.length > 0 &&
+                        paginatedTargets.every((t) => selectedIds.includes(t.id))
+                      }
+                      onChange={handleSelectAll}
+                    />
+                  </th>
+                )}
                 <th className="py-3 px-4 text-left">User</th>
                 <th className="py-3 px-4 text-left">Target Amount</th>
                 <th className="py-3 px-4 text-left">Achieved Amount</th>
                 <th className="py-3 px-4 text-left">Achievement %</th>
                 <th className="py-3 px-4 text-left">Start Date</th>
                 <th className="py-3 px-4 text-left">End Date</th>
-                <th className="py-3 px-4 text-center w-24">
-                  {selectedIds.length > 0 ? (
-                    <button
-                      onClick={handleBulkDelete}
-                      className="text-red-600 hover:text-red-800 transition p-1 rounded-full hover:bg-red-50"
-                      title={`Delete ${selectedIds.length} selected targets`}
-                    >
-                      <FiTrash2 size={18} />
-                    </button>
-                  ) : (
-                    ""
-                  )}
-                </th>
+                {canDeleteTarget && (
+                  <th className="py-3 px-4 text-center w-24">
+                    {selectedIds.length > 0 ? (
+                      <button
+                        onClick={handleBulkDelete}
+                        className="text-red-600 hover:text-red-800 transition p-1 rounded-full hover:bg-red-50"
+                        title={`Delete ${selectedIds.length} selected targets`}
+                      >
+                        <FiTrash2 size={18} />
+                      </button>
+                    ) : (
+                      ""
+                    )}
+                  </th>
+                )}
               </tr>
             </thead>
             <tbody>
@@ -979,14 +989,16 @@ export default function TargetDashboard({ currentUserRole, currentUserId }) {
                       key={t.id}
                       className="hover:bg-gray-50 cursor-pointer border-b border-gray-200"
                     >
-                      <td className="py-3 px-4" onClick={(e) => e.stopPropagation()}>
-                        <input
-                          type="checkbox"
-                          className="w-4 h-4 accent-blue-600"
-                          checked={selectedIds.includes(t.id)}
-                          onChange={() => handleCheckboxChange(t.id)}
-                        />
-                      </td>
+                      {canDeleteTarget && (
+                        <td className="py-3 px-4" onClick={(e) => e.stopPropagation()}>
+                          <input
+                            type="checkbox"
+                            className="w-4 h-4 accent-blue-600"
+                            checked={selectedIds.includes(t.id)}
+                            onChange={() => handleCheckboxChange(t.id)}
+                          />
+                        </td>
+                      )}
                       <td className="py-3 px-4 text-left font-medium" onClick={() => setSelectedTarget(t)}>
                         {t.user
                           ? `${t.user.first_name} ${t.user.last_name}`
@@ -1409,6 +1421,7 @@ export default function TargetDashboard({ currentUserRole, currentUserId }) {
           onEdit={() => handleEditClick(selectedTarget)}
           onDelete={() => handleDelete(selectedTarget)}
           canEdit={canCreateTarget}
+          canDelete={canDeleteTarget}
         />
       )}
 
@@ -1467,7 +1480,7 @@ function MetricCard({ title, value, icon, color = "blue" }) {
 /* ======================================================
    DETAIL MODAL
 ====================================================== */
-function DetailModal({ target, onClose, onEdit, onDelete, canEdit, currencySymbol }) {
+function DetailModal({ target, onClose, onEdit, onDelete, canEdit, canDelete, currencySymbol }) {
   const achievementPercent =
     Number(target.target_amount) > 0
       ? ((Number(target.achieved_amount) / Number(target.target_amount)) * 100).toFixed(1)
@@ -1511,13 +1524,15 @@ function DetailModal({ target, onClose, onEdit, onDelete, canEdit, currencySymbo
                   <FiEdit className="mr-2" />
                   Edit
                 </button>
-                <button
-                  className="inline-flex items-center justify-center w-full sm:w-auto px-4 py-2 rounded-md text-sm bg-red-500 text-white hover:bg-red-600 transition focus:outline-none focus:ring-2 focus:ring-red-400 cursor-pointer"
-                  onClick={onDelete}
-                >
-                  <FiTrash2 className="mr-2" />
-                  Delete
-                </button>
+                {canDelete && (
+                  <button
+                    className="inline-flex items-center justify-center w-full sm:w-auto px-4 py-2 rounded-md text-sm bg-red-500 text-white hover:bg-red-600 transition focus:outline-none focus:ring-2 focus:ring-red-400 cursor-pointer"
+                    onClick={onDelete}
+                  >
+                    <FiTrash2 className="mr-2" />
+                    Delete
+                  </button>
+                )}
               </div>
             </div>
 
@@ -1737,7 +1752,7 @@ function FormModal({
 
   return (
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-      <div className="bg-white w-full max-w-md rounded-2xl p-8 relative overflow-y-auto max-h-[90vh]">
+      <div className="bg-white w-full max-w-md rounded-2xl p-8 relative overflow-y-auto max-h-[90vh] hide-scrollbar">
         <button onClick={onClose} className="absolute top-5 right-5">
           <FiX size={24} />
         </button>

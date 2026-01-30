@@ -25,7 +25,7 @@ router = APIRouter(
     tags=["Targets"]
 )
 
-ALLOWED_ADMIN_ROLES = {"CEO", "ADMIN", "GROUP MANAGER", "MANAGER", "SALES"}
+ALLOWED_ADMIN_ROLES = {"CEO", "ADMIN", "GROUP MANAGER", "MANAGER"}
 
 
 # =====================================================
@@ -511,7 +511,8 @@ def admin_delete_target(
     current_user: User = Depends(get_current_user),
     request: Request = None,
 ):
-    if current_user.role.upper() not in ALLOWED_ADMIN_ROLES:
+    # SALES role is read-only, cannot delete targets
+    if current_user.role.upper() not in {"CEO", "ADMIN", "GROUP MANAGER", "MANAGER"}:
         raise HTTPException(status_code=403, detail="Permission denied")
 
     target = (
@@ -553,7 +554,8 @@ def admin_bulk_delete_targets(
     current_user: User = Depends(get_current_user),
     request: Request = None
 ):
-    if current_user.role.upper() not in ALLOWED_ADMIN_ROLES:
+    # SALES role is read-only, cannot delete targets
+    if current_user.role.upper() not in {"CEO", "ADMIN", "GROUP MANAGER", "MANAGER"}:
         raise HTTPException(status_code=403, detail="Permission denied")
 
     if not data.target_ids:

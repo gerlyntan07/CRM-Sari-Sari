@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { 
   FiFilter, FiLayout, FiMail, 
-  FiArrowDown, FiArrowUp, FiDownload, FiPhone, FiUser, FiTarget
+  FiArrowDown, FiArrowUp, FiDownload, FiPhone, FiUser, FiTarget, FiActivity, FiXCircle, FiCheckCircle
 } from "react-icons/fi"; 
 import { useNavigate } from 'react-router-dom';
 
@@ -91,10 +91,12 @@ const FunnelBar = ({ label, count, value, width, color, onClick, isActive, isLea
 const UserComparisonCard = ({ user, metrics, stages, currencySymbol, target }) => {
     const weightedForecast = metrics.filteredDeals.reduce((a, b) => a + (parseFloat(b.amount || 0) * ((b.probability||0)/100)), 0);
     const closedWonAmount = metrics.metrics['CLOSED_WON']?.value || 0;
+    const closedLostAmount = metrics.metrics['CLOSED_LOST']?.value || 0;
     
-    // Win Rate Calculation
-    const winRate = metrics.metrics['CLOSED_WON'].count > 0 
-        ? ((metrics.metrics['CLOSED_WON'].count / (metrics.metrics['CLOSED_WON'].count + metrics.metrics['CLOSED_LOST'].count)) * 100).toFixed(0)
+    // Win Rate Calculation (Won / (Won + Lost))
+    const totalClosed = metrics.metrics['CLOSED_WON'].count + metrics.metrics['CLOSED_LOST'].count;
+    const winRate = totalClosed > 0 
+        ? ((metrics.metrics['CLOSED_WON'].count / totalClosed) * 100).toFixed(0)
         : 0;
     
     // Target Progress Calculation
@@ -111,7 +113,7 @@ const UserComparisonCard = ({ user, metrics, stages, currencySymbol, target }) =
                         <h4 className="font-bold text-gray-800 text-sm">{user.name}</h4>
                         <div className="flex gap-2 text-[10px] mt-1">
                             <span className="text-green-600 bg-green-50 px-1.5 py-0.5 rounded border border-green-100">Win: {winRate}%</span>
-                            <span className="text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded border border-blue-100">Fcst: {formatCurrency(weightedForecast, currencySymbol)}</span>
+                            <span className="text-red-600 bg-red-50 px-1.5 py-0.5 rounded border border-red-100">Lost: {formatCurrency(closedLostAmount, currencySymbol)}</span>
                         </div>
                     </div>
                 </div>
@@ -179,7 +181,8 @@ const DetailTable = ({ data, stageKey, currencySymbol }) => {
 
   const isLeadStage = stageKey === 'LEADS';
   const isClosedWon = stageKey === 'CLOSED_WON';
-  const isActiveDeal = !isLeadStage && !isClosedWon && stageKey !== 'CLOSED_LOST';
+  const isClosedLost = stageKey === 'CLOSED_LOST';
+  const isActiveDeal = !isLeadStage && !isClosedWon && !isClosedLost;
 
   const sortedData = useMemo(() => {
     if (!sortConfig.key) return data;
@@ -230,6 +233,8 @@ const DetailTable = ({ data, stageKey, currencySymbol }) => {
               </th>
               <th className="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Company</th>
               {isLeadStage && <th className="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Contact Info</th>}
+              
+              {/* Active Deal Columns */}
               {isActiveDeal && (
                 <>
                   <th className="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-right cursor-pointer group" onClick={() => handleSort('amount')}>
@@ -241,11 +246,26 @@ const DetailTable = ({ data, stageKey, currencySymbol }) => {
                   <th className="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-center">Age</th>
                 </>
               )}
+
+              {/* Closed Won Columns */}
               {isClosedWon && (
                   <th className="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-right text-green-600 cursor-pointer group" onClick={() => handleSort('amount')}>
                     Booked <SortIcon columnKey="amount"/>
                   </th>
               )}
+
+              {/* Closed Lost Columns - NEW */}
+              {isClosedLost && (
+                  <>
+                    <th className="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-right text-red-600 cursor-pointer group" onClick={() => handleSort('amount')}>
+                        Lost Value <SortIcon columnKey="amount"/>
+                    </th>
+                    <th className="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-center">
+                        Lost Date
+                    </th>
+                  </>
+              )}
+
               <th className="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-right">Owner</th>
             </tr>
           </thead>
@@ -290,7 +310,7 @@ const DetailTable = ({ data, stageKey, currencySymbol }) => {
                       <td className="p-4 text-center">
                         {isBottleneck ? (
                           <div className="flex items-center justify-center text-red-600 bg-red-50 px-2 py-1 rounded border border-red-100" title="Stuck for >30 days">
-                            <FiAlertCircle size={14} className="mr-1" />
+                            <FiActivity size={14} className="mr-1" />
                             <span className="text-xs font-bold">{daysStuck}d</span>
                           </div>
                         ) : <span className="text-xs text-gray-400">{daysStuck}d</span>}
@@ -301,6 +321,16 @@ const DetailTable = ({ data, stageKey, currencySymbol }) => {
                       <td className="p-4 text-right font-bold text-green-700">
                         {formatCurrency(item.amount, currencySymbol)}
                       </td>
+                  )}
+                  {isClosedLost && (
+                      <>
+                        <td className="p-4 text-right font-bold text-red-600 opacity-75">
+                            {formatCurrency(item.amount, currencySymbol)}
+                        </td>
+                        <td className="p-4 text-center text-xs text-gray-500">
+                            {formatDate(item.stage_updated_at)}
+                        </td>
+                      </>
                   )}
                   <td className="p-4 text-right">
                     <div className="flex items-center justify-end text-gray-500 text-xs">
@@ -330,7 +360,7 @@ const FunnelWidget = ({ leads, deals, currencySymbol, targets = [] }) => {
     const [filterUser, setFilterUser] = useState('ALL');
     const [viewMode, setViewMode] = useState('AGGREGATE'); 
   
-    // 1. Determine Date Range based on filterTime (Used to filter relevant targets)
+    // 1. Determine Date Range
     const dateRange = useMemo(() => {
         const now = new Date();
         if (filterTime === 'THIS_MONTH') {
@@ -346,20 +376,16 @@ const FunnelWidget = ({ leads, deals, currencySymbol, targets = [] }) => {
         return null; // ALL TIME
     }, [filterTime]);
 
-    // 2. Filter Targets dynamically based on selected Time AND User
+    // 2. Filter Targets
     const filteredTargets = useMemo(() => {
         return targets.filter(t => {
-            // Filter by User
             if (filterUser !== 'ALL') {
                 const tUserId = t.user?.id || t.user_id || t.assigned_to;
                 if (parseInt(tUserId) !== parseInt(filterUser)) return false;
             }
-
-            // Filter by Time (Overlap Logic)
             if (dateRange) {
                 const tStart = new Date(t.start_date);
                 const tEnd = new Date(t.end_date);
-                // Check if target overlaps with the selected date range
                 return tStart <= dateRange.end && tEnd >= dateRange.start;
             }
             return true;
@@ -455,8 +481,6 @@ const FunnelWidget = ({ leads, deals, currencySymbol, targets = [] }) => {
               });
               const uDeals = filteredDeals.filter(d => (d.assigned_deals?.id || d.created_by) === uid);
               
-              // ✅ Find specific target for this user (matching current time filters)
-              // We use filteredTargets here because it already respects the Date Range
               const userTargetObj = filteredTargets.find(t => {
                    const tUserId = t.user?.id || t.user_id || t.assigned_to;
                    return parseInt(tUserId) === uid;
@@ -467,26 +491,37 @@ const FunnelWidget = ({ leads, deals, currencySymbol, targets = [] }) => {
                   userGroups.push({
                       user: u,
                       data: calculateMetrics(uLeads, uDeals),
-                      target: userTargetAmount // ✅ Pass specific user target
+                      target: userTargetAmount
                   });
               }
           });
       }
       return { stages, aggregate, userGroups };
-    }, [deals, leads, filterTime, filterUser, viewMode, usersList, filteredTargets]); // added filteredTargets dependency
+    }, [deals, leads, filterTime, filterUser, viewMode, usersList, filteredTargets]);
   
-    // 3. Calculate Global Totals from the filtered list (Aggregate View)
-    const globalTargetMetrics = useMemo(() => {
+    // 3. Calculate Global Totals & Health Metrics
+    const globalMetrics = useMemo(() => {
         const totalTarget = filteredTargets.reduce((acc, t) => acc + parseFloat(t.amount || t.target_amount || t.value || 0), 0);
         
-        // Sum of all CLOSED WON deals visible in the current view
-        const totalAchieved = funnelData.aggregate.filteredDeals
-            .filter(d => (d.stage || '').toUpperCase() === 'CLOSED_WON')
-            .reduce((acc, d) => acc + parseFloat(d.amount || 0), 0);
-            
-        const progress = totalTarget > 0 ? (totalAchieved / totalTarget) * 100 : 0;
+        const metrics = funnelData.aggregate.metrics;
         
-        return { totalTarget, totalAchieved, progress };
+        const totalWon = metrics['CLOSED_WON']?.value || 0;
+        const totalWonCount = metrics['CLOSED_WON']?.count || 0;
+        const totalLost = metrics['CLOSED_LOST']?.value || 0;
+        const totalLostCount = metrics['CLOSED_LOST']?.count || 0;
+        
+        const totalLeads = metrics['LEADS']?.count || 0;
+        
+        const progress = totalTarget > 0 ? (totalWon / totalTarget) * 100 : 0;
+        
+        // Win Rate = Won / (Won + Lost)
+        const totalClosedCount = totalWonCount + totalLostCount;
+        const winRate = totalClosedCount > 0 ? (totalWonCount / totalClosedCount) * 100 : 0;
+        
+        // Overall Lead Conversion = Won / Total Leads (if available)
+        const conversionRate = totalLeads > 0 ? (totalWonCount / totalLeads) * 100 : 0;
+
+        return { totalTarget, totalWon, totalLost, progress, winRate, conversionRate };
     }, [filteredTargets, funnelData]);
 
     const activeTableData = useMemo(() => {
@@ -553,7 +588,7 @@ const FunnelWidget = ({ leads, deals, currencySymbol, targets = [] }) => {
                          metrics={group.data}
                          stages={funnelData.stages.filter(s => s.key !== 'CLOSED_LOST')} 
                          currencySymbol={currencySymbol}
-                         target={group.target} // ✅ Correct target passed here
+                         target={group.target}
                      />
                  ))}
                  {funnelData.userGroups.length === 0 && (
@@ -563,107 +598,127 @@ const FunnelWidget = ({ leads, deals, currencySymbol, targets = [] }) => {
          ) : (
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
                <div className="lg:col-span-4 flex flex-col space-y-2 relative">
-                  <div className="absolute left-6 top-4 bottom-24 w-0.5 bg-gray-100 -z-0"></div>
-                  {funnelData.stages.filter(s => s.key !== 'CLOSED_LOST').map((stage, index) => {
-                      const metric = funnelData.aggregate.metrics[stage.key];
-                      let conversionRate = null;
-                      if (index > 0) {
-                          const prevStageKey = funnelData.stages[index - 1].key;
-                          const prevCount = funnelData.aggregate.metrics[prevStageKey].count;
-                          if (prevCount > 0) conversionRate = ((metric.count / prevCount) * 100).toFixed(0);
-                      }
-                      return (
-                        <FunnelBar 
-                          key={stage.key}
-                          label={stage.label}
-                          count={metric.count}
-                          value={metric.value}
-                          width={metric.width}
-                          color={metric.color}
-                          isLead={!stage.isDeal}
-                          weightedValue={metric.weightedValue}
-                          currencySymbol={currencySymbol}
-                          isActive={selectedStage === stage.key}
-                          conversionRate={conversionRate}
-                          onClick={() => setSelectedStage(stage.key)}
-                        />
-                      );
-                  })}
                   
-                  {/* --- NEW: GLOBAL TARGET METRIC BAR (Dynamic Sum of Visible Targets) --- */}
+                  {/* Active Funnel */}
+                  <div className="relative">
+                      <div className="absolute left-6 top-4 bottom-4 w-0.5 bg-gray-100 -z-0"></div>
+                      {funnelData.stages.filter(s => s.key !== 'CLOSED_LOST').map((stage, index) => {
+                          const metric = funnelData.aggregate.metrics[stage.key];
+                          let conversionRate = null;
+                          if (index > 0) {
+                              const prevStageKey = funnelData.stages[index - 1].key;
+                              const prevCount = funnelData.aggregate.metrics[prevStageKey].count;
+                              if (prevCount > 0) conversionRate = ((metric.count / prevCount) * 100).toFixed(0);
+                          }
+                          return (
+                            <FunnelBar 
+                              key={stage.key}
+                              label={stage.label}
+                              count={metric.count}
+                              value={metric.value}
+                              width={metric.width}
+                              color={metric.color}
+                              isLead={!stage.isDeal}
+                              weightedValue={metric.weightedValue}
+                              currencySymbol={currencySymbol}
+                              isActive={selectedStage === stage.key}
+                              conversionRate={conversionRate}
+                              onClick={() => setSelectedStage(stage.key)}
+                            />
+                          );
+                      })}
+                  </div>
+
+                  {/* Funnel Health Dashboard & Outcome Section */}
                   <div className="mt-4 pt-4 border-t border-gray-100">
-                        <div className="grid grid-cols-2 gap-2 text-center mb-3">
-                            <div>
-                               <p className="text-[10px] text-gray-400 uppercase font-bold">Pipeline Value</p>
-                               <p className="text-md font-bold text-gray-800">
-                                   {formatCurrency(funnelData.aggregate.filteredDeals.reduce((a, b) => a + parseFloat(b.amount || 0), 0), currencySymbol)}
-                               </p>
+                        <div className="mb-2 text-xs font-bold text-gray-400 uppercase">Funnel Health</div>
+                        <div className="grid grid-cols-3 gap-2 text-center mb-4">
+                            <div className="bg-green-50 rounded p-2 border border-green-100">
+                               <p className="text-[9px] text-green-600 uppercase font-bold">Win Rate</p>
+                               <p className="text-sm font-bold text-gray-800">{globalMetrics.winRate.toFixed(0)}%</p>
                             </div>
-                            <div>
-                               <p className="text-[10px] text-blue-500 uppercase font-bold">Forecast</p>
-                               <p className="text-md font-bold text-blue-600">
-                                   {formatCurrency(funnelData.aggregate.filteredDeals.reduce((a, b) => a + (parseFloat(b.amount || 0) * ((b.probability||0)/100)), 0), currencySymbol)}
-                               </p>
+                            <div className="bg-blue-50 rounded p-2 border border-blue-100">
+                               <p className="text-[9px] text-blue-600 uppercase font-bold">Conversion</p>
+                               <p className="text-sm font-bold text-gray-800">{globalMetrics.conversionRate.toFixed(0)}%</p>
+                            </div>
+                            <div className="bg-red-50 rounded p-2 border border-red-100">
+                               <p className="text-[9px] text-red-600 uppercase font-bold">Lost Value</p>
+                               <p className="text-sm font-bold text-gray-800">{formatCurrency(globalMetrics.totalLost, currencySymbol)}</p>
                             </div>
                         </div>
 
+                        {/* Explicit Lost Bar for Analysis */}
+                        <FunnelBar 
+                            label="Closed Lost"
+                            key="CLOSED_LOST"
+                            count={funnelData.aggregate.metrics['CLOSED_LOST'].count}
+                            value={funnelData.aggregate.metrics['CLOSED_LOST'].value}
+                            width={funnelData.aggregate.metrics['CLOSED_LOST'].width}
+                            color="bg-red-500 opacity-90"
+                            isLead={false}
+                            weightedValue={0}
+                            currencySymbol={currencySymbol}
+                            isActive={selectedStage === 'CLOSED_LOST'}
+                            onClick={() => setSelectedStage('CLOSED_LOST')}
+                        />
+
                         {/* Total Target Progress Bar */}
-                        <div className="bg-gray-50 p-2 rounded-lg border border-gray-100">
+                        <div className="bg-gray-50 p-2 rounded-lg border border-gray-100 mt-4">
                             <div className="flex justify-between items-center text-[10px] mb-1">
                                 <span className="font-bold text-gray-600 flex items-center"><FiTarget className="mr-1"/> Total Target</span>
-                                <span className={globalTargetMetrics.progress >= 100 ? "text-green-600 font-bold" : "text-blue-600 font-bold"}>
-                                    {globalTargetMetrics.progress.toFixed(0)}%
+                                <span className={globalMetrics.progress >= 100 ? "text-green-600 font-bold" : "text-blue-600 font-bold"}>
+                                    {globalMetrics.progress.toFixed(0)}%
                                 </span>
                             </div>
                             <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden mb-1">
                                 <div 
-                                    className={`h-full rounded-full transition-all duration-1000 ${globalTargetMetrics.progress >= 100 ? 'bg-green-500' : 'bg-blue-500'}`} 
-                                    style={{ width: `${Math.min(globalTargetMetrics.progress, 100)}%` }}
+                                    className={`h-full rounded-full transition-all duration-1000 ${globalMetrics.progress >= 100 ? 'bg-green-500' : 'bg-blue-500'}`} 
+                                    style={{ width: `${Math.min(globalMetrics.progress, 100)}%` }}
                                 ></div>
                             </div>
                             <div className="flex justify-between text-[9px] text-gray-400">
-                                <span>Achieved: <span className="text-gray-700 font-medium">{formatCurrency(globalTargetMetrics.totalAchieved, currencySymbol)}</span></span>
-                                <span>Goal: {formatCurrency(globalTargetMetrics.totalTarget, currencySymbol)}</span>
+                                <span>Achieved: <span className="text-gray-700 font-medium">{formatCurrency(globalMetrics.totalWon, currencySymbol)}</span></span>
+                                <span>Goal: {formatCurrency(globalMetrics.totalTarget, currencySymbol)}</span>
                             </div>
                         </div>
                    </div>
                </div>
   
-               <div className="lg:col-span-8 h-[500px] flex flex-col">
+               <div className="lg:col-span-8 h-[600px] flex flex-col">
                   <div className="bg-gray-50 p-3 rounded-t-xl border-b border-gray-200 flex justify-between items-center">
-                       <h3 className="text-sm font-bold text-gray-800 flex items-center">
-                         {selectedStage === 'ALL' ? (
-                           <span>Select a stage to view details</span>
-                         ) : (
-                           <>
-                             <span className={`w-2.5 h-2.5 rounded-full mr-2 ${funnelData.aggregate.metrics[selectedStage]?.color}`}></span>
-                             {funnelData.stages.find(s => s.key === selectedStage)?.label} Details
-                             <span className="ml-2 px-2 py-0.5 bg-white border border-gray-200 text-gray-600 text-[10px] rounded-full">
-                               {activeTableData.length} records
-                             </span>
-                           </>
-                         )}
-                       </h3>
-                       {selectedStage !== 'ALL' && activeTableData.length > 0 && (
-                         <button 
-                           onClick={() => downloadCSV(activeTableData, `Funnel_${selectedStage}`)}
-                           className="text-[10px] font-bold text-blue-600 hover:bg-blue-100 px-2 py-1 rounded transition-colors flex items-center"
-                         >
-                           <FiDownload className="mr-1" /> Export
-                         </button>
-                       )}
+                        <h3 className="text-sm font-bold text-gray-800 flex items-center">
+                          {selectedStage === 'ALL' ? (
+                            <span>Select a stage to view details</span>
+                          ) : (
+                            <>
+                              <span className={`w-2.5 h-2.5 rounded-full mr-2 ${funnelData.aggregate.metrics[selectedStage]?.color}`}></span>
+                              {funnelData.stages.find(s => s.key === selectedStage)?.label} Details
+                              <span className="ml-2 px-2 py-0.5 bg-white border border-gray-200 text-gray-600 text-[10px] rounded-full">
+                                {activeTableData.length} records
+                              </span>
+                            </>
+                          )}
+                        </h3>
+                        {selectedStage !== 'ALL' && activeTableData.length > 0 && (
+                          <button 
+                            onClick={() => downloadCSV(activeTableData, `Funnel_${selectedStage}`)}
+                            className="text-[10px] font-bold text-blue-600 hover:bg-blue-100 px-2 py-1 rounded transition-colors flex items-center"
+                          >
+                            <FiDownload className="mr-1" /> Export
+                          </button>
+                        )}
                   </div>
                   {selectedStage === 'ALL' ? (
-                       <div className="bg-white flex-grow rounded-b-xl border border-gray-100 flex flex-col items-center justify-center p-12 text-center text-gray-400">
+                        <div className="bg-white flex-grow rounded-b-xl border border-gray-100 flex flex-col items-center justify-center p-12 text-center text-gray-400">
                           <FiFilter size={48} className="mb-4 text-blue-100" />
-                          <p>Click on any stage bar on the left to inspect records.</p>
-                       </div>
+                          <p>Click on any stage bar (including Lost Deals) to inspect records.</p>
+                        </div>
                   ) : (
-                       <DetailTable 
-                          data={activeTableData} 
-                          stageKey={selectedStage}
-                          currencySymbol={currencySymbol} 
-                       />
+                        <DetailTable 
+                           data={activeTableData} 
+                           stageKey={selectedStage}
+                           currencySymbol={currencySymbol} 
+                        />
                   )}
                </div>
             </div>

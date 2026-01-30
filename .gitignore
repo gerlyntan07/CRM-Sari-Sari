@@ -34,6 +34,8 @@ dv_venv_311/
 .env.*
 ive/
 .ive/
+.rans/
+rans/
 
 
 # Byte-compiled / optimized / DLL files

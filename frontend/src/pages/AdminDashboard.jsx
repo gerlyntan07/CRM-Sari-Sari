@@ -50,7 +50,14 @@ export const IconFiClipboard = (props) => <FiClipboard {...props} />;
 
 // Dynamic Currency Formatter
 const formatCurrency = (amount, symbol = "₱") => {
-  return `${symbol} ${new Intl.NumberFormat('en-US', { minimumFractionDigits: 0 }).format(amount)}`;
+  const numericAmount = parseFloat(amount) || 0;
+
+  return new Intl.NumberFormat('en-US', {
+    notation: 'compact',
+    compactDisplay: 'short',
+    maximumFractionDigits: 1,
+  }).format(numericAmount).replace(/^/, `${symbol} `);
+  // The replace prepends the symbol while maintaining the compact string
 };
 const getDaysStuck = (dateString) => {
   if (!dateString) return 0;
@@ -208,17 +215,17 @@ const TopBar = ({ searchQuery, onSearchChange, searchResults, onSearchResultClic
                     "Audit": "/admin/audit",
                     "Territory": "/admin/territory"
                   };
-                  if(routes[item.label]) navigate(routes[item.label]);
+                  if (routes[item.label]) navigate(routes[item.label]);
                 }}
               >
                 <item.icon size={24} className="lg:scale-95" />
               </button>
-              
+
               <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-1.5 bg-gray-900 text-white text-xs font-semibold rounded-md whitespace-nowrap opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-75 ease-in-out z-50 shadow-lg">
-              {item.label}
-              <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-1 border-4 border-transparent border-t-gray-900"></div>
-            </div>
-            
+                {item.label}
+                <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-1 border-4 border-transparent border-t-gray-900"></div>
+              </div>
+
             </div>
           ))}
         </div>
@@ -828,7 +835,15 @@ const AdminDashboard = () => {
       setAllTargets(targets); // --- Store Targets ---
 
       // --- Calculate Total Target ---
-      const totalTargetVal = targets.reduce((sum, t) => sum + parseFloat(t.amount || t.value || 0), 0);
+      const totalTargetVal = targets.reduce((sum, t) => {
+        const val = t.amount || t.value || t.target_amount || 0;
+        const numericVal = typeof val === 'string'
+          ? parseFloat(val.replace(/[^\d.-]/g, ''))
+          : parseFloat(val);
+
+        return sum + (isNaN(numericVal) ? 0 : numericVal);
+      }, 0);
+
       setTotalTarget(totalTargetVal);
 
       setMetrics({
@@ -976,17 +991,17 @@ const AdminDashboard = () => {
 
         {/* ROW 2: NEW Funnel Intelligence Section (With Targets passed in) */}
         <div className="mb-8">
-            <FunnelWidget 
-                leads={allLeads} 
-                deals={allDeals} 
-                targets={allTargets} // --- NEW PROP ---
-                currencySymbol={currencySymbol} 
-            />
+          <FunnelWidget
+            leads={allLeads}
+            deals={allDeals}
+            targets={allTargets} // --- NEW PROP ---
+            currencySymbol={currencySymbol}
+          />
         </div>
 
         {/* ROW 3: Revenue Chart */}
         <div className="grid grid-cols-1 mb-8">
-           <RevenueChart revenueData={revenueData} loading={loading} />
+          <RevenueChart revenueData={revenueData} loading={loading} />
         </div>
 
         {/* ROW 4: Detailed Lists */}

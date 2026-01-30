@@ -5,7 +5,7 @@ import { FcGoogle } from "react-icons/fc";
 import { HiArrowLeft } from "react-icons/hi";
 import api from '../api.js'
 import useAuth from "../hooks/useAuth.js";
-import {jwtDecode} from "jwt-decode";
+import { jwtDecode } from "jwt-decode";
 import LoadingScreen from "../components/LoadingScreen.jsx";
 
 // Helper for Tailwind class names
@@ -111,7 +111,7 @@ const StepIndicator = React.memo(({ currentStep, totalSteps }) => (
 
 // Step 1 Content
 const Step1Content = React.memo(({ formData, handleChange, handleCodeChange, handleTogglePass, isPassVisible, formError, signupError, termsAccepted, handleTerms, isButtonDisabled, handleSubmit, handleGoogleLogin }) => (
-  <>    
+  <>
 
     <div className="flex items-center my-6">
       <div className="flex-grow border-t border-gray-300"></div>
@@ -152,7 +152,11 @@ const Step1Content = React.memo(({ formData, handleChange, handleCodeChange, han
         </label>
       </div>
     </div>
-
+    {formError && (
+      <div className="mt-4 p-3 text-sm rounded-lg bg-red-100 text-red-700 border border-red-300 font-medium animate-pulse">
+        {formError}
+      </div>
+    )}
     <button type="submit" onClick={handleSubmit} disabled={isButtonDisabled} className="w-full mt-8 inline-flex items-center justify-center rounded-lg h-12 px-6 text-white font-bold tracking-wide transition-all duration-300 bg-secondary hover:bg-tertiary shadow-lg shadow-tertiary disabled:shadow-none focus-visible:outline-none cursor-pointer">
       Continue to Company Details
     </button>
@@ -234,7 +238,7 @@ const Signup = () => {
   const { login } = useAuth();
   const [subscription, setSubscription] = React.useState({
     plan_name: 'Free',
-    price: 0.00,    
+    price: 0.00,
   })
   const [isLoading, setIsLoading] = React.useState(false);
   const [signupError, setSignupError] = React.useState(null);
@@ -318,32 +322,42 @@ const Signup = () => {
     }
   };
 
+  // Add this near your other handlers (handleChange, etc.)
+  const handleCompanyChange = React.useCallback((e) => {
+    const { id, value } = e.target;
+    setCompanyData(prev => ({ ...prev, [id]: value }));
+    setFormError(null); // Clear errors when user types
+  }, []);
+
 
   const handleChange = React.useCallback((e) => {
     const { id, value } = e.target;
     setIsSubmitted(false);
     setFormData(p => {
       const nextData = { ...p, [id]: value };
-      if (step === 1 && (id === 'password' || id === 'confirmPassword')) {
-        const { password, confirmPassword } = nextData;
-        const newError = (password.length > 0 && confirmPassword.length > 0 && password !== confirmPassword)
-          ? "Password doesn't match. Please try again."
-          : null;
-        setFormError(prevError => (prevError !== newError ? newError : prevError));
+
+      if (step === 1) {
+        let errorMsg = null;
+
+        // Check length
+        if (id === 'password' && value.length > 0 && value.length < 8) {
+          errorMsg = "Password must be at least 8 characters.";
+        }
+        // Check match
+        else if (id === 'password' || id === 'confirmPassword') {
+          const pass = id === 'password' ? value : nextData.password;
+          const confirm = id === 'confirmPassword' ? value : nextData.confirmPassword;
+
+          if (pass && confirm && pass !== confirm) {
+            errorMsg = "Passwords don't match.";
+          }
+        }
+
+        setFormError(errorMsg);
       }
       return nextData;
     });
   }, [step]);
-
-  const handleCompanyChange = React.useCallback((e) => {
-    const { id, value } = e.target;
-    setIsSubmitted(false);
-    setCompanyData(p => {
-      const nextData = { ...p, [id]: value };
-      return nextData;
-    });
-  }, []);
-
   const handleCodeChange = React.useCallback((e) => setFormData(p => ({ ...p, countryCode: e.target.value })), []);
   const handleCodeChange1 = React.useCallback((e) => setCompanyData(p => ({ ...p, countryCode: e.target.value })), []);
   const handleTogglePass = React.useCallback((fieldId) => setIsPassVisible(p => ({ ...p, [fieldId]: !p[fieldId] })), []);
@@ -353,16 +367,21 @@ const Signup = () => {
     e.preventDefault();
     setIsSubmitted(false);
     setFormError(null);
-    setIsLoading(true);
 
     if (step === 1) {
       const allRequiredFilled = REQUIRED_FIELDS_STEP_1.every(field => formData[field].trim() !== '');
+
+      // 1. Check if all fields are filled
       if (!allRequiredFilled || !termsAccepted) {
         setFormError("Please fill in all required fields and accept the terms.");
         return;
       }
       if (formData.password !== formData.confirmPassword) {
         setFormError("The passwords you entered do not match. Please try again.");
+        return;
+      }
+      if (formData.password.length < 8) {
+        setFormError("Password must be at least 8 characters long.");
         return;
       }
 
@@ -383,7 +402,7 @@ const Signup = () => {
         } else {
           setFormError("Something went wrong. Please try again.");
         }
-      } finally{
+      } finally {
         setIsLoading(false);
       }
     } else if (step === 2) {
@@ -400,9 +419,9 @@ const Signup = () => {
         // Remove confirmPassword before sending to backend
         const { confirmPassword, ...cleanedFormData } = formData;
         const companyPayload1 = {
-            ...companyData,            
-            company_number: `${companyData.countryCode} ${companyData.company_number}`,
-          };          
+          ...companyData,
+          company_number: `${companyData.countryCode} ${companyData.company_number}`,
+        };
         const resCompany = await api.post(`/company/create`, companyPayload1);
         const companyID = resCompany.data.id;
 
@@ -415,9 +434,9 @@ const Signup = () => {
 
         console.log("📤 Sending payload:", finalFormData);
 
-        if(cleanedFormData.auth_provider === 'google'){                    
+        if (cleanedFormData.auth_provider === 'google') {
 
-          const resGoogle = await api.post(`/auth/google/signup`, finalFormData);          
+          const resGoogle = await api.post(`/auth/google/signup`, finalFormData);
 
           const subsPayload = {
             ...subscription,
@@ -425,13 +444,13 @@ const Signup = () => {
             status: "Active",
           }
 
-          const resSubscription = await api.post(`/subscription/subscribe`, subsPayload);          
+          const resSubscription = await api.post(`/subscription/subscribe`, subsPayload);
 
           setFormError(null);
           setIsSubmitted(true);
           login(resGoogle.data);
         } else {
-          const res2 = await api.post(`/auth/signup`, finalFormData);     
+          const res2 = await api.post(`/auth/signup`, finalFormData);
 
           const subsPayload = {
             ...subscription,
@@ -439,12 +458,12 @@ const Signup = () => {
             status: "Active",
           }
 
-          const resSubscription = await api.post(`/subscription/subscribe`, subsPayload);    
+          const resSubscription = await api.post(`/subscription/subscribe`, subsPayload);
 
           setFormError(null);
           setIsSubmitted(true);
           login(res2.data);
-        }              
+        }
       } catch (err) {
         if (err.response?.data?.detail) {
           const detail = err.response.data.detail;
@@ -462,7 +481,7 @@ const Signup = () => {
         } else {
           setFormError("Something went wrong. Please try again.");
         }
-      } finally{
+      } finally {
         setIsLoading(false);
       }
     }
@@ -473,37 +492,37 @@ const Signup = () => {
   // 1️⃣ GOOGLE LOGIN HANDLER
   // --- Inside Signup component ---
 
-// STEP 1️⃣: Handle Google button click
-const handleGoogleLogin = React.useCallback(() => {
-  try {
-    window.google.accounts.id.initialize({
-      client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID,
-      callback: (response) => {
-        const { credential } = response; // Google token        
+  // STEP 1️⃣: Handle Google button click
+  const handleGoogleLogin = React.useCallback(() => {
+    try {
+      window.google.accounts.id.initialize({
+        client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID,
+        callback: (response) => {
+          const { credential } = response; // Google token        
 
-        // Store Google user details locally — not yet saved to DB
-        setFormData((prev) => ({
-          ...prev,
-          first_name: credential.given_name || "",
-          last_name: credential.family_name || "",
-          email: credential.email || "",
-          profile_picture: credential.picture || "",
-          auth_provider: "google",
-          id_token: credential, // save token for later use in Step 2 submit
-        }));
+          // Store Google user details locally — not yet saved to DB
+          setFormData((prev) => ({
+            ...prev,
+            first_name: credential.given_name || "",
+            last_name: credential.family_name || "",
+            email: credential.email || "",
+            profile_picture: credential.picture || "",
+            auth_provider: "google",
+            id_token: credential, // save token for later use in Step 2 submit
+          }));
 
-        // Move to company info step
-        setStep(2);
-      },
-    });
+          // Move to company info step
+          setStep(2);
+        },
+      });
 
-    // Trigger the Google popup
-    window.google.accounts.id.prompt();
-  } catch (err) {
-    console.error("Google login error:", err);
-    setFormError("Google login failed. Please try again.");
-  }
-}, [setFormData, setFormError, setStep]);
+      // Trigger the Google popup
+      window.google.accounts.id.prompt();
+    } catch (err) {
+      console.error("Google login error:", err);
+      setFormError("Google login failed. Please try again.");
+    }
+  }, [setFormData, setFormError, setStep]);
 
 
 
@@ -513,18 +532,20 @@ const handleGoogleLogin = React.useCallback(() => {
       const allRequiredFilled = REQUIRED_FIELDS_STEP_1.every(
         field => (formData[field] || '').trim() !== ''
       );
-      return !termsAccepted || !!formError || !allRequiredFilled;
+      const isPasswordValid = formData.password.length >= 8;
+      const passwordsMatch = formData.password === formData.confirmPassword;
+      return !termsAccepted || !!formError || !allRequiredFilled || !isPasswordValid || !passwordsMatch;
     }
 
     if (step === 2) {
       const allRequiredFilled = REQUIRED_FIELDS_STEP_2.every(
         field => (companyData[field] || '').trim() !== ''
       );
-      return !allRequiredFilled;
+      return !allRequiredFilled || !!formError;
     }
 
-    return true;
-  }, [step, termsAccepted, formError, formData, REQUIRED_FIELDS_STEP_1, REQUIRED_FIELDS_STEP_2]);
+    return false;
+  }, [step, termsAccepted, formError, formData, companyData]); // Added companyData to dependencies
 
 
   const currentStepInfo = STEPS.find(s => s.id === step);
@@ -537,7 +558,7 @@ const handleGoogleLogin = React.useCallback(() => {
           <FiBriefcase className="size-6 text-amber-500 mr-2" />
           <span className="text-xl font-extrabold tracking-wider">CRM</span>
         </div>
-      </div>      
+      </div>
 
       {isLoading && (
         <LoadingScreen isLoading={isLoading} />
@@ -559,7 +580,7 @@ const handleGoogleLogin = React.useCallback(() => {
 
           {step === 1 && (
             <div id="googleSignupBtn"></div>
-          )}          
+          )}
 
           <form className="mt-8">
             {step === 1 && (

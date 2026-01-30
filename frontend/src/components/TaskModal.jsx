@@ -401,18 +401,23 @@ const [isSubmitted, setIsSubmitted] = useState(false);
 
                     {/* --- Related Section Starts Here (Updated to match Calls) --- */}
                     <div className="w-full flex flex-col">
-                      <select
-                        name="relatedType1"
-                        onChange={handleChange}
-                        value={formData.relatedType1}
-                        disabled={viewMode}
-                        className={`w-23 rounded-md text-sm focus:ring-2 focus:ring-blue-400 outline-none mb-2 disabled:text-gray-400 ${
-                          viewMode ? "cursor-not-allowed" : ""
-                        }`}
-                      >
-                        <option value="Lead">Lead</option>
-                        <option value="Account">Account</option>
-                      </select>
+                      <div className="relative w-23">
+  <select
+    name="relatedType1"
+    onChange={handleChange}
+    value={formData.relatedType1}
+    disabled={viewMode}
+    className="w-full pr-6 rounded-md text-sm"
+  >
+    <option value="Lead">Lead</option>
+    <option value="Account">Account</option>
+  </select>
+
+  <span className="absolute right-2 top-1/2 -translate-y-1/2 text-red-500 pointer-events-none">
+    *
+  </span>
+</div>
+                     
 
                       <SearchableSelect
                         disabled={false}

@@ -70,8 +70,8 @@ def get_unique_parent_companies(
     current_user: User = Depends(get_current_user),
 ):
     """
-    Get unique parent_company values for accounts created_by or assigned_to users in the same company.
-    Helps populate searchable parent company presets.
+    Get account names where parent_company is NULL or empty (these are considered parent companies).
+    Accounts with a parent_company value are children and won't appear as presets.
     """
     if not current_user.related_to_company:
         raise HTTPException(status_code=403, detail="User not associated with a company")
@@ -83,16 +83,15 @@ def get_unique_parent_companies(
         .subquery()
     )
 
-    # Get unique parent_company values for accounts in this company
+    # Get names of accounts without a parent_company (these are the parent companies)
     parent_companies = (
-        db.query(Account.parent_company)
+        db.query(Account.name)
         .filter(
-            Account.parent_company.isnot(None),
-            Account.parent_company != "",
+            (Account.parent_company.is_(None)) | (Account.parent_company == ""),
             ((Account.created_by.in_(company_users)) | (Account.assigned_to.in_(company_users)))
         )
         .distinct()
-        .order_by(Account.parent_company)
+        .order_by(Account.name)
         .all()
     )
 

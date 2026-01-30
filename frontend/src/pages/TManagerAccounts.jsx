@@ -1454,9 +1454,8 @@ const [isSubmitted, setIsSubmitted] = useState(false);
             }}
             items={parentCompanies.map((company) => ({ id: company, name: company }))}
             getLabel={(item) => item?.name || ""}
-            placeholder="Select or type parent company..."
+            placeholder="Select parent company..."
             disabled={isSubmitting}
-            allowFreeText={true}
           />
 
           <InputField

@@ -797,6 +797,7 @@ const [isSubmitted, setIsSubmitted] = useState(false);
 
           {/* RELATED TYPE 1 + RELATED TO 1 */}
           <div className="w-full flex flex-col">
+            <div className="relative w-25">
             <select
               name="relatedType1"
               onChange={handleInputChange}
@@ -807,6 +808,10 @@ const [isSubmitted, setIsSubmitted] = useState(false);
               <option value="Lead">Lead</option>
               <option value="Account">Account</option>
             </select>
+             <span className="absolute left-10 md:pl-6 pl-6 top-1/2 -translate-y-1/2 text-red-500 pointer-events-none">
+                  *  
+                </span>
+            </div>
 
             <SearchableSelect              
               items={Array.isArray(relatedTo1Values) ? relatedTo1Values : []}

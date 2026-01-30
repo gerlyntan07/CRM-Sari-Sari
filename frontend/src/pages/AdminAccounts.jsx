@@ -1245,7 +1245,7 @@ export default function AdminAccounts() {
                             relatedType2: null,
                             relatedTo2: null,
 
-                            assigned_to: selectedAccount.assigned_accs?.id
+                            assignedTo: selectedAccount.assigned_accs?.id
                               ? String(selectedAccount.assigned_accs.id)
                               : "",
 
@@ -1275,11 +1275,11 @@ export default function AdminAccounts() {
                             relatedType2: null,
                             relatedTo2: null,
 
-                            assigned_to: selectedAccount.assigned_accs?.id
+                            assignedTo: selectedAccount.assigned_accs?.id
                               ? String(selectedAccount.assigned_accs.id)
                               : "",
 
-                            priority: "MEDIUM",
+                            priority: "NORMAL",
                             status: "Not Started",
                           },
                         },

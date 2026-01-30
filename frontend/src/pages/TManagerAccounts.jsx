@@ -1157,11 +1157,24 @@ const [isSubmitted, setIsSubmitted] = useState(false);
                 <div className="flex flex-col gap-2 w-full">
                   <button
                     onClick={() =>
-                      navigate("/group-manager/calls", {
+                       navigate("/group-manager/calls", {
                         state: {
-                          openCallModal: true, // <-- this triggers your form
+                          openCallModal: true,
                           initialCallData: {
-                            relatedType1: "Account", // <-- your custom default
+                            subject: `Call with ${selectedAccount.name}`,
+
+                            relatedType1: "Account",
+                            relatedTo1: String(selectedAccount.id),
+
+                            relatedType2: null,
+                            relatedTo2: null,
+
+                            assigned_to: selectedAccount.assigned_accs?.id
+                              ? String(selectedAccount.assigned_accs.id)
+                              : "",
+
+                            direction: "Outgoing",
+                            status: "Planned",
                           },
                         },
                       })
@@ -1179,7 +1192,19 @@ const [isSubmitted, setIsSubmitted] = useState(false);
                         state: {
                           openMeetingModal: true,
                           initialMeetingData: {
-                            relatedType: "Account",
+                            subject: `Meeting with ${selectedAccount.name}`,
+
+                            relatedType1: "Account",
+                            relatedTo1: String(selectedAccount.id),
+
+                            relatedType2: null,
+                            relatedTo2: null,
+
+                            assignedTo: selectedAccount.assigned_accs?.id
+                              ? String(selectedAccount.assigned_accs.id)
+                              : "",
+
+                            status: "Planned",
                           },
                         },
                       })
@@ -1195,7 +1220,20 @@ const [isSubmitted, setIsSubmitted] = useState(false);
                         state: {
                           openTaskModal: true,
                           initialTaskData: {
-                            relatedTo: "Account",
+                            subject: `Follow up with ${selectedAccount.name}`,
+
+                            relatedType1: "Account",
+                            relatedTo1: String(selectedAccount.id),
+
+                            relatedType2: null,
+                            relatedTo2: null,
+
+                            assignedTo: selectedAccount.assigned_accs?.id
+                              ? String(selectedAccount.assigned_accs.id)
+                              : "",
+
+                            priority: "NORMAL",
+                            status: "Not Started",
                           },
                         },
                       })

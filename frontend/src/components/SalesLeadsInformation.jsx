@@ -793,7 +793,7 @@ export default function AdminLeadsInformation({
                       onClick={() => {
                         if (!lead) return;
 
-                        navigate("/admin/calls", {
+                        navigate("/sales/calls", {
                           state: {
                             openCallModal: true,
                             initialCallData: {
@@ -851,7 +851,7 @@ export default function AdminLeadsInformation({
                       onClick={() => {
                         if (!lead) return;
 
-                        navigate("/admin/meetings", {
+                        navigate("/sales/meetings", {
                           state: {
                             openMeetingModal: true,
                             initialMeetingData: {
@@ -865,7 +865,7 @@ export default function AdminLeadsInformation({
                               relatedType2: null,
                               relatedTo2: null,
 
-                              assigned_to: lead.assigned_to?.id
+                              assignedTo: lead.assigned_to?.id
                                 ? String(lead.assigned_to.id)
                                 : "",
 
@@ -883,7 +883,7 @@ export default function AdminLeadsInformation({
                       onClick={() => {
                         if (!lead) return;
 
-                        navigate("/admin/tasks", {
+                        navigate("/sales/tasks", {
                           state: {
                             openTaskModal: true,
                             initialTaskData: {
@@ -897,11 +897,11 @@ export default function AdminLeadsInformation({
                               relatedType2: null,
                               relatedTo2: null,
 
-                              assigned_to: lead.assigned_to?.id
+                              assignedTo: lead.assigned_to?.id
                                 ? String(lead.assigned_to.id)
                                 : "",
 
-                              priority: "MEDIUM",
+                              priority: "NORMAL",
                               status: "Not Started",
                             },
                           },

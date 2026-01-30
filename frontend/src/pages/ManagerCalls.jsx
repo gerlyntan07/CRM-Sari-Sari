@@ -777,6 +777,7 @@ const [isSubmitted, setIsSubmitted] = useState(false);
 
           {/* RELATED TYPE 1 + RELATED TO 1 */}
           <div className="w-full flex flex-col">
+            <div className="relative w-25">
             <select
               name="relatedType1"
               onChange={handleInputChange}
@@ -787,6 +788,10 @@ const [isSubmitted, setIsSubmitted] = useState(false);
               <option value="Lead">Lead</option>
               <option value="Account">Account</option>
             </select>
+             <span className="absolute left-10 md:pl-6 pl-6 top-1/2 -translate-y-1/2 text-red-500 pointer-events-none">
+                  *  
+                </span>
+            </div>
 
             <SearchableSelect              
               items={Array.isArray(relatedTo1Values) ? relatedTo1Values : []}
@@ -875,7 +880,7 @@ const [isSubmitted, setIsSubmitted] = useState(false);
 
           <div className="col-span-2">
             <label className="block text-gray-700 font-medium mb-1 text-sm">
-             Assign To <span className="text-red-600 font-semibold">*</span></label>            
+             Assign To <span className="text-red-500 font-semibold">*</span></label>            
             <SearchableSelect              
               items={Array.isArray(team) ? team : []}
               value={formData.assigned_to ?? ""}

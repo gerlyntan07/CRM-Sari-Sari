@@ -10,6 +10,7 @@ import {
   FiSearch,
   FiPlus,
   FiTrash2,
+  FiCheckSquare,
 } from "react-icons/fi";
 import TaskModal from "../components/TaskModal";
 import PaginationControls from "../components/PaginationControls.jsx";
@@ -19,17 +20,29 @@ import useFetchUser from "../hooks/useFetchUser";
 import LoadingSpinner from "../components/LoadingSpinner.jsx";
 import { useLocation, useNavigate } from "react-router-dom";
 
-const BOARD_COLUMNS = ["Not started", "In Progress", "Deferred", "Completed"];
-const LIST_PAGE_SIZE = 10;
+const BOARD_COLUMNS = ["Not started", "In progress", "Deferred", "Completed"];
 
-const mapStatusToColumn = (status) => {
+const STATUS_NORMALIZATION_MAP = {
+  "NOT_STARTED": "Not started",
+  "NOT STARTED": "Not started",
+  "TO DO": "Not started",
+  "IN_PROGRESS": "In progress",
+  "IN PROGRESS": "In progress",
+  "COMPLETED": "Completed",
+  "DEFERRED": "Deferred",
+  "Not started": "Not started",
+  "In progress": "In progress",
+  "Completed": "Completed",
+  "Deferred": "Deferred",
+  "In Progress": "In progress",
+  "To Do": "Not started",
+  "Review": "Deferred"
+};
+
+const normalizeTaskStatus = (status) => {
   if (!status) return "Not started";
-  const lower = status.toLowerCase();
-  if (lower === "not started" || lower === "to do") return "Not started";
-  if (lower === "in progress") return "In Progress";
-  if (lower === "review" || lower === "deferred") return "Deferred";
-  if (lower === "completed") return "Completed";
-  return "Not started"; // Default fallback
+  // Try exact match first, then uppercase match, then default
+  return STATUS_NORMALIZATION_MAP[status] || STATUS_NORMALIZATION_MAP[String(status).toUpperCase()] || "Not started";
 };
 
 // --- Utility Functions ---
@@ -70,34 +83,20 @@ const buildTaskPayload = (data) => {
     "Low": "Low"
   };
 
-  const STATUS_MAP = {
-    "NOT_STARTED": "Not started",
-    "NOT STARTED": "Not started",
-    "TO DO": "Not started",
-    "IN_PROGRESS": "In progress",
-    "IN PROGRESS": "In progress",
-    "COMPLETED": "Completed",
-    "DEFERRED": "Deferred",
-    "Not started": "Not started",
-    "In progress": "In progress",
-    "Completed": "Completed",
-    "Deferred": "Deferred"
-  };
-
   const rawPriority = data.priority ? String(data.priority).toUpperCase() : "NORMAL";
-  const rawStatus = data.status ? String(data.status).toUpperCase() : "NOT_STARTED";
 
   // Default to "Normal" if the map lookup fails
   const cleanPriority = PRIORITY_MAP[rawPriority] || "Normal";
   
   // Default to "Not started" if the map lookup fails
-  const cleanStatus = STATUS_MAP[rawStatus] || "Not started";
+  const cleanStatus = normalizeTaskStatus(data.status);
 
   // Initialize specific foreign keys
   let lead_id = null;
   let account_id = null;
   let contact_id = null;
   let deal_id = null;
+  let quote_id = null;
 
   // 1. Map Level 1 (Lead or Account)
   if (data.relatedType1 === "Lead" && data.relatedTo1) {
@@ -112,6 +111,8 @@ const buildTaskPayload = (data) => {
           contact_id = Number(data.relatedTo2);
       } else if (data.relatedType2 === "Deal" && data.relatedTo2) {
           deal_id = Number(data.relatedTo2);
+      } else if (data.relatedType2 === "Quote" && data.relatedTo2) {
+          quote_id = Number(data.relatedTo2);
       }
   }
 
@@ -119,7 +120,7 @@ const buildTaskPayload = (data) => {
   
   // 3. Determine Primary Polymorphic Relation
   const primaryRelatedId = contact_id || deal_id || account_id || lead_id;
-  const primaryRelatedType = contact_id ? 'Contact' : deal_id ? 'Deal' : account_id ? 'Account' : lead_id ? 'Lead' : null;
+  const primaryRelatedType = contact_id ? 'Contact' : deal_id ? 'Deal' : account_id ? 'Account' : lead_id ? 'Lead' : quote_id ? 'Quote' : null;
 
   return {
     title: trimmedTitle,
@@ -137,6 +138,7 @@ const buildTaskPayload = (data) => {
     account_id: account_id,
     contact_id: contact_id,
     deal_id: deal_id,
+    quote_id: quote_id,
     related_to_1: data.relatedTo1 ? Number(data.relatedTo1) : null,
     related_type_1: data.relatedType1,
     related_to_2: data.relatedTo2 ? Number(data.relatedTo2) : null,
@@ -168,18 +170,30 @@ const mapBackendTaskToFrontend = (task) => {
     ? String(task.assigned_to.id)
     : "Unassigned";
 
+  const formatQuoteId = (quoteId) => {
+  if (!quoteId) return "";
+  // Convert D25-1-00001 to D25-00001 (remove middle company ID)
+  const parts = String(quoteId).split("-");
+  if (parts.length === 3) {
+    return `${parts[0]}-${parts[2]}`;
+  }
+  return String(quoteId);
+};
+
   // --- FIX START: ROBUST ID EXTRACTION ---
   // Helper to get ID from either nested object or flat field
   const getLeadId = () => task.lead?.id || task.lead_id;
   const getAccountId = () => task.account?.id || task.account_id;
   const getContactId = () => task.contact?.id || task.contact_id;
   const getDealId = () => task.deal?.id || task.deal_id;
+  const getQuoteId = () => task.quote?.id || task.quote_id;
   const getAssignedToId = () => task.task_assign_to?.id || task.assigned_to;
 
   const getLeadName = () => task.lead?.title || task.lead_id;
   const getAccountName = () => task.account?.name || task.account_id;
   const getContactName = () => assignedToContact || task.contact_id;
   const getDealName = () => task.deal?.name || task.deal_id;
+  const getQuoteName = () => formatQuoteId(task.quote?.quote_id) || task.id;
   // --- FIX END ---
 
   // Reverse Map for Edit Form: Attempt to detect relationship
@@ -208,6 +222,8 @@ const mapBackendTaskToFrontend = (task) => {
     const activeDealId = getDealId();
     const activeContactName = getContactName();
     const activeDealName = getDealName();
+    const activeQuoteId = getQuoteId();
+    const activeQuoteName = getQuoteName();
 
     if (activeContactId) {
       relatedType2 = "Contact";
@@ -219,6 +235,11 @@ const mapBackendTaskToFrontend = (task) => {
       relatedType2 = "Deal";
       relatedTo2Text = activeDealName;
       relatedTo2 = String(activeDealId);
+    } else if (activeQuoteId) {
+      relatedType2Text = "Quote";
+      relatedType2 = "Quote";
+      relatedTo2Text = activeQuoteName;
+      relatedTo2 = String(activeQuoteId);
     }
   } else if (activeLeadId) {
     relatedType1Text = "Lead";
@@ -235,7 +256,7 @@ const mapBackendTaskToFrontend = (task) => {
     title: task.title,
     description: task.description,
     priority: task.priority || "Normal",
-    status: task.status || "Not started",
+    status: normalizeTaskStatus(task.status),
     dueDate: dueDate,
     dateAssigned: dateAssigned,
     
@@ -269,7 +290,6 @@ export default function AdminTask() {
   }, []);
 
   const { user: currentUser, loading: userLoading } = useFetchUser();
-  const isSales = currentUser?.role === 'Sales';
   const [view, setView] = useState("board");
   const [showModal, setShowModal] = useState(false);
   const [selectedTask, setSelectedTask] = useState(null);
@@ -284,6 +304,7 @@ export default function AdminTask() {
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const [confirmModalData, setConfirmModalData] = useState(null);
   const [confirmProcessing, setConfirmProcessing] = useState(false);
+  const [selectedIds, setSelectedIds] = useState([]);
   
   const navigate = useNavigate();
   const location = useLocation();
@@ -303,17 +324,8 @@ export default function AdminTask() {
     relatedTo2: "",
   });
 
+  // State to track taskID passed from navigation (e.g., from AdminAccounts)
   const [pendingTaskId, setPendingTaskId] = useState(null);
-
-  // Set default assignedTo to current user when modal opens for a new task (Sales only)
-  useEffect(() => {
-    if (showModal && !formData.id && isSales && currentUser && !formData.assignedTo) {
-       setFormData((prev) => ({
-         ...prev,
-         assignedTo: currentUser.id,
-       }));
-    }
-  }, [showModal, formData.id, currentUser, isSales]);
 
   // --- Auto-Open Modal Logic ---
   useEffect(() => {
@@ -337,17 +349,18 @@ export default function AdminTask() {
     }
   }, [location, navigate]);
 
+  // --- Effect to open task modal when taskID is passed and tasks are loaded ---
   useEffect(() => {
-      if (pendingTaskId && tasks.length > 0 && !loading) {
-        const foundTask = tasks.find((task) => task.id === pendingTaskId);
-        if (foundTask) {
-          handleOpenModal(foundTask, true); // Open in view mode
-        } else {
-          toast.error("Task not found.");
-        }
-        setPendingTaskId(null); // Clear pending task ID
+    if (pendingTaskId && tasks.length > 0 && !loading) {
+      const foundTask = tasks.find((task) => task.id === pendingTaskId);
+      if (foundTask) {
+        handleOpenModal(foundTask, true); // Open in view mode
+      } else {
+        toast.error("Task not found.");
       }
-    }, [pendingTaskId, tasks, loading]);
+      setPendingTaskId(null); // Clear pending task ID
+    }
+  }, [pendingTaskId, tasks, loading]);
 
   // --- API Fetch Functions ---
 
@@ -367,6 +380,8 @@ export default function AdminTask() {
       const res = await api.get("/tasks/all");      
       const rawTasks = Array.isArray(res.data) ? res.data : [];
       const formattedTasks = rawTasks.map(mapBackendTaskToFrontend);
+      console.log("Raw Tasks from API:", rawTasks);
+      console.log("Formatted Tasks:", formattedTasks);
 
       formattedTasks.sort((a, b) => {
         const aDate = a.createdAt ? new Date(a.createdAt) : 0;
@@ -451,6 +466,7 @@ export default function AdminTask() {
 
   const handleSaveTask = async (newTaskData) => { 
       const requestPayload = buildTaskPayload(newTaskData);
+      console.log("Request Payload for Save:", requestPayload);
       
       try {
           if (selectedTask && !viewMode) {
@@ -487,6 +503,43 @@ export default function AdminTask() {
     });
   };
 
+  const handleSelectAll = () => {
+    if (displayTasks.every((t) => selectedIds.includes(t.id))) {
+      setSelectedIds(selectedIds.filter((id) => !displayTasks.map((t) => t.id).includes(id)));
+    } else {
+      const newIds = displayTasks.map((t) => t.id);
+      setSelectedIds([...new Set([...selectedIds, ...newIds])]);
+    }
+  };
+
+  const handleCheckboxChange = (id) => {
+    setSelectedIds((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+    );
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedIds.length === 0) return;
+
+    setConfirmModalData({
+      title: "Delete Tasks",
+      message: (
+        <span>
+          Are you sure you want to delete{" "}
+          <span className="font-semibold">{selectedIds.length}</span> selected
+          tasks? This action cannot be undone.
+        </span>
+      ),
+      confirmLabel: `Delete ${selectedIds.length} Task(s)`,
+      cancelLabel: "Cancel",
+      variant: "danger",
+      action: {
+        type: "bulk-delete",
+        task_ids: selectedIds,
+      },
+    });
+  };
+
   const handleConfirmAction = async () => {
     if (!confirmModalData?.action) {
       setConfirmModalData(null);
@@ -499,6 +552,13 @@ export default function AdminTask() {
       if (action.type === "delete") {
         await api.delete(`/tasks/${action.targetId}`);
         toast.success("Task deleted successfully.");
+        await fetchTasks();
+      } else if (action.type === "bulk-delete") {
+        await api.delete("/tasks/admin/bulk-delete", {
+          data: { task_ids: action.task_ids },
+        });
+        toast.success(`Successfully deleted ${action.task_ids.length} tasks`);
+        setSelectedIds([]);
         await fetchTasks();
       } 
     } catch (error) {
@@ -532,7 +592,7 @@ export default function AdminTask() {
         task.createdBy?.toLowerCase().includes(normalized);
 
       const matchesStatus =
-        filterStatus === "Filter by Status" || mapStatusToColumn(task.status) === filterStatus;
+        filterStatus === "Filter by Status" || task.status === filterStatus;
       const matchesPriority =
         filterPriority === "Filter by Priority" || task.priority === filterPriority;
 
@@ -541,7 +601,7 @@ export default function AdminTask() {
   }, [tasks, search, filterStatus, filterPriority]);
 
   // Pagination logic
-  useEffect(() => { setCurrentPage(1); }, [search, filterStatus, filterPriority, view]);
+  useEffect(() => { setCurrentPage(1); }, [search, filterStatus, filterPriority, view, itemsPerPage]);
   
   useEffect(() => {
     if (view === "list") {
@@ -603,9 +663,9 @@ export default function AdminTask() {
     task.dueDate && new Date(task.dueDate) < new Date() && task.status !== "Completed";
 
   const getTaskCardColor = (task) => {
-    switch (mapStatusToColumn(task.status)) {
+    switch (task.status) {
       case "Not started": return "bg-blue-50 hover:bg-blue-100 border-blue-200";
-      case "In Progress": return "bg-purple-50 hover:bg-purple-100 border-purple-200";
+      case "In progress": return "bg-purple-50 hover:bg-purple-100 border-purple-200";
       case "Deferred": return "bg-orange-50 hover:bg-orange-100 border-orange-200";
       case "Completed": return "bg-green-50 hover:bg-green-100 border-green-200";
       default: return "bg-gray-50 hover:bg-gray-100 border-gray-100";
@@ -613,9 +673,9 @@ export default function AdminTask() {
   };
 
   const getStatusBadgeClass = (status) => {
-    switch (mapStatusToColumn(status)) {
+    switch (status) {
       case "Not started": return "bg-blue-100 text-blue-700";
-      case "In Progress": return "bg-purple-100 text-purple-700";
+      case "In progress": return "bg-purple-100 text-purple-700";
       case "Deferred": return "bg-orange-100 text-orange-700";
       case "Completed": return "bg-green-100 text-green-700";
       default: return "bg-gray-100 text-gray-700";
@@ -714,9 +774,9 @@ export default function AdminTask() {
         filteredTasks.length > 0 ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 rounded-md">
           {BOARD_COLUMNS.map((column) => {
-            const columnTasks = displayTasks.filter((task) => mapStatusToColumn(task.status) === column);
+            const columnTasks = displayTasks.filter((task) => task.status === column);
             return (
-              <div key={column} className="bg-white p-4 shadow border border-gray-200 flex flex-col relative">
+              <div key={column} className="bg-white p-4 shadow border border-gray-200 flex flex-col relative rounded-md">
                 <div className="absolute top-0 left-0 w-full h-5 bg-secondary rounded-t-md" /> 
                 <div className="flex items-center justify-between mb-3 pt-7">
                   <h3 className="font-medium text-gray-900">{column}</h3>
@@ -759,7 +819,7 @@ export default function AdminTask() {
                       </div>
                     ))
                   ) : (
-                    <p className="text-sm text-gray-400 text-center py-4">No tasks</p>
+                    <div className="text-center py-10 text-gray-500">No tasks</div>
                   )}
                 </div>
               </div>
@@ -778,11 +838,35 @@ export default function AdminTask() {
             <table className="min-w-full text-sm">
               <thead className="bg-gray-100 text-gray-600 text-left">
                 <tr>
+                  <th className="py-3 px-4 w-10">
+                    <input
+                      type="checkbox"
+                      className="w-4 h-4 accent-blue-600"
+                      checked={
+                        displayTasks.length > 0 &&
+                        displayTasks.every((t) => selectedIds.includes(t.id))
+                      }
+                      onChange={handleSelectAll}
+                    />
+                  </th>
                   <th className="py-3 px-4 font-medium">Task</th>
                   <th className="py-3 px-4 font-medium">Status</th>
                   <th className="py-3 px-4 font-medium">Priority</th>
                   <th className="py-3 px-4 font-medium">Assigned To</th>
                   <th className="py-3 px-4 font-medium">Date Assigned</th>
+                  <th className="py-3 px-4 font-medium text-center w-24">
+                    {selectedIds.length > 0 ? (
+                      <button
+                        onClick={handleBulkDelete}
+                        className="text-red-600 hover:text-red-800 transition p-1 rounded-full hover:bg-red-50"
+                        title={`Delete ${selectedIds.length} selected tasks`}
+                      >
+                        <FiTrash2 size={18} />
+                      </button>
+                    ) : (
+                      ""
+                    )}
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -790,23 +874,29 @@ export default function AdminTask() {
                   <tr
                     key={task.id}
                     className="hover:bg-gray-50 transition-colors text-sm cursor-pointer"
-                    onClick={() => {
-                      console.log("Opening task in view mode:", task);
-                      handleOpenModal(task, true)}}
                   >
-                    <td className="py-3 px-4 text-gray-700 whitespace-nowrap font-medium">{task.title}</td>
-                    <td className="py-3 px-4 whitespace-nowrap">
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium whitespace-nowrap ${getStatusBadgeClass(task.status || "To Do")}`}>{task.status || "To Do"}</span>
+                    <td className="py-3 px-4" onClick={(e) => e.stopPropagation()}>
+                      <input
+                        type="checkbox"
+                        className="w-4 h-4 accent-blue-600"
+                        checked={selectedIds.includes(task.id)}
+                        onChange={() => handleCheckboxChange(task.id)}
+                      />
                     </td>
-                    <td className="py-3 px-4 whitespace-nowrap">
+                    <td className="py-3 px-4 text-gray-700 whitespace-nowrap font-medium" onClick={() => handleOpenModal(task, true)}>{task.title}</td>
+                    <td className="py-3 px-4 whitespace-nowrap" onClick={() => handleOpenModal(task, true)}>
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium whitespace-nowrap ${getStatusBadgeClass(task.status || "Not started")}`}>{task.status || "Not started"}</span>
+                    </td>
+                    <td className="py-3 px-4 whitespace-nowrap" onClick={() => handleOpenModal(task, true)}>
                       <span className={`px-2 py-1 rounded-full text-xs font-medium whitespace-nowrap ${getPriorityBadgeClass(task.priority || "Low")}`}>{task.priority || "Low"}</span>
                     </td>
-                    <td className="py-3 px-4 text-gray-700 whitespace-nowrap">{task.assignedToName || "Unassigned"}</td>
-                    <td className={`py-3 px-4 text-gray-700 whitespace-nowrap ${isTaskOverdue(task) ? "text-red-600 font-medium" : ""}`}>
+                    <td className="py-3 px-4 text-gray-700 whitespace-nowrap" onClick={() => handleOpenModal(task, true)}>{task.assignedToName || "Unassigned"}</td>
+                    <td className={`py-3 px-4 text-gray-700 whitespace-nowrap ${isTaskOverdue(task) ? "text-red-600 font-medium" : ""}`} onClick={() => handleOpenModal(task, true)}>
                       {task.dateAssigned ? formatDateDisplay(task.dateAssigned) : "—"}
                     </td>
+                    <td></td>
                   </tr>
-                )) : <tr><td colSpan={5} className="text-center py-4 text-gray-500">No tasks found.</td></tr>}
+                )) : <tr><td colSpan={7} className="text-center py-4 text-gray-500">No tasks found.</td></tr>}
               </tbody>
             </table>
           </div>

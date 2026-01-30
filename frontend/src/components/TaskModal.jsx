@@ -25,6 +25,16 @@ export default function TaskModal({
   const [relatedTo2Values, setRelatedTo2Values] = useState([]);
   const [errors, setErrors] = useState({}); // ✅ missing piece
 
+  const formatQuoteId = (quoteId) => {
+  if (!quoteId) return "";
+  // Convert D25-1-00001 to D25-00001 (remove middle company ID)
+  const parts = String(quoteId).split("-");
+  if (parts.length === 3) {
+    return `${parts[0]}-${parts[2]}`;
+  }
+  return String(quoteId);
+};
+
   // --- Logic to Handle Input Changes ---
  const handleChange = (e) => {
   const { name, value } = e.target;
@@ -123,6 +133,8 @@ export default function TaskModal({
             res = await api.get(`/contacts/from-acc/${formData.relatedTo1}`);
           } else if (formData.relatedType2 === "Deal") {
             res = await api.get(`/deals/from-acc/${formData.relatedTo1}`);
+          } else if (formData.relatedType2 === "Quote") {
+            res = await api.get(`/quotes/from-acc/${formData.relatedTo1}`);
           }
 
           let items = [];
@@ -138,6 +150,8 @@ export default function TaskModal({
                 specificRes = await api.get(`/contacts/get/${formData.relatedTo2}`);
               } else if (formData.relatedType2 === "Deal") {
                 specificRes = await api.get(`/deals/get/${formData.relatedTo2}`);
+              } else if (formData.relatedType2 === "Quote") {
+                specificRes = await api.get(`/quotes/get/${formData.relatedTo2}`);
               }
 
               if (specificRes && specificRes.data) {
@@ -456,6 +470,7 @@ const [isSubmitted, setIsSubmitted] = useState(false);
                       >
                         <option value="Contact">Contact</option>
                         <option value="Deal">Deal</option>
+                        <option value="Quote">Quote</option>
                       </select>
 
                       <SearchableSelect
@@ -479,6 +494,8 @@ const [isSubmitted, setIsSubmitted] = useState(false);
                             ? `${item.first_name ?? ""} ${
                                 item.last_name ?? ""
                               }`.trim()
+                            : formData.relatedType2 === "Quote"
+                            ? formatQuoteId(item.quote_id) ?? ""
                             : item.name ?? ""
                         }
                         onChange={(newId) =>

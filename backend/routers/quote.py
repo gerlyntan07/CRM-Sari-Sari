@@ -579,6 +579,21 @@ def get_quote_items(
 
     return quote.items
 
+@router.get("/from-acc/{accID}", response_model=list[QuoteResponse])
+def admin_get_quotes_from_acc(
+    accID: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    company_users = db.query(User.id).filter(
+        User.related_to_company == current_user.related_to_company
+    ).subquery()
+
+    quotes = db.query(Quote).filter(
+        (Quote.created_by.in_(company_users)) | (Quote.assigned_to.in_(company_users))
+    ).filter(Quote.account_id == accID).all()
+
+    return quotes
 
 @router.post("/admin/{quote_id}/items", response_model=QuoteItemResponse, status_code=status.HTTP_201_CREATED)
 def add_quote_item(

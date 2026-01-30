@@ -26,6 +26,7 @@ def get_audit_logs(
             db.query(Auditlog)
             .join(User, Auditlog.user_id == User.id)
             .filter(User.related_to_company == current_user.related_to_company)
+            .order_by(Auditlog.timestamp.desc(), Auditlog.id.desc())
             .all()
         )
 
@@ -36,6 +37,7 @@ def get_audit_logs(
             .join(User, Auditlog.user_id == User.id)
             .filter(User.related_to_company == current_user.related_to_company)
             .filter(~User.role.in_(["CEO", "Admin"]))
+            .order_by(Auditlog.timestamp.desc(), Auditlog.id.desc())
             .all()
         )
     elif current_user.role in ["Manager"]:
@@ -56,12 +58,14 @@ def get_audit_logs(
                 (Auditlog.user_id.in_(subquery_user_ids)) | 
                 (Auditlog.user_id == current_user.id)
             )
+            .order_by(Auditlog.timestamp.desc(), Auditlog.id.desc())
             .all()
         )
     else:
         logs = (
             db.query(Auditlog)
             .filter(Auditlog.user_id == current_user.id)
+            .order_by(Auditlog.timestamp.desc(), Auditlog.id.desc())
             .all()
         )    
 

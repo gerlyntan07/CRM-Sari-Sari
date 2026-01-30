@@ -27,6 +27,7 @@ class Call(Base):
     related_to_contact = Column(Integer, ForeignKey("contacts.id", ondelete="CASCADE"), nullable=True)
     related_to_lead = Column(Integer, ForeignKey("leads.id", ondelete="CASCADE"), nullable=True)
     related_to_deal = Column(Integer, ForeignKey("deals.id", ondelete="CASCADE"), nullable=True)
+    related_to_quote = Column(Integer, ForeignKey("quotes.id", ondelete="CASCADE"), nullable=True)
     created_by = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     assigned_to = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
@@ -39,3 +40,4 @@ class Call(Base):
     call_creator = relationship("User", back_populates="calls_created", foreign_keys=[created_by])
     call_assign_to = relationship("User", back_populates="calls_assigned", foreign_keys=[assigned_to])      
     comments = relationship("Comment", back_populates="call", cascade="all, delete-orphan")  
+    quote = relationship("Quote", back_populates="calls")

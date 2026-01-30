@@ -96,6 +96,7 @@ const buildTaskPayload = (data) => {
   let account_id = null;
   let contact_id = null;
   let deal_id = null;
+  let quote_id = null;
 
   // 1. Map Level 1 (Lead or Account)
   if (data.relatedType1 === "Lead" && data.relatedTo1) {
@@ -110,6 +111,8 @@ const buildTaskPayload = (data) => {
           contact_id = Number(data.relatedTo2);
       } else if (data.relatedType2 === "Deal" && data.relatedTo2) {
           deal_id = Number(data.relatedTo2);
+      } else if (data.relatedType2 === "Quote" && data.relatedTo2) {
+          quote_id = Number(data.relatedTo2);
       }
   }
 
@@ -117,7 +120,7 @@ const buildTaskPayload = (data) => {
   
   // 3. Determine Primary Polymorphic Relation
   const primaryRelatedId = contact_id || deal_id || account_id || lead_id;
-  const primaryRelatedType = contact_id ? 'Contact' : deal_id ? 'Deal' : account_id ? 'Account' : lead_id ? 'Lead' : null;
+  const primaryRelatedType = contact_id ? 'Contact' : deal_id ? 'Deal' : account_id ? 'Account' : lead_id ? 'Lead' : quote_id ? 'Quote' : null;
 
   return {
     title: trimmedTitle,
@@ -135,6 +138,7 @@ const buildTaskPayload = (data) => {
     account_id: account_id,
     contact_id: contact_id,
     deal_id: deal_id,
+    quote_id: quote_id,
     related_to_1: data.relatedTo1 ? Number(data.relatedTo1) : null,
     related_type_1: data.relatedType1,
     related_to_2: data.relatedTo2 ? Number(data.relatedTo2) : null,
@@ -166,18 +170,30 @@ const mapBackendTaskToFrontend = (task) => {
     ? String(task.assigned_to.id)
     : "Unassigned";
 
+  const formatQuoteId = (quoteId) => {
+  if (!quoteId) return "";
+  // Convert D25-1-00001 to D25-00001 (remove middle company ID)
+  const parts = String(quoteId).split("-");
+  if (parts.length === 3) {
+    return `${parts[0]}-${parts[2]}`;
+  }
+  return String(quoteId);
+};
+
   // --- FIX START: ROBUST ID EXTRACTION ---
   // Helper to get ID from either nested object or flat field
   const getLeadId = () => task.lead?.id || task.lead_id;
   const getAccountId = () => task.account?.id || task.account_id;
   const getContactId = () => task.contact?.id || task.contact_id;
   const getDealId = () => task.deal?.id || task.deal_id;
+  const getQuoteId = () => task.quote?.id || task.quote_id;
   const getAssignedToId = () => task.task_assign_to?.id || task.assigned_to;
 
   const getLeadName = () => task.lead?.title || task.lead_id;
   const getAccountName = () => task.account?.name || task.account_id;
   const getContactName = () => assignedToContact || task.contact_id;
   const getDealName = () => task.deal?.name || task.deal_id;
+  const getQuoteName = () => formatQuoteId(task.quote?.quote_id) || task.id;
   // --- FIX END ---
 
   // Reverse Map for Edit Form: Attempt to detect relationship
@@ -206,6 +222,8 @@ const mapBackendTaskToFrontend = (task) => {
     const activeDealId = getDealId();
     const activeContactName = getContactName();
     const activeDealName = getDealName();
+    const activeQuoteId = getQuoteId();
+    const activeQuoteName = getQuoteName();
 
     if (activeContactId) {
       relatedType2 = "Contact";
@@ -217,6 +235,11 @@ const mapBackendTaskToFrontend = (task) => {
       relatedType2 = "Deal";
       relatedTo2Text = activeDealName;
       relatedTo2 = String(activeDealId);
+    } else if (activeQuoteId) {
+      relatedType2Text = "Quote";
+      relatedType2 = "Quote";
+      relatedTo2Text = activeQuoteName;
+      relatedTo2 = String(activeQuoteId);
     }
   } else if (activeLeadId) {
     relatedType1Text = "Lead";
@@ -357,6 +380,8 @@ export default function AdminTask() {
       const res = await api.get("/tasks/all");      
       const rawTasks = Array.isArray(res.data) ? res.data : [];
       const formattedTasks = rawTasks.map(mapBackendTaskToFrontend);
+      console.log("Raw Tasks from API:", rawTasks);
+      console.log("Formatted Tasks:", formattedTasks);
 
       formattedTasks.sort((a, b) => {
         const aDate = a.createdAt ? new Date(a.createdAt) : 0;
@@ -441,6 +466,7 @@ export default function AdminTask() {
 
   const handleSaveTask = async (newTaskData) => { 
       const requestPayload = buildTaskPayload(newTaskData);
+      console.log("Request Payload for Save:", requestPayload);
       
       try {
           if (selectedTask && !viewMode) {

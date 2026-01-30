@@ -60,6 +60,9 @@ class Quote(Base):
     creator = relationship("User", back_populates="quotes_created", foreign_keys=[created_by])
     comments = relationship("Comment", back_populates="quote", cascade="all, delete-orphan")
     items = relationship("QuoteItem", back_populates="quote", cascade="all, delete-orphan", order_by="QuoteItem.sort_order")
+    tasks = relationship("Task", back_populates="quote", cascade="all, delete-orphan")
+    meetings = relationship("Meeting", back_populates="quote", cascade="all, delete-orphan")
+    calls = relationship("Call", back_populates="quote", cascade="all, delete-orphan")
 
     def calculate_totals(self):
         """
@@ -168,7 +171,7 @@ class QuoteItem(Base):
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
     # Relationships
-    quote = relationship("Quote", back_populates="items")
+    quote = relationship("Quote", back_populates="items")    
 
     def calculate_line_total(self):
         """

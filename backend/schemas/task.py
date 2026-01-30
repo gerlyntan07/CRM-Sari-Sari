@@ -90,6 +90,10 @@ class DealBase(BaseModel):
     deal_id: str
     name: str
 
+class QuoteBase(BaseModel):
+    id: int
+    quote_id: str
+
 class TaskFetch(BaseModel):
     id: int
     title: str
@@ -105,3 +109,5 @@ class TaskFetch(BaseModel):
     contact: Optional[ContactBase] = None
     lead: Optional[LeadBase] = None
     deal: Optional[DealBase] = None
+    quote: Optional[QuoteBase] = None
+    

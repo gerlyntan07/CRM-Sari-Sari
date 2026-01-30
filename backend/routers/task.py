@@ -12,6 +12,7 @@ from routers.ws_notification import broadcast_notification  # WebSocket broadcas
 from models.account import Account
 from models.contact import Contact
 from models.lead import Lead
+from models.quote import Quote
 from .logs_utils import serialize_instance, create_audit_log
 from models.deal import Deal
 from models.territory import Territory
@@ -35,7 +36,8 @@ def task_to_response(task: Task) -> dict:
         task.related_to_account or
         task.related_to_contact or
         task.related_to_lead or
-        task.related_to_deal
+        task.related_to_deal or
+        task.related_to_quote
     )
 
     return {
@@ -108,6 +110,7 @@ async def create_task(
         new_task.related_to_account = None
         new_task.related_to_contact = None
         new_task.related_to_deal = None
+        new_task.related_to_quote = None
     elif getattr(payload, 'related_type_1', None) == "Account":
         account = db.query(Account).filter(Account.id == payload.related_to_1).first()
         if not account:
@@ -120,15 +123,25 @@ async def create_task(
                 raise HTTPException(status_code=404, detail="Contact not found")
             new_task.related_to_contact = payload.related_to_2
             new_task.related_to_deal = None
+            new_task.related_to_quote = None
         elif getattr(payload, 'related_type_2', None) == "Deal" and payload.related_to_2:
             deal = db.query(Deal).filter(Deal.id == payload.related_to_2).first()
             if not deal:
                 raise HTTPException(status_code=404, detail="Deal not found")
             new_task.related_to_deal = payload.related_to_2
             new_task.related_to_contact = None
+            new_task.related_to_quote = None
+        elif getattr(payload, 'related_type_2', None) == "Quote" and payload.related_to_2:
+            quote = db.query(Quote).filter(Quote.id == payload.related_to_2).first()
+            if not quote:
+                raise HTTPException(status_code=404, detail="Quote not found")
+            new_task.related_to_quote = payload.related_to_2
+            new_task.related_to_contact = None
+            new_task.related_to_deal = None
         else:
             new_task.related_to_contact = None
             new_task.related_to_deal = None
+            new_task.related_to_quote = None
     else:
         raise HTTPException(status_code=400, detail="Invalid related_type_1. Must be 'Lead' or 'Account'.")
     

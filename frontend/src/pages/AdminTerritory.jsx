@@ -693,46 +693,52 @@ const [isSubmitted, setIsSubmitted] = useState(false);
              <table className="min-w-full text-sm">
                 <thead className="bg-gray-100 text-gray-600 text-left">
                   <tr>
-                    <th className="py-3 px-4 w-10">
-                      <input
-                        type="checkbox"
-                        className="w-4 h-4 accent-blue-600"
-                        checked={
-                          paginatedTerritories.length > 0 &&
-                          paginatedTerritories.every((t) => selectedIds.includes(t.id))
-                        }
-                        onChange={handleSelectAll}
-                      />
-                    </th>
+                    {userRole.toLowerCase() !== 'sales' && (
+                      <th className="py-3 px-4 w-10">
+                        <input
+                          type="checkbox"
+                          className="w-4 h-4 accent-blue-600"
+                          checked={
+                            paginatedTerritories.length > 0 &&
+                            paginatedTerritories.every((t) => selectedIds.includes(t.id))
+                          }
+                          onChange={handleSelectAll}
+                        />
+                      </th>
+                    )}
                     <th className="py-3 px-4">Territory</th>
                     <th className="py-3 px-4">Assigned To</th>
                     <th className="py-3 px-4">Manager</th>
-                    <th className="py-3 px-4 text-center w-24">
-                      {selectedIds.length > 0 ? (
-                        <button
-                          onClick={handleBulkDelete}
-                          className="text-red-600 hover:text-red-800 transition p-1 rounded-full hover:bg-red-50"
-                          title={`Delete ${selectedIds.length} selected territories`}
-                        >
-                          <FiTrash2 size={18} />
-                        </button>
-                      ) : (
-                        ""
-                      )}
-                    </th>
+                    {userRole.toLowerCase() !== 'sales' && (
+                      <th className="py-3 px-4 text-center w-24">
+                        {selectedIds.length > 0 ? (
+                          <button
+                            onClick={handleBulkDelete}
+                            className="text-red-600 hover:text-red-800 transition p-1 rounded-full hover:bg-red-50"
+                            title={`Delete ${selectedIds.length} selected territories`}
+                          >
+                            <FiTrash2 size={18} />
+                          </button>
+                        ) : (
+                          ""
+                        )}
+                      </th>
+                    )}
                   </tr>
                 </thead>
                 <tbody>
                   {hasResults ? paginatedTerritories.map(t => (
                     <tr key={t.id} className="hover:bg-gray-50 cursor-pointer">
-                      <td className="py-3 px-4" onClick={(e) => e.stopPropagation()}>
-                        <input
-                          type="checkbox"
-                          className="w-4 h-4 accent-blue-600"
-                          checked={selectedIds.includes(t.id)}
-                          onChange={() => handleCheckboxChange(t.id)}
-                        />
-                      </td>
+                      {userRole.toLowerCase() !== 'sales' && (
+                        <td className="py-3 px-4" onClick={(e) => e.stopPropagation()}>
+                          <input
+                            type="checkbox"
+                            className="w-4 h-4 accent-blue-600"
+                            checked={selectedIds.includes(t.id)}
+                            onChange={() => handleCheckboxChange(t.id)}
+                          />
+                        </td>
+                      )}
                       <td className="py-3 px-4 font-medium" onClick={() => { 
                         setSelectedTerritory(t);
 

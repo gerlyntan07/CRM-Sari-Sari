@@ -15,7 +15,7 @@ router = APIRouter(
     tags=["territories"]
 )
 
-ALLOWED_ADMIN_ROLES = {"CEO", "ADMIN", "GROUP MANAGER", "MANAGER", "SALES"}
+ALLOWED_ADMIN_ROLES = {"CEO", "ADMIN", "GROUP MANAGER", "MANAGER"}
 
 @router.get("/fetch", response_model=List[TerritoryResponse])
 def get_territories(

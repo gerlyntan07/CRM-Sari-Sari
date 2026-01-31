@@ -11,7 +11,7 @@ import { toast } from "react-toastify";
 import { useNavigate } from "react-router-dom";
 import useFetchUser from "../hooks/useFetchUser";
 
-export default function AdminDealsQuickAction({
+export default function TManagerDealsQuickAction({
   selectedDeal,
   onStatusUpdate,
   onClose,
@@ -22,7 +22,7 @@ export default function AdminDealsQuickAction({
   const { user } = useFetchUser();
 
   useEffect(() => {
-    console.log("AdminDealsInformation mounted sahdksd", selectedDeal);
+    console.log("Group Manager DealsInformation mounted sahdksd", selectedDeal);
     console.log("User sadad:", user);
   }, [selectedDeal, user]);
 
@@ -106,16 +106,31 @@ export default function AdminDealsQuickAction({
         <div className="flex flex-col gap-2 w-full">
           {/* --- SCHEDULE CALL BUTTON (updated) --- */}
           <button
-            onClick={() =>
-              navigate("/admin/calls", {
+            onClick={() => {
+              // Check if account data exists to avoid errors
+              const accountId = selectedDeal.account?.id || selectedDeal.account_id;
+
+              navigate("/group-manager/calls", {
                 state: {
-                  openCallModal: true, // <-- this triggers your form
+                  openCallModal: true,
                   initialCallData: {
-                    relatedType1: "Deal", // <-- your custom default
+                    // 1. Pre-fill the Subject
+                    subject: selectedDeal.name ? `Call regarding: ${selectedDeal.name}` : "",
+                    relatedType1: "Account",
+                    relatedTo1: accountId,
+                    relatedType2: "Deal",
+                    relatedTo2: selectedDeal.id,
+                    contactId: selectedDeal.contact?.id,
+                    assigned_to: selectedDeal.assigned_deals?.id ? String(selectedDeal.assigned_deals.id) : "",
+
+                    assignedTo: selectedDeal.assigned_to?.id
+                              ? String(selectedDeal.assigned_to.id)
+                              : "",
+
                   },
                 },
-              })
-            }
+              });
+            }}
             className="flex items-center gap-2 border border-gray-100 rounded-md py-1.5 px-2 sm:px-3 hover:bg-gray-50 transition text-sm"
           >
             <FiPhone className="text-gray-600 w-4 h-4" />
@@ -145,32 +160,62 @@ export default function AdminDealsQuickAction({
           </button>
           <button
             className="flex items-center gap-2 border border-gray-100 rounded-md py-1.5 px-2 sm:px-3 hover:bg-gray-50 transition text-sm"
-            onClick={() =>
-              navigate("/admin/meetings", {
+             onClick={() => {
+              // 1. Get the Account ID safely
+              const accountId = selectedDeal.account?.id || selectedDeal.account_id;
+
+              navigate("/group-manager/meetings", {
                 state: {
                   openMeetingModal: true,
                   initialMeetingData: {
-                    relatedType: "Deal",
+                    // 2. Pre-fill the Title/Subject
+                    subject: selectedDeal.name ? `Meeting: ${selectedDeal.name}` : "",
+
+                    // 3. Set Parent (Account) - Use "relatedType1" if your Meetings form matches the Calls form structure
+                    relatedType1: "Account",
+                    relatedTo1: accountId,
+
+                    // 4. Set Child (Deal)
+                    relatedType2: "Deal",
+                    relatedTo2: selectedDeal.id,
+                    assignedTo: selectedDeal.assigned_deals?.id ? String(selectedDeal.assigned_deals.id) : "",
                   },
                 },
-              })
-            }
+              });
+            }}
           >
             <FiCalendar className="text-gray-600 w-4 h-4" />
             Book Meeting
           </button>
 
           <button
-            onClick={() =>
-              navigate("/admin/tasks", {
+            onClick={() => {
+              const accountId = selectedDeal.account?.id || selectedDeal.account_id;
+
+              navigate("/group-manager/tasks", {
                 state: {
                   openTaskModal: true,
                   initialTaskData: {
-                    relatedTo: "Deal",
+                    // 2. Pre-fill the Task Title
+                    subject: selectedDeal.name ? `Task for: ${selectedDeal.name}` : "",
+
+                    // 3. Set Parent (Account)
+                    relatedType1: "Account",
+                    relatedTo1: accountId,
+
+                    // 4. Set Child (Deal)
+                    relatedType2: "Deal",
+                    relatedTo2: selectedDeal.id,
+
+                    // 5. Link Contact (Optional)
+                    contactId: selectedDeal.contact?.id,
+                    assignedTo: selectedDeal.assigned_deals?.id ? String(selectedDeal.assigned_deals.id) : "",
+                    priority: "NORMAL",
+                    status: "Not Started",
                   },
                 },
-              })
-            }
+              });
+            }}
             className="flex items-center gap-2 border border-gray-100 rounded-md py-1.5 px-2 sm:px-3 hover:bg-gray-50 transition text-sm"
           >
             <FiCheckSquare className="text-gray-600 w-4 h-4" />

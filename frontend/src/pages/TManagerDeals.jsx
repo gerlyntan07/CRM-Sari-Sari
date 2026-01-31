@@ -14,7 +14,7 @@ import { LuUserSearch } from "react-icons/lu";
 import api from '../api'
 import { toast } from "react-toastify";
 import PaginationControls from "../components/PaginationControls.jsx";
-import AdminDealsInformation from "../components/AdminDealsInformation";
+import TManagerDealsInformation from "../components/TManagerDealsInformation";
 import LoadingSpinner from "../components/LoadingSpinner.jsx";
 import { useLocation, useNavigate } from "react-router-dom";
 
@@ -778,7 +778,7 @@ export default function AdminDeals() {
 
             {/* Modal: Selected Deal Info */}
             {selectedDeal && (
-                <AdminDealsInformation
+                 <TManagerDealsInformation
                     relatedActs={relatedActs}
                     selectedDeal={selectedDeal}
                     show={!!selectedDeal}

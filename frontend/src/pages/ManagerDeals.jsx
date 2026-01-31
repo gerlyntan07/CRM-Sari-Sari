@@ -14,11 +14,11 @@ import { LuUserSearch } from "react-icons/lu";
 import api from '../api'
 import { toast } from "react-toastify";
 import PaginationControls from "../components/PaginationControls.jsx";
-import AdminDealsInformation from "../components/AdminDealsInformation";
+import ManagerDealsInformation from "../components/ManagerDealsInformation";
 import LoadingSpinner from "../components/LoadingSpinner.jsx";
 import { useLocation, useNavigate } from "react-router-dom";
 
-export default function AdminDeals() {
+export default function ManagerDeals() {
     useEffect(() => {
         document.title = "Deals | Sari-Sari CRM";
     }, []);
@@ -781,7 +781,7 @@ export default function AdminDeals() {
 
             {/* Modal: Selected Deal Info */}
             {selectedDeal && (
-                <AdminDealsInformation
+                <ManagerDealsInformation
                     relatedActs={relatedActs}
                     selectedDeal={selectedDeal}
                     show={!!selectedDeal}

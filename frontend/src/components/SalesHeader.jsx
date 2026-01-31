@@ -5,6 +5,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import useAuth from "../hooks/useAuth.js";
 import useFetchUser from "../hooks/useFetchUser.js";
 import api from "../api.js";
+import { getWebSocketUrl } from "../utils/getWebSocketUrl.js";
 
 export default function SalesHeader({ toggleSidebar }) {
   const [open, setOpen] = useState(false);
@@ -117,7 +118,7 @@ export default function SalesHeader({ toggleSidebar }) {
   const performNavigation = (notif) => {
     switch (notif.type) {
       case "task_assignment":
-        navigate(`/sales/hub/${notif.taskId || notif.task_id || ""}`);
+        navigate(`/sales/tasks/${notif.taskId || notif.task_id || ""}`);
         break;
       case "lead_assignment":
       case "lead_update":
@@ -158,35 +159,53 @@ export default function SalesHeader({ toggleSidebar }) {
     }
   };
 
-  // ✅ UPDATED: Automatic Local/Production WebSocket Logic
+  // ✅ UPDATED: Use centralized WebSocket URL utility
   useEffect(() => {
     if (!user?.id) return;
 
-    // Determine if we are running on localhost or a live server
-    const isLocalhost = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
-    
-    // Use current page protocol (wss: for https, ws: for http)
-    const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-    
-    // Set host: use localhost:8000 for dev, or the current browser host for prod
-    const host = isLocalhost ? "localhost:8000" : window.location.host;
-
-    const wsUrl = `${protocol}//${host}/ws/notifications?user_id=${user.id}`;
+    const wsUrl = getWebSocketUrl(user.id);
+    console.log("🔌 Connecting to WebSocket:", wsUrl);
     const ws = new WebSocket(wsUrl);
 
-    ws.onopen = () => console.log("WS Connected to:", wsUrl);
-
-    ws.onmessage = (event) => {
-      const incoming = JSON.parse(event.data);
-      const newNotif = normalizeNotif(incoming);
-      setNotifications((prev) => [newNotif, ...prev]);
-      setUnreadCount((prev) => prev + 1);
+    let reconnectTimeout;
+    const reconnect = () => {
+      reconnectTimeout = setTimeout(() => {
+        console.log("🔄 Attempting WebSocket reconnection...");
+      }, 3000);
     };
 
-    ws.onclose = () => console.log("WS Disconnected");
-    ws.onerror = (e) => console.error("WS Error", e);
+    ws.onopen = () => {
+      console.log("✅ Sales WS Connected to:", wsUrl);
+      clearTimeout(reconnectTimeout);
+    };
 
-    return () => ws.close();
+    ws.onmessage = (event) => {
+      try {
+        const incoming = JSON.parse(event.data);
+        console.log("📨 Notification received:", incoming);
+        const newNotif = normalizeNotif(incoming);
+        setNotifications((prev) => [newNotif, ...prev]);
+        setUnreadCount((prev) => prev + 1);
+      } catch (error) {
+        console.error("Error parsing notification:", error);
+      }
+    };
+
+    ws.onclose = () => {
+      console.log("🔌 Sales WS Disconnected");
+      reconnect();
+    };
+
+    ws.onerror = (error) => {
+      console.error("❌ Sales WS Error:", error);
+    };
+
+    return () => {
+      clearTimeout(reconnectTimeout);
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.close();
+      }
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id]);
 

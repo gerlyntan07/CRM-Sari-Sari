@@ -149,6 +149,35 @@ async def create_task(
     db.commit()
     db.refresh(new_task)
 
+    # --- Save notification to database AND send WebSocket notification ---
+    if new_task.assigned_to:
+        notification_data = {
+            "type": "task_assignment",
+            "task_id": new_task.id,
+            "task_title": new_task.title,
+            "taskId": new_task.id,
+            "taskTitle": new_task.title,
+            "message": f"New task assigned: {new_task.title}",
+            "assigned_by": f"{current_user.first_name} {current_user.last_name}",
+            "timestamp": datetime.now().isoformat()
+        }
+        
+        # Create audit log entry for the notification (saved to database)
+        # The target user_id is the assigned sales rep
+        create_audit_log(
+            db=db,
+            current_user=current_user,
+            instance=new_task,
+            action="TASK_ASSIGNMENT",
+            request=request,
+            new_data=serialize_instance(new_task),
+            custom_message=f"Task assigned to {assigned_user.first_name} {assigned_user.last_name}",
+            target_user_id=new_task.assigned_to  # This makes it appear in assigned user's notification list
+        )
+        
+        # Send real-time WebSocket notification
+        await broadcast_notification(notification_data, new_task.assigned_to)
+
     create_audit_log(
         db=db,
         current_user=current_user,
@@ -216,11 +245,19 @@ def get_all_tasks(db: Session = Depends(get_db), current_user: User = Depends(ge
 # UPDATE TASK
 # -----------------------------------------
 @router.put("/{task_id}", response_model=TaskResponse)
-def update_task(task_id: int, payload: TaskUpdate, db: Session = Depends(get_db)):
+async def update_task(
+    task_id: int,
+    payload: TaskUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
     task = db.query(Task).filter(Task.id == task_id).first()
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
 
+    # Store the old status to detect changes
+    old_status = task.status.value if hasattr(task.status, "value") else task.status
+    
     # Apply updates
     for field, value in payload.dict(exclude_unset=True).items():
         if hasattr(task, field):
@@ -228,6 +265,38 @@ def update_task(task_id: int, payload: TaskUpdate, db: Session = Depends(get_db)
 
     db.commit()
     db.refresh(task)
+    
+    # Get the new status
+    new_status = task.status.value if hasattr(task.status, "value") else task.status
+    
+    # If status changed and task has a creator, save to DB and notify the creator
+    if old_status != new_status and task.created_by:
+        notification_data = {
+            "type": "task_status_updated",
+            "task_id": task.id,
+            "task_title": task.title,
+            "old_status": old_status,
+            "new_status": new_status,
+            "updated_by": f"{current_user.first_name} {current_user.last_name}",
+            "message": f"Task '{task.title}' status changed from {old_status} to {new_status}",
+            "timestamp": datetime.now().isoformat()
+        }
+        
+        # Save notification to database
+        create_audit_log(
+            db=db,
+            current_user=current_user,
+            instance=task,
+            action="TASK_STATUS_UPDATE",
+            request=None,
+            new_data=serialize_instance(task),
+            custom_message=f"Task status changed from {old_status} to {new_status}",
+            target_user_id=task.created_by  # Notify the task creator
+        )
+        
+        # Send real-time WebSocket notification
+        await broadcast_notification(notification_data, task.created_by)
+    
     return task
 
 

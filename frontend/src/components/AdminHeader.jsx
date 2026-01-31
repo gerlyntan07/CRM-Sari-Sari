@@ -4,7 +4,8 @@ import { FiBell, FiMenu } from "react-icons/fi";
 import { useLocation, useNavigate } from "react-router-dom";
 import useAuth from '../hooks/useAuth.js';
 import useFetchUser from "../hooks/useFetchUser.js";
-import api from "../api.js"; // Ensure this import exists for marking notifications read
+import api from "../api.js";
+import { getWebSocketUrl } from "../utils/getWebSocketUrl.js";
 
 export default function AdminHeader({ toggleSidebar }) {
   const [open, setOpen] = useState(false);
@@ -47,27 +48,52 @@ export default function AdminHeader({ toggleSidebar }) {
     };
   }, [fetchUser]);
 
-  // --- WebSocket Automatic Environment Detection ---
+  // --- WebSocket Connection with Proper URL Derivation ---
   useEffect(() => {
     if (!user?.id) return;
 
-    const isLocalhost = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
-    const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-    const host = isLocalhost ? "localhost:8000" : window.location.host;
-
-    const wsUrl = `${protocol}//${host}/ws/notifications?user_id=${user.id}`;
+    const wsUrl = getWebSocketUrl(user.id);
+    console.log("🔌 Connecting to WebSocket:", wsUrl);
     const ws = new WebSocket(wsUrl);
 
-    ws.onopen = () => console.log("Admin WS Connected");
-    ws.onmessage = (event) => {
-      const incoming = JSON.parse(event.data);
-      // You can add your normalizeNotif logic here if needed
-      setNotifications((prev) => [incoming, ...prev]);
-      setUnreadCount((prev) => prev + 1);
+    let reconnectTimeout;
+    const reconnect = () => {
+      reconnectTimeout = setTimeout(() => {
+        console.log("🔄 Attempting WebSocket reconnection...");
+      }, 3000);
     };
-    ws.onclose = () => console.log("Admin WS Disconnected");
+
+    ws.onopen = () => {
+      console.log("✅ Admin WS Connected");
+      clearTimeout(reconnectTimeout);
+    };
+
+    ws.onmessage = (event) => {
+      try {
+        const incoming = JSON.parse(event.data);
+        console.log("📨 Notification received:", incoming);
+        setNotifications((prev) => [incoming, ...prev]);
+        setUnreadCount((prev) => prev + 1);
+      } catch (error) {
+        console.error("Error parsing notification:", error);
+      }
+    };
+
+    ws.onerror = (error) => {
+      console.error("❌ Admin WS Error:", error);
+    };
+
+    ws.onclose = () => {
+      console.log("🔌 Admin WS Disconnected");
+      reconnect();
+    };
     
-    return () => ws.close();
+    return () => {
+      clearTimeout(reconnectTimeout);
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.close();
+      }
+    };
   }, [user?.id]);
 
   // Close dropdowns when clicking outside

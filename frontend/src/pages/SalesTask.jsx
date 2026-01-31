@@ -19,6 +19,7 @@ import { toast } from "react-toastify";
 import useFetchUser from "../hooks/useFetchUser";
 import LoadingSpinner from "../components/LoadingSpinner.jsx";
 import { useLocation, useNavigate } from "react-router-dom";
+import { getWebSocketUrl } from "../utils/getWebSocketUrl";
 
 const BOARD_COLUMNS = ["Not started", "In progress", "Deferred", "Completed"];
 
@@ -405,6 +406,48 @@ export default function AdminTask() {
     if (!userLoading && currentUser) {
       fetchUsers();
       fetchTasks();
+      
+      // --- Setup WebSocket for Task Notifications ---
+      // Construct dynamic WebSocket URL based on current location
+      const wsUrl = getWebSocketUrl(currentUser.id);
+      const ws = new WebSocket(wsUrl);
+      
+      ws.onopen = () => {
+        console.log("✅ Connected to task notifications");
+      };
+      
+      ws.onmessage = (event) => {
+        try {
+          const notification = JSON.parse(event.data);
+          
+          // Handle task status update notifications
+          if (notification.type === 'task_status_updated') {
+            toast.info(
+              `📋 ${notification.message}`,
+              { position: "top-right", autoClose: 4000 }
+            );
+            // Refresh tasks to show updated status
+            fetchTasks();
+          }
+        } catch (error) {
+          console.error('Error parsing notification:', error);
+        }
+      };
+      
+      ws.onerror = (error) => {
+        console.error("❌ WebSocket error:", error);
+      };
+      
+      ws.onclose = () => {
+        console.log("🔌 Disconnected from task notifications");
+      };
+      
+      // Cleanup on unmount
+      return () => {
+        if (ws.readyState === WebSocket.OPEN) {
+          ws.close();
+        }
+      };
     }
   }, [userLoading, currentUser]); 
 

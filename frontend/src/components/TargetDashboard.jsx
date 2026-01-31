@@ -68,13 +68,19 @@ const COLORS = [
 /* ======================================================
    SEARCHABLE SELECT COMPONENT
 ====================================================== */
-function SearchableSelect({ name, items = [], value = "", onChange, getLabel, placeholder = "Search..." }) {
+function SearchableSelect({ name, items = [], value = "", onChange, getLabel, placeholder = "Search...",
+  required = false,
+  isSubmitted = false,
+ }) {
   const [open, setOpen] = useState(false);
   const [q, setQ] = useState("");
   const ref = useRef(null);
 
   const selectedItem = items.find((i) => String(i.id) === String(value));
   const selectedLabel = selectedItem ? getLabel(selectedItem) : "";
+  
+  // Define hasError based on required field validation
+  const hasError = required && isSubmitted && !value;
 
   const filtered = useMemo(() => {
     const query = q.toLowerCase();
@@ -103,9 +109,13 @@ function SearchableSelect({ name, items = [], value = "", onChange, getLabel, pl
           setQ(e.target.value);
           setOpen(true);
         }}
-        className="w-full max-w-md border text-gray-500 border-gray-300 rounded-lg p-1 focus:outline-none focus:ring-1 focus:ring-blue-400 focus:border-blue-400"
+        className={`w-full border rounded-lg p-1 text-gray-700 focus:outline-none focus:ring-1
+          ${
+            hasError
+              ? "border-red-500 focus:ring-red-400 focus:border-red-400"
+              : "border-gray-300 focus:ring-blue-400 focus:border-blue-400"
+          }`}
       />
-
       {open && (
         <div className="absolute top-full left-0 z-50 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-48 overflow-y-auto">
           {filtered.length ? (
@@ -182,6 +192,7 @@ export default function TargetDashboard({ currentUserRole, currentUserId }) {
   const [confirmModalData, setConfirmModalData] = useState(null);
   const [confirmProcessing, setConfirmProcessing] = useState(false);
   const [selectedIds, setSelectedIds] = useState([]);
+  const [isSubmitted, setIsSubmitted] = useState(false);
 
   // Chart state
   const [timeframe, setTimeframe] = useState("annual");
@@ -464,6 +475,7 @@ export default function TargetDashboard({ currentUserRole, currentUserId }) {
     setFormData(INITIAL_FORM_STATE);
     setIsEditing(false);
     setCurrentTargetId(null);
+    setIsSubmitted(false);
     setShowModal(true);
   };
 
@@ -479,6 +491,7 @@ export default function TargetDashboard({ currentUserRole, currentUserId }) {
     });
     setIsEditing(true);
     setCurrentTargetId(target.id);
+    setIsSubmitted(false);
     setShowModal(true);
     setSelectedTarget(null);
   };
@@ -549,23 +562,45 @@ export default function TargetDashboard({ currentUserRole, currentUserId }) {
     });
   };
 
+  //validation 
   const handleSubmit = (e) => {
     e.preventDefault();
+    setIsSubmitted(true);  
+    
 
-    if (
-      !formData.user_id ||
-      !formData.start_date ||
-      !formData.end_date ||
-      !formData.target_amount
-    ) {
-      toast.error("All fields are required.");
-      return;
-    }
+  if (!formData.user_id) {
+    toast.error("Assign User is required.");
+    return;
+  }
 
-    if (new Date(formData.end_date) < new Date(formData.start_date)) {
+  if (!formData.period_type) {
+    toast.error("Period Type is required.");
+    return;
+  }
+
+  if (formData.period_type === "CUSTOM") {
+    toast.error("Period Type cannot be Custom. Please select a valid period type.");
+    return;
+  }
+
+  if (
+    formData.period_type !== "CUSTOM" &&
+    formData.period_type !== "ANNUAL" &&
+    !formData.period_number
+  ) {
+    toast.error("Please select a period.");
+    return;
+  }
+
+  if (!formData.target_amount || Number(formData.target_amount) <= 0) {
+    toast.error("Target amount must be greater than 0.");
+    return;
+  }
+
+     if (new Date(formData.end_date) < new Date(formData.start_date)) {
       toast.error("End date must be after start date.");
       return;
-    }
+    } 
 
     const payload = {
       user_id: Number(formData.user_id),
@@ -1431,6 +1466,7 @@ export default function TargetDashboard({ currentUserRole, currentUserId }) {
           users={users}
           isEditing={isEditing}
           isSubmitting={isSubmitting}
+          isSubmitted={isSubmitted}
           onChange={handleInputChange}
           onClose={() => setShowModal(false)}
           onSubmit={handleSubmit}
@@ -1605,9 +1641,16 @@ function FormModal({
   onClose,
   onSubmit,
   fiscalSettings,
+  isSubmitted,
 }) {
   // Get fiscal start month (1-12), default to January if not set
   const fiscalStartMonth = fiscalSettings?.fiscal_start_month || 1;
+
+  // Define validation errors
+  const targetAmountError =
+    isSubmitted && (!formData.target_amount || Number(formData.target_amount) <= 0);
+  const periodTypeError = isSubmitted && (formData.period_type === "CUSTOM" || !formData.period_type);
+  
   
   // Helper to format date as YYYY-MM-DD without timezone issues
   const formatDateLocal = (date) => {
@@ -1761,10 +1804,10 @@ function FormModal({
           {isEditing ? "Edit Target" : "Add New Target"}
         </h2>
 
-        <form onSubmit={onSubmit} className="grid gap-4 text-base">
+        <form onSubmit={onSubmit} noValidate className="grid gap-4 text-base">
           <div className="flex flex-col gap-1 relative">
             <label className="text-sm font-medium text-gray-700">
-              Assign User
+              Assign User <span className="text-red-500">*</span>
             </label>
 
             <SearchableSelect
@@ -1774,22 +1817,33 @@ function FormModal({
               onChange={onChange}
               getLabel={(u) => `${u.first_name} ${u.last_name}`}
               placeholder="Search user..."
+               required={true}               // <-- use required directly
+              isSubmitted={isSubmitted}   
             />
           </div>
 
           {/* Period Type Selection */}
           <div className="flex flex-col gap-1">
             <label className="text-sm font-medium text-gray-700 text-left">
-              Period Type
+              Period Type <span className="text-red-500">*</span>
             </label>
+
             <select
               name="period_type"
               value={formData.period_type}
               onChange={handlePeriodTypeChange}
-              className="w-full border text-gray-500 border-gray-300 rounded-lg p-2 focus:outline-none focus:ring-1 focus:ring-blue-400 focus:border-blue-400"
+              isSubmitted={isSubmitted}
+              className={`w-full border rounded-lg p-2 text-gray-700 focus:outline-none focus:ring-1
+                ${
+                  periodTypeError
+                    ? "border-red-500 focus:ring-red-400 focus:border-red-400"
+                    : "border-gray-300 focus:ring-blue-400 focus:border-blue-400"
+                }`}
             >
               {PERIOD_TYPES.map((pt) => (
-                <option key={pt.value} value={pt.value}>{pt.label}</option>
+                <option key={pt.value} value={pt.value}>
+                  {pt.label}
+                </option>
               ))}
             </select>
           </div>
@@ -1801,10 +1855,11 @@ function FormModal({
                 {formData.period_type === "MONTHLY" ? "Month" : 
                  formData.period_type === "QUARTERLY" ? "Quarter" : "Half"}
               </label>
-              <select
+              <select 
                 name="period_number"
                 value={formData.period_number}
                 onChange={handlePeriodNumberChange}
+                required
                 className="w-full border text-gray-500 border-gray-300 rounded-lg p-2 focus:outline-none focus:ring-1 focus:ring-blue-400 focus:border-blue-400"
               >
                 {formData.period_type === "MONTHLY" && 
@@ -1848,7 +1903,7 @@ function FormModal({
 
           <div className="flex flex-col gap-1">
             <label className="text-sm font-medium text-gray-700 text-left">
-              Target Amount
+              Target Amount <span className="text-red-500">*</span>
             </label>
             <div className="flex justify-center w-full">
               <input
@@ -1858,10 +1913,14 @@ function FormModal({
                 value={formData.target_amount}
                 onChange={onChange}
                 required
-                className="w-full max-w-md border text-gray-500 border-gray-300 rounded-lg p-2 focus:outline-none focus:ring-1 focus:ring-blue-400 focus:border-blue-400"
-              />
+  className={`w-full max-w-md border rounded-lg p-2 text-gray-700 focus:outline-none focus:ring-1
+        ${
+          targetAmountError
+            ? "border-red-500 focus:ring-red-400 focus:border-red-400"
+            : "border-gray-300 focus:ring-blue-400 focus:border-blue-400"
+        }`}/>
             </div>
-          </div>
+        </div>
 
           <div className="flex flex-col gap-1">
             <label className="text-sm font-medium text-gray-700 text-left">
@@ -1873,8 +1932,7 @@ function FormModal({
                 name="start_date"
                 value={formData.start_date}
                 onChange={onChange}
-                required
-                className="w-full max-w-md border text-gray-500 border-gray-300 text-gray-500 rounded-lg p-1 focus:outline-none focus:ring-1 focus:ring-blue-400 focus:border-blue-400"
+                className="w-full max-w-md border text-gray-500 border-gray-300 rounded-lg p-1 focus:outline-none focus:ring-1 focus:ring-blue-400 focus:border-blue-400"
               />
             </div>
           </div>
@@ -1889,8 +1947,7 @@ function FormModal({
                 name="end_date"
                 value={formData.end_date}
                 onChange={onChange}
-                required
-                className="w-full max-w-md border text-gray-500 border-gray-300 text-gray-500 rounded-lg p-1 focus:outline-none focus:ring-1 focus:ring-blue-400 focus:border-blue-400"
+                className="w-full max-w-md border text-gray-500 border-gray-300 rounded-lg p-1 focus:outline-none focus:ring-1 focus:ring-blue-400 focus:border-blue-400"
               />
             </div>
           </div>

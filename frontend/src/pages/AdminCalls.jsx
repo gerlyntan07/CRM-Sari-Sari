@@ -120,6 +120,16 @@ export default function AdminCalls() {
   const navigate = useNavigate();
   const location = useLocation();
 
+  const formatQuoteId = (quoteId) => {
+  if (!quoteId) return "";
+  // Convert D25-1-00001 to D25-00001 (remove middle company ID)
+  const parts = String(quoteId).split("-");
+  if (parts.length === 3) {
+    return `${parts[0]}-${parts[2]}`;
+  }
+  return String(quoteId);
+};
+
   // Form State
   const getDefaultCallTime = () => {
     const today = new Date();
@@ -375,6 +385,8 @@ export default function AdminCalls() {
             res = await api.get(`/contacts/from-acc/${formData.relatedTo1}`);
           } else if (formData.relatedType2 === "Deal") {
             res = await api.get(`/deals/from-acc/${formData.relatedTo1}`);
+          } else if (formData.relatedType2 === "Quote") {
+            res = await api.get(`/quotes/from-acc/${formData.relatedTo1}`);
           }
         } else {
           setRelatedTo2Values([]);
@@ -637,7 +649,8 @@ const [isSubmitted, setIsSubmitted] = useState(false);
                         ? "Contact"
                         : selectedCall.deal
                           ? "Deal"
-                          : "Contact";
+                          : selectedCall.quote
+                          ? "Quote" : "Contact";
 
                   const relatedTo2 =
                     relatedType1 === "Lead"
@@ -645,8 +658,8 @@ const [isSubmitted, setIsSubmitted] = useState(false);
                       : selectedCall.contact
                         ? selectedCall.contact.id
                         : selectedCall.deal
-                          ? selectedCall.deal.id
-                          : null;
+                          ? selectedCall.deal.id : selectedCall.quote 
+                          ? selectedCall.quote.id : null;
 
                   setFormData({
                     subject: selectedCall.subject || "",
@@ -744,6 +757,7 @@ const [isSubmitted, setIsSubmitted] = useState(false);
                       />
                     )}
                     {selectedCall.deal && <DetailRow label="Deal" value={selectedCall.deal.name} />}
+                    {selectedCall.quote && <DetailRow label="Quote" value={formatQuoteId(selectedCall.quote.quote_id)} />}
 
                     <DetailRow label="Created At" value={formattedDateTime(selectedCall.created_at)} />
                   </div>
@@ -883,6 +897,7 @@ const [isSubmitted, setIsSubmitted] = useState(false);
             >
               <option value="Contact">Contact</option>
               <option value="Deal">Deal</option>
+              <option value="Quote">Quote</option>
             </select>
 
             <SearchableSelect
@@ -899,8 +914,9 @@ const [isSubmitted, setIsSubmitted] = useState(false);
               getLabel={(item) =>
                 formData.relatedType2 === "Contact"
                   ? `${item.first_name ?? ""} ${item.last_name ?? ""}`.trim()
-                  : item.name ?? ""
-              }
+                  :  formData.relatedType2 === "Quote"
+                            ? formatQuoteId(item.quote_id) ?? "" : item.name ?? ""
+            }
               onChange={(newId) =>
                 setFormData((prev) => ({
                   ...prev,
@@ -1154,6 +1170,7 @@ const [isSubmitted, setIsSubmitted] = useState(false);
                         </p>
                       )}
                       {call.deal && <p className="font-medium text-blue-500 text-xs">{call.deal.name}</p>}
+                      {call.quote && <p className="font-medium text-blue-500 text-xs">{formatQuoteId(call.quote.quote_id)}</p>}
                     </td>
 
                     <td className="py-3 px-4 text-gray-800">

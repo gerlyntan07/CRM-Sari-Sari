@@ -12,6 +12,7 @@ class CallBase(BaseModel):
     related_to_contact: Optional[int] = None
     related_to_lead: Optional[int] = None
     related_to_deal: Optional[int] = None
+    related_to_quote: Optional[int] = None
     notes: str
 
 class CallCreate(CallBase):
@@ -55,6 +56,13 @@ class DealBase(BaseModel):
     name: str
     class Config:
         from_attributes = True
+
+class QuoteBase(BaseModel):
+    id: int
+    quote_id: str
+
+    class Config:
+        from_attributes = True
     
 class CallResponse(CallBase):
     id: int
@@ -63,6 +71,7 @@ class CallResponse(CallBase):
     lead: Optional[LeadBase] = None
     deal: Optional[DealBase] = None
     contact: Optional[ContactBase] = None
+    quote: Optional[QuoteBase] = None
     call_assign_to: Optional[AssignToBase] = None
     duration_minutes: Optional[int] = None
     created_at: Optional[datetime] = None

@@ -393,7 +393,7 @@ const [isSubmitted, setIsSubmitted] = useState(false);
 
                     <div className="md:col-span-2">
                       <label className="block text-gray-700 font-medium mb-1 text-sm">
-                        Title <span className="text-red-600 font-semibold">*</span>
+                        Title <span className="text-red-500 font-semibold">*</span>
                       </label>
                       <input
                         type="text"
@@ -415,7 +415,7 @@ const [isSubmitted, setIsSubmitted] = useState(false);
 
                     {/* --- Related Section Starts Here (Updated to match Calls) --- */}
                     <div className="w-full flex flex-col">
-                      <div className="relative w-23">
+                      <div className="relative w-25">
   <select
     name="relatedType1"
     onChange={handleChange}
@@ -427,7 +427,7 @@ const [isSubmitted, setIsSubmitted] = useState(false);
     <option value="Account">Account</option>
   </select>
 
-  <span className="absolute right-2 top-1/2 -translate-y-1/2 text-red-500 pointer-events-none">
+  <span className="absolute left-10 md:pl-6 pl-6 top-1/2 -translate-y-1/2 text-red-500 pointer-events-none">
     *
   </span>
 </div>
@@ -562,7 +562,7 @@ const [isSubmitted, setIsSubmitted] = useState(false);
 
                     <div>
                       <label className="block text-gray-700 font-medium mb-1 text-sm">
-                        Assign To <span className="text-red-600 font-semibold">*</span>
+                        Assign To <span className="text-red-500 font-semibold">*</span>
                       </label>
                       <SearchableSelect
                         items={Array.isArray(users) ? users : []}

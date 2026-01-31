@@ -260,6 +260,7 @@ const [isSubmitted, setIsSubmitted] = useState(false);
 
         {/* RELATED TO 1 */}
         <div className="flex flex-col w-full">
+           <div className="relative w-25">
           <select
             name="relatedType1"
             onChange={handleInputChange}
@@ -270,6 +271,10 @@ const [isSubmitted, setIsSubmitted] = useState(false);
             <option value="Lead">Lead</option>
             <option value="Account">Account</option>
           </select>
+           <span className="absolute left-10 md:pl-8 pl-8 top-1/2 -translate-y-1/2 text-red-500 pointer-events-none">
+                  *
+                </span>
+          </div>
 
           <SearchableSelect
             items={Array.isArray(relatedTo1Values) ? relatedTo1Values : []}
@@ -294,6 +299,7 @@ const [isSubmitted, setIsSubmitted] = useState(false);
 
         {/* RELATED TO 2 */}
         <div className="flex flex-col w-full">
+          <div className="relative w-25">
           <select
             name="relatedType2"
             onChange={handleInputChange}
@@ -304,6 +310,7 @@ const [isSubmitted, setIsSubmitted] = useState(false);
             <option value="Contact">Contact</option>
             <option value="Deal">Deal</option>
           </select>
+          </div>
 
           <SearchableSelect
             items={Array.isArray(relatedTo2Values) ? relatedTo2Values : []}

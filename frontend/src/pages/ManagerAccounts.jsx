@@ -29,9 +29,9 @@ const STATUS_OPTIONS = [
   { value: "CUSTOMER", label: "Customer" },
   { value: "PROSPECT", label: "Prospect" },
   { value: "PARTNER", label: "Partner" },
-  { value: "ACTIVE", label: "Active" },
+  { value: "ACTIVE", label: "Vendor" },
   { value: "INACTIVE", label: "Inactive" },
-  { value: "FORMER", label: "Former" },
+  { value: "FORMER", label: "Delete" },
 ];
 
 const INITIAL_FORM_STATE = {

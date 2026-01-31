@@ -387,9 +387,9 @@ export default function QuoteItemsEditor({
   };
 
   return (
-    <div className="border rounded-lg overflow-hidden bg-white">
+    <div className="border border-gray-300 rounded-lg overflow-hidden bg-white">
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 bg-gray-50 border-b">
+      <div className="flex items-center justify-between px-4 py-3 bg-gray-50 border border-gray-300">
         <h3 className="font-semibold text-gray-800">
           Line Items {items.length > 0 && <span className="text-gray-500 font-normal">({items.length})</span>}
         </h3>
@@ -406,14 +406,14 @@ export default function QuoteItemsEditor({
 
       {/* Add Item Form */}
       {showAddForm && !readOnly && (
-        <div className="p-4 bg-blue-50 border-b">
+        <div className="p-4 bg-blue-50 border border-gray-300">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">Type</label>
               <select
                 value={newItem.item_type}
                 onChange={(e) => setNewItem({ ...newItem, item_type: e.target.value })}
-                className="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-3 focus:ring-blue-500 focus:border-blue-500"
               >
                 {ITEM_TYPES.map((type) => (
                   <option key={type.value} value={type.value}>{type.label}</option>
@@ -426,7 +426,7 @@ export default function QuoteItemsEditor({
                 type="text"
                 value={newItem.name}
                 onChange={(e) => setNewItem({ ...newItem, name: e.target.value })}
-                className="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-3 focus:ring-blue-500 focus:border-blue-500"
                 placeholder="Product/Service name"
               />
             </div>
@@ -436,7 +436,7 @@ export default function QuoteItemsEditor({
                 type="text"
                 value={newItem.sku}
                 onChange={(e) => setNewItem({ ...newItem, sku: e.target.value })}
-                className="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-3 focus:ring-blue-500 focus:border-blue-500"
                 placeholder="Item code"
               />
             </div>
@@ -446,7 +446,7 @@ export default function QuoteItemsEditor({
                 type="text"
                 value={newItem.variant}
                 onChange={(e) => setNewItem({ ...newItem, variant: e.target.value })}
-                className="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-3 focus:ring-blue-500 focus:border-blue-500"
                 placeholder="Size, color, etc."
               />
             </div>
@@ -457,7 +457,7 @@ export default function QuoteItemsEditor({
                   type="number"
                   value={newItem.quantity}
                   onChange={(e) => setNewItem({ ...newItem, quantity: e.target.value })}
-                  className="w-20 px-3 py-2 border rounded-lg text-sm text-right focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-20 px-3 py-2 border border-gray-300 rounded-lg text-sm text-right focus:ring-3 focus:ring-blue-500 focus:border-blue-500"
                   min="0.01"
                   step="0.01"
                 />
@@ -465,7 +465,7 @@ export default function QuoteItemsEditor({
                   type="text"
                   value={newItem.unit}
                   onChange={(e) => setNewItem({ ...newItem, unit: e.target.value })}
-                  className="w-20 px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-20 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-3 focus:ring-blue-500 focus:border-blue-500"
                   placeholder="Unit"
                 />
               </div>
@@ -478,7 +478,7 @@ export default function QuoteItemsEditor({
                   type="number"
                   value={newItem.unit_price}
                   onChange={(e) => setNewItem({ ...newItem, unit_price: e.target.value })}
-                  className="w-full pl-8 pr-3 py-2 border rounded-lg text-sm text-right focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-lg text-sm text-right focus:ring-3 focus:ring-blue-500 focus:border-blue-500"
                   min="0"
                   step="0.01"
                 />
@@ -490,7 +490,7 @@ export default function QuoteItemsEditor({
                 type="number"
                 value={newItem.discount_percent}
                 onChange={(e) => setNewItem({ ...newItem, discount_percent: e.target.value })}
-                className="w-full px-3 py-2 border rounded-lg text-sm text-right focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-right focus:ring-3 focus:ring-blue-500 focus:border-blue-500"
                 min="0"
                 max="100"
                 step="0.01"
@@ -508,7 +508,7 @@ export default function QuoteItemsEditor({
             <textarea
               value={newItem.description}
               onChange={(e) => setNewItem({ ...newItem, description: e.target.value })}
-              className="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-3 focus:ring-blue-500 focus:border-blue-500"
               rows={2}
               placeholder="Additional details about this item..."
             />

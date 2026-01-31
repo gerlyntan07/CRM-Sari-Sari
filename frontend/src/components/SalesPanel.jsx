@@ -19,6 +19,7 @@ import {
   FiX,
 } from "react-icons/fi";
 import { LuMapPin } from "react-icons/lu";
+import { HiOutlineOfficeBuilding } from "react-icons/hi";
 import SalesHeader from "./SalesHeader"; 
 import useFetchUser from "../hooks/useFetchUser";
 
@@ -184,7 +185,7 @@ useEffect(() => {
           to="/sales/accounts"
           className={({ isActive }) => (isActive ? activeLink : normalLink)}
         >
-          <FiUsers /> Accounts
+          <HiOutlineOfficeBuilding /> Accounts
         </NavLink>
 
         <NavLink

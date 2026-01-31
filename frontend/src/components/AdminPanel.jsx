@@ -17,6 +17,7 @@ import {
   FiShield,
 } from "react-icons/fi";
 import { LuMapPin } from "react-icons/lu";
+import { HiOutlineOfficeBuilding } from "react-icons/hi";
 import AdminHeader from "./AdminHeader";
 import useFetchUser from "../hooks/useFetchUser";
 
@@ -115,7 +116,7 @@ export default function AdminPanel() {
                     isActive ? activeLink : normalLink
                   }
                 >
-                  <FiUsers /> Accounts
+                  <HiOutlineOfficeBuilding /> Accounts
                 </NavLink>
                 <NavLink
                   to="/admin/contacts"

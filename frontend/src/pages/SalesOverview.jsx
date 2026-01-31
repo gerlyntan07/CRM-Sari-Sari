@@ -345,7 +345,7 @@ const TopBar = ({
   const searchRef = useRef(null);
 
   const actionIcons = [
-    { icon: IconUsers, label: "Account" },
+    { icon: IconBuilding, label: "Account" },
     { icon: IconUser, label: "Contact" },
     { icon: IconFiUserPlus, label: "Leads" },
     { icon: IconFiBriefcase, label: "Deals" },
@@ -1909,7 +1909,7 @@ const SalesOverview= () => {
       onClick: () => navigate("/sales/leads"),
     },
     {
-      icon: IconDollarSign,
+       icon: IconFiBriefcase,
       title: "Total Deals",
       value: metrics.totalDeals,
       color: "text-yellow-600",
@@ -1971,7 +1971,7 @@ const SalesOverview= () => {
             />
 
             {/* 2. Metrics Container (Inner grid for the 4 cards) */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               {metricsConfig.map((metric) => (
                 <MetricCard key={metric.title} {...metric} loading={loading} />
               ))}

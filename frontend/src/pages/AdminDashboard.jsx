@@ -115,7 +115,7 @@ const TopBar = ({ searchQuery, onSearchChange, searchResults, onSearchResultClic
   const searchRef = useRef(null);
 
   const actionIcons = [
-    { icon: IconUsers, label: "Account" },
+    { icon: IconBuilding, label: "Account" },
     { icon: IconUser, label: "Contact" },
     { icon: IconFiUserPlus, label: "Leads" },
     { icon: IconFiBriefcase, label: "Deals" },
@@ -952,7 +952,7 @@ const AdminDashboard = () => {
       onClick: () => navigate('/admin/targets')
     },
     {
-      icon: IconDollarSign,
+      icon: IconFiBriefcase,
       title: "Total Deals",
       value: metrics.totalDeals,
       color: "text-yellow-600",

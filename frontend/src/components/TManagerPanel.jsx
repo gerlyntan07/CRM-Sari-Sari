@@ -17,6 +17,7 @@ import {
   FiShield,
 } from "react-icons/fi";
 import { LuMapPin } from "react-icons/lu";
+import { HiOutlineOfficeBuilding } from "react-icons/hi";
 import TManagerHeader from "./TManagerHeader"; 
 import useFetchUser from "../hooks/useFetchUser";
 
@@ -109,7 +110,7 @@ export default function TManagerPanel() {
                   to="/group-manager/accounts"
                   className={({ isActive }) => (isActive ? activeLink : normalLink)}
                 >
-                  <FiUsers /> Accounts
+                  <HiOutlineOfficeBuilding /> Accounts
                 </NavLink>
                 <NavLink
                   to="/group-manager/contacts"

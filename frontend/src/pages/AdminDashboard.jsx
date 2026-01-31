@@ -16,6 +16,7 @@ import LoadingSpinner from '../components/LoadingSpinner';
 
 // --- NEW IMPORT ---
 import FunnelWidget from '../components/FunnelWidget';
+import TopPerformers from '../components/TopPerformers';
 
 // --- Icon Components using React Icons ---
 
@@ -974,22 +975,25 @@ const AdminDashboard = () => {
       <div className="max-w-screen-2xl mx-auto">
         {error && <div className="mb-6 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg"><p className="font-medium">{error}</p></div>}
 
-        {/* ROW 1: Top Bar & Metrics & Recent Logs */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 mb-8">
-          <div className="lg:col-span-9 flex flex-col space-y-4">
-            <TopBar searchQuery={searchQuery} onSearchChange={setSearchQuery} searchResults={searchResults} onSearchResultClick={handleSearchResultClick} />
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
-              {metricsConfig.map((metric) => (
-                <MetricCard key={metric.title} {...metric} loading={loading} />
-              ))}
-            </div>
-          </div>
-          <div className="lg:col-span-3">
-            <RecentLogsCard logs={auditLogs} loading={loading} />
-          </div>
+        {/* ROW 1: Top Bar (Full Width) */}
+        <div className="mb-8">
+          <TopBar searchQuery={searchQuery} onSearchChange={setSearchQuery} searchResults={searchResults} onSearchResultClick={handleSearchResultClick} />
         </div>
 
-        {/* ROW 2: NEW Funnel Intelligence Section (With Targets passed in) */}
+        {/* ROW 2: Metrics Cards (Full Width) */}
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 mb-8">
+          {metricsConfig.map((metric) => (
+            <MetricCard key={metric.title} {...metric} loading={loading} />
+          ))}
+        </div>
+
+        {/* ROW 3: Recent Logs & Top Performers */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+          <RecentLogsCard logs={auditLogs} loading={loading} />
+          <TopPerformers currencySymbol={currencySymbol} />
+        </div>
+
+        {/* ROW 4: Funnel Intelligence Section (With Targets passed in) */}
         <div className="mb-8">
           <FunnelWidget
             leads={allLeads}
@@ -999,12 +1003,12 @@ const AdminDashboard = () => {
           />
         </div>
 
-        {/* ROW 3: Revenue Chart */}
+        {/* ROW 5: Revenue Chart */}
         <div className="grid grid-cols-1 mb-8">
           <RevenueChart revenueData={revenueData} loading={loading} />
         </div>
 
-        {/* ROW 4: Detailed Lists */}
+        {/* ROW 6: Detailed Lists */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <ListCard title="Latest Leads">
             {latestLeads.length > 0 ? latestLeads.map((lead, index) => <LeadItem key={lead.id || index} {...lead} />) : <div className="text-sm text-gray-500 py-4 text-center">No leads found</div>}

@@ -15,6 +15,36 @@ router = APIRouter(
     tags=["Logs"]
 )
 
+# Notification-specific actions (these are sent to the user's notification panel)
+NOTIFICATION_ACTIONS = [
+    "TASK_ASSIGNMENT",
+    "LEAD_ASSIGNMENT", 
+    "CONTACT_ASSIGNMENT",
+    "DEAL_ASSIGNMENT",
+    "ACCOUNT_ASSIGNMENT",
+    "TERRITORY_ASSIGNMENT",
+    "LEAD_UPDATE",
+    "CONTACT_UPDATE",
+    "DEAL_UPDATE",
+    "ACCOUNT_UPDATE",
+]
+
+@router.get("/notifications", response_model=List[LeadResponse])
+def get_user_notifications(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Get all audit logs for the current user as notifications"""
+    notifications = (
+        db.query(Auditlog)
+        .filter(Auditlog.user_id == current_user.id)
+        .order_by(Auditlog.timestamp.desc(), Auditlog.id.desc())
+        .limit(50)  # Limit to recent 50 notifications
+        .all()
+    )
+    
+    return notifications
+
 @router.get("/read-all", response_model=List[LeadResponse])
 def get_audit_logs(
     db: Session = Depends(get_db),
@@ -89,3 +119,16 @@ def mark_log_as_read(
     log.is_read = True
     db.commit()
     return {"status": "success"}
+
+@router.patch("/mark-all-read")
+def mark_all_logs_as_read(
+    db: Session = Depends(get_db), 
+    current_user: User = Depends(get_current_user)
+):
+    """Mark all unread notifications as read for the current user"""
+    db.query(Auditlog).filter(
+        Auditlog.user_id == current_user.id,
+        Auditlog.is_read == False
+    ).update({"is_read": True})
+    db.commit()
+    return {"status": "success", "message": "All notifications marked as read"}

@@ -51,21 +51,84 @@ export default function SalesHeader({ toggleSidebar }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Fetch history notifications on component mount and when user changes
+  useEffect(() => {
+    const fetchInitialNotifications = async () => {
+      try {
+        const res = await api.get("/logs/notifications");
+        console.log("📋 Fetched notifications from DB:", res.data);
+        const mappedLogs = (res.data || []).map((log) => {
+          // Extract entity ID from various possible sources
+          const entityId = log.entity_id || log.new_data?.id;
+          const entityType = (log.entity_type || "").toLowerCase();
+          
+          return normalizeNotif({
+            id: log.id,
+            type: log.notif_type || log.notification_type || log.type || deriveTypeFromLog(log),
+            title: log.title || log.description,
+            assignedBy: log.assignedBy || log.name,
+            createdAt: log.createdAt || log.timestamp,
+            read: log.is_read ?? log.read ?? false,
+            // Use entity_id based on entity_type
+            leadId: entityType === "lead" ? entityId : (log.leadId || log.lead_id),
+            taskId: entityType === "task" ? entityId : (log.taskId || log.task_id),
+            contactId: entityType === "contact" ? entityId : (log.contactId || log.contact_id),
+            dealId: entityType === "deal" ? entityId : (log.dealId || log.deal_id),
+            accountId: entityType === "account" ? entityId : (log.accountId || log.account_id),
+          });
+        });
+        setNotifications(mappedLogs);
+        setUnreadCount(mappedLogs.filter((n) => !n.read).length);
+      } catch (err) {
+        console.error("Failed to load history notifications", err);
+      }
+    };
+    if (user?.id) fetchInitialNotifications();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id]);
+
   // --- Helpers ---
   const deriveTypeFromLog = (log) => {
-    const action = String(log.action || log.type || "").toLowerCase();
+    const action = String(log.action || log.type || "").toUpperCase();
+    
+    // Map database action types directly to notification types
+    const actionMap = {
+      "TASK_ASSIGNMENT": "task_assignment",
+      "LEAD_ASSIGNMENT": "lead_assignment",
+      "LEAD_UPDATE": "lead_update",
+      "CONTACT_ASSIGNMENT": "contact_assignment",
+      "CONTACT_UPDATE": "contact_update",
+      "DEAL_ASSIGNMENT": "deal_assignment",
+      "DEAL_UPDATE": "deal_update",
+      "ACCOUNT_ASSIGNMENT": "account_assignment",
+      "ACCOUNT_UPDATE": "account_update",
+      "TERRITORY_ASSIGNMENT": "territory_assignment",
+      // Add CREATE and UPDATE actions
+      "CREATE": "create",
+      "UPDATE": "update",
+      "DELETE": "delete",
+    };
+    
+    if (actionMap[action]) {
+      return actionMap[action];
+    }
+    
+    // Fallback: try to derive from description text or entity_type
     const text = String(log.title || log.description || "").toLowerCase();
+    const entityType = String(log.entity_type || "").toLowerCase();
+    const isUpdate = action.includes("UPDATE");
+    const isCreate = action.includes("CREATE");
+    const isDelete = action.includes("DELETE");
 
-    const isCreate = action.includes("create");
-    const isUpdate = action.includes("update");
-
-    if (text.includes("task")) return "task_assignment";
-    if (text.includes("territory")) return "territory_assignment";
-
-    if (text.includes("lead")) return isCreate ? "lead_assignment" : isUpdate ? "lead_update" : "lead_update";
-    if (text.includes("contact")) return isCreate ? "contact_assignment" : isUpdate ? "contact_update" : "contact_update";
-    if (text.includes("deal")) return isCreate ? "deal_assignment" : isUpdate ? "deal_update" : "deal_update";
-    if (text.includes("account")) return isCreate ? "account_assignment" : isUpdate ? "account_update" : "account_update";
+    if (text.includes("task") || entityType === "task") return isUpdate ? "task_update" : "task_assignment";
+    if (text.includes("territory") || entityType === "territory") return "territory_assignment";
+    if (text.includes("lead") || entityType === "lead") return isUpdate ? "lead_update" : isCreate ? "lead_assignment" : "lead_update";
+    if (text.includes("contact") || entityType === "contact") return isUpdate ? "contact_update" : isCreate ? "contact_assignment" : "contact_update";
+    if (text.includes("deal") || entityType === "deal") return isUpdate ? "deal_update" : isCreate ? "deal_assignment" : "deal_update";
+    if (text.includes("account") || entityType === "account") return isUpdate ? "account_update" : isCreate ? "account_assignment" : "account_update";
+    if (text.includes("quote") || entityType === "quote") return "quote";
+    if (text.includes("meeting") || entityType === "meeting") return "meeting";
+    if (text.includes("call") || entityType === "call") return "call";
 
     return "info";
   };
@@ -89,7 +152,8 @@ export default function SalesHeader({ toggleSidebar }) {
         n.title = n.title || `Lead updated: ${n.leadName || n.company || "Lead"}`;
         break;
       case "task_assignment":
-        n.title = n.title || `New Task Assigned: ${n.taskTitle || "Task"}`;
+      case "task_update":
+        n.title = n.title || `Task: ${n.taskTitle || "Task"}`;
         break;
       case "contact_assignment":
         n.title = n.title || `New contact assigned: ${n.contactName || n.contact || "Contact"}`;
@@ -109,8 +173,22 @@ export default function SalesHeader({ toggleSidebar }) {
       case "account_update":
         n.title = n.title || `Account updated: ${n.accountName || n.name || "Account"}`;
         break;
+      case "quote":
+        n.title = n.title || `Quote activity`;
+        break;
+      case "meeting":
+        n.title = n.title || `Meeting activity`;
+        break;
+      case "call":
+        n.title = n.title || `Call activity`;
+        break;
+      case "create":
+      case "update":
+      case "delete":
+      case "info":
       default:
-        n.title = n.title || "New Notification";
+        // Keep the original title/description from the log
+        n.title = n.title || "Activity";
     }
     return n;
   };
@@ -209,35 +287,6 @@ export default function SalesHeader({ toggleSidebar }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id]);
 
-  // Fetch history notifications
-  useEffect(() => {
-    const fetchInitialNotifications = async () => {
-      try {
-        const res = await api.get("/logs/read-all");
-        const mappedLogs = (res.data || []).map((log) =>
-          normalizeNotif({
-            id: log.id,
-            type: log.notif_type || log.notification_type || log.type || deriveTypeFromLog(log),
-            title: log.title || log.description,
-            assignedBy: log.assignedBy || log.name,
-            createdAt: log.createdAt || log.timestamp,
-            read: log.is_read ?? log.read ?? false,
-            leadId: log.leadId || log.lead_id,
-            taskId: log.taskId || log.task_id,
-            contactId: log.contactId || log.contact_id,
-            dealId: log.dealId || log.deal_id,
-            accountId: log.accountId || log.account_id,
-          })
-        );
-        setNotifications(mappedLogs);
-        setUnreadCount(mappedLogs.filter((n) => !n.read).length);
-      } catch (err) {
-        console.error("Failed to load history notifications", err);
-      }
-    };
-    if (user?.id) fetchInitialNotifications();
-  }, [user?.id]);
-
   // Close dropdowns when clicking outside
   useEffect(() => {
     function handleClickOutside(event) {
@@ -288,9 +337,16 @@ export default function SalesHeader({ toggleSidebar }) {
                 </h3>
                 {notifications.length > 0 && (
                   <button
-                    onClick={() => {
-                      setNotifications([]);
-                      setUnreadCount(0);
+                    onClick={async () => {
+                      try {
+                        await api.patch(`/logs/mark-all-read`);
+                        setNotifications((prev) =>
+                          prev.map((n) => ({ ...n, read: true }))
+                        );
+                        setUnreadCount(0);
+                      } catch (err) {
+                        console.error("Failed to mark all notifications as read", err);
+                      }
                     }}
                     className="text-xs text-blue-600 hover:underline"
                   >
@@ -313,26 +369,34 @@ export default function SalesHeader({ toggleSidebar }) {
                         <span
                           className={`text-[10px] px-2 py-1 rounded-full font-semibold uppercase
                             ${
-                              n.type === "task_assignment"
+                              n.type === "task_assignment" || n.type === "task_update"
                                 ? "bg-purple-100 text-purple-700"
-                                : n.type === "lead_assignment" ||
-                                  n.type === "lead_update"
+                                : n.type === "lead_assignment" || n.type === "lead_update"
                                 ? "bg-green-100 text-green-700"
-                                : n.type === "contact_assignment" ||
-                                  n.type === "contact_update"
+                                : n.type === "contact_assignment" || n.type === "contact_update"
                                 ? "bg-amber-100 text-amber-700"
-                                : n.type === "deal_assignment" ||
-                                  n.type === "deal_update"
+                                : n.type === "deal_assignment" || n.type === "deal_update"
                                 ? "bg-indigo-100 text-indigo-700"
-                                : n.type === "account_assignment" ||
-                                  n.type === "account_update"
+                                : n.type === "account_assignment" || n.type === "account_update"
                                 ? "bg-cyan-100 text-cyan-700"
                                 : n.type === "territory_assignment"
                                 ? "bg-blue-100 text-blue-700"
+                                : n.type === "quote"
+                                ? "bg-pink-100 text-pink-700"
+                                : n.type === "meeting"
+                                ? "bg-teal-100 text-teal-700"
+                                : n.type === "call"
+                                ? "bg-red-100 text-red-700"
+                                : n.type === "create"
+                                ? "bg-emerald-100 text-emerald-700"
+                                : n.type === "update"
+                                ? "bg-yellow-100 text-yellow-700"
+                                : n.type === "delete"
+                                ? "bg-rose-100 text-rose-700"
                                 : "bg-gray-100 text-gray-700"
                             }`}
                         >
-                          {n.type === "task_assignment"
+                          {n.type === "task_assignment" || n.type === "task_update"
                             ? "Task"
                             : n.type === "lead_assignment"
                             ? "Lead"
@@ -352,7 +416,19 @@ export default function SalesHeader({ toggleSidebar }) {
                             ? "Account Update"
                             : n.type === "territory_assignment"
                             ? "Territory"
-                            : "Info"}
+                            : n.type === "quote"
+                            ? "Quote"
+                            : n.type === "meeting"
+                            ? "Meeting"
+                            : n.type === "call"
+                            ? "Call"
+                            : n.type === "create"
+                            ? "Created"
+                            : n.type === "update"
+                            ? "Updated"
+                            : n.type === "delete"
+                            ? "Deleted"
+                            : "Activity"}
                         </span>
 
                         {!n.read && (

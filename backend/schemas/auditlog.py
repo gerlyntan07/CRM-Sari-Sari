@@ -5,15 +5,15 @@ from datetime import datetime
 from .auth import UserBase
 
 class LogBase(BaseModel):    
-    description: str
-    name: str
-    action: str
-    entity_type: str
-    entity_id: str
+    description: Optional[str] = None
+    name: Optional[str] = None
+    action: Optional[str] = None
+    entity_type: Optional[str] = None
+    entity_id: Optional[str] = None
     old_data: Optional[dict] = None
     new_data: Optional[dict] = None
-    ip_address: str
-    success: bool    
+    ip_address: Optional[str] = None
+    success: Optional[bool] = True    
 
 class UserBase(BaseModel):
     id: int
@@ -29,7 +29,7 @@ class UserBase(BaseModel):
 class LeadResponse(LogBase):
     id: int
     logger: Optional[UserBase] = None
-    timestamp: datetime
+    timestamp: Optional[datetime] = None
     is_read: Optional[bool] = None
 
     class Config:

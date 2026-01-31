@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { FiX, FiPhone, FiMail, FiCalendar, FiFileText, FiEdit2, FiTrash2 } from "react-icons/fi";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import AdminDealsQuickAction from "../components/TManagerDealsQuickAction";
+import SalesDealsQuickAction from "../components/SalesDealsQuickAction";
 import api from "../api";
 import useFetchUser from "../hooks/useFetchUser";
 
@@ -420,7 +420,7 @@ export default function SalesDealsInformation({
 
           {/* RIGHT COLUMN */}
           <div className="w-full lg:w-auto">
-            <AdminDealsQuickAction selectedDeal={selectedDeal} onStatusUpdate={onStatusUpdate} onClose={onClose} />
+            <SalesDealsQuickAction selectedDeal={selectedDeal} onStatusUpdate={onStatusUpdate} onClose={onClose} />
           </div>
         </div>
              </div>

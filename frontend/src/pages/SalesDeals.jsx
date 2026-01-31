@@ -15,13 +15,13 @@ import api from '../api'
 import useFetchUser from "../hooks/useFetchUser";
 import { toast } from "react-toastify";
 import PaginationControls from "../components/PaginationControls.jsx";
-import AdminDealsInformation from "../components/AdminDealsInformation";
+import SalesDealsInformation from "../components/SalesDealsInformation";
 import LoadingSpinner from "../components/LoadingSpinner.jsx";
 import { useLocation, useNavigate } from "react-router-dom";
 
 const ITEMS_PER_PAGE = 10;
 
-export default function AdminDeals() {
+export default function SalesDeals() {
     useEffect(() => {
         document.title = "Deals | Sari-Sari CRM";
     }, []);
@@ -793,7 +793,7 @@ export default function AdminDeals() {
 
             {/* Modal: Selected Deal Info */}
             {selectedDeal && (
-                <AdminDealsInformation
+                <SalesDealsInformation
                     relatedActs={relatedActs}
                     selectedDeal={selectedDeal}
                     show={!!selectedDeal}

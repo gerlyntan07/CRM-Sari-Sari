@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from "react";
 import { FiX, FiPhone, FiMail, FiCalendar, FiFileText, FiEdit2, FiTrash2 } from "react-icons/fi";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import AdminDealsQuickAction from "../components/TManagerDealsQuickAction";
+import ManagerDealsQuickAction from "../components/ManagerDealsQuickAction";
 import api from "../api";
 import useFetchUser from "../hooks/useFetchUser";
 
-export default function AdminDealsInformation({
+export default function ManagerDealsInformation({
   selectedDeal: selectedDealProp,
   show,
   onClose,
@@ -420,7 +420,7 @@ export default function AdminDealsInformation({
 
           {/* RIGHT COLUMN */}
           <div className="w-full lg:w-auto">
-            <AdminDealsQuickAction selectedDeal={selectedDeal} onStatusUpdate={onStatusUpdate} onClose={onClose} />
+            <ManagerDealsQuickAction selectedDeal={selectedDeal} onStatusUpdate={onStatusUpdate} onClose={onClose} />
           </div>
         </div>
              </div>

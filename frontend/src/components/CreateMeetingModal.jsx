@@ -265,7 +265,7 @@ const [isSubmitted, setIsSubmitted] = useState(false);
             name="relatedType1"
             onChange={handleInputChange}
             value={formData.relatedType1 || "Lead"}
-            className="w-full outline-none cursor-pointer mb-1 rounded p-2 text-gray-700 disabled:text-gray-400"
+            className="w-full outline-none cursor-pointer mb-1 rounded text-gray-700 disabled:text-gray-400"
             disabled={isSubmitting}
           >
             <option value="Lead">Lead</option>
@@ -304,7 +304,7 @@ const [isSubmitted, setIsSubmitted] = useState(false);
             name="relatedType2"
             onChange={handleInputChange}
             value={formData.relatedType2 || "Contact"}
-            className="w-full outline-none cursor-pointer mb-1 rounded p-2 text-gray-700 disabled:text-gray-400 disabled:cursor-not-allowed"
+            className="w-full outline-none cursor-pointer mb-1 rounded text-gray-700 disabled:text-gray-400 disabled:cursor-not-allowed"
             disabled={isSubmitting || formData.relatedType1 === "Lead"}
           >
             <option value="Contact">Contact</option>

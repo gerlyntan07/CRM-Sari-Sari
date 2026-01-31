@@ -380,17 +380,13 @@ export default function AdminTask() {
       setLoading(true);
       const res = await api.get("/tasks/all");      
       const rawTasks = Array.isArray(res.data) ? res.data : [];
-      const formattedTasks = rawTasks.map(mapBackendTaskToFrontend);
-      console.log("Raw Tasks from API:", rawTasks);
-      console.log("Formatted Tasks:", formattedTasks);
+      const formattedTasks = rawTasks.map(mapBackendTaskToFrontend);      
 
       formattedTasks.sort((a, b) => {
         const aDate = a.createdAt ? new Date(a.createdAt) : 0;
         const bDate = b.createdAt ? new Date(b.createdAt) : 0;
         return bDate - aDate; 
       });
-
-      console.log("Fetched Tasks:", formattedTasks);
       
       setTasks(formattedTasks);
       if (view === "list") setCurrentPage(1);
@@ -504,7 +500,6 @@ export default function AdminTask() {
 
   const handleSaveTask = async (newTaskData) => { 
       const requestPayload = buildTaskPayload(newTaskData);
-      console.log("Request Payload for Save:", requestPayload);
       
       try {
           if (selectedTask && !viewMode) {

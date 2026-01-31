@@ -74,12 +74,20 @@ class DealBase(BaseModel):
     class Config:
         from_attributes = True
 
+class QuoteBase(BaseModel):
+    id: int
+    quote_id: str
+
+    class Config:
+        from_attributes = True
+
 class MeetingResponse(MeetingBase):
     id: int        
     account: Optional[AccountBase] = None
     contact: Optional[ContactBase] = None
     lead: Optional[LeadBase] = None
     deal: Optional[DealBase] = None
+    quote: Optional[QuoteBase] = None
     meet_creator: Optional[UserBase] = None
     meet_assign_to: Optional[UserBase] = None
     created_at: datetime

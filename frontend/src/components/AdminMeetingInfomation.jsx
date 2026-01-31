@@ -7,6 +7,17 @@ import { useNavigate} from "react-router-dom";
 const AdminMeetingInfomation = ({ meeting, onClose, onEdit, onDelete, onStatusUpdate }) => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("Overview");
+
+  const formatQuoteId = (quoteId) => {
+  if (!quoteId) return "";
+  // Convert D25-1-00001 to D25-00001 (remove middle company ID)
+  const parts = String(quoteId).split("-");
+  if (parts.length === 3) {
+    return `${parts[0]}-${parts[2]}`;
+  }
+  return String(quoteId);
+};
+
   const toAdminStatus = (status) => {
     const s = (status || "").toUpperCase();
     if (s === "PLANNED" || s === "IN PROGRESS") return "PLANNED";
@@ -195,6 +206,12 @@ const AdminMeetingInfomation = ({ meeting, onClose, onEdit, onDelete, onStatusUp
                       <div>
                         <p className="font-semibold">Deal:</p>
                         <p>{meeting.deal.name}</p>
+                      </div>
+                    )}
+                    {meeting.quote && (
+                      <div>
+                        <p className="font-semibold">Quote:</p>
+                        <p>{formatQuoteId(meeting.quote.quote_id)}</p>
                       </div>
                     )}
                     <div>

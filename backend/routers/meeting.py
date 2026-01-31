@@ -11,6 +11,7 @@ from models.account import Account
 from models.contact import Contact
 from models.lead import Lead
 from models.deal import Deal
+from models.quote import Quote
 from schemas.meeting import MeetingCreate, MeetingUpdate, MeetingResponse, MeetingBulkDelete
 from .auth_utils import get_current_user
 from .logs_utils import serialize_instance, create_audit_log
@@ -56,6 +57,7 @@ async def create_task(
         new_meeting.related_to_account = None
         new_meeting.related_to_contact = None
         new_meeting.related_to_deal = None
+        new_meeting.related_to_quote = None
     elif getattr(payload, 'relatedType1', None) == "Account":
         account = db.query(Account).filter(Account.id == payload.relatedTo1).first()
         if not account:
@@ -68,15 +70,25 @@ async def create_task(
                 raise HTTPException(status_code=404, detail="Contact not found")
             new_meeting.related_to_contact = payload.relatedTo2
             new_meeting.related_to_deal = None
+            new_meeting.related_to_quote = None
         elif getattr(payload, 'relatedType2', None) == "Deal" and payload.relatedTo2:
             deal = db.query(Deal).filter(Deal.id == payload.relatedTo2).first()
             if not deal:
                 raise HTTPException(status_code=404, detail="Deal not found")
             new_meeting.related_to_deal = payload.relatedTo2
             new_meeting.related_to_contact = None
+            new_meeting.related_to_quote = None
+        elif getattr(payload, 'relatedType2', None) == "Quote" and payload.relatedTo2:
+            quote = db.query(Quote).filter(Quote.id == payload.relatedTo2).first()
+            if not quote:
+                raise HTTPException(status_code=404, detail="Quote not found")
+            new_meeting.related_to_quote = payload.relatedTo2
+            new_meeting.related_to_contact = None
+            new_meeting.related_to_deal = None
         else:
             new_meeting.related_to_contact = None
             new_meeting.related_to_deal = None
+            new_meeting.related_to_quote = None
     else:
         raise HTTPException(status_code=400, detail="Invalid relatedType1. Must be 'Lead' or 'Account'.")
     

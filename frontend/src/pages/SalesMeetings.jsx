@@ -26,6 +26,16 @@ const toAdminStatus = (status) => {
   return "PLANNED";
 };
 
+const formatQuoteId = (quoteId) => {
+  if (!quoteId) return "";
+  // Convert D25-1-00001 to D25-00001 (remove middle company ID)
+  const parts = String(quoteId).split("-");
+  if (parts.length === 3) {
+    return `${parts[0]}-${parts[2]}`;
+  }
+  return String(quoteId);
+};
+
 const formatDateTime = (iso) => {
   if (!iso) return "--";
   try {
@@ -287,6 +297,9 @@ const AdminMeeting = () => {
       } else if (meeting.deal) {
         relatedType2 = "Deal";
         relatedTo2 = String(meeting.deal.id);
+      } else if (meeting.quote) {
+        relatedType2 = "Quote";
+        relatedTo2 = String(meeting.quote.id);
       }
     } 
     // Fallback: Check flat fields if nested objects are missing
@@ -509,6 +522,9 @@ const AdminMeeting = () => {
           )}
           {m.deal && (
             <p className="font-medium text-blue-500 text-xs">{m.deal.name}</p>
+          )}
+          {m.quote && (
+            <p className="font-medium text-blue-500 text-xs">{formatQuoteId(m.quote.quote_id)}</p>
           )}
                   </td>
                   <td className="py-3 px-4">{formatDateTime(m.start_time)}</td>

@@ -59,6 +59,16 @@ const CreateMeetingModal = ({
     }
   }, []);
 
+  const formatQuoteId = (quoteId) => {
+  if (!quoteId) return "";
+  // Convert D25-1-00001 to D25-00001 (remove middle company ID)
+  const parts = String(quoteId).split("-");
+  if (parts.length === 3) {
+    return `${parts[0]}-${parts[2]}`;
+  }
+  return String(quoteId);
+};
+
   const formData = externalFormData !== undefined ? externalFormData : internalFormData;
   const setFormData = setExternalFormData || setInternalFormData;
   const {userRole} = useAuth();
@@ -129,7 +139,9 @@ const CreateMeetingModal = ({
             res = await api.get(`/contacts/from-acc/${formData.relatedTo1}`);
           } else if (formData.relatedType2 === 'Deal') {
             res = await api.get(`/deals/from-acc/${formData.relatedTo1}`);
-          }
+          } else if (formData.relatedType2 === "Quote") {
+                      res = await api.get(`/quotes/from-acc/${formData.relatedTo1}`);
+                    }
 
           if (res && Array.isArray(res.data)) {
             setRelatedTo2Values(res.data);
@@ -217,7 +229,6 @@ const [isSubmitted, setIsSubmitted] = useState(false);
     if (onSubmit) {
       onSubmit(formData);
     } else {
-      console.log("Meeting Scheduled:", formData);
       onClose();
     }
   };
@@ -309,6 +320,7 @@ const [isSubmitted, setIsSubmitted] = useState(false);
           >
             <option value="Contact">Contact</option>
             <option value="Deal">Deal</option>
+            <option value="Quote">Quote</option>
           </select>
           </div>
 
@@ -325,7 +337,8 @@ const [isSubmitted, setIsSubmitted] = useState(false);
             getLabel={(item) =>
               formData.relatedType2 === "Contact"
                 ? `${item.first_name ?? ""} ${item.last_name ?? ""}`.trim()
-                : item.name ?? ""
+                :  formData.relatedType2 === "Quote"
+                            ? formatQuoteId(item.quote_id) ?? "" : item.name ?? ""
             }
             onChange={(newId) =>
               setFormData((prev) => ({

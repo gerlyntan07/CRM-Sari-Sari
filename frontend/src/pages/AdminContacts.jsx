@@ -1163,9 +1163,24 @@ export default function AdminContacts() {
                     onClick={() =>
                       navigate("/admin/calls", {
                         state: {
-                          openCallModal: true, // <-- this triggers your form
+                          openCallModal: true,
                           initialCallData: {
-                            relatedType1: "Contact", // <-- your custom default
+                            subject: `Call with ${getContactFullName(selectedContact) || ""}`.trim(),
+                            relatedType1: "Account",
+                            relatedTo1: selectedContact?.account_id
+                              ? String(selectedContact.account_id)
+                              : selectedContact?.account?.id
+                                ? String(selectedContact.account.id)
+                                : "",
+                            relatedType2: "Contact",
+                            relatedTo2: selectedContact?.id
+                              ? String(selectedContact.id)
+                              : "",
+                            assigned_to: selectedContact?.assigned_contact?.id
+                              ? String(selectedContact.assigned_contact.id)
+                              : "",
+                            direction: "Outgoing",
+                            status: "Planned",
                           },
                         },
                       })
@@ -1206,7 +1221,21 @@ export default function AdminContacts() {
                         state: {
                           openMeetingModal: true,
                           initialMeetingData: {
-                            relatedType: "Contact",
+                            subject: `Meeting with ${getContactFullName(selectedContact) || ""}`.trim(),
+                            relatedType1: "Account",
+                            relatedTo1: selectedContact?.account_id
+                              ? String(selectedContact.account_id)
+                              : selectedContact?.account?.id
+                                ? String(selectedContact.account.id)
+                                : "",
+                            relatedType2: "Contact",
+                            relatedTo2: selectedContact?.id
+                              ? String(selectedContact.id)
+                              : "",
+                            assignedTo: selectedContact?.assigned_contact?.id
+                              ? String(selectedContact.assigned_contact.id)
+                              : "",
+                            status: "Planned",
                           },
                         },
                       })
@@ -1222,7 +1251,22 @@ export default function AdminContacts() {
                         state: {
                           openTaskModal: true,
                           initialTaskData: {
-                            relatedTo: "Contact",
+                            subject: `Task for ${getContactFullName(selectedContact) || ""}`.trim(),
+                            relatedType1: "Account",
+                            relatedTo1: selectedContact?.account_id
+                              ? String(selectedContact.account_id)
+                              : selectedContact?.account?.id
+                                ? String(selectedContact.account.id)
+                                : "",
+                            relatedType2: "Contact",
+                            relatedTo2: selectedContact?.id
+                              ? String(selectedContact.id)
+                              : "",
+                            assignedTo: selectedContact?.assigned_contact?.id
+                              ? String(selectedContact.assigned_contact.id)
+                              : "",
+                            priority: "NORMAL",
+                            status: "Not Started",
                           },
                         },
                       })

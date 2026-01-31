@@ -1129,11 +1129,26 @@ export default function AdminContacts() {
                   {/* --- SCHEDULE CALL BUTTON (updated) --- */}
                   <button
                     onClick={() =>
-                      navigate("/admin/calls", {
+                     navigate("/manager/calls", {
                         state: {
-                          openCallModal: true, // <-- this triggers your form
+                          openCallModal: true,
                           initialCallData: {
-                            relatedType1: "Contact", // <-- your custom default
+                            subject: `Call with ${getContactFullName(selectedContact) || ""}`.trim(),
+                            relatedType1: "Account",
+                            relatedTo1: selectedContact?.account_id
+                              ? String(selectedContact.account_id)
+                              : selectedContact?.account?.id
+                                ? String(selectedContact.account.id)
+                                : "",
+                            relatedType2: "Contact",
+                            relatedTo2: selectedContact?.id
+                              ? String(selectedContact.id)
+                              : "",
+                            assigned_to: selectedContact?.assigned_contact?.id
+                              ? String(selectedContact.assigned_contact.id)
+                              : "",
+                            direction: "Outgoing",
+                            status: "Planned",
                           },
                         },
                       })
@@ -1170,27 +1185,56 @@ export default function AdminContacts() {
                   <button
                     className="flex items-center gap-2 border border-gray-100 rounded-md py-1.5 px-2 sm:px-3 hover:bg-gray-50 transition text-sm"
                     onClick={() =>
-                      navigate("/admin/meetings", {
+                      navigate("/manager/meetings", {
                         state: {
                           openMeetingModal: true,
                           initialMeetingData: {
-                            relatedType: "Contact",
+                            subject: `Meeting with ${getContactFullName(selectedContact) || ""}`.trim(),
+                            relatedType1: "Account",
+                            relatedTo1: selectedContact?.account_id
+                              ? String(selectedContact.account_id)
+                              : selectedContact?.account?.id
+                                ? String(selectedContact.account.id)
+                                : "",
+                            relatedType2: "Contact",
+                            relatedTo2: selectedContact?.id
+                              ? String(selectedContact.id)
+                              : "",
+                            assignedTo: selectedContact?.assigned_contact?.id
+                              ? String(selectedContact.assigned_contact.id)
+                              : "",
+                            status: "Planned",
                           },
                         },
                       })
                     }
-                  >
+                    >
                     <FiCalendar className="text-gray-600 w-4 h-4" />
                     Book Meeting
                   </button>
 
                   <button
                     onClick={() =>
-                      navigate("/admin/tasks", {
+                       navigate("/manager/tasks", {
                         state: {
                           openTaskModal: true,
                           initialTaskData: {
-                            relatedTo: "Contact",
+                            subject: `Task for ${getContactFullName(selectedContact) || ""}`.trim(),
+                            relatedType1: "Account",
+                            relatedTo1: selectedContact?.account_id
+                              ? String(selectedContact.account_id)
+                              : selectedContact?.account?.id
+                                ? String(selectedContact.account.id)
+                                : "",
+                            relatedType2: "Contact",
+                            relatedTo2: selectedContact?.id
+                              ? String(selectedContact.id)
+                              : "",
+                            assignedTo: selectedContact?.assigned_contact?.id
+                              ? String(selectedContact.assigned_contact.id)
+                              : "",
+                            priority: "NORMAL",
+                            status: "Not Started",
                           },
                         },
                       })

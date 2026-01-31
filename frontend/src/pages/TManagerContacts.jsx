@@ -977,15 +977,30 @@ if (!emailRegex.test(email)) {
       {/* --- SCHEDULE CALL BUTTON (updated) --- */}
       <button
         onClick={() =>
-          navigate("/admin/calls", {
-            state: {
-              openCallModal: true,      // <-- this triggers your form
-              initialCallData: {
-                relatedType1: "Contact", // <-- your custom default
-              },
-            },
-          })
-        }
+          navigate("/group-manager/calls", {
+                        state: {
+                          openCallModal: true,
+                          initialCallData: {
+                            subject: `Call with ${getContactFullName(selectedContact) || ""}`.trim(),
+                            relatedType1: "Account",
+                            relatedTo1: selectedContact?.account_id
+                              ? String(selectedContact.account_id)
+                              : selectedContact?.account?.id
+                                ? String(selectedContact.account.id)
+                                : "",
+                            relatedType2: "Contact",
+                            relatedTo2: selectedContact?.id
+                              ? String(selectedContact.id)
+                              : "",
+                            assigned_to: selectedContact?.assigned_contact?.id
+                              ? String(selectedContact.assigned_contact.id)
+                              : "",
+                            direction: "Outgoing",
+                            status: "Planned",
+                          },
+                        },
+                      })
+                    }
         className="flex items-center gap-2 border border-gray-100 rounded-md py-1.5 px-2 sm:px-3 hover:bg-gray-50 transition text-sm"
       >
         <FiPhone className="text-gray-600 w-4 h-4" />
@@ -995,22 +1010,21 @@ if (!emailRegex.test(email)) {
  
  <button
   type="button"
-  onClick={() => {
-    if (!selectedContact?.email) {
-      alert("No email address available");
-      return;
-    }
+    onClick={() => {
+                      if (!selectedContact?.email) {
+                        alert("No email address available");
+                        return;
+                      }
 
-    const to = encodeURIComponent(selectedContact.email);
-    const subject = encodeURIComponent("");
-    const body = encodeURIComponent("");
+                      const to = encodeURIComponent(selectedContact.email);
+                      const subject = encodeURIComponent("");
+                      const body = encodeURIComponent("");
 
-    // Gmail web compose URL
-    const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${to}&su=${subject}&body=${body}`;
+                      const mailtoUrl = `mailto:${to}?subject=${subject}&body=${body}`;
 
-    // Open Gmail in a new tab
-    window.open(gmailUrl, "_blank");
-  }}
+                      // Opens user's default email client
+                      window.location.href = mailtoUrl;
+                    }}
   className="flex items-center gap-2 border border-gray-100 rounded-md py-1.5 px-2 sm:px-3 hover:bg-gray-50 transition text-sm"
 >
   <FiMail className="text-gray-600 w-4 h-4" />
@@ -1021,14 +1035,28 @@ if (!emailRegex.test(email)) {
      <button
        className="flex items-center gap-2 border border-gray-100 rounded-md py-1.5 px-2 sm:px-3 hover:bg-gray-50 transition text-sm"
         onClick={() =>
-        navigate("/admin/meetings", {
-           state: {
-            openMeetingModal: true,
-              initialMeetingData: {
-                relatedType: "Contact",
-                   },
-                     },
-                     })
+        navigate("/group-manager/meetings", {
+                        state: {
+                          openMeetingModal: true,
+                          initialMeetingData: {
+                            subject: `Meeting with ${getContactFullName(selectedContact) || ""}`.trim(),
+                            relatedType1: "Account",
+                            relatedTo1: selectedContact?.account_id
+                              ? String(selectedContact.account_id)
+                              : selectedContact?.account?.id
+                                ? String(selectedContact.account.id)
+                                : "",
+                            relatedType2: "Contact",
+                            relatedTo2: selectedContact?.id
+                              ? String(selectedContact.id)
+                              : "",
+                            assignedTo: selectedContact?.assigned_contact?.id
+                              ? String(selectedContact.assigned_contact.id)
+                              : "",
+                            status: "Planned",
+                          },
+                        },
+                      })
                     }
                     >
                     <FiCalendar className="text-gray-600 w-4 h-4" />
@@ -1037,15 +1065,30 @@ if (!emailRegex.test(email)) {
 
             <button
               onClick={() =>
-                navigate("/admin/tasks", {
-                  state: {
-                    openTaskModal: true,
-                    initialTaskData: {
-                      relatedTo: "Contact",
-                    },
-                  },
-                })
-              }
+                navigate("/group-manager/tasks", {
+                        state: {
+                          openTaskModal: true,
+                          initialTaskData: {
+                            subject: `Task for ${getContactFullName(selectedContact) || ""}`.trim(),
+                            relatedType1: "Account",
+                            relatedTo1: selectedContact?.account_id
+                              ? String(selectedContact.account_id)
+                              : selectedContact?.account?.id
+                                ? String(selectedContact.account.id)
+                                : "",
+                            relatedType2: "Contact",
+                            relatedTo2: selectedContact?.id
+                              ? String(selectedContact.id)
+                              : "",
+                            assignedTo: selectedContact?.assigned_contact?.id
+                              ? String(selectedContact.assigned_contact.id)
+                              : "",
+                            priority: "NORMAL",
+                            status: "Not Started",
+                          },
+                        },
+                      })
+                    }
   className="flex items-center gap-2 border border-gray-100 rounded-md py-1.5 px-2 sm:px-3 hover:bg-gray-50 transition text-sm"
 >
   <FiCheckSquare className="text-gray-600 w-4 h-4" />

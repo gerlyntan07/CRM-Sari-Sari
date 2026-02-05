@@ -1390,14 +1390,10 @@ const [isSubmitted, setIsSubmitted] = useState(false);
                             initialCallData: {
                               subject: `Call regarding Quote ${formatQuoteId(selectedQuote.quote_id)}`,
 
-                              relatedType1: "Quotes",
-                              relatedTo1: String(selectedQuote.id),
-
-                              relatedType2: null,
-                              relatedTo2: null,
-
                               assigned_to: selectedQuote.assigned_user?.id
                                 ? String(selectedQuote.assigned_user.id)
+                                : selectedQuote.assigned_to
+                                ? String(selectedQuote.assigned_to)
                                 : "",
 
                               direction: "Outgoing",
@@ -1416,12 +1412,22 @@ const [isSubmitted, setIsSubmitted] = useState(false);
                       className="flex items-center gap-2 border border-gray-100 rounded-md py-1.5 px-2 sm:px-3 hover:bg-gray-50 transition text-sm"
                       onClick={() =>
                         navigate("/admin/meetings", {
-                          state: {
-                            openMeetingModal: true,
-                            initialMeetingData: { relatedType: "Quotes" },
+                        state: {
+                          openMeetingModal: true,
+                          initialMeetingData: {
+                            subject: `Meeting with ${selectedQuote.quote_id}`,
+
+                            assignedTo: selectedQuote.assigned_user?.id
+                                ? String(selectedQuote.assigned_user.id)
+                                : selectedQuote.assigned_to
+                                ? String(selectedQuote.assigned_to)
+                                : "",
+
+                            status: "Planned",
                           },
-                        })
-                      }
+                        },
+                      })
+                    }
                     >
                       <FiCalendar className="text-gray-600 w-4 h-4" />
                       Book Meeting
@@ -1430,12 +1436,23 @@ const [isSubmitted, setIsSubmitted] = useState(false);
                     <button
                       onClick={() =>
                         navigate("/admin/tasks", {
-                          state: {
-                            openTaskModal: true,
-                            initialTaskData: { relatedTo: "Quotes" },
+                        state: {
+                          openTaskModal: true,
+                          initialTaskData: {
+                            subject: `Follow up with ${selectedQuote.quote_id}`,
+
+                           assignedTo: selectedQuote.assigned_user?.id
+                                ? String(selectedQuote.assigned_user.id)
+                                : selectedQuote.assigned_to
+                                ? String(selectedQuote.assigned_to)
+                                : "",
+
+                            priority: "NORMAL",
+                            status: "Not Started",
                           },
-                        })
-                      }
+                        },
+                      })
+                    }
                       className="flex items-center gap-2 border border-gray-100 rounded-md py-1.5 px-2 sm:px-3 hover:bg-gray-50 transition text-sm"
                     >
                       <FiCheckSquare className="text-gray-600 w-4 h-4" />

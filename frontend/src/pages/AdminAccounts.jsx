@@ -25,6 +25,7 @@ import PaginationControls from "../components/PaginationControls.jsx";
 import LoadingSpinner from "../components/LoadingSpinner.jsx";
 import { useNavigate } from "react-router-dom";
 import CommentSection from "../components/CommentSection.jsx";
+import { useComments } from "../hooks/useComments.js";
 
 const STATUS_OPTIONS = [
   { value: "CUSTOMER", label: "Customer" },
@@ -128,6 +129,19 @@ export default function AdminAccounts() {
   const [selectedIds, setSelectedIds] = useState([]);
   const [relatedActs, setRelatedActs] = useState({});
   const [expandedSection, setExpandedSection] = useState(null);
+
+  const {
+    comments: accountComments,
+    addComment: addAccountComment,
+    refresh: refreshAccountComments,
+  } = useComments({
+    relatedType: "account",
+    relatedId: selectedAccount?.id,
+  });
+
+  useEffect(() => {
+    if (selectedAccount?.id) refreshAccountComments();
+  }, [selectedAccount?.id, refreshAccountComments]);
 
   const fetchAccounts = useCallback(
     async (preserveSelectedId = null) => {
@@ -930,7 +944,10 @@ export default function AdminAccounts() {
                   </div>
                 </div>
                 
-                  <CommentSection />                
+                  <CommentSection
+                    comments={accountComments}
+                    onAddComment={addAccountComment}
+                  />
                 </div>
               )}
 

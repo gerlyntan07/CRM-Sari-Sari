@@ -24,6 +24,8 @@ import { toast } from "react-toastify";
 import PaginationControls from "../components/PaginationControls.jsx";
 import LoadingSpinner from "../components/LoadingSpinner.jsx";
 import { useNavigate } from "react-router-dom";
+import CommentSection from "../components/CommentSection.jsx";
+import { useComments } from "../hooks/useComments.js";
 
 const STATUS_OPTIONS = [
   { value: "CUSTOMER", label: "Customer" },
@@ -127,6 +129,19 @@ export default function AdminAccounts() {
   const [relatedActs, setRelatedActs] = useState({});
   const [expandedSection, setExpandedSection] = useState(null);
 
+  const {
+    comments: accountComments,
+    addComment: addAccountComment,
+    refresh: refreshAccountComments,
+  } = useComments({
+    relatedType: "account",
+    relatedId: selectedAccount?.id,
+  });
+
+  useEffect(() => {
+    if (selectedAccount?.id) refreshAccountComments();
+  }, [selectedAccount?.id, refreshAccountComments]);
+
   const fetchAccounts = useCallback(
     async (preserveSelectedId = null) => {
       setAccountsLoading(true);
@@ -139,7 +154,6 @@ export default function AdminAccounts() {
           return new Date(bDate) - new Date(aDate);
         });
         setAccounts(sortedData);
-        console.log("Fetch from backend: ", res.data);
 
         if (preserveSelectedId) {
           const updatedSelection = sortedData.find(
@@ -203,7 +217,6 @@ export default function AdminAccounts() {
   const fetchRelatedActivities = useCallback(async (account_id) => {
     try {
       const res = await api.get(`/activities/accounts/${account_id}`);
-      console.log("Related activities: ", res.data);
       // API returns an object with grouped arrays: { tasks: [], meetings: [], calls: [], quotes: [], deals: [], contacts: [] }
       setRelatedActs(res.data && typeof res.data === 'object' ? res.data : {});
     } catch (err) {
@@ -438,7 +451,6 @@ export default function AdminAccounts() {
   const handleEditClick = (account) => {
     // Close the account details modal
     setSelectedAccount(null);
-    console.log("edit: ", account);
     
     // Set the selected user if the account has an assigned user
     if (account.assigned_accs) {
@@ -884,6 +896,11 @@ const [isSubmitted, setIsSubmitted] = useState(false);
                       </p>
                     </div>
                   </div>
+
+                  <CommentSection
+                                      comments={accountComments}
+                                      onAddComment={addAccountComment}
+                                    />
                 </div>
               )}
 

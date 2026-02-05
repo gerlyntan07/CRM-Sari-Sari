@@ -65,9 +65,17 @@ function CommentSection({ comments = [], onAddComment, currentUser }) {
                 {/* Avatar */}
                 <div className="flex-shrink-0">
                   <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center text-white font-semibold text-sm">
-                    {comment.comment_creator?.first_name?.[0] ||
+                      {comment.comment_creator?.profile_picture ? (
+                      <img
+                        src={`${comment.comment_creator.profile_picture}`}
+                        alt={`${comment.comment_creator?.first_name || comment.comment_creator?.email || "User"}'s profile`}
+                        className="w-10 h-10 rounded-full object-cover"
+                      />
+                    ) : (
+                      (comment.comment_creator?.first_name?.[0] ||
                       comment.comment_creator?.email?.[0]?.toUpperCase() ||
-                      "U"}
+                      "U")
+                    )}
                   </div>
                 </div>
 

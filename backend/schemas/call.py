@@ -73,6 +73,7 @@ class CallResponse(CallBase):
     contact: Optional[ContactBase] = None
     quote: Optional[QuoteBase] = None
     call_assign_to: Optional[AssignToBase] = None
+    call_creator: Optional[AssignToBase] = None
     duration_minutes: Optional[int] = None
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None    

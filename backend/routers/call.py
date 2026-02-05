@@ -116,6 +116,7 @@ def admin_get_calls(
 ):
     """Get all calls for admin users"""
     if current_user.role.upper() in ["CEO", "ADMIN"]:
+        # Admins can see all calls including INACTIVE ones
         call = (
             db.query(Call)
             .join(User, Call.assigned_to == User.id)
@@ -128,6 +129,7 @@ def admin_get_calls(
             .join(User, Call.assigned_to == User.id)
             .filter(User.related_to_company == current_user.related_to_company)
             .filter(~User.role.in_(["CEO", "Admin"]))
+            .filter(Call.status != CallStatus.INACTIVE)
             .all()
         )
     elif current_user.role.upper() == "MANAGER":
@@ -145,15 +147,20 @@ def admin_get_calls(
                 (User.id.in_(subquery_user_ids)) | 
                 (Call.assigned_to == current_user.id) | # Calls assigned to manager
                 (Call.created_by == current_user.id)
-            ).all()
+            )
+            .filter(Call.status != CallStatus.INACTIVE)
+            .all()
         )
     else:
+        # SALES users - show only their active (non-INACTIVE) calls
         call = (
             db.query(Call)
             .filter(
                 (Call.assigned_to == current_user.id) | 
                 (Call.created_by == current_user.id)
-            ).all()
+            )
+            .filter(Call.status != CallStatus.INACTIVE)
+            .all()
         )
 
     return call
@@ -298,20 +305,95 @@ def delete_call(
     call = db.query(Call).filter(Call.id == call_id).first()
     if not call:
         raise HTTPException(status_code=404, detail="Call not found")
+    
     subject = call.subject
     old_data = serialize_instance(call)
-    create_audit_log(
-        db=db,
-        current_user=current_user,
-        instance=call,
-        action="DELETE",
-        request=request,
-        old_data=old_data,
-        custom_message=f"delete call '{subject}'"
-    )
-    db.delete(call)
+    
+    # SALES users archive (mark as INACTIVE) instead of hard delete
+    if current_user.role.upper() == "SALES":
+        if call.created_by != current_user.id:
+            raise HTTPException(status_code=403, detail="Permission denied - you can only archive your own calls")
+        
+        call.status = CallStatus.INACTIVE
+        db.commit()
+        db.refresh(call)
+        new_data = serialize_instance(call)
+        
+        create_audit_log(
+            db=db,
+            current_user=current_user,
+            instance=call,
+            action="UPDATE",
+            request=request,
+            old_data=old_data,
+            new_data=new_data,
+            custom_message=f"archive call '{subject}'"
+        )
+        return {"message": "Call archived successfully"}
+    else:
+        # Admins can hard delete
+        create_audit_log(
+            db=db,
+            current_user=current_user,
+            instance=call,
+            action="DELETE",
+            request=request,
+            old_data=old_data,
+            custom_message=f"delete call '{subject}'"
+        )
+        db.delete(call)
+        db.commit()
+        return {"message": "Call deleted successfully"}
+
+
+@router.post("/bulk-delete", status_code=status.HTTP_200_OK)
+def bulk_delete_calls(
+    data: CallBulkDelete,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    request: Request = None
+):
+    """Bulk archive calls - SALES users can archive their own calls (marks as INACTIVE)"""
+    if current_user.role.upper() not in ["SALES"]:
+        raise HTTPException(status_code=403, detail="Permission denied - only SALES users can archive calls")
+
+    if not data.call_ids:
+        return {"detail": "No calls provided for archiving."}
+
+    # SALES users can only archive their own calls (created by them)
+    calls_to_archive = db.query(Call).filter(
+        Call.id.in_(data.call_ids),
+        Call.created_by == current_user.id
+    ).all()
+
+    if not calls_to_archive:
+        raise HTTPException(status_code=404, detail="No matching calls found for archiving.")
+
+    archived_count = 0
+    for call in calls_to_archive:
+        old_data = serialize_instance(call)
+        call_name = call.subject
+        
+        # Mark as INACTIVE instead of hard delete
+        call.status = CallStatus.INACTIVE
+        db.flush()  # Flush changes but don't commit yet
+        new_data = serialize_instance(call)
+        
+        create_audit_log(
+            db=db,
+            current_user=current_user,
+            instance=call,
+            action="UPDATE",
+            request=request,
+            old_data=old_data,
+            new_data=new_data,
+            custom_message=f"archive call '{call_name}'"
+        )
+        archived_count += 1
+
     db.commit()
-    return {"message": "Call deleted successfully"}
+
+    return {"detail": f"Successfully archived {archived_count} call(s)."}
 
 
 @router.delete("/admin/bulk-delete", status_code=status.HTTP_200_OK)

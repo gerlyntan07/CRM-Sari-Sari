@@ -36,6 +36,7 @@ const STATUS_OPTIONS = [
   { value: "PLANNED", label: "PLANNED" },
   { value: "HELD", label: "HELD" },
   { value: "NOT_HELD", label: "NOT HELD" },
+  { value: "INACTIVE", label: "INACTIVE" },
 ];
 
 const normalizeStatus = (status) => (status ? String(status).toUpperCase() : "");
@@ -45,6 +46,7 @@ const toAdminCallStatus = (status) => {
   if (s === "PLANNED" || s === "PENDING") return "PLANNED";
   if (s === "HELD" || s === "COMPLETED") return "HELD";
   if (s === "NOT HELD" || s === "NOT_HELD" || s === "CANCELLED") return "NOT_HELD";
+  if (s === "INACTIVE") return "INACTIVE";
   return "PLANNED";
 };
 
@@ -53,6 +55,7 @@ const formatAdminCallStatusLabel = (status) => {
   if (key === "PLANNED") return "PLANNED";
   if (key === "HELD") return "HELD";
   if (key === "NOT_HELD") return "NOT HELD";
+  if (key === "INACTIVE") return "INACTIVE";
   return "--";
 };
 
@@ -64,6 +67,8 @@ const getCallStatusBadgeClass = (status) => {
     case "HELD":
       return "bg-green-100 text-green-700";
     case "NOT_HELD":
+      return "bg-gray-200 text-gray-700";
+    case "INACTIVE":
       return "bg-gray-200 text-gray-700";
     default:
       return "bg-gray-100 text-gray-700";

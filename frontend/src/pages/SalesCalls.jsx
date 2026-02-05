@@ -13,7 +13,7 @@ import {
   FiCalendar,
   FiCheckSquare,
   FiEdit,
-  FiTrash2,
+  FiArchive,
 } from "react-icons/fi";
 import { HiX } from "react-icons/hi";
 import PaginationControls from "../components/PaginationControls.jsx";
@@ -125,6 +125,8 @@ export default function AdminCalls() {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const [pendingCallId, setPendingCallId] = useState(null);
+  const [selectedIds, setSelectedIds] = useState([]);
+  const [currentUser, setCurrentUser] = useState(null);
 
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -255,6 +257,18 @@ export default function AdminCalls() {
       console.error(`Error fetching users: `, err);
     }
   };
+
+  useEffect(() => {
+    async function fetchCurrentUser() {
+      try {
+        const res = await api.get("/auth/me");
+        setCurrentUser(res.data);
+      } catch (err) {
+        console.error("Failed to fetch current user", err);
+      }
+    }
+    fetchCurrentUser();
+  }, []);
 
   useEffect(() => {
     fetchUsers();
@@ -466,12 +480,17 @@ const [isSubmitted, setIsSubmitted] = useState(false);
     }
 
     const { action } = confirmModalData;
-    const { type, payload, targetId, name } = action;
+    const { type, payload, targetId, name, callIds } = action;
 
     setConfirmProcessing(true);
 
     try {
-      if (type === "create") {
+      if (type === "bulk-delete") {
+        await api.post("/calls/bulk-delete", { call_ids: callIds });
+        toast.success(`Successfully archived ${callIds.length} call(s).`);
+        setSelectedIds([]);
+        await fetchCalls();
+      } else if (type === "create") {
         setIsSubmitting(true);
         await api.post(`/calls/create`, payload);
         toast.success(`Call "${name}" created successfully.`);
@@ -491,9 +510,9 @@ const [isSubmitted, setIsSubmitted] = useState(false);
         setCurrentCallId(null);
         await fetchCalls();
       } else if (type === "delete") {
-        if (!targetId) throw new Error("Missing call identifier for deletion.");
+        if (!targetId) throw new Error("Missing call identifier for archival.");
         await api.delete(`/calls/${targetId}`);
-        toast.success(`Call "${name}" deleted successfully.`);
+        toast.success(`Call "${name}" archived successfully.`);
         if (selectedCall?.id === targetId) setSelectedCall(null);
         await fetchCalls();
       }
@@ -503,7 +522,7 @@ const [isSubmitted, setIsSubmitted] = useState(false);
           ? "Failed to create call. Please review the details and try again."
           : type === "update"
           ? "Failed to update call. Please review the details and try again."
-          : "Failed to delete call. Please try again.";
+          : "Failed to archive call. Please try again.";
 
       const message = err?.response?.data?.detail || defaultMessage;
       toast.error(message);
@@ -537,6 +556,71 @@ const [isSubmitted, setIsSubmitted] = useState(false);
     } finally {
       setUpdatingStatus(false);
     }
+  };
+
+  const handleSelectAll = () => {
+    const selectableCalls = paginatedCalls.filter(
+      (call) => call.call_creator?.id === currentUser?.id
+    );
+    if (selectedIds.length === selectableCalls.length && selectableCalls.length > 0) {
+      setSelectedIds([]);
+    } else {
+      setSelectedIds(selectableCalls.map((call) => call.id));
+    }
+  };
+
+  const handleSelectCall = (id) => {
+    setSelectedIds((prev) => {
+      if (prev.includes(id)) {
+        return prev.filter((prevId) => prevId !== id);
+      } else {
+        return [...prev, id];
+      }
+    });
+  };
+
+  const handleArchive = (archiveType) => {
+    if (archiveType === "single") {
+      // Single archive from popup
+      const name = selectedCall.subject || "this call";
+      setConfirmModalData({
+        title: "Archive Call",
+        message: `Are you sure you want to archive "${name}"? This call will be hidden from your view but admins can still see it.`,
+        confirmLabel: "Archive Call",
+        cancelLabel: "Cancel",
+        variant: "warning",
+        action: {
+          type: "delete",
+          targetId: selectedCall.id,
+          name,
+        },
+      });
+    } else if (archiveType === "bulk") {
+      // Bulk archive from table
+      if (selectedIds.length === 0) return;
+
+      setConfirmModalData({
+        title: "Archive Calls",
+        message: (
+          <span>
+            Are you sure you want to archive{" "}
+            <span className="font-semibold">{selectedIds.length}</span> selected
+            calls? These calls will be hidden from your view but admins can still see them.
+          </span>
+        ),
+        confirmLabel: `Archive ${selectedIds.length} call(s)`,
+        cancelLabel: "Cancel",
+        variant: "warning",
+        action: {
+          type: "bulk-delete",
+          callIds: selectedIds,
+        },
+      });
+    }
+  };
+
+  const handleBulkDelete = () => {
+    handleArchive("bulk");
   };
 
   useEffect(() => {
@@ -579,103 +663,93 @@ const [isSubmitted, setIsSubmitted] = useState(false);
             </div>
 
             <div className="flex flex-col sm:flex-row sm:space-x-3 space-y-2 sm:space-y-0">
-              <button
-                className="inline-flex items-center justify-center w-full sm:w-auto bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 transition text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
-                onClick={() => {
-                  const toLocal = (iso) => {
-                    if (!iso) return "";
-                    const d = new Date(iso);
-                    const yyyy = d.getFullYear();
-                    const mm = String(d.getMonth() + 1).padStart(2, "0");
-                    const dd = String(d.getDate()).padStart(2, "0");
-                    const hh = String(d.getHours()).padStart(2, "0");
-                    const min = String(d.getMinutes()).padStart(2, "0");
-                    return `${yyyy}-${mm}-${dd}T${hh}:${min}`;
-                  };
+              {selectedCall.call_creator?.id === currentUser?.id && (
+                <>
+                  <button
+                    className="inline-flex items-center justify-center w-full sm:w-auto bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 transition text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+                    onClick={() => {
+                      const toLocal = (iso) => {
+                        if (!iso) return "";
+                        const d = new Date(iso);
+                        const yyyy = d.getFullYear();
+                        const mm = String(d.getMonth() + 1).padStart(2, "0");
+                        const dd = String(d.getDate()).padStart(2, "0");
+                        const hh = String(d.getHours()).padStart(2, "0");
+                        const min = String(d.getMinutes()).padStart(2, "0");
+                        return `${yyyy}-${mm}-${dd}T${hh}:${min}`;
+                      };
 
-                  const relatedType1 = selectedCall.lead
-                    ? "Lead"
-                    : selectedCall.account
-                    ? "Account"
-                    : "Lead";
+                      const relatedType1 = selectedCall.lead
+                        ? "Lead"
+                        : selectedCall.account
+                        ? "Account"
+                        : "Lead";
 
-                  const relatedTo1 = selectedCall.lead
-                    ? selectedCall.lead.id
-                    : selectedCall.account
-                    ? selectedCall.account.id
-                    : null;
+                      const relatedTo1 = selectedCall.lead
+                        ? selectedCall.lead.id
+                        : selectedCall.account
+                        ? selectedCall.account.id
+                        : null;
 
-                  const relatedType2 =
-                    relatedType1 === "Lead"
-                      ? null
-                      : selectedCall.contact
-                      ? "Contact"
-                      : selectedCall.deal
-                      ? "Deal"
-                      : selectedCall.quote
-                      ? "Quote"
-                      : "Contact";
+                      const relatedType2 =
+                        relatedType1 === "Lead"
+                          ? null
+                          : selectedCall.contact
+                          ? "Contact"
+                          : selectedCall.deal
+                          ? "Deal"
+                          : selectedCall.quote
+                          ? "Quote"
+                          : "Contact";
 
-                  const relatedTo2 =
-                    relatedType1 === "Lead"
-                      ? null
-                      : selectedCall.contact
-                      ? selectedCall.contact.id
-                      : selectedCall.deal
-                      ? selectedCall.deal.id
-                      : selectedCall.quote
-                      ? selectedCall.quote.id
-                      : null;
+                      const relatedTo2 =
+                        relatedType1 === "Lead"
+                          ? null
+                          : selectedCall.contact
+                          ? selectedCall.contact.id
+                          : selectedCall.deal
+                          ? selectedCall.deal.id
+                          : selectedCall.quote
+                          ? selectedCall.quote.id
+                          : null;
 
-                  setFormData({
-                    subject: selectedCall.subject || "",
-                    call_time: toLocal(selectedCall.call_time),
-                    duration_minutes: selectedCall.duration_minutes
-                      ? String(selectedCall.duration_minutes)
-                      : "",
-                    direction: selectedCall.direction || "Outgoing",
-                    status: selectedCall.status || "Planned",
-                    notes: selectedCall.notes || "",
-                    relatedType1,
-                    relatedType2,
-                    relatedTo1: relatedTo1 ? String(relatedTo1) : "",
-                    relatedTo2: relatedTo2 ? String(relatedTo2) : "",
-                    assigned_to: selectedCall.call_assign_to?.id
-                      ? String(selectedCall.call_assign_to.id)
-                      : "",
-                  });
+                      setFormData({
+                        subject: selectedCall.subject || "",
+                        call_time: toLocal(selectedCall.call_time),
+                        duration_minutes: selectedCall.duration_minutes
+                          ? String(selectedCall.duration_minutes)
+                          : "",
+                        direction: selectedCall.direction || "Outgoing",
+                        status: selectedCall.status || "Planned",
+                        notes: selectedCall.notes || "",
+                        relatedType1,
+                        relatedType2,
+                        relatedTo1: relatedTo1 ? String(relatedTo1) : "",
+                        relatedTo2: relatedTo2 ? String(relatedTo2) : "",
+                        assigned_to: selectedCall.call_assign_to?.id
+                          ? String(selectedCall.call_assign_to.id)
+                          : "",
+                      });
 
-                  setIsEditing(true);
-                  setCurrentCallId(selectedCall.id);
-                  setSelectedCall(null);
-                  setShowModal(true);
-                }}
-              >
-                <FiEdit className="mr-2" />
-                Edit
-              </button>
+                      setIsEditing(true);
+                      setCurrentCallId(selectedCall.id);
+                      setSelectedCall(null);
+                      setShowModal(true);
+                    }}
+                  >
+                    <FiEdit className="mr-2" />
+                    Edit
+                  </button>
 
-              <button
-                className="inline-flex items-center justify-center w-full sm:w-auto px-4 py-2 rounded-md text-sm bg-red-500 text-white hover:bg-red-600 transition focus:outline-none focus:ring-2 focus:ring-red-400"
-                onClick={() => {
-                  const name = selectedCall.subject || "this call";
-                  setConfirmModalData({
-                    title: "Delete Call",
-                    message: `Are you sure you want to permanently delete "${name}"? This action cannot be undone.`,
-                    confirmLabel: "Delete Call",
-                    cancelLabel: "Cancel",
-                    variant: "danger",
-                    action: {
-                      type: "delete",
-                      targetId: selectedCall.id,
-                      name,
-                    },
-                  });
-                }}
-              >
-                <FiTrash2 className="mr-2" />
-                Delete
-              </button>
+                  <button
+                    className="inline-flex items-center justify-center w-full sm:w-auto px-4 py-2 rounded-md text-sm bg-orange-500 text-white hover:bg-orange-600 transition focus:outline-none focus:ring-2 focus:ring-orange-400"
+                    onClick={() => handleArchive("single")}
+                  >
+                    <FiArchive className="mr-2" />
+                    Archive
+                  </button>
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -1071,18 +1145,45 @@ const [isSubmitted, setIsSubmitted] = useState(false);
           <table className="w-full min-w-[500px] border border-gray-200 rounded-lg bg-white shadow-sm text-sm mb-4">
             <thead className="bg-gray-100 text-left text-gray-600 font-semibold">
               <tr>
+                <th className="py-3 px-4 text-center w-12">
+                  <input
+                    type="checkbox"
+                    checked={
+                      paginatedCalls.length > 0 &&
+                      paginatedCalls
+                        .filter((c) => c.call_creator?.id === currentUser?.id)
+                        .every((c) => selectedIds.includes(c.id)) &&
+                      paginatedCalls.some((c) => c.call_creator?.id === currentUser?.id)
+                    }
+                    onChange={handleSelectAll}
+                    className="form-checkbox h-4 w-4 text-blue-600 rounded focus:ring-blue-500 border-gray-300"
+                  />
+                </th>
                 <th className="py-3 px-4">Subject</th>
                 <th className="py-3 px-4">Related To</th>
                 <th className="py-3 px-4">Call Time</th>
                 <th className="py-3 px-4">Assigned To</th>
                 <th className="py-3 px-4">Status</th>
+                <th className="py-3 px-4 text-center w-24">
+                  {selectedIds.length > 0 ? (
+                    <button
+                      onClick={handleBulkDelete}
+                      className="text-orange-600 hover:text-orange-800 transition p-1 rounded-full hover:bg-orange-50"
+                      title={`Archive ${selectedIds.length} selected calls`}
+                    >
+                      <FiArchive size={18} />
+                    </button>
+                  ) : (
+                    ""
+                  )}
+                </th>
               </tr>
             </thead>
 
             <tbody>
               {callsLoading ? (
                 <tr>
-                  <td colSpan={6} className="py-10">
+                  <td colSpan={7} className="py-10">
                     <LoadingSpinner message="Loading calls..." />
                   </td>
                 </tr>
@@ -1093,6 +1194,17 @@ const [isSubmitted, setIsSubmitted] = useState(false);
                     onClick={() => handleCallClick(call)}
                     className="hover:bg-gray-50 cursor-pointer border-b border-gray-100"
                   >
+                    <td className="py-3 px-4 align-top text-center" onClick={(e) => e.stopPropagation()}>
+                      {call.call_creator?.id === currentUser?.id ? (
+                        <input
+                          type="checkbox"
+                          checked={selectedIds.includes(call.id)}
+                          onChange={() => handleSelectCall(call.id)}
+                          className="form-checkbox h-4 w-4 text-blue-600 rounded focus:ring-blue-500 border-gray-300"
+                          onClick={(e) => e.stopPropagation()}
+                        />
+                      ) : null}
+                    </td>
                     <td className="py-3 px-4 text-blue-600 font-medium">
                       {call.subject || "--"}
                     </td>
@@ -1128,11 +1240,12 @@ const [isSubmitted, setIsSubmitted] = useState(false);
                         {formatAdminCallStatusLabel(call.status)}
                       </span>
                     </td>
+                    <td></td>
                   </tr>
                 ))
               ) : (
                 <tr>
-                  <td colSpan={6} className="text-center py-4 text-gray-500">
+                  <td colSpan={7} className="text-center py-4 text-gray-500">
                     No calls found.
                   </td>
                 </tr>
@@ -1165,6 +1278,7 @@ const [isSubmitted, setIsSubmitted] = useState(false);
           title={confirmModalData.title}
           message={confirmModalData.message}
           confirmLabel={confirmModalData.confirmLabel}
+          variant={confirmModalData.variant}
           onConfirm={handleConfirmAction}
           onCancel={handleCancelConfirm}
           loading={confirmProcessing}
@@ -1264,7 +1378,9 @@ function ConfirmationModal({
   if (!open) return null;
 
   const confirmClasses =
-    variant === "danger"
+    variant === "warning"
+      ? "bg-orange-500 hover:bg-orange-600 border border-orange-400"
+      : variant === "danger"
       ? "bg-red-500 hover:bg-red-600 border border-red-400"
       : "bg-tertiary hover:bg-secondary border border-tertiary";
 

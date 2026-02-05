@@ -1387,7 +1387,22 @@ const [isSubmitted, setIsSubmitted] = useState(false);
                         navigate("/admin/calls", {
                           state: {
                             openCallModal: true,
-                            initialCallData: { relatedType1: "Quotes" },
+                            initialCallData: {
+                              subject: `Call regarding Quote ${formatQuoteId(selectedQuote.quote_id)}`,
+
+                              relatedType1: "Quotes",
+                              relatedTo1: String(selectedQuote.id),
+
+                              relatedType2: null,
+                              relatedTo2: null,
+
+                              assigned_to: selectedQuote.assigned_user?.id
+                                ? String(selectedQuote.assigned_user.id)
+                                : "",
+
+                              direction: "Outgoing",
+                              status: "Planned",
+                            },
                           },
                         })
                       }
@@ -1860,7 +1875,8 @@ const [isSubmitted, setIsSubmitted] = useState(false);
             getLabel={(item) => {
               const name = `${item?.first_name ?? ""} ${item?.last_name ?? ""}`.trim();
               if (!name) return item?.email || "";
-              return item?.role ? `${name} (${item.role})` : name;
+              const role = item?.role?.toUpperCase() === "CEO" ? "Admin" : item?.role;
+              return role ? `${name} (${role})` : name;
             }}
             placeholder="Search assignee..."
             required={true}            
@@ -1876,7 +1892,6 @@ const [isSubmitted, setIsSubmitted] = useState(false);
             options={STATUS_OPTIONS}
             required
             disabled={isSubmitting}
-            className="md:col-span-2"
           />
 
           <TextareaField

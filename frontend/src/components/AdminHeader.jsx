@@ -190,7 +190,7 @@ export default function AdminHeader({ toggleSidebar }) {
                   {user?.first_name} {user?.middle_name} {user?.last_name}
                 </h2>
                   <p className="text-[11px] text-gray-600 font-light w-full truncate">
-                    CEO
+                    Admin
                </p>
               </div>
               </div>

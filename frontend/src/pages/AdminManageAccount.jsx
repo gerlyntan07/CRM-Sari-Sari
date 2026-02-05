@@ -260,8 +260,8 @@ export default function AdminManageAccount() {
                 {isEditing ? formData.lastName : currentUser.last_name}
               </h3>
               <p className="text-gray-600 text-sm">{currentUser.email}</p>
-              <span className="inline-block mt-2 px-3 py-1 bg-blue-100 text-blue-700 text-xs font-semibold rounded-md">
-                {currentUser.role}
+              <span className="inline-block mt-2 px-3 py-1 bg-blue-100 text-blue-700 text-xs font-semibold rounded-md">                
+                 {currentUser.role.toUpperCase() === "CEO" && "Admin"}
               </span>
             </div>
           </div>

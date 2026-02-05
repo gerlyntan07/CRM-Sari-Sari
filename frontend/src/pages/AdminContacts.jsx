@@ -1609,7 +1609,7 @@ export default function AdminContacts() {
             }
             items={users || []}
             getLabel={(item) =>
-              `${item?.first_name ?? ""} ${item?.last_name ?? ""} (${item?.role ?? ""})`.trim()
+              `${item?.first_name ?? ""} ${item?.last_name ?? ""} (${item?.role?.toUpperCase() === "CEO" ? "Admin" : item?.role ?? ""})`.trim()
             }
             placeholder="Search assignee..."
             required={true} // <-- use required directly

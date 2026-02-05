@@ -24,6 +24,8 @@ import { toast } from "react-toastify";
 import PaginationControls from "../components/PaginationControls.jsx";
 import LoadingSpinner from "../components/LoadingSpinner.jsx";
 import { useLocation, useNavigate } from "react-router-dom";
+import CommentSection from "../components/CommentSection.jsx";
+import { useComments } from "../hooks/useComments.js";
 
 const ITEMS_PER_PAGE = 10;
 
@@ -89,6 +91,19 @@ export default function AdminContacts() {
   const [currentUser, setCurrentUser] = useState(null);
   const [pendingContactId, setPendingContactId] = useState(null);
   const [selectedIds, setSelectedIds] = useState([]);
+
+  const {
+    comments: contactComments,
+    addComment: addContactComment,
+    refresh: refreshContactComments,
+  } = useComments({
+    relatedType: "contact",
+    relatedId: selectedContact?.id,
+  });
+
+  useEffect(() => {
+    if (selectedContact?.id) refreshContactComments();
+  }, [selectedContact?.id, refreshContactComments]);
   
   useEffect(() => {
     const contactIdFromState = location.state?.contactID;
@@ -833,6 +848,11 @@ if (!emailRegex.test(email)) {
                     <p>{formattedDateTime(selectedContact.updated_at) || "N/A"}</p>
                   </div>
                 </div>
+
+                <CommentSection
+                    comments={contactComments}
+                    onAddComment={addContactComment}
+                  />
               </div>
             )}
 

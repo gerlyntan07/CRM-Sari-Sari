@@ -30,6 +30,8 @@ import { toast } from "react-toastify";
 import PaginationControls from "../components/PaginationControls.jsx";
 import LoadingSpinner from "../components/LoadingSpinner.jsx";
 import { useLocation, useNavigate } from "react-router-dom";
+import CommentSection from "../components/CommentSection.jsx";
+import { useComments } from "../hooks/useComments.js";
 
 const INITIAL_FORM_STATE = {
   first_name: "",
@@ -91,6 +93,19 @@ export default function AdminContacts() {
   const [relatedActs, setRelatedActs] = useState({});
   const [expandedSection, setExpandedSection] = useState(null);
   const [pendingContactId, setPendingContactId] = useState(null);
+
+  const {
+    comments: contactComments,
+    addComment: addContactComment,
+    refresh: refreshContactComments,
+  } = useComments({
+    relatedType: "contact",
+    relatedId: selectedContact?.id,
+  });
+
+  useEffect(() => {
+    if (selectedContact?.id) refreshContactComments();
+  }, [selectedContact?.id, refreshContactComments]);
 
   useEffect(() => {
     const contactIdFromState = location.state?.contactID;
@@ -430,7 +445,7 @@ export default function AdminContacts() {
     if (!emailRegex.test(email)) {
       toast.error("Please enter a valid email address.");
       return;
-    };
+    }
 
     const payload = {
       first_name: trimmedFirstName,
@@ -745,6 +760,11 @@ export default function AdminContacts() {
                       </p>
                     </div>
                   </div>
+
+                  <CommentSection
+                    comments={contactComments}
+                    onAddComment={addContactComment}
+                  />
                 </div>
               )}
 
@@ -879,7 +899,12 @@ export default function AdminContacts() {
                               {relatedActs.meetings.map((meeting, idx) => (
                                 <div
                                   key={`meeting-${idx}`}
-                                  className="flex flex-col sm:flex-row justify-between items-start border border-gray-100 rounded-lg p-3 bg-gray-50 w-full break-words cursor-pointer" onClick={() => navigate(`/manager/meetings`, { state: { meetingID: meeting.id } })}
+                                  className="flex flex-col sm:flex-row justify-between items-start border border-gray-100 rounded-lg p-3 bg-gray-50 w-full break-words cursor-pointer"
+                                  onClick={() =>
+                                    navigate(`/manager/meetings`, {
+                                      state: { meetingID: meeting.id },
+                                    })
+                                  }
                                 >
                                   <div className="flex gap-3 mb-2 sm:mb-0 flex-1 min-w-0">
                                     <div className="text-green-600 mt-1">
@@ -945,7 +970,12 @@ export default function AdminContacts() {
                             {relatedActs.calls.map((call, idx) => (
                               <div
                                 key={`call-${idx}`}
-                                className="flex flex-col sm:flex-row justify-between items-start border border-gray-100 rounded-lg p-3 bg-gray-50 w-full break-words cursor-pointer" onClick={() => navigate(`/manager/calls`, { state: { callID: call.id } })}
+                                className="flex flex-col sm:flex-row justify-between items-start border border-gray-100 rounded-lg p-3 bg-gray-50 w-full break-words cursor-pointer"
+                                onClick={() =>
+                                  navigate(`/manager/calls`, {
+                                    state: { callID: call.id },
+                                  })
+                                }
                               >
                                 <div className="flex gap-3 mb-2 sm:mb-0 flex-1 min-w-0">
                                   <div className="text-purple-600 mt-1">
@@ -970,7 +1000,7 @@ export default function AdminContacts() {
                           </div>
                         )}
                       </div>
-                    )}                    
+                    )}
 
                     {/* DEALS */}
                     {relatedActs.deals && relatedActs.deals.length > 0 && (
@@ -1001,7 +1031,12 @@ export default function AdminContacts() {
                             {relatedActs.deals.map((deal, idx) => (
                               <div
                                 key={`deal-${idx}`}
-                                className="flex flex-col sm:flex-row justify-between items-start border border-gray-100 rounded-lg p-3 bg-gray-50 w-full break-words cursor-pointer" onClick={() => navigate(`/manager/deals`, { state: { dealID: deal.id } })}
+                                className="flex flex-col sm:flex-row justify-between items-start border border-gray-100 rounded-lg p-3 bg-gray-50 w-full break-words cursor-pointer"
+                                onClick={() =>
+                                  navigate(`/manager/deals`, {
+                                    state: { dealID: deal.id },
+                                  })
+                                }
                               >
                                 <div className="flex gap-3 mb-2 sm:mb-0 flex-1 min-w-0">
                                   <div className="text-indigo-600 mt-1">
@@ -1065,7 +1100,12 @@ export default function AdminContacts() {
                             {relatedActs.quotes.map((quote, idx) => (
                               <div
                                 key={`quote-${idx}`}
-                                className="flex flex-col sm:flex-row justify-between items-start border border-gray-100 rounded-lg p-3 bg-gray-50 w-full break-words cursor-pointer" onClick={() => navigate(`/manager/quotes`, { state: { quoteID: quote.id } })}
+                                className="flex flex-col sm:flex-row justify-between items-start border border-gray-100 rounded-lg p-3 bg-gray-50 w-full break-words cursor-pointer"
+                                onClick={() =>
+                                  navigate(`/manager/quotes`, {
+                                    state: { quoteID: quote.id },
+                                  })
+                                }
                               >
                                 <div className="flex gap-3 mb-2 sm:mb-0 flex-1 min-w-0">
                                   <div className="text-orange-600 mt-1">
@@ -1129,11 +1169,12 @@ export default function AdminContacts() {
                   {/* --- SCHEDULE CALL BUTTON (updated) --- */}
                   <button
                     onClick={() =>
-                     navigate("/manager/calls", {
+                      navigate("/manager/calls", {
                         state: {
                           openCallModal: true,
                           initialCallData: {
-                            subject: `Call with ${getContactFullName(selectedContact) || ""}`.trim(),
+                            subject:
+                              `Call with ${getContactFullName(selectedContact) || ""}`.trim(),
                             relatedType1: "Account",
                             relatedTo1: selectedContact?.account_id
                               ? String(selectedContact.account_id)
@@ -1189,7 +1230,8 @@ export default function AdminContacts() {
                         state: {
                           openMeetingModal: true,
                           initialMeetingData: {
-                            subject: `Meeting with ${getContactFullName(selectedContact) || ""}`.trim(),
+                            subject:
+                              `Meeting with ${getContactFullName(selectedContact) || ""}`.trim(),
                             relatedType1: "Account",
                             relatedTo1: selectedContact?.account_id
                               ? String(selectedContact.account_id)
@@ -1208,18 +1250,19 @@ export default function AdminContacts() {
                         },
                       })
                     }
-                    >
+                  >
                     <FiCalendar className="text-gray-600 w-4 h-4" />
                     Book Meeting
                   </button>
 
                   <button
                     onClick={() =>
-                       navigate("/manager/tasks", {
+                      navigate("/manager/tasks", {
                         state: {
                           openTaskModal: true,
                           initialTaskData: {
-                            subject: `Task for ${getContactFullName(selectedContact) || ""}`.trim(),
+                            subject:
+                              `Task for ${getContactFullName(selectedContact) || ""}`.trim(),
                             relatedType1: "Account",
                             relatedTo1: selectedContact?.account_id
                               ? String(selectedContact.account_id)

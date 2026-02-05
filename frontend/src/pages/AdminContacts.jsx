@@ -30,6 +30,8 @@ import { toast } from "react-toastify";
 import PaginationControls from "../components/PaginationControls.jsx";
 import LoadingSpinner from "../components/LoadingSpinner.jsx";
 import { useLocation, useNavigate } from "react-router-dom";
+import CommentSection from "../components/CommentSection.jsx";
+import { useComments } from "../hooks/useComments.js";
 
 const INITIAL_FORM_STATE = {
   first_name: "",
@@ -92,6 +94,19 @@ export default function AdminContacts() {
   const [expandedSection, setExpandedSection] = useState(null);
   const [selectedIds, setSelectedIds] = useState([]);
   const [pendingContactId, setPendingContactId] = useState(null);
+
+  const {
+    comments: contactComments,
+    addComment: addContactComment,
+    refresh: refreshContactComments,
+  } = useComments({
+    relatedType: "contact",
+    relatedId: selectedContact?.id,
+  });
+
+  useEffect(() => {
+    if (selectedContact?.id) refreshContactComments();
+  }, [selectedContact?.id, refreshContactComments]);
 
   useEffect(() => {
     const contactIdFromState = location.state?.contactID;
@@ -777,6 +792,11 @@ export default function AdminContacts() {
                       </p>
                     </div>
                   </div>
+
+                  <CommentSection
+                    comments={contactComments}
+                    onAddComment={addContactComment}
+                  />
                 </div>
               )}
 

@@ -8,6 +8,7 @@ import {
   FiXCircle,
   FiCheckSquare,
   FiTrash2,
+  FiArchive,
 } from "react-icons/fi";
 import { toast } from "react-toastify";
 import { useSearchParams, useNavigate, useLocation } from "react-router-dom";
@@ -21,6 +22,7 @@ import LoadingSpinner from "../components/LoadingSpinner.jsx";
 const normalizeStatus = (status) => (status ? status.toUpperCase() : "");
 const toAdminStatus = (status) => {
   const s = normalizeStatus(status);
+  if (s === "INACTIVE") return "INACTIVE";
   if (s === "PLANNED" || s === "IN PROGRESS") return "PLANNED";
   if (s === "HELD" || s === "DONE") return "HELD";
   if (s === "NOT_HELD" || s === "NOT HELD") return "NOT_HELD";
@@ -48,6 +50,7 @@ const formatQuoteId = (quoteId) => {
 
 const getStatusBadgeClass = (status) => {
   const s = normalizeStatus(status);
+  if (s === "INACTIVE") return "bg-gray-200 text-gray-700";
   const base =
     s === "PLANNED"
       ? "PENDING"
@@ -174,8 +177,8 @@ const AdminMeeting = () => {
       const res = await api.get(`/meetings/admin/fetch-all`);
       const data = Array.isArray(res.data) ? res.data : [];
       const sorted = [...data].sort((a, b) => {
-        const aDate = a?.createdAt ? new Date(a.createdAt).getTime() : 0;
-        const bDate = b?.createdAt ? new Date(b.createdAt).getTime() : 0;
+        const aDate = a?.created_at ? new Date(a.created_at).getTime() : 0;
+        const bDate = b?.created_at ? new Date(b.created_at).getTime() : 0;
         return bDate - aDate;
       });
       setMeetings(sorted);
@@ -506,10 +509,10 @@ const AdminMeeting = () => {
   const handleDelete = (meeting) => {
     setConfirmModalData({
       title: "Delete Meeting",
-      message: `Permanently delete "${meeting.activity}"?`,
+      message: `Permanently delete "${meeting.subject}"? This action cannot be undone.`,
       confirmLabel: "Delete",
       variant: "danger",
-      action: { type: "delete", targetId: meeting.id, name: meeting.activity },
+      action: { type: "delete", targetId: meeting.id, name: meeting.subject },
     });
   };
 
@@ -539,6 +542,7 @@ const AdminMeeting = () => {
         onEdit={handleEditClick}
         onDelete={handleDelete}
         onStatusUpdate={handleStatusUpdate}
+        isSalesView={false}
       />
     );
   }
@@ -618,7 +622,7 @@ const AdminMeeting = () => {
                     <FiTrash2 size={18} />
                   </button>
                 ) : (
-                  <span className="text-gray-400">Actions</span>
+                  ""
                 )}
               </th>
             </tr>
@@ -734,6 +738,7 @@ const AdminMeeting = () => {
           onEdit={handleEditClick}
           onDelete={handleDelete}
           onStatusUpdate={handleStatusUpdate}
+          isSalesView={false}
         />
       )}
 

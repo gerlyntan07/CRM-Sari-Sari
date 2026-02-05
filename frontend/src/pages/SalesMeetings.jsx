@@ -6,6 +6,7 @@ import {
   FiClock,
   FiCheckCircle,
   FiXCircle,
+  FiArchive,
 } from "react-icons/fi";
 import { toast } from "react-toastify";
 import { useSearchParams, useNavigate, useLocation } from "react-router-dom";
@@ -103,6 +104,8 @@ const AdminMeeting = () => {
   const [confirmModalData, setConfirmModalData] = useState(null);
   const [confirmProcessing, setConfirmProcessing] = useState(false);
   const [pendingMeetingId, setPendingMeetingId] = useState(null);
+  const [selectedIds, setSelectedIds] = useState([]);
+  const [currentUser, setCurrentUser] = useState(null);
 
   // Set default assignedTo to current user when modal opens for a new meeting (Sales only)
   useEffect(() => {
@@ -171,8 +174,8 @@ const AdminMeeting = () => {
       const res = await api.get(`/meetings/admin/fetch-all`);
       const data = Array.isArray(res.data) ? res.data : [];
       const sorted = [...data].sort((a, b) => {
-        const aDate = a?.createdAt ? new Date(a.createdAt).getTime() : 0;
-        const bDate = b?.createdAt ? new Date(b.createdAt).getTime() : 0;
+        const aDate = a?.created_at ? new Date(a.created_at).getTime() : 0;
+        const bDate = b?.created_at ? new Date(b.created_at).getTime() : 0;
         return bDate - aDate;
       });
       setMeetings(sorted);
@@ -194,6 +197,18 @@ const AdminMeeting = () => {
       setUsers(Array.isArray(res.data) ? res.data : []);
     } catch (err) { console.error(err); }
   };
+
+  useEffect(() => {
+    async function fetchCurrentUserData() {
+      try {
+        const res = await api.get("/auth/me");
+        setCurrentUser(res.data);
+      } catch (err) {
+        console.error("Failed to fetch current user", err);
+      }
+    }
+    fetchCurrentUserData();
+  }, []);
 
   // We NO LONGER fetch Accounts/Contacts/Leads here. The Modal does it.
 
@@ -411,8 +426,13 @@ const AdminMeeting = () => {
         await fetchMeetings();
       } else if (type === "delete") {
         await api.delete(`/meetings/${targetId}`);
-        toast.success(`Meeting "${name}" deleted.`);
+        toast.success(`Meeting "${name}" archived.`);
         if (selectedMeeting?.id === targetId) setSelectedMeeting(null);
+        await fetchMeetings();
+      } else if (type === "bulk-delete") {
+        await api.post(`/meetings/sales/bulk-delete`, { meeting_ids: confirmModalData.action.meetingIds });
+        toast.success(`Successfully archived ${confirmModalData.action.meetingIds.length} meeting(s)`);
+        setSelectedIds([]);
         await fetchMeetings();
       }
     } catch (err) {
@@ -428,13 +448,72 @@ const AdminMeeting = () => {
 
   // ... (Keep existing MetricCard, handleStatusUpdate, handleDelete logic same as provided) ...
   const handleDelete = (meeting) => {
-    setConfirmModalData({
-        title: "Delete Meeting",
-        message: `Permanently delete "${meeting.activity}"?`,
-        confirmLabel: "Delete",
-        variant: "danger",
-        action: { type: "delete", targetId: meeting.id, name: meeting.activity }
+    handleArchive("single");
+  };
+
+  const handleSelectAll = () => {
+    const selectableMeetings = paginatedMeetings.filter(
+      (meeting) => meeting.created_by === currentUser?.id
+    );
+    if (selectedIds.length === selectableMeetings.length && selectableMeetings.length > 0) {
+      setSelectedIds([]);
+    } else {
+      setSelectedIds(selectableMeetings.map((meeting) => meeting.id));
+    }
+  };
+
+  const handleCheckboxChange = (id) => {
+    setSelectedIds((prev) => {
+      if (prev.includes(id)) {
+        return prev.filter((prevId) => prevId !== id);
+      } else {
+        return [...prev, id];
+      }
     });
+  };
+
+  const handleArchive = (archiveType) => {
+    if (archiveType === "single") {
+      // Single archive from popup
+      const name = selectedMeeting.subject || "this meeting";
+      setConfirmModalData({
+        title: "Archive Meeting",
+        message: `Are you sure you want to archive "${name}"?`,
+        confirmLabel: "Archive Meeting",
+        cancelLabel: "Cancel",
+        variant: "archive",
+        action: {
+          type: "delete",
+          targetId: selectedMeeting.id,
+          name,
+        },
+      });
+    } else if (archiveType === "bulk") {
+      // Bulk archive from table
+      if (selectedIds.length === 0) return;
+
+      setConfirmModalData({
+        title: "Archive Meetings",
+        message: (
+          <span>
+            Are you sure you want to archive{" "}
+            <span className="font-semibold">{selectedIds.length}</span> selected
+            meetings?
+          </span>
+        ),
+        confirmLabel: `Archive ${selectedIds.length} meeting(s)`,
+        cancelLabel: "Cancel",
+        variant: "archive",
+        action: {
+          type: "bulk-delete",
+          meetingIds: selectedIds,
+        },
+      });
+    }
+  };
+
+  const handleBulkDelete = () => {
+    handleArchive("bulk");
   };
   
   const handleStatusUpdate = async (meetingId, newStatus) => {
@@ -457,6 +536,8 @@ const AdminMeeting = () => {
         onEdit={handleEditClick}
         onDelete={handleDelete}
         onStatusUpdate={handleStatusUpdate}
+        currentUser={currentUser}
+        isSalesView={true}
       />
     );
   }
@@ -499,16 +580,54 @@ const AdminMeeting = () => {
         <table className="w-full min-w-[500px] border border-gray-200 rounded-lg bg-white shadow-sm text-sm mb-4">
           <thead className="bg-gray-100 text-left text-gray-600 font-semibold">
             <tr>
+              <th className="py-3 px-4 text-center w-12">
+                <input
+                  type="checkbox"
+                  checked={
+                    paginatedMeetings.length > 0 &&
+                    paginatedMeetings
+                      .filter((m) => m.created_by === currentUser?.id)
+                      .every((m) => selectedIds.includes(m.id)) &&
+                    paginatedMeetings.some((m) => m.created_by === currentUser?.id)
+                  }
+                  onChange={handleSelectAll}
+                  className="form-checkbox h-4 w-4 text-blue-600 rounded focus:ring-blue-500 border-gray-300"
+                />
+              </th>
               <th className="py-3 px-4">Subject</th>
               <th className="py-3 px-4">Related To</th>
               <th className="py-3 px-4">Start Time</th>
               <th className="py-3 px-4">Assigned</th>
               <th className="py-3 px-4">Status</th>
+              <th className="py-3 px-4 text-center w-24">
+                {selectedIds.length > 0 ? (
+                  <button
+                    onClick={handleBulkDelete}
+                    className="text-orange-600 hover:text-orange-800 transition p-1 rounded-full hover:bg-orange-50"
+                    title={`Archive ${selectedIds.length} selected meetings`}
+                  >
+                    <FiArchive size={18} />
+                  </button>
+                ) : (
+                  ""
+                )}
+              </th>
             </tr>
           </thead>
           <tbody>
             {paginatedMeetings.length > 0 ? paginatedMeetings.map((m) => (
                <tr key={m.id} onClick={() => setSelectedMeeting(m)} className="hover:bg-gray-50 cursor-pointer border-b border-gray-100">
+                  <td className="py-3 px-4 text-center" onClick={(e) => e.stopPropagation()}>
+                    {currentUser && m.created_by === currentUser.id ? (
+                      <input
+                        type="checkbox"
+                        checked={selectedIds.includes(m.id)}
+                        onChange={() => handleCheckboxChange(m.id)}
+                        className="form-checkbox h-4 w-4 text-blue-600 rounded focus:ring-blue-500 border-gray-300"
+                        onClick={(e) => e.stopPropagation()}
+                      />
+                    ) : null}
+                  </td>
                   <td className="py-3 px-4 font-medium text-blue-600">{m.subject}</td>
                   <td className="py-3 px-4">
                     {m.lead && (
@@ -534,9 +653,10 @@ const AdminMeeting = () => {
                         {toAdminStatus(m.status).replace("_", " ")}
                      </span>
                   </td>
+                  <td className="py-3 px-4"></td>
                </tr>
             )) : (
-               <tr><td colSpan={5} className="text-center py-4 text-gray-500">No meetings found.</td></tr>
+               <tr><td colSpan={7} className="text-center py-4 text-gray-500">No meetings found.</td></tr>
             )}
           </tbody>
         </table>
@@ -565,6 +685,8 @@ const AdminMeeting = () => {
           onEdit={handleEditClick}
           onDelete={handleDelete}
           onStatusUpdate={handleStatusUpdate}
+          currentUser={currentUser}
+          isSalesView={true}
         />
       )}
 
@@ -588,7 +710,8 @@ const AdminMeeting = () => {
 function ConfirmationModal({ open, title, message, confirmLabel,
    cancelLabel="Cancel", variant="primary", loading, onConfirm, onCancel }) {
     if(!open) return null;
-    const btnClass = variant === "danger" ? "bg-red-500 hover:bg-red-600 border border-red-400" 
+    const btnClass = variant === "danger" ? "bg-red-500 hover:bg-red-600 border border-red-400"
+    : variant === "archive" ? "bg-orange-500 hover:bg-orange-600 border border-orange-400"
     : "bg-tertiary hover:bg-secondary border border-tertiary";
     return (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-[60]">

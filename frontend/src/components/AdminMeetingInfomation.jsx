@@ -1,10 +1,10 @@
 import React, { useState } from "react";
 import { HiX } from "react-icons/hi";
-import { FiPhone, FiMail, FiCalendar, FiEdit2, FiTrash2, FiFileText, FiCheckSquare } from "react-icons/fi";
+import { FiPhone, FiMail, FiCalendar, FiEdit2, FiArchive, FiTrash2, FiFileText, FiCheckSquare } from "react-icons/fi";
 import { useNavigate} from "react-router-dom";
 
 
-const AdminMeetingInfomation = ({ meeting, onClose, onEdit, onDelete, onStatusUpdate }) => {
+const AdminMeetingInfomation = ({ meeting, onClose, onEdit, onDelete, onStatusUpdate, currentUser, isSalesView = false }) => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("Overview");
 
@@ -109,30 +109,38 @@ const AdminMeetingInfomation = ({ meeting, onClose, onEdit, onDelete, onStatusUp
             </div>
 
             <div className="flex flex-col sm:flex-row sm:space-x-3 space-y-2 sm:space-y-0">
-              <button
-                type="button"
-                onClick={() => {
-                  if (onEdit) {
-                    onEdit(meeting);
-                  }
-                }}
-                className="inline-flex items-center justify-center w-full sm:w-auto bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 transition text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
-              >
-                <FiEdit2 className="mr-2" />
-                Edit
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  if (onDelete) {
-                    onDelete(meeting);
-                  }
-                }}
-                className="inline-flex items-center justify-center w-full sm:w-auto px-4 py-2 rounded-md text-sm bg-red-500 text-white hover:bg-red-600 transition focus:outline-none focus:ring-2 focus:ring-red-400"
-              >
-                <FiTrash2 className="mr-2" />
-                Delete
-              </button>
+              {(!isSalesView || meeting.created_by === currentUser?.id) && (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (onEdit) {
+                        onEdit(meeting);
+                      }
+                    }}
+                    className="inline-flex items-center justify-center w-full sm:w-auto bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 transition text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+                  >
+                    <FiEdit2 className="mr-2" />
+                    Edit
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (onDelete) {
+                        onDelete(meeting);
+                      }
+                    }}
+                    className={`inline-flex items-center justify-center w-full sm:w-auto px-4 py-2 rounded-md text-sm text-white transition focus:outline-none ${
+                      isSalesView
+                        ? "bg-orange-500 hover:bg-orange-600 focus:ring-2 focus:ring-orange-400"
+                        : "bg-red-500 hover:bg-red-600 focus:ring-2 focus:ring-red-400"
+                    }`}
+                  >
+                    {isSalesView ? <FiArchive className="mr-2" /> : <FiTrash2 className="mr-2" />}
+                    {isSalesView ? "Archive" : "Delete"}
+                  </button>
+                </>
+              )}
             </div>
           </div>
           </div>

@@ -88,6 +88,7 @@ class MeetingResponse(MeetingBase):
     lead: Optional[LeadBase] = None
     deal: Optional[DealBase] = None
     quote: Optional[QuoteBase] = None
+    created_by: Optional[int] = None
     meet_creator: Optional[UserBase] = None
     meet_assign_to: Optional[UserBase] = None
     created_at: datetime

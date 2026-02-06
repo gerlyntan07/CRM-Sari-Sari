@@ -22,6 +22,8 @@ import { toast } from "react-toastify";
 import { useSearchParams, useNavigate, useLocation } from "react-router-dom";
 import LoadingSpinner from "../components/LoadingSpinner.jsx";
 import useFetchUser from "../hooks/useFetchUser";
+import CommentSection from "../components/CommentSection.jsx";
+import { useComments } from "../hooks/useComments.js";
 
 // --- Constants (UI Options) ---
 const PRIORITY_OPTIONS = [
@@ -39,13 +41,15 @@ const STATUS_OPTIONS = [
   { value: "NOT_HELD", label: "NOT HELD" },
 ];
 
-const normalizeStatus = (status) => (status ? String(status).toUpperCase() : "");
+const normalizeStatus = (status) =>
+  status ? String(status).toUpperCase() : "";
 
 const toAdminCallStatus = (status) => {
   const s = normalizeStatus(status);
   if (s === "PLANNED" || s === "PENDING") return "PLANNED";
   if (s === "HELD" || s === "COMPLETED") return "HELD";
-  if (s === "NOT HELD" || s === "NOT_HELD" || s === "CANCELLED") return "NOT_HELD";
+  if (s === "NOT HELD" || s === "NOT_HELD" || s === "CANCELLED")
+    return "NOT_HELD";
   return "PLANNED";
 };
 
@@ -128,18 +132,31 @@ export default function AdminCalls() {
   const [selectedIds, setSelectedIds] = useState([]);
   const [currentUser, setCurrentUser] = useState(null);
 
+  const {
+    comments: callComments,
+    addComment: addCallComment,
+    refresh: refreshCallComments,
+  } = useComments({
+    relatedType: "call",
+    relatedId: selectedCall?.id,
+  });
+
+  useEffect(() => {
+    if (selectedCall?.id) refreshCallComments();
+  }, [selectedCall?.id, refreshCallComments]);
+
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const location = useLocation();
 
   const { user } = useFetchUser();
-  const isSales = user?.role === 'Sales';
+  const isSales = user?.role === "Sales";
 
   const getDefaultCallTime = () => {
     const today = new Date();
     const year = today.getFullYear();
-    const month = String(today.getMonth() + 1).padStart(2, '0');
-    const date = String(today.getDate()).padStart(2, '0');
+    const month = String(today.getMonth() + 1).padStart(2, "0");
+    const date = String(today.getDate()).padStart(2, "0");
     return `${year}-${month}-${date}T08:00`;
   };
 
@@ -171,61 +188,61 @@ export default function AdminCalls() {
 
   // ✅ Auto open modal if passed via state or query
   useEffect(() => {
-      const state = location.state;
-      const callIdFromState = state?.callID;
-  
-      // Handle case where only callID is passed (e.g., from AdminAccounts related activities)
-      if (callIdFromState && !state?.openCallModal) {
-        setPendingCallId(callIdFromState);
-        navigate(location.pathname, { replace: true, state: {} });
-        return;
-      }
-  
-      // Handle case where openCallModal is passed with initialCallData
-      if (!state?.openCallModal || !state?.initialCallData) return;
-  
-      // Wait until related options are loaded
-      if (
-        state.initialCallData.relatedType1 === "Lead" &&
-        Array.isArray(relatedTo1Values) &&
-        relatedTo1Values.length === 0
-      )
-        return;
-  
-      if (
-        state.initialCallData.relatedType1 === "Account" &&
-        (!Array.isArray(relatedTo1Values) || relatedTo1Values.length === 0)
-      )
-        return;
-  
-      setShowModal(true);
-  
-      setFormData((prev) => ({
-        ...prev,
-        ...state.initialCallData,
-        relatedTo1: state.initialCallData.relatedTo1
-          ? String(state.initialCallData.relatedTo1)
-          : "",
-        relatedTo2: state.initialCallData.relatedTo2
-          ? String(state.initialCallData.relatedTo2)
-          : "",
-      }));
-  
-      // cleanup
+    const state = location.state;
+    const callIdFromState = state?.callID;
+
+    // Handle case where only callID is passed (e.g., from AdminAccounts related activities)
+    if (callIdFromState && !state?.openCallModal) {
+      setPendingCallId(callIdFromState);
       navigate(location.pathname, { replace: true, state: {} });
-    }, [location.state, relatedTo1Values]);
-  
-    useEffect(() => {
-      if (pendingCallId && calls.length > 0 && !callsLoading) {
-        const foundCall = calls.find((call) => call.id === pendingCallId);
-        if (foundCall) {
-          setSelectedCall(foundCall);
-        } else {
-          toast.error("Call not found.");
-        }
-        setPendingCallId(null); // Clear pending call ID
+      return;
+    }
+
+    // Handle case where openCallModal is passed with initialCallData
+    if (!state?.openCallModal || !state?.initialCallData) return;
+
+    // Wait until related options are loaded
+    if (
+      state.initialCallData.relatedType1 === "Lead" &&
+      Array.isArray(relatedTo1Values) &&
+      relatedTo1Values.length === 0
+    )
+      return;
+
+    if (
+      state.initialCallData.relatedType1 === "Account" &&
+      (!Array.isArray(relatedTo1Values) || relatedTo1Values.length === 0)
+    )
+      return;
+
+    setShowModal(true);
+
+    setFormData((prev) => ({
+      ...prev,
+      ...state.initialCallData,
+      relatedTo1: state.initialCallData.relatedTo1
+        ? String(state.initialCallData.relatedTo1)
+        : "",
+      relatedTo2: state.initialCallData.relatedTo2
+        ? String(state.initialCallData.relatedTo2)
+        : "",
+    }));
+
+    // cleanup
+    navigate(location.pathname, { replace: true, state: {} });
+  }, [location.state, relatedTo1Values]);
+
+  useEffect(() => {
+    if (pendingCallId && calls.length > 0 && !callsLoading) {
+      const foundCall = calls.find((call) => call.id === pendingCallId);
+      if (foundCall) {
+        setSelectedCall(foundCall);
+      } else {
+        toast.error("Call not found.");
       }
-    }, [pendingCallId, calls, callsLoading]);
+      setPendingCallId(null); // Clear pending call ID
+    }
+  }, [pendingCallId, calls, callsLoading]);
 
   const fetchCalls = async () => {
     try {
@@ -291,15 +308,45 @@ export default function AdminCalls() {
 
   // Metrics
   const totalCalls = calls.length;
-  const plannedCalls = calls.filter((c) => toAdminCallStatus(c.status) === "PLANNED").length;
-  const heldCalls = calls.filter((c) => toAdminCallStatus(c.status) === "HELD").length;
-  const notHeldCalls = calls.filter((c) => toAdminCallStatus(c.status) === "NOT_HELD").length;
+  const plannedCalls = calls.filter(
+    (c) => toAdminCallStatus(c.status) === "PLANNED",
+  ).length;
+  const heldCalls = calls.filter(
+    (c) => toAdminCallStatus(c.status) === "HELD",
+  ).length;
+  const notHeldCalls = calls.filter(
+    (c) => toAdminCallStatus(c.status) === "NOT_HELD",
+  ).length;
 
   const metricCards = [
-    { title: "Total", value: totalCalls, icon: FiPhoneCall, color: "text-slate-600", bgColor: "bg-slate-100" },
-    { title: "Planned", value: plannedCalls, icon: FiClock, color: "text-indigo-600", bgColor: "bg-indigo-100" },
-    { title: "Held", value: heldCalls, icon: FiCheckCircle, color: "text-green-600", bgColor: "bg-green-100" },
-    { title: "Not Held", value: notHeldCalls, icon: FiXCircle, color: "text-gray-600", bgColor: "bg-gray-100" },
+    {
+      title: "Total",
+      value: totalCalls,
+      icon: FiPhoneCall,
+      color: "text-slate-600",
+      bgColor: "bg-slate-100",
+    },
+    {
+      title: "Planned",
+      value: plannedCalls,
+      icon: FiClock,
+      color: "text-indigo-600",
+      bgColor: "bg-indigo-100",
+    },
+    {
+      title: "Held",
+      value: heldCalls,
+      icon: FiCheckCircle,
+      color: "text-green-600",
+      bgColor: "bg-green-100",
+    },
+    {
+      title: "Not Held",
+      value: notHeldCalls,
+      icon: FiXCircle,
+      color: "text-gray-600",
+      bgColor: "bg-gray-100",
+    },
   ];
 
   const [activeTab, setActiveTab] = useState("Overview");
@@ -354,12 +401,16 @@ export default function AdminCalls() {
             if (formData.relatedType1 === "Lead") {
               specificRes = await api.get(`/leads/get/${formData.relatedTo1}`);
             } else if (formData.relatedType1 === "Account") {
-              specificRes = await api.get(`/accounts/get/${formData.relatedTo1}`);
+              specificRes = await api.get(
+                `/accounts/get/${formData.relatedTo1}`,
+              );
             }
 
             if (specificRes && specificRes.data) {
               // Check if item already exists in list (by id)
-              const exists = items.some(item => String(item.id) === String(formData.relatedTo1));
+              const exists = items.some(
+                (item) => String(item.id) === String(formData.relatedTo1),
+              );
               if (!exists) {
                 items = [specificRes.data, ...items];
               }
@@ -410,41 +461,50 @@ export default function AdminCalls() {
     if (formData.relatedType2) fetchData();
   }, [formData.relatedType2, formData.relatedTo1, formData.relatedType1]);
 
-       //validation 
-const [isSubmitted, setIsSubmitted] = useState(false);
+  //validation
+  const [isSubmitted, setIsSubmitted] = useState(false);
   const handleSubmit = (e) => {
     e.preventDefault();
-    setIsSubmitted(true); 
+    setIsSubmitted(true);
 
-      const subject = formData.subject;
-  if (!subject || subject.trim() === "") {
-    toast.error("Subject is required.");
-    return;
-  }
+    const subject = formData.subject;
+    if (!subject || subject.trim() === "") {
+      toast.error("Subject is required.");
+      return;
+    }
 
-  const relatedTo1 = formData.relatedTo1;
-  if (!relatedTo1) {
-    toast.error(`Please select a ${formData.relatedType1 || "Lead/Account"}.`);
-    return;
-  }
-  
+    const relatedTo1 = formData.relatedTo1;
+    if (!relatedTo1) {
+      toast.error(
+        `Please select a ${formData.relatedType1 || "Lead/Account"}.`,
+      );
+      return;
+    }
+
     if (!formData.assigned_to) {
-       toast.error("Subject is required.");
+      toast.error("Subject is required.");
       return;
     }
 
     const payload = {
       ...formData,
-      duration_minutes: formData.duration_minutes ? parseInt(formData.duration_minutes, 10) : null,
-      relatedTo1: formData.relatedTo1 ? parseInt(formData.relatedTo1, 10) : null,
+      duration_minutes: formData.duration_minutes
+        ? parseInt(formData.duration_minutes, 10)
+        : null,
+      relatedTo1: formData.relatedTo1
+        ? parseInt(formData.relatedTo1, 10)
+        : null,
       relatedTo2:
         formData.relatedType1 === "Lead"
           ? null
           : formData.relatedTo2
-          ? parseInt(formData.relatedTo2, 10)
-          : null,
-      relatedType2: formData.relatedType1 === "Lead" ? null : formData.relatedType2,
-      assigned_to: formData.assigned_to ? parseInt(formData.assigned_to, 10) : null,
+            ? parseInt(formData.relatedTo2, 10)
+            : null,
+      relatedType2:
+        formData.relatedType1 === "Lead" ? null : formData.relatedType2,
+      assigned_to: formData.assigned_to
+        ? parseInt(formData.assigned_to, 10)
+        : null,
     };
 
     const actionType = isEditing && currentCallId ? "update" : "create";
@@ -452,7 +512,10 @@ const [isSubmitted, setIsSubmitted] = useState(false);
 
     setConfirmModalData({
       title: actionType === "create" ? "Confirm New Call" : "Confirm Update",
-      message: actionType === "create" ? `Create "${name}"?` : `Save changes to "${name}"?`,
+      message:
+        actionType === "create"
+          ? `Create "${name}"?`
+          : `Save changes to "${name}"?`,
       confirmLabel: actionType === "create" ? "Create Call" : "Update Call",
       cancelLabel: "Cancel",
       variant: "primary",
@@ -521,8 +584,8 @@ const [isSubmitted, setIsSubmitted] = useState(false);
         type === "create"
           ? "Failed to create call. Please review the details and try again."
           : type === "update"
-          ? "Failed to update call. Please review the details and try again."
-          : "Failed to archive call. Please try again.";
+            ? "Failed to update call. Please review the details and try again."
+            : "Failed to archive call. Please try again.";
 
       const message = err?.response?.data?.detail || defaultMessage;
       toast.error(message);
@@ -543,11 +606,15 @@ const [isSubmitted, setIsSubmitted] = useState(false);
     try {
       setUpdatingStatus(true);
       await api.put(`/calls/${selectedCall.id}`, { status: statusSelection });
-      toast.success(`Status updated to ${formatAdminCallStatusLabel(statusSelection)}`);
+      toast.success(
+        `Status updated to ${formatAdminCallStatusLabel(statusSelection)}`,
+      );
       setCalls((prev) =>
         Array.isArray(prev)
-          ? prev.map((c) => (c.id === selectedCall.id ? { ...c, status: statusSelection } : c))
-          : prev
+          ? prev.map((c) =>
+              c.id === selectedCall.id ? { ...c, status: statusSelection } : c,
+            )
+          : prev,
       );
       setSelectedCall(null);
     } catch (err) {
@@ -560,9 +627,12 @@ const [isSubmitted, setIsSubmitted] = useState(false);
 
   const handleSelectAll = () => {
     const selectableCalls = paginatedCalls.filter(
-      (call) => call.call_creator?.id === currentUser?.id
+      (call) => call.call_creator?.id === currentUser?.id,
     );
-    if (selectedIds.length === selectableCalls.length && selectableCalls.length > 0) {
+    if (
+      selectedIds.length === selectableCalls.length &&
+      selectableCalls.length > 0
+    ) {
       setSelectedIds([]);
     } else {
       setSelectedIds(selectableCalls.map((call) => call.id));
@@ -605,7 +675,8 @@ const [isSubmitted, setIsSubmitted] = useState(false);
           <span>
             Are you sure you want to archive{" "}
             <span className="font-semibold">{selectedIds.length}</span> selected
-            calls? These calls will be hidden from your view but admins can still see them.
+            calls? These calls will be hidden from your view but admins can
+            still see them.
           </span>
         ),
         confirmLabel: `Archive ${selectedIds.length} call(s)`,
@@ -624,21 +695,26 @@ const [isSubmitted, setIsSubmitted] = useState(false);
   };
 
   useEffect(() => {
-    if (selectedCall) setStatusSelection(toAdminCallStatus(selectedCall.status));
+    if (selectedCall)
+      setStatusSelection(toAdminCallStatus(selectedCall.status));
   }, [selectedCall]);
 
   // --- Detail View Modal ---
   const detailView = selectedCall ? (
     <div
       id="callModalBackdrop"
-      onClick={(e) => e.target.id === "callModalBackdrop" && setSelectedCall(null)}
+      onClick={(e) =>
+        e.target.id === "callModalBackdrop" && setSelectedCall(null)
+      }
       className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4"
     >
       {callsLoading && <LoadingSpinner message="Loading call details..." />}
 
-      <div className="bg-white rounded-xl shadow-lg w-full max-w-full lg:max-w-4xl max-h-[95vh] overflow-y-auto hide-scrollbar relative box-border">       
-       <div className="bg-tertiary w-full rounded-t-xl p-3 lg:p-3 relative">
-          <h1 className="lg:text-3xl text-xl text-white font-semibold text-center w-full">Calls</h1>
+      <div className="bg-white rounded-xl shadow-lg w-full max-w-full lg:max-w-4xl max-h-[95vh] overflow-y-auto hide-scrollbar relative box-border">
+        <div className="bg-tertiary w-full rounded-t-xl p-3 lg:p-3 relative">
+          <h1 className="lg:text-3xl text-xl text-white font-semibold text-center w-full">
+            Calls
+          </h1>
           <button
             onClick={() => setSelectedCall(null)}
             className="text-gray-500 hover:text-white transition cursor-pointer absolute top-3 right-3"
@@ -649,13 +725,13 @@ const [isSubmitted, setIsSubmitted] = useState(false);
 
         <div className="mt-4 gap-2 px-2 lg:gap-4 lg:mx-7">
           <div className="flex flex-col md:flex-row md:justify-between lg:flex-row lg:items-center lg:justify-between mt-3 gap-2 px-2 md:items-center lg:gap-4 md:mx-7 lg:mx-7">
-  <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-    <h1 className="text-xl sm:text-2xl font-semibold text-gray-800">
+            <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+              <h1 className="text-xl sm:text-2xl font-semibold text-gray-800">
                 {selectedCall.subject}
               </h1>
               <span
                 className={`text-xs sm:text-sm font-medium px-2 sm:px-3 py-1 rounded-full ${getCallStatusBadgeClass(
-                  selectedCall.status
+                  selectedCall.status,
                 )}`}
               >
                 {formatAdminCallStatusLabel(selectedCall.status)}
@@ -682,36 +758,36 @@ const [isSubmitted, setIsSubmitted] = useState(false);
                       const relatedType1 = selectedCall.lead
                         ? "Lead"
                         : selectedCall.account
-                        ? "Account"
-                        : "Lead";
+                          ? "Account"
+                          : "Lead";
 
                       const relatedTo1 = selectedCall.lead
                         ? selectedCall.lead.id
                         : selectedCall.account
-                        ? selectedCall.account.id
-                        : null;
+                          ? selectedCall.account.id
+                          : null;
 
                       const relatedType2 =
                         relatedType1 === "Lead"
                           ? null
                           : selectedCall.contact
-                          ? "Contact"
-                          : selectedCall.deal
-                          ? "Deal"
-                          : selectedCall.quote
-                          ? "Quote"
-                          : "Contact";
+                            ? "Contact"
+                            : selectedCall.deal
+                              ? "Deal"
+                              : selectedCall.quote
+                                ? "Quote"
+                                : "Contact";
 
                       const relatedTo2 =
                         relatedType1 === "Lead"
                           ? null
                           : selectedCall.contact
-                          ? selectedCall.contact.id
-                          : selectedCall.deal
-                          ? selectedCall.deal.id
-                          : selectedCall.quote
-                          ? selectedCall.quote.id
-                          : null;
+                            ? selectedCall.contact.id
+                            : selectedCall.deal
+                              ? selectedCall.deal.id
+                              : selectedCall.quote
+                                ? selectedCall.quote.id
+                                : null;
 
                       setFormData({
                         subject: selectedCall.subject || "",
@@ -778,79 +854,115 @@ const [isSubmitted, setIsSubmitted] = useState(false);
               {activeTab === "Overview" && (
                 <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6 md:p-8 border border-gray-200">
                   <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-4 sm:gap-6 text-sm text-gray-700">
-                    <DetailRow label="Call Time" value={formattedDateTime(selectedCall.call_time)} />
+                    <DetailRow
+                      label="Call Time"
+                      value={formattedDateTime(selectedCall.call_time)}
+                    />
                     <DetailRow
                       label="Duration"
-                      value={selectedCall.duration_minutes ? `${selectedCall.duration_minutes} min` : null}
+                      value={
+                        selectedCall.duration_minutes
+                          ? `${selectedCall.duration_minutes} min`
+                          : null
+                      }
                     />
-                    <DetailRow label="Direction" value={selectedCall.direction || "--"} />
+                    <DetailRow
+                      label="Direction"
+                      value={selectedCall.direction || "--"}
+                    />
                     <DetailRow
                       label="Assigned To"
                       value={`${selectedCall.call_assign_to.first_name} ${selectedCall.call_assign_to.last_name}`}
                     />
 
-                    {selectedCall.lead && <DetailRow label="Lead" value={selectedCall.lead.title} />}
-                    {selectedCall.account && <DetailRow label="Account" value={selectedCall.account.name} />}
+                    {selectedCall.lead && (
+                      <DetailRow label="Lead" value={selectedCall.lead.title} />
+                    )}
+                    {selectedCall.account && (
+                      <DetailRow
+                        label="Account"
+                        value={selectedCall.account.name}
+                      />
+                    )}
                     {selectedCall.contact && (
                       <DetailRow
                         label="Contact"
                         value={`${selectedCall.contact.first_name} ${selectedCall.contact.last_name}`}
                       />
                     )}
-                    {selectedCall.deal && <DetailRow label="Deal" value={selectedCall.deal.name} />}
-                    {selectedCall.quote && <DetailRow label="Quote" value={formatQuoteId(selectedCall.quote.quote_id)} />}
+                    {selectedCall.deal && (
+                      <DetailRow label="Deal" value={selectedCall.deal.name} />
+                    )}
+                    {selectedCall.quote && (
+                      <DetailRow
+                        label="Quote"
+                        value={formatQuoteId(selectedCall.quote.quote_id)}
+                      />
+                    )}
 
-                    <DetailRow label="Created At" value={formattedDateTime(selectedCall.created_at)} />
+                    <DetailRow
+                      label="Created At"
+                      value={formattedDateTime(selectedCall.created_at)}
+                    />
                   </div>
                 </div>
               )}
 
-                {/* ------- Notes ------ */}
-            {activeTab === "Notes" && (
-              <div className="mt-4 w-full">
-                <div className="flex flex-wrap items-center justify-between mb-4 gap-2">
-                  <h3 className="text-lg font-semibold text-gray-800 break-words">Call Note</h3>
-                </div>
+              {/* ------- Notes ------ */}
+              {activeTab === "Notes" && (
+                <div className="mt-4 w-full">
+                  <div className="flex flex-wrap items-center justify-between mb-4 gap-2">
+                    <h3 className="text-lg font-semibold text-gray-800 break-words">
+                      Call Note
+                    </h3>
+                  </div>
 
-                <div className="bg-white border border-gray-100 rounded-lg p-4 shadow-sm break-words">
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-gray-800 break-words">
-                        Note
-                      </p>
+                  <div className="bg-white border border-gray-100 rounded-lg p-4 shadow-sm break-words">
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <p className="text-sm font-medium text-gray-800 break-words">
+                          Note
+                        </p>
+                      </div>
+                    </div>
+                    <div className="mt-3 text-sm text-gray-700 whitespace-pre-wrap break-words">
+                      {selectedCall.notes || "No notes available."}
                     </div>
                   </div>
-                  <div className="mt-3 text-sm text-gray-700 whitespace-pre-wrap break-words">
-                    {selectedCall.notes || "No notes available."}
-                  </div>
-                </div>
-              </div>
-            )}
-    </div>
 
-              <div className="bg-white border border-gray-100 rounded-lg p-3 sm:p-4 shadow-sm w-full">
-                <h4 className="font-semibold text-gray-800 mb-2 text-sm">Status</h4>
-                <select
-                  className="border border-gray-200 rounded-md px-2 py-1.5 w-full text-sm mb-2"
-                  value={statusSelection}
-                  onChange={(e) => setStatusSelection(e.target.value)}
-                >
-                  <option value="PLANNED">PLANNED</option>
-                  <option value="HELD">HELD</option>
-                  <option value="NOT_HELD">NOT HELD</option>
-                </select>
-                <button
-                  onClick={handleStatusUpdate}
-                  disabled={updatingStatus}
-                  className="w-full py-1.5 rounded-md text-sm bg-gray-900 text-white hover:bg-gray-800 disabled:opacity-50"
-                >
-                  {updatingStatus ? "Updating..." : "Update"}
-                </button>
-              </div>
+                  <CommentSection
+                    comments={callComments}
+                    onAddComment={addCallComment}
+                  />
+                </div>
+              )}
+            </div>
+
+            <div className="bg-white border border-gray-100 rounded-lg p-3 sm:p-4 shadow-sm w-full">
+              <h4 className="font-semibold text-gray-800 mb-2 text-sm">
+                Status
+              </h4>
+              <select
+                className="border border-gray-200 rounded-md px-2 py-1.5 w-full text-sm mb-2"
+                value={statusSelection}
+                onChange={(e) => setStatusSelection(e.target.value)}
+              >
+                <option value="PLANNED">PLANNED</option>
+                <option value="HELD">HELD</option>
+                <option value="NOT_HELD">NOT HELD</option>
+              </select>
+              <button
+                onClick={handleStatusUpdate}
+                disabled={updatingStatus}
+                className="w-full py-1.5 rounded-md text-sm bg-gray-900 text-white hover:bg-gray-800 disabled:opacity-50"
+              >
+                {updatingStatus ? "Updating..." : "Update"}
+              </button>
             </div>
           </div>
         </div>
       </div>
+    </div>
   ) : null;
 
   // --- Form Modal ---
@@ -862,9 +974,9 @@ const [isSubmitted, setIsSubmitted] = useState(false);
     >
       <div className="bg-white w-full max-w-xl rounded-2xl shadow-lg p-4 sm:p-6 md:p-8 relative border border-gray-200 overflow-y-auto max-h-[90vh] hide-scrollbar">
         <button
-            onClick={() => {
-            handleCloseModal();    
-            setIsSubmitted(false); 
+          onClick={() => {
+            handleCloseModal();
+            setIsSubmitted(false);
           }}
           className="absolute top-4 right-4 text-gray-500 hover:text-black transition"
         >
@@ -875,7 +987,11 @@ const [isSubmitted, setIsSubmitted] = useState(false);
           {isEditing ? "Edit Call" : "Add New Call"}
         </h2>
 
-        <form className="grid grid-cols-1 md:grid-cols-2 w-full gap-4 text-sm" onSubmit={handleSubmit} noValidate >
+        <form
+          className="grid grid-cols-1 md:grid-cols-2 w-full gap-4 text-sm"
+          onSubmit={handleSubmit}
+          noValidate
+        >
           <InputField
             label="Subject"
             className="md:col-span-2"
@@ -889,30 +1005,29 @@ const [isSubmitted, setIsSubmitted] = useState(false);
           {/* RELATED TYPE 1 + RELATED TO 1 */}
           <div className="w-full flex flex-col">
             <div className="relative w-25">
-            <select
-              name="relatedType1"
-              onChange={handleInputChange}
-              value={formData.relatedType1}
-              className="outline-none cursor-pointer mb-1 w-22 text-gray-700 disabled:text-gray-400 disabled:cursor-not-allowed"
-              disabled={isSubmitting}
-            >
-              <option value="Lead">Lead</option>
-              <option value="Account">Account</option>
-            </select>
-             <span className="absolute left-10 md:pl-6 pl-6 top-1/2 -translate-y-1/2 text-red-500 pointer-events-none">
-                  *  
-                </span>
+              <select
+                name="relatedType1"
+                onChange={handleInputChange}
+                value={formData.relatedType1}
+                className="outline-none cursor-pointer mb-1 w-22 text-gray-700 disabled:text-gray-400 disabled:cursor-not-allowed"
+                disabled={isSubmitting}
+              >
+                <option value="Lead">Lead</option>
+                <option value="Account">Account</option>
+              </select>
+              <span className="absolute left-10 md:pl-6 pl-6 top-1/2 -translate-y-1/2 text-red-500 pointer-events-none">
+                *
+              </span>
             </div>
 
-            <SearchableSelect              
+            <SearchableSelect
               items={Array.isArray(relatedTo1Values) ? relatedTo1Values : []}
               value={formData.relatedTo1 ?? ""}
-              placeholder={`Search ${formData.relatedType1 || 'here'}...`
-              }
+              placeholder={`Search ${formData.relatedType1 || "here"}...`}
               getLabel={(item) =>
                 formData.relatedType1 === "Lead"
                   ? item.title
-                  : item.name ?? ""
+                  : (item.name ?? "")
               }
               onChange={(newId) =>
                 setFormData((prev) => ({
@@ -920,10 +1035,10 @@ const [isSubmitted, setIsSubmitted] = useState(false);
                   relatedTo1: newId, // keep string
                 }))
               }
-              required={true}       
-              isSubmitted={isSubmitted} 
+              required={true}
+              isSubmitted={isSubmitted}
               disabled={isSubmitting}
-            />            
+            />
           </div>
 
           {/* ✅ RELATED TYPE 2 + SEARCHABLE RELATED TO 2 (CONTACT / DEAL) */}
@@ -947,16 +1062,18 @@ const [isSubmitted, setIsSubmitted] = useState(false);
               placeholder={
                 formData.relatedType1 === "Lead"
                   ? ""
-                  : Array.isArray(relatedTo2Values) && relatedTo2Values.length > 0
-                  ? `Search ${formData.relatedType2 || "Contact"}...`
-                  : `No ${formData.relatedType2 || ""} data found`
+                  : Array.isArray(relatedTo2Values) &&
+                      relatedTo2Values.length > 0
+                    ? `Search ${formData.relatedType2 || "Contact"}...`
+                    : `No ${formData.relatedType2 || ""} data found`
               }
               getLabel={(item) =>
                 formData.relatedType2 === "Contact"
                   ? `${item.first_name ?? ""} ${item.last_name ?? ""}`.trim()
-                  :  formData.relatedType2 === "Quote"
-                            ? formatQuoteId(item.quote_id) ?? "" : item.name ?? ""
-            }
+                  : formData.relatedType2 === "Quote"
+                    ? (formatQuoteId(item.quote_id) ?? "")
+                    : (item.name ?? "")
+              }
               onChange={(newId) =>
                 setFormData((prev) => ({
                   ...prev,
@@ -967,7 +1084,9 @@ const [isSubmitted, setIsSubmitted] = useState(false);
           </div>
 
           <div>
-            <label className="block text-gray-700 font-medium mb-1 text-sm">Call Time</label>
+            <label className="block text-gray-700 font-medium mb-1 text-sm">
+              Call Time
+            </label>
             <input
               type="datetime-local"
               value={formData.call_time}
@@ -978,7 +1097,9 @@ const [isSubmitted, setIsSubmitted] = useState(false);
           </div>
 
           <div className="w-full">
-            <label className="block text-gray-700 font-medium mb-1 text-sm">Duration</label>
+            <label className="block text-gray-700 font-medium mb-1 text-sm">
+              Duration
+            </label>
             <div className="w-full rounded-md text-sm flex flex-row items-center justify-start">
               <input
                 type="tel"
@@ -993,15 +1114,13 @@ const [isSubmitted, setIsSubmitted] = useState(false);
 
           <div className="col-span-2">
             <label className="block text-gray-700 font-medium mb-1 text-sm">
-             Assign To <span className="text-red-600 font-semibold">*</span></label>            
-            <SearchableSelect              
+              Assign To <span className="text-red-600 font-semibold">*</span>
+            </label>
+            <SearchableSelect
               items={Array.isArray(team) ? team : []}
               value={formData.assigned_to ?? ""}
-              placeholder={`Search an account...`
-              }
-              getLabel={(item) =>
-                `${item.first_name} ${item.last_name}`
-              }
+              placeholder={`Search an account...`}
+              getLabel={(item) => `${item.first_name} ${item.last_name}`}
               onChange={(newId) =>
                 setFormData((prev) => ({
                   ...prev,
@@ -1009,13 +1128,15 @@ const [isSubmitted, setIsSubmitted] = useState(false);
                 }))
               }
               disabled={isSales}
-              required={true}      
-           isSubmitted={isSubmitted} 
-            /> 
+              required={true}
+              isSubmitted={isSubmitted}
+            />
           </div>
 
           <div>
-            <label className="block text-gray-700 font-medium mb-1 text-sm">Direction</label>
+            <label className="block text-gray-700 font-medium mb-1 text-sm">
+              Direction
+            </label>
             <select
               name="direction"
               onChange={handleInputChange}
@@ -1028,7 +1149,9 @@ const [isSubmitted, setIsSubmitted] = useState(false);
           </div>
 
           <div>
-            <label className="block text-gray-700 font-medium mb-1 text-sm">Status</label>
+            <label className="block text-gray-700 font-medium mb-1 text-sm">
+              Status
+            </label>
             <select
               name="status"
               onChange={handleInputChange}
@@ -1051,11 +1174,11 @@ const [isSubmitted, setIsSubmitted] = useState(false);
 
           <div className="flex flex-col md:flex-row justify-end col-span-2 mt-4 gap-2 w-full">
             <button
-               type="button"
-                onClick={() => {
-              handleCloseModal();    // close the modal
-              setIsSubmitted(false); // reset validation errors
-            }}
+              type="button"
+              onClick={() => {
+                handleCloseModal(); // close the modal
+                setIsSubmitted(false); // reset validation errors
+              }}
               className="w-full sm:w-auto px-4 py-2 text-white bg-red-400 border border-red-300 rounded hover:bg-red-500 transition"
             >
               Cancel
@@ -1066,7 +1189,11 @@ const [isSubmitted, setIsSubmitted] = useState(false);
               disabled={isSubmitting}
               className="w-full sm:w-auto px-4 py-2 text-white bg-tertiary border border-tertiary rounded hover:bg-secondary transition"
             >
-              {isSubmitting ? "Saving..." : isEditing ? "Update Call" : "Save Call"}
+              {isSubmitting
+                ? "Saving..."
+                : isEditing
+                  ? "Update Call"
+                  : "Save Call"}
             </button>
           </div>
         </form>
@@ -1082,20 +1209,20 @@ const [isSubmitted, setIsSubmitted] = useState(false);
             <FiPhoneCall className="mr-2 text-blue-600" /> Calls
           </h1>
 
-       <div className="flex justify-center lg:justify-end w-full sm:w-auto">
-          <button
-            onClick={() => {
-              setFormData(INITIAL_FORM_STATE);
-              setIsEditing(false);
-              setCurrentCallId(null);
-              setShowModal(true);
-               setIsSubmitted(false); 
-            }}
-        className="flex items-center bg-black text-white px-3 sm:px-4 py-2 my-1 lg:my-0 rounded-md hover:bg-gray-800 text-sm sm:text-base mx-auto sm:ml-auto cursor-pointer"
-          >
-            <FiPlus className="mr-2" /> Add Call
-          </button>
-        </div>
+          <div className="flex justify-center lg:justify-end w-full sm:w-auto">
+            <button
+              onClick={() => {
+                setFormData(INITIAL_FORM_STATE);
+                setIsEditing(false);
+                setCurrentCallId(null);
+                setShowModal(true);
+                setIsSubmitted(false);
+              }}
+              className="flex items-center bg-black text-white px-3 sm:px-4 py-2 my-1 lg:my-0 rounded-md hover:bg-gray-800 text-sm sm:text-base mx-auto sm:ml-auto cursor-pointer"
+            >
+              <FiPlus className="mr-2" /> Add Call
+            </button>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 mb-6 w-full break-words overflow-hidden lg:overflow-visible">
@@ -1114,7 +1241,7 @@ const [isSubmitted, setIsSubmitted] = useState(false);
               defaultValue={searchQuery}
             />
           </div>
-        <div className="flex flex-col sm:flex-row w-full lg:w-1/2 gap-2">
+          <div className="flex flex-col sm:flex-row w-full lg:w-1/2 gap-2">
             <select
               defaultValue={statusFilter}
               className="border border-gray-300 rounded-lg px-3 h-11 text-sm bg-white w-full"
@@ -1153,7 +1280,9 @@ const [isSubmitted, setIsSubmitted] = useState(false);
                       paginatedCalls
                         .filter((c) => c.call_creator?.id === currentUser?.id)
                         .every((c) => selectedIds.includes(c.id)) &&
-                      paginatedCalls.some((c) => c.call_creator?.id === currentUser?.id)
+                      paginatedCalls.some(
+                        (c) => c.call_creator?.id === currentUser?.id,
+                      )
                     }
                     onChange={handleSelectAll}
                     className="form-checkbox h-4 w-4 text-blue-600 rounded focus:ring-blue-500 border-gray-300"
@@ -1194,7 +1323,10 @@ const [isSubmitted, setIsSubmitted] = useState(false);
                     onClick={() => handleCallClick(call)}
                     className="hover:bg-gray-50 cursor-pointer border-b border-gray-100"
                   >
-                    <td className="py-3 px-4 align-top text-center" onClick={(e) => e.stopPropagation()}>
+                    <td
+                      className="py-3 px-4 align-top text-center"
+                      onClick={(e) => e.stopPropagation()}
+                    >
                       {call.call_creator?.id === currentUser?.id ? (
                         <input
                           type="checkbox"
@@ -1210,19 +1342,37 @@ const [isSubmitted, setIsSubmitted] = useState(false);
                     </td>
 
                     <td className="py-3 px-4">
-                      {call.lead && <p className="font-medium text-blue-500 text-xs">{call.lead.title}</p>}
-                      {call.account && <p className="font-medium text-blue-500 text-xs">{call.account.name}</p>}
+                      {call.lead && (
+                        <p className="font-medium text-blue-500 text-xs">
+                          {call.lead.title}
+                        </p>
+                      )}
+                      {call.account && (
+                        <p className="font-medium text-blue-500 text-xs">
+                          {call.account.name}
+                        </p>
+                      )}
                       {call.contact && (
                         <p className="font-medium text-blue-500 text-xs">
                           {call.contact.first_name} {call.contact.last_name}
                         </p>
                       )}
-                      {call.deal && <p className="font-medium text-blue-500 text-xs">{call.deal.name}</p>}
-                      {call.quote && <p className="font-medium text-blue-500 text-xs">{formatQuoteId(call.quote.quote_id)}</p>}
+                      {call.deal && (
+                        <p className="font-medium text-blue-500 text-xs">
+                          {call.deal.name}
+                        </p>
+                      )}
+                      {call.quote && (
+                        <p className="font-medium text-blue-500 text-xs">
+                          {formatQuoteId(call.quote.quote_id)}
+                        </p>
+                      )}
                     </td>
 
                     <td className="py-3 px-4 text-gray-800">
-                      {call.call_time ? new Date(call.call_time).toLocaleString() : "--"}
+                      {call.call_time
+                        ? new Date(call.call_time).toLocaleString()
+                        : "--"}
                     </td>
 
                     <td className="py-3 px-4 text-gray-800">
@@ -1234,7 +1384,7 @@ const [isSubmitted, setIsSubmitted] = useState(false);
                     <td className="py-3 px-4">
                       <span
                         className={`px-2 py-1 rounded-full text-xs font-medium ${getCallStatusBadgeClass(
-                          call.status
+                          call.status,
                         )}`}
                       >
                         {formatAdminCallStatusLabel(call.status)}
@@ -1259,7 +1409,17 @@ const [isSubmitted, setIsSubmitted] = useState(false);
           pageSize={itemsPerPage}
           currentPage={currentPage}
           onPrev={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
-          onNext={() => setCurrentPage((prev) => Math.min(prev + 1, Math.max(1, Math.ceil(filteredCalls.length / itemsPerPage) || 1)))}
+          onNext={() =>
+            setCurrentPage((prev) =>
+              Math.min(
+                prev + 1,
+                Math.max(
+                  1,
+                  Math.ceil(filteredCalls.length / itemsPerPage) || 1,
+                ),
+              ),
+            )
+          }
           onPageSizeChange={(newSize) => {
             setItemsPerPage(newSize);
             setCurrentPage(1);
@@ -1341,12 +1501,14 @@ function InputField({
       />
     </div>
   );
-}	
+}
 
 function TextAreaField(props) {
   return (
     <div className={props.className}>
-      <label className="block text-gray-700 font-medium mb-1 text-sm">{props.label}</label>
+      <label className="block text-gray-700 font-medium mb-1 text-sm">
+        {props.label}
+      </label>
       <textarea
         {...props}
         className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-400 outline-none disabled:bg-gray-100 resize-none"
@@ -1381,14 +1543,16 @@ function ConfirmationModal({
     variant === "warning"
       ? "bg-orange-500 hover:bg-orange-600 border border-orange-400"
       : variant === "danger"
-      ? "bg-red-500 hover:bg-red-600 border border-red-400"
-      : "bg-tertiary hover:bg-secondary border border-tertiary";
+        ? "bg-red-500 hover:bg-red-600 border border-red-400"
+        : "bg-tertiary hover:bg-secondary border border-tertiary";
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-[60]">
       <div className="bg-white w-full max-w-md rounded-xl shadow-lg p-6 border border-gray-200">
         <h3 className="text-lg font-semibold text-gray-800">{title}</h3>
-        <p className="text-sm text-gray-600 mt-2 whitespace-pre-line">{message}</p>
+        <p className="text-sm text-gray-600 mt-2 whitespace-pre-line">
+          {message}
+        </p>
 
         <div className="mt-6 flex flex-col sm:flex-row sm:justify-end sm:space-x-3 space-y-2 sm:space-y-0">
           <button
@@ -1427,7 +1591,7 @@ function SearchableSelect({
   disabled = false,
   maxRender = 200,
   required = false,
-  isSubmitted = false, 
+  isSubmitted = false,
 }) {
   const [open, setOpen] = useState(false);
   const [q, setQ] = useState("");
@@ -1449,7 +1613,8 @@ function SearchableSelect({
 
   useEffect(() => {
     const onDoc = (e) => {
-      if (wrapRef.current && !wrapRef.current.contains(e.target)) setOpen(false);
+      if (wrapRef.current && !wrapRef.current.contains(e.target))
+        setOpen(false);
     };
     document.addEventListener("mousedown", onDoc);
     return () => document.removeEventListener("mousedown", onDoc);
@@ -1470,10 +1635,11 @@ function SearchableSelect({
           setQ(e.target.value);
           if (!open) setOpen(true);
         }}
-       className={`w-full border rounded-md px-2 py-1.5 text-sm outline-none focus:ring-2 disabled:bg-gray-100
-          ${hasError
-            ? "border-red-500 focus:ring-red-500"
-            : "border-gray-300 focus:ring-blue-400"
+        className={`w-full border rounded-md px-2 py-1.5 text-sm outline-none focus:ring-2 disabled:bg-gray-100
+          ${
+            hasError
+              ? "border-red-500 focus:ring-red-500"
+              : "border-gray-300 focus:ring-blue-400"
           }`}
       />
 

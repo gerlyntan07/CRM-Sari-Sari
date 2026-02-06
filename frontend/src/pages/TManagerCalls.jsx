@@ -21,6 +21,8 @@ import api from "../api.js";
 import { toast } from "react-toastify";
 import { useSearchParams, useNavigate, useLocation } from "react-router-dom";
 import LoadingSpinner from "../components/LoadingSpinner.jsx";
+import CommentSection from "../components/CommentSection.jsx";
+import { useComments } from "../hooks/useComments.js";
 
 // --- Constants (UI Options) ---
 const PRIORITY_OPTIONS = [
@@ -115,19 +117,32 @@ export default function AdminCalls() {
   const [callsLoading, setCallsLoading] = useState(false);
   const [pendingCallId, setPendingCallId] = useState(null);
 
+  const {
+    comments: callComments,
+    addComment: addCallComment,
+    refresh: refreshCallComments,
+  } = useComments({
+    relatedType: "call",
+    relatedId: selectedCall?.id,
+  });
+
+  useEffect(() => {
+    if (selectedCall?.id) refreshCallComments();
+  }, [selectedCall?.id, refreshCallComments]);
+
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const location = useLocation();
 
   const formatQuoteId = (quoteId) => {
-  if (!quoteId) return "";
-  // Convert D25-1-00001 to D25-00001 (remove middle company ID)
-  const parts = String(quoteId).split("-");
-  if (parts.length === 3) {
-    return `${parts[0]}-${parts[2]}`;
-  }
-  return String(quoteId);
-};
+    if (!quoteId) return "";
+    // Convert D25-1-00001 to D25-00001 (remove middle company ID)
+    const parts = String(quoteId).split("-");
+    if (parts.length === 3) {
+      return `${parts[0]}-${parts[2]}`;
+    }
+    return String(quoteId);
+  };
 
   const getDefaultCallTime = () => {
     const today = new Date();
@@ -477,26 +492,28 @@ export default function AdminCalls() {
     formData.relatedTo2,
   ]);
 
-     //validation 
-const [isSubmitted, setIsSubmitted] = useState(false);
+  //validation
+  const [isSubmitted, setIsSubmitted] = useState(false);
   const handleSubmit = (e) => {
     e.preventDefault();
-    setIsSubmitted(true); 
+    setIsSubmitted(true);
 
-      const subject = formData.subject;
-  if (!subject || subject.trim() === "") {
-    toast.error("Subject is required.");
-    return;
-  }
+    const subject = formData.subject;
+    if (!subject || subject.trim() === "") {
+      toast.error("Subject is required.");
+      return;
+    }
 
-  const relatedTo1 = formData.relatedTo1;
-  if (!relatedTo1) {
-    toast.error(`Please select a ${formData.relatedType1 || "Lead/Account"}.`);
-    return;
-  }
+    const relatedTo1 = formData.relatedTo1;
+    if (!relatedTo1) {
+      toast.error(
+        `Please select a ${formData.relatedType1 || "Lead/Account"}.`,
+      );
+      return;
+    }
 
     if (!formData.assigned_to) {
-       toast.error("Subject is required.");
+      toast.error("Subject is required.");
       return;
     }
 
@@ -711,10 +728,10 @@ const [isSubmitted, setIsSubmitted] = useState(false);
                       : selectedCall.contact
                         ? "Contact"
                         : selectedCall.deal
-                          ? "Deal" 
-                          : selectedCall.quote 
-                          ? "Quote"
-                          : "Contact";
+                          ? "Deal"
+                          : selectedCall.quote
+                            ? "Quote"
+                            : "Contact";
 
                   const relatedTo2 =
                     relatedType1 === "Lead"
@@ -722,9 +739,10 @@ const [isSubmitted, setIsSubmitted] = useState(false);
                       : selectedCall.contact
                         ? selectedCall.contact.id
                         : selectedCall.deal
-                          ? selectedCall.deal.id : selectedCall.quote
-                          ? selectedCall.quote.id
-                          : null;
+                          ? selectedCall.deal.id
+                          : selectedCall.quote
+                            ? selectedCall.quote.id
+                            : null;
 
                   setFormData({
                     subject: selectedCall.subject || "",
@@ -843,7 +861,10 @@ const [isSubmitted, setIsSubmitted] = useState(false);
                       <DetailRow label="Deal" value={selectedCall.deal.name} />
                     )}
                     {selectedCall.quote && (
-                      <DetailRow label="Quote" value={formatQuoteId(selectedCall.quote.quote_id)} />
+                      <DetailRow
+                        label="Quote"
+                        value={formatQuoteId(selectedCall.quote.quote_id)}
+                      />
                     )}
 
                     <DetailRow
@@ -875,6 +896,11 @@ const [isSubmitted, setIsSubmitted] = useState(false);
                       {selectedCall.notes || "No notes available."}
                     </div>
                   </div>
+
+                  <CommentSection
+                    comments={callComments}
+                    onAddComment={addCallComment}
+                  />
                 </div>
               )}
             </div>
@@ -915,9 +941,9 @@ const [isSubmitted, setIsSubmitted] = useState(false);
     >
       <div className="bg-white w-full max-w-xl rounded-2xl shadow-lg p-4 sm:p-6 md:p-8 relative border border-gray-200 overflow-y-auto max-h-[90vh] hide-scrollbar">
         <button
-            onClick={() => {
-            handleCloseModal();    
-            setIsSubmitted(false); 
+          onClick={() => {
+            handleCloseModal();
+            setIsSubmitted(false);
           }}
           className="absolute top-4 right-4 text-gray-500 hover:text-black transition"
         >
@@ -931,7 +957,7 @@ const [isSubmitted, setIsSubmitted] = useState(false);
         <form
           className="grid grid-cols-1 md:grid-cols-2 w-full gap-4 text-sm"
           onSubmit={handleSubmit}
-          noValidate 
+          noValidate
         >
           <InputField
             label="Subject"
@@ -946,19 +972,19 @@ const [isSubmitted, setIsSubmitted] = useState(false);
           {/* RELATED TYPE 1 + RELATED TO 1 */}
           <div className="w-full flex flex-col">
             <div className="relative w-25">
-            <select
-              name="relatedType1"
-              onChange={handleInputChange}
-              value={formData.relatedType1}
-              className="outline-none cursor-pointer mb-1 w-22 text-gray-700 disabled:text-gray-400 disabled:cursor-not-allowed"
-              disabled={isSubmitting}
-            >
-              <option value="Lead">Lead</option>
-              <option value="Account">Account</option>
-            </select>
-            <span className="absolute left-10 md:pl-6 pl-6 top-1/2 -translate-y-1/2 text-red-500 pointer-events-none">
-                  *  
-                </span>
+              <select
+                name="relatedType1"
+                onChange={handleInputChange}
+                value={formData.relatedType1}
+                className="outline-none cursor-pointer mb-1 w-22 text-gray-700 disabled:text-gray-400 disabled:cursor-not-allowed"
+                disabled={isSubmitting}
+              >
+                <option value="Lead">Lead</option>
+                <option value="Account">Account</option>
+              </select>
+              <span className="absolute left-10 md:pl-6 pl-6 top-1/2 -translate-y-1/2 text-red-500 pointer-events-none">
+                *
+              </span>
             </div>
 
             <SearchableSelect
@@ -976,8 +1002,8 @@ const [isSubmitted, setIsSubmitted] = useState(false);
                   relatedTo1: newId, // keep string
                 }))
               }
-              required={true}       
-              isSubmitted={isSubmitted} 
+              required={true}
+              isSubmitted={isSubmitted}
               disabled={isSubmitting}
             />
           </div>
@@ -1012,8 +1038,9 @@ const [isSubmitted, setIsSubmitted] = useState(false);
                 formData.relatedType2 === "Contact"
                   ? `${item.first_name ?? ""} ${item.last_name ?? ""}`.trim()
                   : formData.relatedType2 === "Quote"
-                            ? formatQuoteId(item.quote_id) ?? "" : item.name ?? ""
-            }
+                    ? (formatQuoteId(item.quote_id) ?? "")
+                    : (item.name ?? "")
+              }
               onChange={(newId) =>
                 setFormData((prev) => ({
                   ...prev,
@@ -1067,8 +1094,8 @@ const [isSubmitted, setIsSubmitted] = useState(false);
                   assigned_to: newId, // keep string
                 }))
               }
-              required={true}      
-           isSubmitted={isSubmitted} 
+              required={true}
+              isSubmitted={isSubmitted}
             />
           </div>
 
@@ -1113,11 +1140,11 @@ const [isSubmitted, setIsSubmitted] = useState(false);
 
           <div className="flex flex-col md:flex-row justify-end col-span-2 mt-4 gap-2 w-full">
             <button
-                type="button"
-                onClick={() => {
-              handleCloseModal();    // close the modal
-              setIsSubmitted(false); // reset validation errors
-            }}
+              type="button"
+              onClick={() => {
+                handleCloseModal(); // close the modal
+                setIsSubmitted(false); // reset validation errors
+              }}
               className="w-full sm:w-auto px-4 py-2 text-white bg-red-400 border border-red-300 rounded hover:bg-red-500 transition"
             >
               Cancel
@@ -1155,7 +1182,7 @@ const [isSubmitted, setIsSubmitted] = useState(false);
                 setIsEditing(false);
                 setCurrentCallId(null);
                 setShowModal(true);
-                setIsSubmitted(false); 
+                setIsSubmitted(false);
               }}
               className="flex items-center bg-black text-white px-3 sm:px-4 py-2 my-1 lg:my-0 rounded-md hover:bg-gray-800 text-sm sm:text-base mx-auto sm:ml-auto cursor-pointer"
             >
@@ -1381,7 +1408,7 @@ function InputField({
       />
     </div>
   );
-}	
+}
 
 function TextAreaField(props) {
   return (
@@ -1469,7 +1496,7 @@ function SearchableSelect({
   disabled = false,
   maxRender = 200,
   required = false,
-  isSubmitted = false, 
+  isSubmitted = false,
 }) {
   const [open, setOpen] = useState(false);
   const [q, setQ] = useState("");
@@ -1477,7 +1504,7 @@ function SearchableSelect({
 
   const selectedItem = items.find((it) => String(it.id) === String(value));
   const selectedLabel = selectedItem ? getLabel(selectedItem) : "";
-  
+
   // ✅ DEFINE hasError HERE
   const hasError = required && isSubmitted && !value;
 
@@ -1514,10 +1541,11 @@ function SearchableSelect({
           setQ(e.target.value);
           if (!open) setOpen(true);
         }}
-       className={`w-full border rounded-md px-2 py-1.5 text-sm outline-none focus:ring-2 disabled:bg-gray-100
-          ${hasError
-            ? "border-red-500 focus:ring-red-500"
-            : "border-gray-300 focus:ring-blue-400"
+        className={`w-full border rounded-md px-2 py-1.5 text-sm outline-none focus:ring-2 disabled:bg-gray-100
+          ${
+            hasError
+              ? "border-red-500 focus:ring-red-500"
+              : "border-gray-300 focus:ring-blue-400"
           }`}
       />
 

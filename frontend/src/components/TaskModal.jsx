@@ -2,69 +2,83 @@
 import { Dialog, Transition } from "@headlessui/react";
 import { Fragment, useState, useEffect, useRef } from "react";
 import api from "../api";
-import {toast} from 'react-toastify';
+import { toast } from "react-toastify";
 import { useMemo } from "react";
 import { HiX } from "react-icons/hi";
 import { FiTrash2 } from "react-icons/fi";
+import CommentSection from "../components/CommentSection.jsx";
+import { useComments } from "../hooks/useComments.js";
 
 export default function TaskModal({
   isOpen,
   onClose,
   onSave,
-   onEdit, // <-- new prop
+  onEdit, // <-- new prop
   setFormData,
   formData,
   isEditing = false,
   viewMode = false,
   users = [],
   currentUser,
-  onDelete
+  onDelete,
 }) {
   // Local state for the dropdown options
   const [relatedTo1Values, setRelatedTo1Values] = useState([]);
   const [relatedTo2Values, setRelatedTo2Values] = useState([]);
   const [errors, setErrors] = useState({}); // ✅ missing piece
 
+  const {
+    comments: taskComments,
+    addComment: addTaskComment,
+    refresh: refreshTaskComments,
+  } = useComments({
+    relatedType: "task",
+    relatedId: formData?.id,
+  });
+
+  useEffect(() => {
+    if (formData?.id) refreshTaskComments();
+  }, [formData?.id, refreshTaskComments]);
+
   const formatQuoteId = (quoteId) => {
-  if (!quoteId) return "";
-  // Convert D25-1-00001 to D25-00001 (remove middle company ID)
-  const parts = String(quoteId).split("-");
-  if (parts.length === 3) {
-    return `${parts[0]}-${parts[2]}`;
-  }
-  return String(quoteId);
-};
+    if (!quoteId) return "";
+    // Convert D25-1-00001 to D25-00001 (remove middle company ID)
+    const parts = String(quoteId).split("-");
+    if (parts.length === 3) {
+      return `${parts[0]}-${parts[2]}`;
+    }
+    return String(quoteId);
+  };
 
   // --- Logic to Handle Input Changes ---
- const handleChange = (e) => {
-  const { name, value } = e.target;
+  const handleChange = (e) => {
+    const { name, value } = e.target;
 
-  if (name === "subject" && value.trim()) {
-    setErrors((prev) => ({ ...prev, subject: false }));
-  }
+    if (name === "subject" && value.trim()) {
+      setErrors((prev) => ({ ...prev, subject: false }));
+    }
 
-  setFormData((prev) => {
-    const updated = { ...prev, [name]: value };
+    setFormData((prev) => {
+      const updated = { ...prev, [name]: value };
 
-    if (name === "relatedType1") {
-      updated.relatedTo1 = "";
-      if (value === "Lead") {
-        updated.relatedType2 = null;
-        updated.relatedTo2 = null;
-        setRelatedTo2Values([]);
-      } else if (value === "Account") {
-        updated.relatedType2 = "Contact";
+      if (name === "relatedType1") {
+        updated.relatedTo1 = "";
+        if (value === "Lead") {
+          updated.relatedType2 = null;
+          updated.relatedTo2 = null;
+          setRelatedTo2Values([]);
+        } else if (value === "Account") {
+          updated.relatedType2 = "Contact";
+        }
       }
-    }
 
-    if (name === "relatedType2") {
-      updated.relatedTo2 = "";
-    }
+      if (name === "relatedType2") {
+        updated.relatedTo2 = "";
+      }
 
-    return updated;
-  });
-};
-
+      return updated;
+    });
+  };
 
   // --- Effect 1: Fetch Level 1 Options (Leads or Accounts) ---
   useEffect(() => {
@@ -92,12 +106,16 @@ export default function TaskModal({
             if (formData.relatedType1 === "Lead") {
               specificRes = await api.get(`/leads/get/${formData.relatedTo1}`);
             } else if (formData.relatedType1 === "Account") {
-              specificRes = await api.get(`/accounts/get/${formData.relatedTo1}`);
+              specificRes = await api.get(
+                `/accounts/get/${formData.relatedTo1}`,
+              );
             }
 
             if (specificRes && specificRes.data) {
               // Check if item already exists in list (by id)
-              const exists = items.some(item => String(item.id) === String(formData.relatedTo1));
+              const exists = items.some(
+                (item) => String(item.id) === String(formData.relatedTo1),
+              );
               if (!exists) {
                 items = [specificRes.data, ...items];
               }
@@ -147,16 +165,24 @@ export default function TaskModal({
             try {
               let specificRes;
               if (formData.relatedType2 === "Contact") {
-                specificRes = await api.get(`/contacts/get/${formData.relatedTo2}`);
+                specificRes = await api.get(
+                  `/contacts/get/${formData.relatedTo2}`,
+                );
               } else if (formData.relatedType2 === "Deal") {
-                specificRes = await api.get(`/deals/get/${formData.relatedTo2}`);
+                specificRes = await api.get(
+                  `/deals/get/${formData.relatedTo2}`,
+                );
               } else if (formData.relatedType2 === "Quote") {
-                specificRes = await api.get(`/quotes/get/${formData.relatedTo2}`);
+                specificRes = await api.get(
+                  `/quotes/get/${formData.relatedTo2}`,
+                );
               }
 
               if (specificRes && specificRes.data) {
                 // Check if item already exists in list (by id)
-                const exists = items.some(item => String(item.id) === String(formData.relatedTo2));
+                const exists = items.some(
+                  (item) => String(item.id) === String(formData.relatedTo2),
+                );
                 if (!exists) {
                   items = [specificRes.data, ...items];
                 }
@@ -185,43 +211,45 @@ export default function TaskModal({
     isEditing,
   ]);
 
-   //validation 
-const [isSubmitted, setIsSubmitted] = useState(false);
- useEffect(() => {
+  //validation
+  const [isSubmitted, setIsSubmitted] = useState(false);
+  useEffect(() => {
     if (isOpen) {
       setIsSubmitted(false);
       setErrors({});
     }
   }, [isOpen]);
-  
+
   const handleSubmit = (e) => {
     e.preventDefault();
-    setIsSubmitted(true); 
-    
-  const newErrors = {};
+    setIsSubmitted(true);
 
-   // Validate title/subject
-  if (!formData.subject?.trim()) {
-    newErrors.subject = true;
-    toast.error("Title is required");
-  }
-  setErrors(newErrors);
+    const newErrors = {};
 
-  // Validate related entity (Lead/Account)
-  const relatedTo1 = formData.relatedTo1;
-  if (!relatedTo1) {
-    newErrors.relatedTo1 = true;
-    toast.error(`Please select a ${formData.relatedType1 || "Lead/Account"}.`);
-  }
+    // Validate title/subject
+    if (!formData.subject?.trim()) {
+      newErrors.subject = true;
+      toast.error("Title is required");
+    }
+    setErrors(newErrors);
 
-  // --- Validate "Assign To" ---
-  if (!formData.assignedTo) {
-    newErrors.assignedTo = true;
-    toast.error("Assigned To is required.");
-  }
+    // Validate related entity (Lead/Account)
+    const relatedTo1 = formData.relatedTo1;
+    if (!relatedTo1) {
+      newErrors.relatedTo1 = true;
+      toast.error(
+        `Please select a ${formData.relatedType1 || "Lead/Account"}.`,
+      );
+    }
 
-  // stop submit if errors exist
-  if (Object.keys(newErrors).length > 0) return;
+    // --- Validate "Assign To" ---
+    if (!formData.assignedTo) {
+      newErrors.assignedTo = true;
+      toast.error("Assigned To is required.");
+    }
+
+    // stop submit if errors exist
+    if (Object.keys(newErrors).length > 0) return;
 
     onSave?.(formData);
   };
@@ -229,8 +257,8 @@ const [isSubmitted, setIsSubmitted] = useState(false);
   const modalTitle = viewMode
     ? "Task Details"
     : isEditing
-    ? "Edit Task"
-    : "Create Task";
+      ? "Edit Task"
+      : "Create Task";
 
   return (
     <Transition appear show={isOpen} as={Fragment}>
@@ -260,148 +288,157 @@ const [isSubmitted, setIsSubmitted] = useState(false);
             >
               <Dialog.Panel className="w-full max-w-full sm:max-w-3xl text-left align-middle transform transition-all">
                 <div className="bg-white w-full min-w-sm md:min-w-lg rounded-2xl shadow-lg p-4 sm:p-6 md:p-8 relative border border-gray-200 overflow-y-auto max-h-[90vh] flex flex-col hide-scrollbar">
-            <button
-              onClick={() => {
-            onClose();             // close the modal
-            setIsSubmitted(false); // reset validation errors
-            setErrors({});
-          }}
-              className="absolute top-4 right-4 text-gray-500 hover:text-black transition"
-            >
-              <HiX size={25} />
-            </button>
+                  <button
+                    onClick={() => {
+                      onClose(); // close the modal
+                      setIsSubmitted(false); // reset validation errors
+                      setErrors({});
+                    }}
+                    className="absolute top-4 right-4 text-gray-500 hover:text-black transition"
+                  >
+                    <HiX size={25} />
+                  </button>
 
                   <h3 className="text-xl sm:text-2xl font-semibold text-gray-800 mb-4 sm:mb-6 flex items-center justify-center">
                     {modalTitle}
                   </h3>
 
-               
- {/* here */}
-  {viewMode && (
-  <div
-    className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4"
-    onClick={onClose}
-  >
-    <div
-      className="bg-white rounded-xl shadow-lg w-full max-w-full lg:max-w-4xl max-h-[90vh] overflow-y-auto hide-scrollbar font-manrope relative"
-      onClick={(e) => e.stopPropagation()}
-    >
-      {/* 🔵 Top Header */}
-      <div className="bg-tertiary w-full flex items-center justify-between p-3 lg:p-4 rounded-t-xl">
-        <h1 className="lg:text-3xl text-xl text-white font-semibold text-center w-full">
-          Tasks
-        </h1>
-          <button
-             onClick={() => {
-            onClose();             // close the modal
-            setIsSubmitted(false); // reset validation errors
-          }}
-            className="text-gray-500 hover:text-white transition cursor-pointer"
-          >
-            <HiX size={25} />
-          </button>
-      </div>
+                  {/* here */}
+                  {viewMode && (
+                    <div
+                      className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4"
+                      onClick={onClose}
+                    >
+                      <div
+                        className="bg-white rounded-xl shadow-lg w-full max-w-full lg:max-w-4xl max-h-[90vh] overflow-y-auto hide-scrollbar font-manrope relative"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        {/* 🔵 Top Header */}
+                        <div className="bg-tertiary w-full flex items-center justify-between p-3 lg:p-4 rounded-t-xl">
+                          <h1 className="lg:text-3xl text-xl text-white font-semibold text-center w-full">
+                            Tasks
+                          </h1>
+                          <button
+                            onClick={() => {
+                              onClose(); // close the modal
+                              setIsSubmitted(false); // reset validation errors
+                            }}
+                            className="text-gray-500 hover:text-white transition cursor-pointer"
+                          >
+                            <HiX size={25} />
+                          </button>
+                        </div>
 
-      {/* Action Buttons */}
-      <div className="p-6 lg:p-4">
-        <div className="flex flex-col md:flex-row md:justify-between lg:flex-row lg:items-center lg:justify-between mt-3 gap-2 px-2 md:items-center lg:gap-4 md:mx-7 lg:mx-7">
-  <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-    <h1 className="text-xl sm:text-2xl font-semibold text-gray-800">
-              {formData.subject || "No Title"}
-            </h1>
-          </div>
+                        {/* Action Buttons */}
+                        <div className="p-6 lg:p-4">
+                          <div className="flex flex-col md:flex-row md:justify-between lg:flex-row lg:items-center lg:justify-between mt-3 gap-2 px-2 md:items-center lg:gap-4 md:mx-7 lg:mx-7">
+                            <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+                              <h1 className="text-xl sm:text-2xl font-semibold text-gray-800">
+                                {formData.subject || "No Title"}
+                              </h1>
+                            </div>
 
-          <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-            <button
-              className="inline-flex items-center justify-center w-full sm:w-auto bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 transition text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 cursor-pointer"
-              onClick={() => {
-                if (setFormData) setFormData(formData);
-                if (typeof onEdit === "function") onEdit();
-              }}
-            >
-              Edit
-            </button>
-            <button
-              className="inline-flex items-center justify-center w-full sm:w-auto px-4 py-2 rounded-md text-sm bg-red-500 text-white hover:bg-red-600 transition focus:outline-none focus:ring-2 focus:ring-red-400 cursor-pointer"
-              onClick={() => onDelete(formData)} // <-- call your delete function here
-            >
-              <FiTrash2 className="mr-2" />
-              Delete
-            </button>
-          </div>
-        </div>
-      </div>
+                            <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+                              <button
+                                className="inline-flex items-center justify-center w-full sm:w-auto bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 transition text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 cursor-pointer"
+                                onClick={() => {
+                                  if (setFormData) setFormData(formData);
+                                  if (typeof onEdit === "function") onEdit();
+                                }}
+                              >
+                                Edit
+                              </button>
+                              <button
+                                className="inline-flex items-center justify-center w-full sm:w-auto px-4 py-2 rounded-md text-sm bg-red-500 text-white hover:bg-red-600 transition focus:outline-none focus:ring-2 focus:ring-red-400 cursor-pointer"
+                                onClick={() => onDelete(formData)} // <-- call your delete function here
+                              >
+                                <FiTrash2 className="mr-2" />
+                                Delete
+                              </button>
+                            </div>
+                          </div>
+                        </div>
 
-      <div className="border-b border-gray-200 my-5"></div>
+                        <div className="border-b border-gray-200 my-5"></div>
 
-      {/* Overview Content */}
-      <div className="p-4">
-        <div className="flex w-full bg-[#6A727D] text-white overflow-x-auto">
-          <button className="flex-1 min-w-[90px] px-4 py-2 lg:text-lg text-sm font-medium text-center text-white">
-            Overview
-          </button>
-        </div>
-        <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6 lg:p-5 border border-gray-200 text-sm text-gray-700">
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-            <div>
-              <p className="font-semibold">Title:</p>
-              <p>{formData.subject || "—"}</p>
-            </div>
-            {formData.relatedType1Text && formData.relatedTo1Text && (
-              <div>
-                <p className="font-semibold">{formData.relatedType1Text}:</p>
-                <p>{formData.relatedTo1Text}</p>
-              </div>
-            )}
-            {formData.relatedType2Text && formData.relatedTo2Text && (
-              <div>
-                <p className="font-semibold">{formData.relatedType2}:</p>
-                <p>{formData.relatedTo2Text}</p>
-              </div>
-            )}
-            <div>
-              <p className="font-semibold">Priority:</p>
-              <p>{formData.priority || "—"}</p>
-            </div>
-            <div>
-              <p className="font-semibold">Status:</p>
-              <p>{formData.status || "—"}</p>
-            </div>
-            <div>
-              <p className="font-semibold">Due Date:</p>
-              <p>{formData.dueDate || "—"}</p>
-            </div>
-            <div className="md:col-span-2">
-              <p className="font-semibold">Description:</p>
-              <p className="whitespace-pre-wrap">{formData.description || "—"}</p>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-)}
+                        {/* Overview Content */}
+                        <div className="p-4">
+                          <div className="flex w-full bg-[#6A727D] text-white overflow-x-auto">
+                            <button className="flex-1 min-w-[90px] px-4 py-2 lg:text-lg text-sm font-medium text-center text-white">
+                              Overview
+                            </button>
+                          </div>
+                          <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6 lg:p-5 border border-gray-200 text-sm text-gray-700">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+                              <div>
+                                <p className="font-semibold">Title:</p>
+                                <p>{formData.subject || "—"}</p>
+                              </div>
+                              {formData.relatedType1Text &&
+                                formData.relatedTo1Text && (
+                                  <div>
+                                    <p className="font-semibold">
+                                      {formData.relatedType1Text}:
+                                    </p>
+                                    <p>{formData.relatedTo1Text}</p>
+                                  </div>
+                                )}
+                              {formData.relatedType2Text &&
+                                formData.relatedTo2Text && (
+                                  <div>
+                                    <p className="font-semibold">
+                                      {formData.relatedType2}:
+                                    </p>
+                                    <p>{formData.relatedTo2Text}</p>
+                                  </div>
+                                )}
+                              <div>
+                                <p className="font-semibold">Priority:</p>
+                                <p>{formData.priority || "—"}</p>
+                              </div>
+                              <div>
+                                <p className="font-semibold">Status:</p>
+                                <p>{formData.status || "—"}</p>
+                              </div>
+                              <div>
+                                <p className="font-semibold">Due Date:</p>
+                                <p>{formData.dueDate || "—"}</p>
+                              </div>
+                              <div className="md:col-span-2">
+                                <p className="font-semibold">Description:</p>
+                                <p className="whitespace-pre-wrap">
+                                  {formData.description || "—"}
+                                </p>
+                              </div>
+                            </div>
 
+                            <CommentSection
+                              comments={taskComments}
+                              onAddComment={addTaskComment}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
 
-
-
- {!viewMode && (
-  <form
-    onSubmit={handleSubmit}
-    className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm flex-1"
-  >
-
-                    <div className="md:col-span-2">
-                      <label className="block text-gray-700 font-medium mb-1 text-sm">
-                        Title <span className="text-red-500 font-semibold">*</span>
-                      </label>
-                      <input
-                        type="text"
-                        name="subject"
-                        value={formData.subject}
-                        onChange={handleChange}
-                        disabled={viewMode}
-                        placeholder="Enter task title"
+                  {!viewMode && (
+                    <form
+                      onSubmit={handleSubmit}
+                      className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm flex-1"
+                    >
+                      <div className="md:col-span-2">
+                        <label className="block text-gray-700 font-medium mb-1 text-sm">
+                          Title{" "}
+                          <span className="text-red-500 font-semibold">*</span>
+                        </label>
+                        <input
+                          type="text"
+                          name="subject"
+                          value={formData.subject}
+                          onChange={handleChange}
+                          disabled={viewMode}
+                          placeholder="Enter task title"
                           className={`w-full rounded-md px-2 py-1.5 text-sm outline-none border focus:ring-2
                             ${
                               errors.subject
@@ -413,219 +450,229 @@ const [isSubmitted, setIsSubmitted] = useState(false);
                         />
                       </div>
 
-                    {/* --- Related Section Starts Here (Updated to match Calls) --- */}
-                    <div className="w-full flex flex-col">
-                      <div className="relative w-25">
-  <select
-    name="relatedType1"
-    onChange={handleChange}
-    value={formData.relatedType1}
-    disabled={viewMode}
-    className="w-full pr-6 rounded-md text-sm mb-2"
-  >
-    <option value="Lead">Lead</option>
-    <option value="Account">Account</option>
-  </select>
+                      {/* --- Related Section Starts Here (Updated to match Calls) --- */}
+                      <div className="w-full flex flex-col">
+                        <div className="relative w-25">
+                          <select
+                            name="relatedType1"
+                            onChange={handleChange}
+                            value={formData.relatedType1}
+                            disabled={viewMode}
+                            className="w-full pr-6 rounded-md text-sm mb-2"
+                          >
+                            <option value="Lead">Lead</option>
+                            <option value="Account">Account</option>
+                          </select>
 
-  <span className="absolute left-10 md:pl-6 pl-6 top-1/2 -translate-y-1/2 text-red-500 pointer-events-none">
-    *
-  </span>
-</div>
-                     
+                          <span className="absolute left-10 md:pl-6 pl-6 top-1/2 -translate-y-1/2 text-red-500 pointer-events-none">
+                            *
+                          </span>
+                        </div>
 
-                      <SearchableSelect
-                        disabled={false}
-                        items={
-                          Array.isArray(relatedTo1Values)
-                            ? relatedTo1Values
-                            : []
-                        }
-                        value={formData.relatedTo1 ?? ""}
-                        placeholder={`Search ${
-                          formData.relatedType1 || "here"
-                        }...`}
-                        getLabel={(item) =>
-                          formData.relatedType1 === "Lead"
-                            ? item.title
-                            : item.name ?? ""
-                        }
-                        onChange={(newId) =>
-                          setFormData((prev) => ({
-                            ...prev,
-                            relatedTo1: newId, // keep string
-                          }))
-                        }
-                          required={true}       
-                          isSubmitted={isSubmitted} 
-                      />
-                    </div>
+                        <SearchableSelect
+                          disabled={false}
+                          items={
+                            Array.isArray(relatedTo1Values)
+                              ? relatedTo1Values
+                              : []
+                          }
+                          value={formData.relatedTo1 ?? ""}
+                          placeholder={`Search ${
+                            formData.relatedType1 || "here"
+                          }...`}
+                          getLabel={(item) =>
+                            formData.relatedType1 === "Lead"
+                              ? item.title
+                              : (item.name ?? "")
+                          }
+                          onChange={(newId) =>
+                            setFormData((prev) => ({
+                              ...prev,
+                              relatedTo1: newId, // keep string
+                            }))
+                          }
+                          required={true}
+                          isSubmitted={isSubmitted}
+                        />
+                      </div>
 
-                    <div className="w-full flex flex-col">
-                      <select
-                        name="relatedType2"
-                        onChange={handleChange}
-                        value={formData.relatedType2 ?? "Contact"}
-                        className={`w-23 rounded-md text-sm focus:ring-2 focus:ring-blue-400 outline-none mb-2 disabled:text-gray-400 disabled:cursor-not-allowed`}
-                        disabled={viewMode || formData.relatedType1 === "Lead"}
-                      >
-                        <option value="Contact">Contact</option>
-                        <option value="Deal">Deal</option>
-                        <option value="Quote">Quote</option>
-                      </select>
+                      <div className="w-full flex flex-col">
+                        <select
+                          name="relatedType2"
+                          onChange={handleChange}
+                          value={formData.relatedType2 ?? "Contact"}
+                          className={`w-23 rounded-md text-sm focus:ring-2 focus:ring-blue-400 outline-none mb-2 disabled:text-gray-400 disabled:cursor-not-allowed`}
+                          disabled={
+                            viewMode || formData.relatedType1 === "Lead"
+                          }
+                        >
+                          <option value="Contact">Contact</option>
+                          <option value="Deal">Deal</option>
+                          <option value="Quote">Quote</option>
+                        </select>
 
-                      <SearchableSelect
-                        disabled={formData.relatedType1 === "Lead"}
-                        items={
-                          Array.isArray(relatedTo2Values)
-                            ? relatedTo2Values
-                            : []
-                        }
-                        value={formData.relatedTo2 ?? ""}
-                        placeholder={
-                          formData.relatedType1 === "Lead"
-                            ? ""
-                            : Array.isArray(relatedTo2Values) &&
-                              relatedTo2Values.length > 0
-                            ? `Search ${formData.relatedType2 || "Contact"}...`
-                            : `No ${formData.relatedType2 || ""} data found`
-                        }
-                        getLabel={(item) =>
-                          formData.relatedType2 === "Contact"
-                            ? `${item.first_name ?? ""} ${
-                                item.last_name ?? ""
-                              }`.trim()
-                            : formData.relatedType2 === "Quote"
-                            ? formatQuoteId(item.quote_id) ?? ""
-                            : item.name ?? ""
-                        }
-                        onChange={(newId) =>
-                          setFormData((prev) => ({
-                            ...prev,
-                            relatedTo2: newId, // keep string
-                          }))
-                        }
-                      />
-                    </div>
-                    {/* --- Related Section Ends --- */}
+                        <SearchableSelect
+                          disabled={formData.relatedType1 === "Lead"}
+                          items={
+                            Array.isArray(relatedTo2Values)
+                              ? relatedTo2Values
+                              : []
+                          }
+                          value={formData.relatedTo2 ?? ""}
+                          placeholder={
+                            formData.relatedType1 === "Lead"
+                              ? ""
+                              : Array.isArray(relatedTo2Values) &&
+                                  relatedTo2Values.length > 0
+                                ? `Search ${formData.relatedType2 || "Contact"}...`
+                                : `No ${formData.relatedType2 || ""} data found`
+                          }
+                          getLabel={(item) =>
+                            formData.relatedType2 === "Contact"
+                              ? `${item.first_name ?? ""} ${
+                                  item.last_name ?? ""
+                                }`.trim()
+                              : formData.relatedType2 === "Quote"
+                                ? (formatQuoteId(item.quote_id) ?? "")
+                                : (item.name ?? "")
+                          }
+                          onChange={(newId) =>
+                            setFormData((prev) => ({
+                              ...prev,
+                              relatedTo2: newId, // keep string
+                            }))
+                          }
+                        />
+                      </div>
+                      {/* --- Related Section Ends --- */}
 
-                    <div className="md:col-span-2">
-                      <label className="block text-gray-700 font-medium mb-1 text-sm">
-                        Description
-                      </label>
-                      <textarea
-                        name="description"
-                        value={formData.description}
-                        onChange={handleChange}
-                        disabled={viewMode}
-                        placeholder="Enter task description"
-                        rows={3}
-                        className={`w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-400 outline-none ${
-                          viewMode ? "bg-gray-50 cursor-not-allowed" : ""
-                        }`}
-                      />
-                    </div>
+                      <div className="md:col-span-2">
+                        <label className="block text-gray-700 font-medium mb-1 text-sm">
+                          Description
+                        </label>
+                        <textarea
+                          name="description"
+                          value={formData.description}
+                          onChange={handleChange}
+                          disabled={viewMode}
+                          placeholder="Enter task description"
+                          rows={3}
+                          className={`w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-400 outline-none ${
+                            viewMode ? "bg-gray-50 cursor-not-allowed" : ""
+                          }`}
+                        />
+                      </div>
 
-                    <div>
-                      <label className="block text-gray-700 font-medium mb-1 text-sm">
-                        Priority
-                      </label>
-                      <select
-                        name="priority"
-                        value={formData.priority}
-                        onChange={handleChange}
-                        disabled={viewMode}
-                        className={`w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-400 outline-none ${
-                          viewMode ? "bg-gray-50 cursor-not-allowed" : ""
-                        }`}
-                      >
-                        <option value="Low">Low</option>
-                        <option value="Normal">Normal</option>
-                        <option value="High">High</option>
-                      </select>
-                    </div>
+                      <div>
+                        <label className="block text-gray-700 font-medium mb-1 text-sm">
+                          Priority
+                        </label>
+                        <select
+                          name="priority"
+                          value={formData.priority}
+                          onChange={handleChange}
+                          disabled={viewMode}
+                          className={`w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-400 outline-none ${
+                            viewMode ? "bg-gray-50 cursor-not-allowed" : ""
+                          }`}
+                        >
+                          <option value="Low">Low</option>
+                          <option value="Normal">Normal</option>
+                          <option value="High">High</option>
+                        </select>
+                      </div>
 
-                    <div>
-                      <label className="block text-gray-700 font-medium mb-1 text-sm">
-                        Due Date
-                      </label>
-                      <input
-                        type="datetime-local"
-                        name="dueDate"
-                        value={formData.dueDate}
-                        onChange={handleChange}
-                        disabled={viewMode}
-                        className={`w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-400 outline-none ${
-                          viewMode ? "bg-gray-50 cursor-not-allowed" : ""
-                        }`}
-                      />
-                    </div>
+                      <div>
+                        <label className="block text-gray-700 font-medium mb-1 text-sm">
+                          Due Date
+                        </label>
+                        <input
+                          type="datetime-local"
+                          name="dueDate"
+                          value={formData.dueDate}
+                          onChange={handleChange}
+                          disabled={viewMode}
+                          className={`w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-400 outline-none ${
+                            viewMode ? "bg-gray-50 cursor-not-allowed" : ""
+                          }`}
+                        />
+                      </div>
 
-                    <div>
-                      <label className="block text-gray-700 font-medium mb-1 text-sm">
-                        Assign To {currentUser?.role !== "Sales" && <span className="text-red-500 font-semibold">*</span>}
-                      </label>
-                      <SearchableSelect
-                        items={Array.isArray(users) ? users : []}
-                        value={formData.assignedTo ?? ""}
-                        placeholder={currentUser?.role === 'Sales' ? `${currentUser.first_name} ${currentUser.last_name}` : `Search an account...`}
-                        getLabel={(item) =>
-                          `${item.first_name} ${item.last_name}`
-                        }
-                        onChange={(newId) =>
-                          setFormData((prev) => ({
-                            ...prev,
-                            assignedTo: newId, // keep string
-                          }))
-                        }
-                        disabled={viewMode || currentUser?.role === 'Sales'}
-                          required={currentUser?.role !== "Sales"}      
-                         isSubmitted={isSubmitted} 
-                      />
-                    </div>
+                      <div>
+                        <label className="block text-gray-700 font-medium mb-1 text-sm">
+                          Assign To{" "}
+                          {currentUser?.role !== "Sales" && (
+                            <span className="text-red-500 font-semibold">
+                              *
+                            </span>
+                          )}
+                        </label>
+                        <SearchableSelect
+                          items={Array.isArray(users) ? users : []}
+                          value={formData.assignedTo ?? ""}
+                          placeholder={
+                            currentUser?.role === "Sales"
+                              ? `${currentUser.first_name} ${currentUser.last_name}`
+                              : `Search an account...`
+                          }
+                          getLabel={(item) =>
+                            `${item.first_name} ${item.last_name}`
+                          }
+                          onChange={(newId) =>
+                            setFormData((prev) => ({
+                              ...prev,
+                              assignedTo: newId, // keep string
+                            }))
+                          }
+                          disabled={viewMode || currentUser?.role === "Sales"}
+                          required={currentUser?.role !== "Sales"}
+                          isSubmitted={isSubmitted}
+                        />
+                      </div>
 
-                    <div>
-                      <label className="block text-gray-700 font-medium mb-1 text-sm">
-                        Status
-                      </label>
-                      <select
-                        name="status"
-                        value={formData.status}
-                        onChange={handleChange}
-                        disabled={viewMode}
-                        className={`w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-400 outline-none ${
-                          viewMode ? "bg-gray-50 cursor-not-allowed" : ""
-                        }`}
-                      >
-                        <option value="Not started">Not started</option>
-                        <option value="In progress">In Progress</option>
-                        <option value="Deferred">Deferred</option>
-                        <option value="Completed">Completed</option>
-                      </select>
-                    </div>
+                      <div>
+                        <label className="block text-gray-700 font-medium mb-1 text-sm">
+                          Status
+                        </label>
+                        <select
+                          name="status"
+                          value={formData.status}
+                          onChange={handleChange}
+                          disabled={viewMode}
+                          className={`w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-400 outline-none ${
+                            viewMode ? "bg-gray-50 cursor-not-allowed" : ""
+                          }`}
+                        >
+                          <option value="Not started">Not started</option>
+                          <option value="In progress">In Progress</option>
+                          <option value="Deferred">Deferred</option>
+                          <option value="Completed">Completed</option>
+                        </select>
+                      </div>
 
-                    {!viewMode && (
-                      <div className="flex flex-col sm:flex-row justify-end sm:justify-end space-y-2 sm:space-y-0 sm:space-x-2 col-span-1 md:col-span-2 mt-4 w-full">
-                        <button
+                      {!viewMode && (
+                        <div className="flex flex-col sm:flex-row justify-end sm:justify-end space-y-2 sm:space-y-0 sm:space-x-2 col-span-1 md:col-span-2 mt-4 w-full">
+                          <button
                             type="button"
                             onClick={() => {
-                              onClose();            // close the modal
+                              onClose(); // close the modal
                               setIsSubmitted(false); // reset validation errors
                               setErrors({});
                             }}
-                          className="w-full sm:w-auto px-4 py-2 text-white bg-red-400 border border-red-300 rounded hover:bg-red-500 transition"
-                        >
-                          Cancel
-                        </button>
-                        <button
-                          type="submit"
-                          className="w-full sm:w-auto px-4 py-2 text-white border border-tertiary bg-tertiary rounded hover:bg-secondary transition"
-                        >
-                          {isEditing ? "Update Task" : "Create Task"}
-                        </button>
-                      </div>
-                    )}
+                            className="w-full sm:w-auto px-4 py-2 text-white bg-red-400 border border-red-300 rounded hover:bg-red-500 transition"
+                          >
+                            Cancel
+                          </button>
+                          <button
+                            type="submit"
+                            className="w-full sm:w-auto px-4 py-2 text-white border border-tertiary bg-tertiary rounded hover:bg-secondary transition"
+                          >
+                            {isEditing ? "Update Task" : "Create Task"}
+                          </button>
+                        </div>
+                      )}
                     </form>
-)}
+                  )}
                 </div>
               </Dialog.Panel>
             </Transition.Child>
@@ -645,7 +692,7 @@ function SearchableSelect({
   disabled = false,
   maxRender = 200,
   required = false,
-  isSubmitted = false, 
+  isSubmitted = false,
 }) {
   const [open, setOpen] = useState(false);
   const [q, setQ] = useState("");
@@ -654,7 +701,7 @@ function SearchableSelect({
   const selectedItem = items.find((it) => String(it.id) === String(value));
   const selectedLabel = selectedItem ? getLabel(selectedItem) : "";
 
-   const hasError = required && isSubmitted && !value;
+  const hasError = required && isSubmitted && !value;
 
   const filtered = useMemo(() => {
     const query = q.trim().toLowerCase();
@@ -689,11 +736,13 @@ function SearchableSelect({
           setQ(e.target.value);
           if (!open) setOpen(true);
         }}
- className={`w-full border rounded-md px-2 py-1.5 text-sm outline-none focus:ring-2 disabled:bg-gray-100
-          ${hasError
-            ? "border-red-500 focus:ring-red-500"
-            : "border-gray-300 focus:ring-blue-400"
-          }`}/>
+        className={`w-full border rounded-md px-2 py-1.5 text-sm outline-none focus:ring-2 disabled:bg-gray-100
+          ${
+            hasError
+              ? "border-red-500 focus:ring-red-500"
+              : "border-gray-300 focus:ring-blue-400"
+          }`}
+      />
 
       {open && !disabled && (
         <div className="absolute z-50 mt-1 w-full bg-white border border-gray-200 rounded-md shadow-lg overflow-hidden">

@@ -1,22 +1,40 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { HiX } from "react-icons/hi";
-import { FiPhone, FiMail, FiCalendar, FiEdit2, FiArchive, FiTrash2, FiFileText, FiCheckSquare } from "react-icons/fi";
-import { useNavigate} from "react-router-dom";
+import {
+  FiPhone,
+  FiMail,
+  FiCalendar,
+  FiEdit2,
+  FiArchive,
+  FiTrash2,
+  FiFileText,
+  FiCheckSquare,
+} from "react-icons/fi";
+import { useNavigate } from "react-router-dom";
+import CommentSection from "../components/CommentSection.jsx";
+import { useComments } from "../hooks/useComments.js";
 
-
-const AdminMeetingInfomation = ({ meeting, onClose, onEdit, onDelete, onStatusUpdate, currentUser, isSalesView = false }) => {
+const AdminMeetingInfomation = ({
+  meeting,
+  onClose,
+  onEdit,
+  onDelete,
+  onStatusUpdate,
+  currentUser,
+  isSalesView = false,
+}) => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("Overview");
 
   const formatQuoteId = (quoteId) => {
-  if (!quoteId) return "";
-  // Convert D25-1-00001 to D25-00001 (remove middle company ID)
-  const parts = String(quoteId).split("-");
-  if (parts.length === 3) {
-    return `${parts[0]}-${parts[2]}`;
-  }
-  return String(quoteId);
-};
+    if (!quoteId) return "";
+    // Convert D25-1-00001 to D25-00001 (remove middle company ID)
+    const parts = String(quoteId).split("-");
+    if (parts.length === 3) {
+      return `${parts[0]}-${parts[2]}`;
+    }
+    return String(quoteId);
+  };
 
   const toAdminStatus = (status) => {
     const s = (status || "").toUpperCase();
@@ -32,14 +50,36 @@ const AdminMeetingInfomation = ({ meeting, onClose, onEdit, onDelete, onStatusUp
     if (s === "NOT HELD" || s === "NOT_HELD") return "NOT HELD";
     return "PENDING";
   };
-  const [selectedStatus, setSelectedStatus] = useState(toAdminStatus(meeting?.status || "PENDING"));
+  const [selectedStatus, setSelectedStatus] = useState(
+    toAdminStatus(meeting?.status || "PENDING"),
+  );
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
+
+  const {
+    comments: meetingComments,
+    addComment: addMeetingComment,
+    refresh: refreshMeetingComments,
+  } = useComments({
+    relatedType: "meeting",
+    relatedId: meeting?.id,
+  });
+
+  useEffect(() => {
+    if (meeting?.id) refreshMeetingComments();
+  }, [meeting?.id, refreshMeetingComments]);
 
   if (!meeting) return null;
 
   const getStatusBadgeClass = (status) => {
     const normalizedStatus = (status || "").toUpperCase();
-    const base = normalizedStatus === "PLANNED" ? "PENDING" : normalizedStatus === "HELD" ? "COMPLETED" : normalizedStatus === "NOT_HELD" ? "CANCELLED" : normalizedStatus;
+    const base =
+      normalizedStatus === "PLANNED"
+        ? "PENDING"
+        : normalizedStatus === "HELD"
+          ? "COMPLETED"
+          : normalizedStatus === "NOT_HELD"
+            ? "CANCELLED"
+            : normalizedStatus;
     switch (normalizedStatus) {
       case "PENDING":
         return "bg-indigo-100 text-indigo-700";
@@ -76,182 +116,212 @@ const AdminMeetingInfomation = ({ meeting, onClose, onEdit, onDelete, onStatusUp
     <>
       <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
         {/* MODAL */}
-          <div className="bg-white rounded-xl shadow-lg w-full max-w-full lg:max-w-4xl max-h-[95vh] overflow-y-auto hide-scrollbar relative box-border">
-        {/* TOP SECTION */}
-        <div className="bg-tertiary w-full rounded-t-xl p-3 lg:p-3 relative">
-          <h1 className="lg:text-3xl text-xl text-white font-semibold text-center w-full">
-            Meeting
-          </h1>
+        <div className="bg-white rounded-xl shadow-lg w-full max-w-full lg:max-w-4xl max-h-[95vh] overflow-y-auto hide-scrollbar relative box-border">
+          {/* TOP SECTION */}
+          <div className="bg-tertiary w-full rounded-t-xl p-3 lg:p-3 relative">
+            <h1 className="lg:text-3xl text-xl text-white font-semibold text-center w-full">
+              Meeting
+            </h1>
 
-          {/* Close Button */}
-          <button
-            onClick={onClose}
-            className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white cursor-pointer"
-          >
-            <HiX size={25} />
-          </button>
-        </div>
+            {/* Close Button */}
+            <button
+              onClick={onClose}
+              className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white cursor-pointer"
+            >
+              <HiX size={25} />
+            </button>
+          </div>
 
           {/* Header */}
           <div className="mt-4 gap-2 px-2 lg:gap-4 lg:mx-7">
-          <div className="flex flex-col md:flex-row md:justify-between lg:flex-row lg:items-center lg:justify-between mt-3 gap-2 px-2 md:items-center lg:gap-4 md:mx-7">
-  <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-    <h1 className="text-xl sm:text-2xl font-semibold text-gray-800">
-                {meeting.subject || "Meeting"}
-              </h1>
-              <span
-                className={`text-xs sm:text-sm font-medium px-2 sm:px-3 py-1 rounded-full whitespace-nowrap ${getStatusBadgeClass(
-                  toAdminStatus(meeting.status)
-                )}`}
-              >
-                {toAdminStatus(meeting.status || "PENDING").replace("_", " ")}
-              </span>
-            </div>
+            <div className="flex flex-col md:flex-row md:justify-between lg:flex-row lg:items-center lg:justify-between mt-3 gap-2 px-2 md:items-center lg:gap-4 md:mx-7">
+              <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+                <h1 className="text-xl sm:text-2xl font-semibold text-gray-800">
+                  {meeting.subject || "Meeting"}
+                </h1>
+                <span
+                  className={`text-xs sm:text-sm font-medium px-2 sm:px-3 py-1 rounded-full whitespace-nowrap ${getStatusBadgeClass(
+                    toAdminStatus(meeting.status),
+                  )}`}
+                >
+                  {toAdminStatus(meeting.status || "PENDING").replace("_", " ")}
+                </span>
+              </div>
 
-            <div className="flex flex-col sm:flex-row sm:space-x-3 space-y-2 sm:space-y-0">
-              {(!isSalesView || meeting.created_by === currentUser?.id) && (
-                <>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (onEdit) {
-                        onEdit(meeting);
-                      }
-                    }}
-                    className="inline-flex items-center justify-center w-full sm:w-auto bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 transition text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
-                  >
-                    <FiEdit2 className="mr-2" />
-                    Edit
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (onDelete) {
-                        onDelete(meeting);
-                      }
-                    }}
-                    className={`inline-flex items-center justify-center w-full sm:w-auto px-4 py-2 rounded-md text-sm text-white transition focus:outline-none ${
-                      isSalesView
-                        ? "bg-orange-500 hover:bg-orange-600 focus:ring-2 focus:ring-orange-400"
-                        : "bg-red-500 hover:bg-red-600 focus:ring-2 focus:ring-red-400"
-                    }`}
-                  >
-                    {isSalesView ? <FiArchive className="mr-2" /> : <FiTrash2 className="mr-2" />}
-                    {isSalesView ? "Archive" : "Delete"}
-                  </button>
-                </>
-              )}
+              <div className="flex flex-col sm:flex-row sm:space-x-3 space-y-2 sm:space-y-0">
+                {(!isSalesView || meeting.created_by === currentUser?.id) && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (onEdit) {
+                          onEdit(meeting);
+                        }
+                      }}
+                      className="inline-flex items-center justify-center w-full sm:w-auto bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 transition text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+                    >
+                      <FiEdit2 className="mr-2" />
+                      Edit
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (onDelete) {
+                          onDelete(meeting);
+                        }
+                      }}
+                      className={`inline-flex items-center justify-center w-full sm:w-auto px-4 py-2 rounded-md text-sm text-white transition focus:outline-none ${
+                        isSalesView
+                          ? "bg-orange-500 hover:bg-orange-600 focus:ring-2 focus:ring-orange-400"
+                          : "bg-red-500 hover:bg-red-600 focus:ring-2 focus:ring-red-400"
+                      }`}
+                    >
+                      {isSalesView ? (
+                        <FiArchive className="mr-2" />
+                      ) : (
+                        <FiTrash2 className="mr-2" />
+                      )}
+                      {isSalesView ? "Archive" : "Delete"}
+                    </button>
+                  </>
+                )}
+              </div>
             </div>
           </div>
-          </div>
-        
+
           <div className="border-b border-gray-200 my-5"></div>
 
           {/* TABS */}
-           <div className="p-6 lg:p-4">
-          <div className="flex w-full bg-[#6A727D] text-white mt-1 overflow-x-auto mb-6">
-            {["Overview", "Notes"].map((tab) => (
-              <button
-                key={tab}
-                onClick={() => setActiveTab(tab)}
-                className={`flex-1 min-w-[90px] px-4 py-2.5 text-xs sm:text-sm font-medium text-center transition-all duration-200 border-b-2
+          <div className="p-6 lg:p-4">
+            <div className="flex w-full bg-[#6A727D] text-white mt-1 overflow-x-auto mb-6">
+              {["Overview", "Notes"].map((tab) => (
+                <button
+                  key={tab}
+                  onClick={() => setActiveTab(tab)}
+                  className={`flex-1 min-w-[90px] px-4 py-2.5 text-xs sm:text-sm font-medium text-center transition-all duration-200 border-b-2
         ${
           activeTab === tab
             ? "bg-paper-white text-[#6A727D] border-white"
             : "text-white hover:bg-[#5c636d]"
         }`}
-              >
-                {tab}
-              </button>
-            ))}
-          </div>
+                >
+                  {tab}
+                </button>
+              ))}
+            </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 items-start">
-            {/* ------- TAB CONTENT ------ */}
-            <div className="lg:col-span-3">
-              {activeTab === "Overview" && (
-                <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6 md:p-8 border border-gray-200">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-4 sm:gap-6 text-sm text-gray-700">
-                  <div>
-                      <p className="font-semibold">Start Time:</p>
-                      <p>{meeting.start_time ? new Date(meeting.start_time).toLocaleString() : "N/A"}</p>
-                    </div>
-                    <div>
-                      <p className="font-semibold">End Time:</p>
-                      <p>{meeting.end_time ? new Date(meeting.end_time).toLocaleString() : "N/A"}</p>
-                    </div>
-                    <div>
-                      <p className="font-semibold">Meeting Title:</p>
-                      <p>{meeting.subject || "N/A"}</p>
-                    </div>
-                    <div>
-                      <p className="font-semibold">Location:</p>
-                      <p>{meeting.location || "N/A"}</p>
-                    </div>
-                    <div>
-                      <p className="font-semibold">Assigned To:</p>
-                      <p>{meeting.meet_assign_to.first_name} {meeting.meet_assign_to.last_name}</p>
-                    </div>
-                    {meeting.lead && (
+            <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 items-start">
+              {/* ------- TAB CONTENT ------ */}
+              <div className="lg:col-span-3">
+                {activeTab === "Overview" && (
+                  <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6 md:p-8 border border-gray-200">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-4 sm:gap-6 text-sm text-gray-700">
                       <div>
-                        <p className="font-semibold">Lead:</p>
-                        <p>{meeting.lead.title}</p>
+                        <p className="font-semibold">Start Time:</p>
+                        <p>
+                          {meeting.start_time
+                            ? new Date(meeting.start_time).toLocaleString()
+                            : "N/A"}
+                        </p>
                       </div>
-                    )}
-                    {meeting.account && (
                       <div>
-                        <p className="font-semibold">Account:</p>
-                        <p>{meeting.account.name}</p>
+                        <p className="font-semibold">End Time:</p>
+                        <p>
+                          {meeting.end_time
+                            ? new Date(meeting.end_time).toLocaleString()
+                            : "N/A"}
+                        </p>
                       </div>
-                    )}
-                    {meeting.contact && (
                       <div>
-                        <p className="font-semibold">Contact:</p>
-                        <p>{meeting.contact.first_name} {meeting.contact.last_name}</p>
+                        <p className="font-semibold">Meeting Title:</p>
+                        <p>{meeting.subject || "N/A"}</p>
                       </div>
-                    )}
-                    {meeting.deal && (
                       <div>
-                        <p className="font-semibold">Deal:</p>
-                        <p>{meeting.deal.name}</p>
+                        <p className="font-semibold">Location:</p>
+                        <p>{meeting.location || "N/A"}</p>
                       </div>
-                    )}
-                    {meeting.quote && (
                       <div>
-                        <p className="font-semibold">Quote:</p>
-                        <p>{formatQuoteId(meeting.quote.quote_id)}</p>
+                        <p className="font-semibold">Assigned To:</p>
+                        <p>
+                          {meeting.meet_assign_to.first_name}{" "}
+                          {meeting.meet_assign_to.last_name}
+                        </p>
                       </div>
-                    )}
-                    <div>
-                      <p className="font-semibold">Status:</p>
-                      <p>{toAdminStatus(meeting.status || "PENDING").replace("_", " ")}</p>
+                      {meeting.lead && (
+                        <div>
+                          <p className="font-semibold">Lead:</p>
+                          <p>{meeting.lead.title}</p>
+                        </div>
+                      )}
+                      {meeting.account && (
+                        <div>
+                          <p className="font-semibold">Account:</p>
+                          <p>{meeting.account.name}</p>
+                        </div>
+                      )}
+                      {meeting.contact && (
+                        <div>
+                          <p className="font-semibold">Contact:</p>
+                          <p>
+                            {meeting.contact.first_name}{" "}
+                            {meeting.contact.last_name}
+                          </p>
+                        </div>
+                      )}
+                      {meeting.deal && (
+                        <div>
+                          <p className="font-semibold">Deal:</p>
+                          <p>{meeting.deal.name}</p>
+                        </div>
+                      )}
+                      {meeting.quote && (
+                        <div>
+                          <p className="font-semibold">Quote:</p>
+                          <p>{formatQuoteId(meeting.quote.quote_id)}</p>
+                        </div>
+                      )}
+                      <div>
+                        <p className="font-semibold">Status:</p>
+                        <p>
+                          {toAdminStatus(meeting.status || "PENDING").replace(
+                            "_",
+                            " ",
+                          )}
+                        </p>
+                      </div>
                     </div>
                   </div>
-                </div>
-              )}
+                )}
 
-                    {/* ------- Notes ------ */}
-            {activeTab === "Notes" && (
-              <div className="mt-4 w-full">
-                <div className="flex flex-wrap items-center justify-between mb-4 gap-2">
-                  <h3 className="text-lg font-semibold text-gray-800 break-words">Meeting Note</h3>
-                </div>
-
-                <div className="bg-white border border-gray-100 rounded-lg p-4 shadow-sm break-words">
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-gray-800 break-words">
-                        Note
-                      </p>
+                {/* ------- Notes ------ */}
+                {activeTab === "Notes" && (
+                  <div className="mt-4 w-full">
+                    <div className="flex flex-wrap items-center justify-between mb-4 gap-2">
+                      <h3 className="text-lg font-semibold text-gray-800 break-words">
+                        Meeting Note
+                      </h3>
                     </div>
+
+                    <div className="bg-white border border-gray-100 rounded-lg p-4 shadow-sm break-words">
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <p className="text-sm font-medium text-gray-800 break-words">
+                            Note
+                          </p>
+                        </div>
+                      </div>
+                      <div className="mt-3 text-sm text-gray-700 whitespace-pre-wrap break-words">
+                        {meeting.notes || "No notes available."}
+                      </div>
+                    </div>
+
+                    <CommentSection
+                      comments={meetingComments}
+                      onAddComment={addMeetingComment}
+                    />
                   </div>
-                  <div className="mt-3 text-sm text-gray-700 whitespace-pre-wrap break-words">
-                    {meeting.notes || "No notes available."}
-                  </div>
-                </div>
+                )}
               </div>
-            )}
-    </div>
 
               {/* STATUS */}
               <div className="bg-white border border-gray-100 rounded-lg p-3 sm:p-4 shadow-sm w-full">
@@ -272,7 +342,8 @@ const AdminMeetingInfomation = ({ meeting, onClose, onEdit, onDelete, onStatusUp
                   onClick={async () => {
                     if (!onStatusUpdate || !meeting?.id) return;
                     const backendStatus = toBackendStatus(selectedStatus);
-                    if (toAdminStatus(meeting.status) === selectedStatus) return;
+                    if (toAdminStatus(meeting.status) === selectedStatus)
+                      return;
 
                     setIsUpdatingStatus(true);
                     try {
@@ -283,7 +354,9 @@ const AdminMeetingInfomation = ({ meeting, onClose, onEdit, onDelete, onStatusUp
                       setIsUpdatingStatus(false);
                     }
                   }}
-                  disabled={selectedStatus === meeting.status || isUpdatingStatus}
+                  disabled={
+                    selectedStatus === meeting.status || isUpdatingStatus
+                  }
                   className={`w-full py-1.5 rounded-md text-sm transition focus:outline-none focus:ring-2 ${
                     selectedStatus === meeting.status || isUpdatingStatus
                       ? "bg-gray-400 cursor-not-allowed text-white"

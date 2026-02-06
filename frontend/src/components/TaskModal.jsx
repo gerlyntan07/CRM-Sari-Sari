@@ -421,7 +421,7 @@ const [isSubmitted, setIsSubmitted] = useState(false);
     onChange={handleChange}
     value={formData.relatedType1}
     disabled={viewMode}
-    className="w-full pr-6 rounded-md text-sm"
+    className="w-full pr-6 rounded-md text-sm mb-2"
   >
     <option value="Lead">Lead</option>
     <option value="Account">Account</option>

@@ -1987,7 +1987,6 @@ export default function AdminQuotes() {
             options={STATUS_OPTIONS}
             required
             disabled={isSubmitting}
-            className="md:col-span-2"
           />
 
           <TextareaField

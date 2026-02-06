@@ -255,6 +255,20 @@ const extractDealContactId = (deal) => {
   return found ? String(found) : "";
 };
 
+const resolveAssignedToId = (quote) => {
+  if (!quote) return "";
+  const candidates = [
+    quote.assigned_user?.id,
+    quote.assigned_to?.id,
+    quote.assigned_to,
+    quote.assigned_user_id,
+  ];
+  const found = candidates.find(
+    (v) => v !== null && v !== undefined && String(v).trim() !== "",
+  );
+  return found ? String(found) : "";
+};
+
 export default function AdminQuotes() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -325,6 +339,11 @@ export default function AdminQuotes() {
   const [selectedStatus, setSelectedStatus] = useState("Draft");
   const [selectedIds, setSelectedIds] = useState([]);
   const [pendingQuoteId, setPendingQuoteId] = useState(null);
+
+  const quickActionAssignedTo = useMemo(
+    () => resolveAssignedToId(selectedQuote),
+    [selectedQuote],
+  );
 
   const {
     comments: quoteComments,
@@ -1456,10 +1475,15 @@ export default function AdminQuotes() {
                   <div className="flex flex-col gap-2 w-full">
                     <button
                       onClick={() =>
-                        navigate("/admin/calls", {
+                        navigate("/group-manager/calls", {
                           state: {
                             openCallModal: true,
-                            initialCallData: { relatedType1: "Quotes" },
+                            initialCallData: {
+                              subject: `Call regarding Quote ${formatQuoteId(selectedQuote.quote_id)}`,
+                              assigned_to: quickActionAssignedTo,
+                              direction: "Outgoing",
+                              status: "Planned",
+                            },
                           },
                         })
                       }
@@ -1472,10 +1496,14 @@ export default function AdminQuotes() {
                     <button
                       className="flex items-center gap-2 border border-gray-100 rounded-md py-1.5 px-2 sm:px-3 hover:bg-gray-50 transition text-sm"
                       onClick={() =>
-                        navigate("/admin/meetings", {
+                        navigate("/group-manager/meetings", {
                           state: {
                             openMeetingModal: true,
-                            initialMeetingData: { relatedType: "Quotes" },
+                            initialMeetingData: {
+                              subject: `Meeting with ${selectedQuote.quote_id}`,
+                              assignedTo: quickActionAssignedTo,
+                              status: "Planned",
+                            },
                           },
                         })
                       }
@@ -1486,10 +1514,15 @@ export default function AdminQuotes() {
 
                     <button
                       onClick={() =>
-                        navigate("/admin/tasks", {
+                        navigate("/group-manager/tasks", {
                           state: {
                             openTaskModal: true,
-                            initialTaskData: { relatedTo: "Quotes" },
+                            initialTaskData: {
+                              subject: `Follow up with ${selectedQuote.quote_id}`,
+                              assignedTo: quickActionAssignedTo,
+                              priority: "NORMAL",
+                              status: "Not Started",
+                            },
                           },
                         })
                       }
@@ -1987,7 +2020,6 @@ export default function AdminQuotes() {
             options={STATUS_OPTIONS}
             required
             disabled={isSubmitting}
-            className="md:col-span-2"
           />
 
           <TextareaField

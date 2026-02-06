@@ -1456,10 +1456,21 @@ export default function AdminQuotes() {
                   <div className="flex flex-col gap-2 w-full">
                     <button
                       onClick={() =>
-                        navigate("/admin/calls", {
+                        navigate("/manager/tasks", {
                           state: {
-                            openCallModal: true,
-                            initialCallData: { relatedType1: "Quotes" },
+                            openTaskModal: true,
+                            initialTaskData: {
+                              subject: `Follow up with ${selectedQuote.quote_id}`,
+
+                              assignedTo: selectedQuote.assigned_user?.id
+                                ? String(selectedQuote.assigned_user.id)
+                                : selectedQuote.assigned_to
+                                  ? String(selectedQuote.assigned_to)
+                                  : "",
+
+                              priority: "NORMAL",
+                              status: "Not Started",
+                            },
                           },
                         })
                       }
@@ -1472,10 +1483,20 @@ export default function AdminQuotes() {
                     <button
                       className="flex items-center gap-2 border border-gray-100 rounded-md py-1.5 px-2 sm:px-3 hover:bg-gray-50 transition text-sm"
                       onClick={() =>
-                        navigate("/admin/meetings", {
+                         navigate("/manager/meetings", {
                           state: {
                             openMeetingModal: true,
-                            initialMeetingData: { relatedType: "Quotes" },
+                            initialMeetingData: {
+                              subject: `Meeting with ${selectedQuote.quote_id}`,
+
+                              assignedTo: selectedQuote.assigned_user?.id
+                                ? String(selectedQuote.assigned_user.id)
+                                : selectedQuote.assigned_to
+                                  ? String(selectedQuote.assigned_to)
+                                  : "",
+
+                              status: "Planned",
+                            },
                           },
                         })
                       }
@@ -1987,7 +2008,6 @@ export default function AdminQuotes() {
             options={STATUS_OPTIONS}
             required
             disabled={isSubmitting}
-            className="md:col-span-2"
           />
 
           <TextareaField

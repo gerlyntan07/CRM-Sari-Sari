@@ -456,7 +456,7 @@ export default function AdminTask() {
         priority: "Normal",
         status: "Not started",
         dueDate: "",
-        assignedTo: "",
+        assignedTo: currentUser?.role === "Sales" ? String(currentUser.id) : "",
         notes: "",
         relatedType1: "Lead",
         relatedType2: "Contact",

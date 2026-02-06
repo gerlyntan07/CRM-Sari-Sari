@@ -68,6 +68,13 @@ async def create_task(
     current_user: User = Depends(get_current_user),
     request: Request = None,
 ):    
+    # --- AUTO-ASSIGN FOR SALES ROLE ---
+    # If user has SALES role and no assigned_to is provided, assign to self
+    assigned_to = payload.assigned_to
+    if current_user.role.upper() == "SALES" and not assigned_to:
+        assigned_to = current_user.id
+    # ------------------------------------------
+
     # --- 1. NORMALIZE ENUM VALUES (THE FIX) ---
     # Defines valid DB values mapped from possible uppercase frontend inputs
     priority_map = {
@@ -86,8 +93,8 @@ async def create_task(
     # ------------------------------------------
 
     assigned_user = None
-    if payload.assigned_to:
-        assigned_user = db.query(User).filter(User.id == payload.assigned_to).first()
+    if assigned_to:
+        assigned_user = db.query(User).filter(User.id == assigned_to).first()
         if not assigned_user:
             raise HTTPException(status_code=404, detail="Assigned user not found")            
 
@@ -98,7 +105,7 @@ async def create_task(
         status=clean_status,     # <--- Use the cleaned variable
         due_date=payload.due_date,
         created_by=current_user.id,
-        assigned_to=payload.assigned_to,
+        assigned_to=assigned_to,
     )
 
     # Primary relation validation and assignment
@@ -259,7 +266,14 @@ async def update_task(
     old_status = task.status.value if hasattr(task.status, "value") else task.status
     
     # Apply updates
-    for field, value in payload.dict(exclude_unset=True).items():
+    updates = payload.dict(exclude_unset=True)
+    
+    # AUTO-ASSIGN FOR SALES ROLE
+    # If user has SALES role, force assignment to themselves
+    if current_user.role.upper() == "SALES":
+        updates['assigned_to'] = current_user.id
+    
+    for field, value in updates.items():
         if hasattr(task, field):
             setattr(task, field, value)
 

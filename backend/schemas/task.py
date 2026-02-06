@@ -28,7 +28,7 @@ class TaskCreate(BaseModel):
     related_type_2: Optional[str] = None
     related_to_1: int
     related_to_2: Optional[int] = None
-    assigned_to: int
+    assigned_to: Optional[int] = None
 
 
 # ------------------------------
@@ -44,7 +44,7 @@ class TaskUpdate(BaseModel):
     related_type_2: Optional[str] = None
     related_to_1: int
     related_to_2: Optional[int] = None
-    assigned_to: int
+    assigned_to: Optional[int] = None
 
 
 class TaskBulkDelete(BaseModel):

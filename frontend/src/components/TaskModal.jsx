@@ -562,12 +562,12 @@ const [isSubmitted, setIsSubmitted] = useState(false);
 
                     <div>
                       <label className="block text-gray-700 font-medium mb-1 text-sm">
-                        Assign To <span className="text-red-500 font-semibold">*</span>
+                        Assign To {currentUser?.role !== "Sales" && <span className="text-red-500 font-semibold">*</span>}
                       </label>
                       <SearchableSelect
                         items={Array.isArray(users) ? users : []}
                         value={formData.assignedTo ?? ""}
-                        placeholder={`Search an account...`}
+                        placeholder={currentUser?.role === 'Sales' ? `${currentUser.first_name} ${currentUser.last_name}` : `Search an account...`}
                         getLabel={(item) =>
                           `${item.first_name} ${item.last_name}`
                         }
@@ -578,7 +578,7 @@ const [isSubmitted, setIsSubmitted] = useState(false);
                           }))
                         }
                         disabled={viewMode || currentUser?.role === 'Sales'}
-                          required={true}      
+                          required={currentUser?.role !== "Sales"}      
                          isSubmitted={isSubmitted} 
                       />
                     </div>

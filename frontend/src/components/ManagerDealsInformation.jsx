@@ -4,6 +4,8 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import ManagerDealsQuickAction from "../components/ManagerDealsQuickAction";
 import api from "../api";
 import useFetchUser from "../hooks/useFetchUser";
+import CommentSection from "../components/CommentSection.jsx";
+import { useComments } from "../hooks/useComments.js";
 
 export default function ManagerDealsInformation({
   selectedDeal: selectedDealProp,
@@ -22,10 +24,18 @@ export default function ManagerDealsInformation({
   const [localActiveTab, setLocalActiveTab] = useState(activeTab || "Overview");
   const {user} = useFetchUser();
 
+  const {
+    comments: dealComments,
+    addComment: addDealComment,
+    refresh: refreshDealComments,
+  } = useComments({
+    relatedType: "deal",
+    relatedId: selectedDeal?.id,
+  });
+
   useEffect(() => {
-    console.log('AdminDealsInformation mounted', selectedDeal);
-    console.log('User:', user);
-  }, [selectedDeal, user])
+    if (selectedDeal?.id) refreshDealComments();
+  }, [selectedDeal?.id, refreshDealComments]);
   
   // Use local tab state if no activeTab prop is provided
   const currentTab = activeTab !== undefined ? activeTab : localActiveTab;
@@ -35,25 +45,11 @@ export default function ManagerDealsInformation({
     const fetchDealFromRoute = async () => {
       if (dealIdFromQuery && !selectedDealProp) {
         try {
-          console.log('Fetching deal from route, ID:', dealIdFromQuery);
           // Fetch all deals to get the one we need with relationships
           const response = await api.get(`/deals/admin/fetch-all`);
           const deals = response.data || [];
-          console.log('All deals fetched:', deals.length);
           const deal = deals.find(d => d.id === parseInt(dealIdFromQuery));
-          console.log('Found deal:', deal);
           if (deal) {
-            console.log('Deal data structure:', {
-              id: deal.id,
-              name: deal.name,
-              amount: deal.amount,
-              stage: deal.stage,
-              account: deal.account,
-              contact: deal.contact,
-              assigned_deals: deal.assigned_deals,
-              deal_creator: deal.deal_creator,
-              allKeys: Object.keys(deal)
-            });
             // Ensure amount is a number
             const dealWithFormattedAmount = {
               ...deal,
@@ -349,6 +345,11 @@ export default function ManagerDealsInformation({
                     {selectedDeal.description || "No notes available."}
                   </div>
                 </div>
+
+                <CommentSection
+                    comments={dealComments}
+                    onAddComment={addDealComment}
+                  />
               </div>
             )}
 

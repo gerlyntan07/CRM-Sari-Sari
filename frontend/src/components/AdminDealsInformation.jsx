@@ -15,6 +15,8 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import AdminDealsQuickAction from "../components/AdminDealsQuickAction";
 import api from "../api";
 import useAuth from "../hooks/useAuth";
+import CommentSection from "../components/CommentSection.jsx";
+import { useComments } from "../hooks/useComments.js";
 
 export default function AdminDealsInformation({
   selectedDeal: selectedDealProp,
@@ -33,25 +35,44 @@ export default function AdminDealsInformation({
   const [selectedDeal, setSelectedDeal] = useState(selectedDealProp || null);
   const [localActiveTab, setLocalActiveTab] = useState(activeTab || "Overview");
   const [expandedSection, setExpandedSection] = useState(null);
-  const [role, setRole] = useState('');
-  const {userRole} = useAuth();
+  const [role, setRole] = useState("");
+  const { userRole } = useAuth();
+
+  const {
+    comments: dealComments,
+    addComment: addDealComment,
+    refresh: refreshDealComments,
+  } = useComments({
+    relatedType: "deal",
+    relatedId: selectedDeal?.id,
+  });
+
+  useEffect(() => {
+    if (selectedDeal?.id) refreshDealComments();
+  }, [selectedDeal?.id, refreshDealComments]);
 
   // Use local tab state if no activeTab prop is provided
   const currentTab = activeTab !== undefined ? activeTab : localActiveTab;
 
   useEffect(() => {
-    if (userRole.toLowerCase() === 'ceo' || userRole.toLowerCase() === 'admin') {
-      setRole('admin');
-    } else if (userRole.toLowerCase() === 'group manager' || userRole.toLowerCase() === 'group_manager') {
-      setRole('group-manager');
-    } else if (userRole.toLowerCase() === 'manager') {
-      setRole('manager');
-    }else if (userRole.toLowerCase() === 'sales') {
-      setRole('sales');
+    if (
+      userRole.toLowerCase() === "ceo" ||
+      userRole.toLowerCase() === "admin"
+    ) {
+      setRole("admin");
+    } else if (
+      userRole.toLowerCase() === "group manager" ||
+      userRole.toLowerCase() === "group_manager"
+    ) {
+      setRole("group-manager");
+    } else if (userRole.toLowerCase() === "manager") {
+      setRole("manager");
+    } else if (userRole.toLowerCase() === "sales") {
+      setRole("sales");
     } else {
-      setRole('guest');
+      setRole("guest");
     }
-  }, [userRole])
+  }, [userRole]);
 
   // Fetch deal if accessed via route with query param
   useEffect(() => {
@@ -403,6 +424,11 @@ export default function AdminDealsInformation({
                       {selectedDeal.description || "No notes available."}
                     </div>
                   </div>
+
+                  <CommentSection
+                    comments={dealComments}
+                    onAddComment={addDealComment}
+                  />
                 </div>
               )}
 
@@ -443,7 +469,12 @@ export default function AdminDealsInformation({
                             {relatedActs.tasks.map((task, idx) => (
                               <div
                                 key={`task-${idx}`}
-                                className="flex flex-col sm:flex-row justify-between items-start border border-gray-100 rounded-lg p-3 bg-gray-50 w-full break-words cursor-pointer" onClick={() => navigate(`/${role}/tasks`, { state: { taskID: task.id } })}
+                                className="flex flex-col sm:flex-row justify-between items-start border border-gray-100 rounded-lg p-3 bg-gray-50 w-full break-words cursor-pointer"
+                                onClick={() =>
+                                  navigate(`/${role}/tasks`, {
+                                    state: { taskID: task.id },
+                                  })
+                                }
                               >
                                 <div className="flex gap-3 mb-2 sm:mb-0 flex-1 min-w-0">
                                   <div className="text-blue-600 mt-1">
@@ -508,7 +539,12 @@ export default function AdminDealsInformation({
                               {relatedActs.meetings.map((meeting, idx) => (
                                 <div
                                   key={`meeting-${idx}`}
-                                  className="flex flex-col sm:flex-row justify-between items-start border border-gray-100 rounded-lg p-3 bg-gray-50 w-full break-words cursor-pointer" onClick={() => navigate(`/${role}/meetings`, { state: { meetingID: meeting.id } })}
+                                  className="flex flex-col sm:flex-row justify-between items-start border border-gray-100 rounded-lg p-3 bg-gray-50 w-full break-words cursor-pointer"
+                                  onClick={() =>
+                                    navigate(`/${role}/meetings`, {
+                                      state: { meetingID: meeting.id },
+                                    })
+                                  }
                                 >
                                   <div className="flex gap-3 mb-2 sm:mb-0 flex-1 min-w-0">
                                     <div className="text-green-600 mt-1">
@@ -574,7 +610,12 @@ export default function AdminDealsInformation({
                             {relatedActs.calls.map((call, idx) => (
                               <div
                                 key={`call-${idx}`}
-                                className="flex flex-col sm:flex-row justify-between items-start border border-gray-100 rounded-lg p-3 bg-gray-50 w-full break-words cursor-pointer" onClick={() => navigate(`/${role}/calls`, { state: { callID: call.id } })}
+                                className="flex flex-col sm:flex-row justify-between items-start border border-gray-100 rounded-lg p-3 bg-gray-50 w-full break-words cursor-pointer"
+                                onClick={() =>
+                                  navigate(`/${role}/calls`, {
+                                    state: { callID: call.id },
+                                  })
+                                }
                               >
                                 <div className="flex gap-3 mb-2 sm:mb-0 flex-1 min-w-0">
                                   <div className="text-purple-600 mt-1">
@@ -630,7 +671,12 @@ export default function AdminDealsInformation({
                             {relatedActs.quotes.map((quote, idx) => (
                               <div
                                 key={`quote-${idx}`}
-                                className="flex flex-col sm:flex-row justify-between items-start border border-gray-100 rounded-lg p-3 bg-gray-50 w-full break-words cursor-pointer" onClick={() => navigate(`/${role}/quotes`, { state: { quoteID: quote.id } })}
+                                className="flex flex-col sm:flex-row justify-between items-start border border-gray-100 rounded-lg p-3 bg-gray-50 w-full break-words cursor-pointer"
+                                onClick={() =>
+                                  navigate(`/${role}/quotes`, {
+                                    state: { quoteID: quote.id },
+                                  })
+                                }
                               >
                                 <div className="flex gap-3 mb-2 sm:mb-0 flex-1 min-w-0">
                                   <div className="text-orange-600 mt-1">

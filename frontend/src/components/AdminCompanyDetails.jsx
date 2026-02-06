@@ -1,16 +1,19 @@
-import React, { useState, useEffect } from "react";
-import { FiSave, FiBriefcase, FiAlertCircle, FiDollarSign, FiCalendar, FiPercent } from "react-icons/fi"; 
+import React, { useState, useEffect, useRef } from "react";
+import { FiSave, FiBriefcase, FiAlertCircle, FiDollarSign, FiCalendar, FiPercent, FiImage, FiUpload } from "react-icons/fi"; 
 import api from "../api"; 
 import useFetchUser from "../hooks/useFetchUser";
 
 export default function AdminCompanyDetails() {
   const { user, mutate } = useFetchUser();
+  const fileInputRef = useRef(null);
   
   // Form States
   const [companyName, setCompanyName] = useState("");
   const [currency, setCurrency] = useState("₱");
   const [quotaPeriod, setQuotaPeriod] = useState("January");
-  const [taxRate, setTaxRate] = useState(0); 
+  const [taxRate, setTaxRate] = useState(0);
+  const [companyLogo, setCompanyLogo] = useState(null); // Current logo from DB
+  const [newLogo, setNewLogo] = useState(null); // New uploaded logo (base64)
   
   // UI States
   const [loading, setLoading] = useState(false);
@@ -28,8 +31,37 @@ export default function AdminCompanyDetails() {
       if (user.company.currency) setCurrency(user.company.currency);
       if (user.company.quota_period) setQuotaPeriod(user.company.quota_period);
       if (user.company.tax_rate !== undefined) setTaxRate(user.company.tax_rate);
+      if (user.company.company_logo) setCompanyLogo(user.company.company_logo);
     }
   }, [user]);
+
+  // Handle logo file selection
+  const handleLogoChange = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      setMessage({ type: "error", text: "Please select an image file" });
+      return;
+    }
+
+    if (file.size > 2 * 1024 * 1024) {
+      setMessage({ type: "error", text: "Image size should be less than 2MB" });
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setNewLogo(reader.result);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  // Remove logo
+  const handleRemoveLogo = () => {
+    setNewLogo("");
+    setCompanyLogo(null);
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -37,19 +69,29 @@ export default function AdminCompanyDetails() {
     setMessage({ type: "", text: "" });
 
     try {
-      // Send all details in the payload including the new tax_rate
-      await api.put("/company/update-name", {
+      // Build payload
+      const payload = {
         company_name: companyName,
         currency: currency,
         quota_period: quotaPeriod, 
-        tax_rate: parseFloat(taxRate)
-      });
+        tax_rate: parseFloat(taxRate),
+      };
+
+      // Include logo if changed
+      if (newLogo !== null) {
+        payload.company_logo = newLogo || null; // "" means remove, otherwise set new
+      }
+
+      await api.put("/company/update-name", payload);
 
       // Refresh global user data
       if (mutate) {
         await mutate();
       }
 
+      // Reset newLogo state after successful save
+      setNewLogo(null);
+      
       setMessage({ type: "success", text: "Company settings updated successfully!" });
     } catch (error) {
       console.error("Update error:", error);
@@ -94,6 +136,63 @@ export default function AdminCompanyDetails() {
             placeholder="Enter company name"
             required
           />
+        </div>
+
+        {/* 2. Company Logo */}
+        <div>
+          <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
+            <FiImage className="text-gray-500" /> Company Logo
+          </label>
+          <div className="flex items-center gap-4">
+            {/* Logo Preview */}
+            <div className="flex-shrink-0">
+              {(newLogo || companyLogo) ? (
+                <img 
+                  src={newLogo || companyLogo} 
+                  alt="Company Logo" 
+                  className="w-16 h-16 object-contain border border-gray-200 rounded-lg bg-gray-50"
+                />
+              ) : (
+                <div className="w-16 h-16 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center bg-gray-50">
+                  <FiImage className="text-gray-400 text-xl" />
+                </div>
+              )}
+            </div>
+            
+            {/* Upload Controls */}
+            {canEdit && (
+              <div className="flex flex-col gap-2">
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  accept="image/*"
+                  onChange={handleLogoChange}
+                  className="hidden"
+                  id="company-logo-upload"
+                />
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={loading}
+                  className="flex items-center gap-2 px-3 py-1.5 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 transition disabled:opacity-50"
+                >
+                  <FiUpload className="text-gray-500" />
+                  {(newLogo || companyLogo) ? "Change Logo" : "Upload Logo"}
+                </button>
+                {(newLogo || companyLogo) && (
+                  <button
+                    type="button"
+                    onClick={handleRemoveLogo}
+                    disabled={loading}
+                    className="text-xs text-red-600 hover:text-red-700 transition"
+                  >
+                    Remove Logo
+                  </button>
+                )}
+                <p className="text-xs text-gray-500">Max 2MB, PNG or JPG</p>
+              </div>
+            )}
+          </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

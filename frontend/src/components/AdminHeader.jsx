@@ -120,6 +120,13 @@ export default function AdminHeader({ toggleSidebar }) {
         >
           <FiMenu className="text-2xl" />
         </button>
+        {user?.company?.company_logo && (
+          <img 
+            src={user.company.company_logo} 
+            alt="Company Logo" 
+            className="w-20 h-10 object-contain rounded"
+          />
+        )}
         <h1 className="text-lg font-semibold text-gray-800">{currentTitle}</h1>
       </div>
 

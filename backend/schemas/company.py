@@ -18,6 +18,7 @@ class CompanyUpdate(BaseModel):
     currency: Optional[str] = "₱"       # e.g., "₱" or "$"
     quota_period: Optional[str] = "January" # e.g., "April"
     tax_rate: Optional[float] = 0       # Default tax rate percentage
+    company_logo: Optional[str] = None  # Base64 encoded logo image
 
     class Config:
         orm_mode = True

@@ -67,6 +67,10 @@ def update_company_details(
     if payload.tax_rate is not None:
         company.tax_rate = payload.tax_rate
 
+    # ✅ Update Company Logo (if provided)
+    if payload.company_logo is not None:
+        company.company_logo = payload.company_logo
+
     db.commit()
     db.refresh(company)
 

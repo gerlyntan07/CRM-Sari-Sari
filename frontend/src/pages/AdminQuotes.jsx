@@ -687,7 +687,12 @@ export default function AdminQuotes() {
   };
 
   const handleOpenAddModal = () => {
-    setFormData(INITIAL_FORM_STATE);
+    // Use company's default tax rate when creating a new quote
+    const companyTaxRate = user?.company?.tax_rate ?? 0;
+    setFormData({
+      ...INITIAL_FORM_STATE,
+      tax_rate: companyTaxRate,
+    });
     setIsEditing(false);
     setCurrentQuoteId(null);
     setShowModal(true);
@@ -1844,7 +1849,7 @@ const [isSubmitted, setIsSubmitted] = useState(false);
                 <label className="block text-gray-600 text-xs mb-1">Tax Rate (%)</label>
                 <input
                   type="number"
-                  value={formData.tax_rate || ""}
+                  value={formData.tax_rate ?? ""}
                   onChange={(e) => setFormData((prev) => ({ ...prev, tax_rate: e.target.value }))}
                   className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm"
                   placeholder="0"

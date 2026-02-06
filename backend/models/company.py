@@ -1,5 +1,5 @@
 # backend/models/company.py
-from sqlalchemy import Column, Integer, String, Boolean, DateTime, func, ForeignKey
+from sqlalchemy import Column, Integer, String, Boolean, DateTime, func, ForeignKey, Numeric
 from sqlalchemy.orm import relationship
 from database import Base
 
@@ -12,7 +12,8 @@ class Company(Base):
     company_website = Column(String, nullable=True)
     company_logo = Column(String, nullable=True)    
     currency = Column(String, default="₱", nullable=True)  
-    quota_period = Column(String, default="January", nullable=True) 
+    quota_period = Column(String, default="January", nullable=True)
+    tax_rate = Column(Numeric(5, 2), default=0, nullable=True)  # Default tax rate percentage
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 

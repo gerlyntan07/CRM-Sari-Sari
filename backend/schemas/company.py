@@ -17,6 +17,7 @@ class CompanyUpdate(BaseModel):
     company_name: str
     currency: Optional[str] = "₱"       # e.g., "₱" or "$"
     quota_period: Optional[str] = "January" # e.g., "April"
+    tax_rate: Optional[float] = 0       # Default tax rate percentage
 
     class Config:
         orm_mode = True
@@ -26,6 +27,7 @@ class CompanyResponse(CompanyBase):
     # ✅ UPDATE: Add these so the Frontend can read the saved settings
     currency: Optional[str] = "₱"
     quota_period: Optional[str] = "January"
+    tax_rate: Optional[float] = 0
     
     created_at: Optional[datetime]
     updated_at: Optional[datetime]

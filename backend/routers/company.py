@@ -63,6 +63,10 @@ def update_company_details(
     if payload.quota_period:
         company.quota_period = payload.quota_period
 
+    # ✅ Update Tax Rate (if provided)
+    if payload.tax_rate is not None:
+        company.tax_rate = payload.tax_rate
+
     db.commit()
     db.refresh(company)
 
@@ -92,7 +96,8 @@ def create_company(
         company_website=str(company_in.company_website) if company_in.company_website else None,
         # Default values for new companies
         currency="₱",
-        quota_period="January"
+        quota_period="January",
+        tax_rate=0
     )
     
     db.add(new_company)

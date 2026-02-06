@@ -17,6 +17,7 @@ from models.contact import Contact
 from models.account import Account
 from models.deal import Deal
 from models.territory import Territory
+from models.company import Company
 
 from .logs_utils import serialize_instance, create_audit_log
 
@@ -161,12 +162,22 @@ def admin_create_quote(
     if data.validity_days is not None and data.validity_days < 0:
         raise HTTPException(status_code=400, detail="Validity days must be >= 0.")
 
+    # Get company's default tax rate if not provided in request
+    default_tax_rate = Decimal('0')
+    if current_user.related_to_company:
+        company = db.query(Company).filter(Company.id == current_user.related_to_company).first()
+        if company and company.tax_rate is not None:
+            default_tax_rate = Decimal(str(company.tax_rate))
+
+    # Use provided tax_rate or fall back to company default
+    quote_tax_rate = data.tax_rate if data.tax_rate is not None and data.tax_rate != Decimal('0') else default_tax_rate
+
     new_quote = Quote(
         deal_id=data.deal_id,
         contact_id=data.contact_id,
         account_id=account_id_final,
         subtotal=data.subtotal or Decimal('0'),
-        tax_rate=data.tax_rate or Decimal('0'),
+        tax_rate=quote_tax_rate,
         tax_amount=data.tax_amount or Decimal('0'),
         discount_type=data.discount_type,
         discount_value=data.discount_value or Decimal('0'),

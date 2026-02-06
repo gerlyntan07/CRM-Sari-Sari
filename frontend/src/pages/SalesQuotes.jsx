@@ -736,7 +736,12 @@ export default function AdminQuotes() {
   };
 
   const handleOpenAddModal = () => {
-    setFormData(INITIAL_FORM_STATE);
+    // For SALES users, auto-assign to themselves
+    const initialData = { ...INITIAL_FORM_STATE };
+    if (user?.role?.toUpperCase() === "SALES" && currentUserId) {
+      initialData.assigned_to = String(currentUserId);
+    }
+    setFormData(initialData);
     setIsEditing(false);
     setCurrentQuoteId(null);
     setShowModal(true);
@@ -896,8 +901,9 @@ export default function AdminQuotes() {
       return;
     }
 
+    // For non-SALES users, assigned_to is required. For SALES users, it's auto-assigned by backend.
     const assignedTo = formData.assigned_to;
-    if (!assignedTo) {
+    if (!assignedTo && user?.role?.toUpperCase() !== "SALES") {
       toast.error("Assigned To is required.");
       return;
     }
@@ -1960,24 +1966,43 @@ export default function AdminQuotes() {
             disabled={isSubmitting}
           />
 
-          <SearchableSelectField
-            label="Assigned To"
-            value={formData.assigned_to || ""}
-            onChange={(newId) =>
-              setFormData((prev) => ({ ...prev, assigned_to: newId }))
-            }
-            items={Array.isArray(users) ? users : []}
-            getLabel={(item) => {
-              const name =
-                `${item?.first_name ?? ""} ${item?.last_name ?? ""}`.trim();
-              if (!name) return item?.email || "";
-              return item?.role ? `${name} (${item.role})` : name;
-            }}
-            placeholder="Search assignee..."
-            required={true}
-            isSubmitted={isSubmitted}
-            disabled={isSubmitting}
-          />
+          {user?.role?.toUpperCase() === "SALES" ? (
+            <div>
+              <label className="block text-gray-700 font-medium mb-1 text-sm">
+                Assigned To <span className="text-red-500">*</span>
+              </label>
+              <div className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm bg-white text-black font-medium">
+                {(() => {
+                  const assignedUser = users.find(
+                    (u) => String(u.id) === formData.assigned_to
+                  );
+                  if (assignedUser) {
+                    return `${assignedUser.first_name} ${assignedUser.last_name}`;
+                  }
+                  return "Assigning...";
+                })()}
+              </div>
+            </div>
+          ) : (
+            <SearchableSelectField
+              label="Assigned To"
+              value={formData.assigned_to || ""}
+              onChange={(newId) =>
+                setFormData((prev) => ({ ...prev, assigned_to: newId }))
+              }
+              items={Array.isArray(users) ? users : []}
+              getLabel={(item) => {
+                const name =
+                  `${item?.first_name ?? ""} ${item?.last_name ?? ""}`.trim();
+                if (!name) return item?.email || "";
+                return item?.role ? `${name} (${item.role})` : name;
+              }}
+              placeholder="Search assignee..."
+              required={true}
+              isSubmitted={isSubmitted}
+              disabled={isSubmitting}
+            />
+          )}
 
           <SelectField
             label="Status"

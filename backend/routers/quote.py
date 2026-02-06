@@ -301,7 +301,12 @@ def admin_update_quote(
     update_data = data.model_dump(exclude_unset=True)
 
     assigned_user_name = None
-    if "assigned_to" in update_data and update_data["assigned_to"]:
+    
+    # Auto-assign to current user if they are SALES
+    if current_user.role.upper() == "SALES":
+        update_data["assigned_to"] = current_user.id
+        assigned_user_name = f"{current_user.first_name} {current_user.last_name}"
+    elif "assigned_to" in update_data and update_data["assigned_to"]:
         assigned_user = db.query(User).filter(
             User.id == update_data["assigned_to"],
             User.related_to_company == current_user.related_to_company

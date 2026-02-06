@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, Response, Request
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 from typing import Dict
 
 # Import your database connection
@@ -11,13 +12,47 @@ from models.auth import User
 
 # Import Schemas
 # ✅ ADDED CompanyUpdate to the import list
-from schemas.company import CompanyCreate, CompanyResponse, CompanyUpdate
+from schemas.company import CompanyCreate, CompanyResponse, CompanyUpdate, CompanyInvoiceInfo
 
 # Import Utilities
 from .auth_utils import get_current_user
 from .logs_utils import serialize_instance, create_audit_log
 
 router = APIRouter(prefix="/company", tags=["Company"])
+
+
+@router.get("/invoice-info", response_model=CompanyInvoiceInfo)
+def get_company_invoice_info(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Returns company info needed for invoice printing, including CEO email."""
+    if not current_user.related_to_company:
+        raise HTTPException(status_code=400, detail="Current user is not linked to any company.")
+
+    company = (
+        db.query(Company)
+        .filter(Company.id == current_user.related_to_company)
+        .first()
+    )
+    if not company:
+        raise HTTPException(status_code=404, detail="Company record not found.")
+
+    ceo = (
+        db.query(User)
+        .filter(User.related_to_company == company.id)
+        .filter(func.lower(User.role) == "ceo")
+        .filter(User.is_active == True)
+        .order_by(User.id.asc())
+        .first()
+    )
+
+    return {
+        "company_name": company.company_name,
+        "company_number": company.company_number,
+        "company_logo": company.company_logo,
+        "ceo_email": (ceo.email if ceo else None),
+    }
 
 @router.put("/update-name")
 def update_company_details(

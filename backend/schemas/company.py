@@ -35,3 +35,15 @@ class CompanyResponse(CompanyBase):
 
     class Config:
         orm_mode = True
+
+
+class CompanyInvoiceInfo(BaseModel):
+    """Minimal payload needed to print quote invoice."""
+
+    company_name: str
+    company_number: str
+    company_logo: Optional[str] = None
+    ceo_email: Optional[str] = None
+
+    class Config:
+        orm_mode = True

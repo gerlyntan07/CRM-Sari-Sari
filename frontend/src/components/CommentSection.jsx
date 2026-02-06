@@ -56,20 +56,20 @@ function CommentSection({ comments = [], onAddComment, currentUser }) {
           </div>
         ) : (
           /* Comments List */
-          <div className="space-y-4">
+          <div className="space-y-3">
             {comments.map((comment) => (
               <div
                 key={comment.id}
-                className="flex gap-3 p-4 bg-gray-50 rounded-lg border border-gray-100"
+                className="flex gap-3 p-3 bg-gray-100 rounded-lg border border-gray-100"
               >
                 {/* Avatar */}
                 <div className="flex-shrink-0">
-                  <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center text-white font-semibold text-sm">
+                  <div className="w-9 h-9 bg-blue-500 rounded-full flex items-center justify-center text-white font-semibold text-sm">
                       {comment.comment_creator?.profile_picture ? (
                       <img
                         src={`${comment.comment_creator.profile_picture}`}
                         alt={`${comment.comment_creator?.first_name || comment.comment_creator?.email || "User"}'s profile`}
-                        className="w-10 h-10 rounded-full object-cover"
+                        className="w-9 h-9 rounded-full object-cover"
                       />
                     ) : (
                       (comment.comment_creator?.first_name?.[0] ||
@@ -82,7 +82,7 @@ function CommentSection({ comments = [], onAddComment, currentUser }) {
                 {/* Content */}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span className="font-medium text-gray-800">
+                    <span className="font-medium text-gray-800 text-sm">
                       {comment.comment_creator?.first_name ||
                         comment.comment_creator?.email ||
                         "Unknown User"}
@@ -106,7 +106,7 @@ function CommentSection({ comments = [], onAddComment, currentUser }) {
                       </span>
                     )}
                   </div>
-                  <p className="mt-1 text-gray-600 whitespace-pre-wrap break-words">
+                  <p className="mt-1 text-gray-600 whitespace-pre-wrap break-words text-xs">
                     {comment.comment}
                   </p>
                 </div>
@@ -117,7 +117,7 @@ function CommentSection({ comments = [], onAddComment, currentUser }) {
       </div>
 
       {/* Comment Input Area */}
-      <form onSubmit={handleSubmit} className="mt-6 pt-4 border-t border-gray-200">
+      <form onSubmit={handleSubmit} className="mt-6 pt-4 border-t border-gray-200 text-sm">
         <div className="relative">
           <textarea
             value={newComment}
@@ -133,7 +133,7 @@ function CommentSection({ comments = [], onAddComment, currentUser }) {
           <button
             type="button"
             onClick={() => setIsPrivate(!isPrivate)}
-            className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium transition-all duration-200 ${
+            className={`cursor-pointer flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium transition-all duration-200 ${
               isPrivate
                 ? "bg-amber-100 text-amber-700 hover:bg-amber-200"
                 : "bg-green-100 text-green-700 hover:bg-green-200"
@@ -156,7 +156,7 @@ function CommentSection({ comments = [], onAddComment, currentUser }) {
           <button
             type="submit"
             disabled={!newComment.trim() || isSubmitting}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
+            className="cursor-pointer flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
           >
             <Send className="w-4 h-4" />
             {isSubmitting ? "Posting..." : "Post Comment"}

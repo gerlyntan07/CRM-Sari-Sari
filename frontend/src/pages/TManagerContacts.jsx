@@ -762,11 +762,6 @@ export default function AdminContacts() {
                       </p>
                     </div>
                   </div>
-
-                  <CommentSection
-                    comments={contactComments}
-                    onAddComment={addContactComment}
-                  />
                 </div>
               )}
 
@@ -791,6 +786,11 @@ export default function AdminContacts() {
                       {selectedContact.notes || "No notes available."}
                     </div>
                   </div>
+
+                  <CommentSection
+                    comments={contactComments}
+                    onAddComment={addContactComment}
+                  />
                 </div>
               )}
 

@@ -1,4 +1,10 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import {
   FiSearch,
   FiEdit,
@@ -18,6 +24,9 @@ import LoadingSpinner from "../components/LoadingSpinner.jsx";
 import QuoteItemsEditor from "../components/QuoteItemsEditor.jsx";
 import { useLocation, useNavigate } from "react-router-dom";
 import useFetchUser from "../hooks/useFetchUser"; // ✅ Import User Hook
+import CommentSection from "../components/CommentSection.jsx";
+import { useComments } from "../hooks/useComments.js";
+import { printQuoteInvoice } from "../utils/printQuoteInvoice.js";
 
 const STATUS_OPTIONS = [
   { value: "Draft", label: "Draft" },
@@ -224,7 +233,7 @@ const extractDealAccountId = (deal) => {
     deal.account?.accountId,
   ];
   const found = candidates.find(
-    (v) => v !== null && v !== undefined && String(v).trim() !== ""
+    (v) => v !== null && v !== undefined && String(v).trim() !== "",
   );
   return found ? String(found) : "";
 };
@@ -241,7 +250,7 @@ const extractDealContactId = (deal) => {
     deal.primaryContact?.id,
   ];
   const found = candidates.find(
-    (v) => v !== null && v !== undefined && String(v).trim() !== ""
+    (v) => v !== null && v !== undefined && String(v).trim() !== "",
   );
   return found ? String(found) : "";
 };
@@ -276,6 +285,8 @@ export default function AdminQuotes() {
   const [confirmModalData, setConfirmModalData] = useState(null);
   const [confirmProcessing, setConfirmProcessing] = useState(false);
 
+  const [invoicePrinting, setInvoicePrinting] = useState(false);
+
   const [currentQuoteId, setCurrentQuoteId] = useState(null);
   const [formData, setFormData] = useState(INITIAL_FORM_STATE);
 
@@ -283,12 +294,50 @@ export default function AdminQuotes() {
   const [statusFilter, setStatusFilter] = useState("Filter by Status");
   const [deletingId, setDeletingId] = useState(null);
 
+  const handlePrintInvoice = useCallback(async () => {
+    if (!selectedQuote) return;
+
+    try {
+      setInvoicePrinting(true);
+      const res = await api.get("/company/invoice-info");
+      const companyInfo = res?.data;
+
+      printQuoteInvoice({
+        quote: selectedQuote,
+        companyInfo,
+        currencySymbol,
+        title: "Invoice",
+      });
+    } catch (err) {
+      const msg =
+        err?.response?.data?.detail ||
+        err?.message ||
+        "Failed to print invoice.";
+      toast.error(msg);
+    } finally {
+      setInvoicePrinting(false);
+    }
+  }, [selectedQuote, currencySymbol]);
+
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const [activeTab, setActiveTab] = useState("Overview");
   const [selectedStatus, setSelectedStatus] = useState("Draft");
   const [selectedIds, setSelectedIds] = useState([]);
   const [pendingQuoteId, setPendingQuoteId] = useState(null);
+
+  const {
+    comments: quoteComments,
+    addComment: addQuoteComment,
+    refresh: refreshQuoteComments,
+  } = useComments({
+    relatedType: "quote",
+    relatedId: selectedQuote?.id,
+  });
+
+  useEffect(() => {
+    if (selectedQuote?.id) refreshQuoteComments();
+  }, [selectedQuote?.id, refreshQuoteComments]);
 
   useEffect(() => {
     const state = location.state;
@@ -299,19 +348,19 @@ export default function AdminQuotes() {
       navigate(location.pathname, { replace: true, state: {} });
       return;
     }
-  }, [location, navigate])
+  }, [location, navigate]);
 
   useEffect(() => {
-      if (pendingQuoteId && quotes.length > 0 && !quotesLoading) {
-        const foundQuote = quotes.find((quote) => quote.id === pendingQuoteId);
-        if (foundQuote) {
-          setSelectedQuote(foundQuote); // Open in view mode
-        } else {
-          toast.error("Quote not found.");
-        }
-        setPendingQuoteId(null); // Clear pending quote ID
+    if (pendingQuoteId && quotes.length > 0 && !quotesLoading) {
+      const foundQuote = quotes.find((quote) => quote.id === pendingQuoteId);
+      if (foundQuote) {
+        setSelectedQuote(foundQuote); // Open in view mode
+      } else {
+        toast.error("Quote not found.");
       }
-    }, [pendingQuoteId, contacts, quotesLoading]);
+      setPendingQuoteId(null); // Clear pending quote ID
+    }
+  }, [pendingQuoteId, contacts, quotesLoading]);
 
   // Resolve current user id
   useEffect(() => {
@@ -358,7 +407,7 @@ export default function AdminQuotes() {
       const found = accounts.find((a) => String(a.id) === String(accountId));
       return found?.name || "";
     },
-    [accounts]
+    [accounts],
   );
 
   const getContactNameById = useCallback(
@@ -368,7 +417,7 @@ export default function AdminQuotes() {
       if (!found) return "";
       return `${found.first_name} ${found.last_name}`.trim();
     },
-    [contacts]
+    [contacts],
   );
 
   const getDealLabelById = useCallback(
@@ -377,7 +426,7 @@ export default function AdminQuotes() {
       const found = deals.find((d) => String(d.id) === String(dealId));
       return found?.deal_name || found?.name || `Deal #${formatDealId(dealId)}`;
     },
-    [deals]
+    [deals],
   );
 
   // Derive account/contact from a deal (and best-effort choose contact if missing)
@@ -389,7 +438,7 @@ export default function AdminQuotes() {
 
       if (!contactId && accountId) {
         const candidates = contacts.filter(
-          (c) => String(c.account_id || "") === String(accountId)
+          (c) => String(c.account_id || "") === String(accountId),
         );
         if (candidates.length > 0) {
           const sorted = [...candidates].sort((a, b) => {
@@ -414,7 +463,7 @@ export default function AdminQuotes() {
 
       return { accountId: accountId || "", contactId: contactId || "" };
     },
-    [deals, contacts]
+    [deals, contacts],
   );
 
   // Display helpers for list/details
@@ -426,7 +475,7 @@ export default function AdminQuotes() {
       const dealId = quote.deal_id || quote.deal?.id;
       return dealId ? getDealLabelById(dealId) : "--";
     },
-    [getDealLabelById]
+    [getDealLabelById],
   );
 
   const resolveAccountLabel = useCallback(
@@ -448,7 +497,7 @@ export default function AdminQuotes() {
         ? getAccountNameById(accountId) || `Account #${accountId}`
         : "--";
     },
-    [deriveAccountAndContactFromDealId, getAccountNameById]
+    [deriveAccountAndContactFromDealId, getAccountNameById],
   );
 
   const resolveContactLabel = useCallback(
@@ -475,7 +524,7 @@ export default function AdminQuotes() {
       const name = contactId ? getContactNameById(contactId) : "";
       return name || (contactId ? `Contact #${contactId}` : "--");
     },
-    [deriveAccountAndContactFromDealId, getContactNameById]
+    [deriveAccountAndContactFromDealId, getContactNameById],
   );
 
   const fetchQuotes = useCallback(async (preserveSelectedId = null) => {
@@ -492,7 +541,7 @@ export default function AdminQuotes() {
 
       if (preserveSelectedId) {
         const updatedSelection = sorted.find(
-          (q) => q.id === preserveSelectedId
+          (q) => q.id === preserveSelectedId,
         );
         setSelectedQuote(updatedSelection || null);
       }
@@ -501,7 +550,7 @@ export default function AdminQuotes() {
       setQuotes([]);
       if (err.response?.status === 403) {
         toast.error(
-          "Permission denied. Only CEO, Admin, or Group Manager can access this page."
+          "Permission denied. Only CEO, Admin, or Group Manager can access this page.",
         );
       } else {
         toast.error("Failed to fetch quotes. Please try again later.");
@@ -616,7 +665,7 @@ export default function AdminQuotes() {
 
   const totalPages = Math.max(
     1,
-    Math.ceil(filteredQuotes.length / itemsPerPage) || 1
+    Math.ceil(filteredQuotes.length / itemsPerPage) || 1,
   );
 
   useEffect(() => setCurrentPage(1), [searchQuery, statusFilter]);
@@ -625,7 +674,7 @@ export default function AdminQuotes() {
     setCurrentPage((prev) => {
       const maxPage = Math.max(
         1,
-        Math.ceil(filteredQuotes.length / itemsPerPage) || 1
+        Math.ceil(filteredQuotes.length / itemsPerPage) || 1,
       );
       return prev > maxPage ? maxPage : prev;
     });
@@ -700,8 +749,8 @@ export default function AdminQuotes() {
     const dealId = quote.deal?.id
       ? String(quote.deal.id)
       : quote.deal_id
-      ? String(quote.deal_id)
-      : "";
+        ? String(quote.deal_id)
+        : "";
 
     const derived = dealId
       ? deriveAccountAndContactFromDealId(dealId)
@@ -710,20 +759,20 @@ export default function AdminQuotes() {
     const accountId = quote.account?.id
       ? String(quote.account.id)
       : quote.account_id
-      ? String(quote.account_id)
-      : derived.accountId;
+        ? String(quote.account_id)
+        : derived.accountId;
 
     const contactId = quote.contact?.id
       ? String(quote.contact.id)
       : quote.contact_id
-      ? String(quote.contact_id)
-      : derived.contactId;
+        ? String(quote.contact_id)
+        : derived.contactId;
 
     const assignedToId = quote.assigned_user?.id
       ? String(quote.assigned_user.id)
       : quote.assigned_to
-      ? String(quote.assigned_to)
-      : "";
+        ? String(quote.assigned_to)
+        : "";
 
     setFormData({
       deal_id: dealId,
@@ -747,21 +796,23 @@ export default function AdminQuotes() {
       discount_amount: parseFloat(quote.discount_amount) || 0,
       currency: quote.currency || "PHP",
       // Line items
-      items: Array.isArray(quote.items) ? quote.items.map(item => ({
-        id: item.id,
-        item_type: item.item_type || "Product",
-        name: item.name || "",
-        description: item.description || "",
-        sku: item.sku || "",
-        variant: item.variant || "",
-        unit: item.unit || "pcs",
-        quantity: parseFloat(item.quantity) || 1,
-        unit_price: parseFloat(item.unit_price) || 0,
-        discount_percent: parseFloat(item.discount_percent) || 0,
-        discount_amount: parseFloat(item.discount_amount) || 0,
-        line_total: parseFloat(item.line_total) || 0,
-        sort_order: item.sort_order || 0,
-      })) : [],
+      items: Array.isArray(quote.items)
+        ? quote.items.map((item) => ({
+            id: item.id,
+            item_type: item.item_type || "Product",
+            name: item.name || "",
+            description: item.description || "",
+            sku: item.sku || "",
+            variant: item.variant || "",
+            unit: item.unit || "pcs",
+            quantity: parseFloat(item.quantity) || 1,
+            unit_price: parseFloat(item.unit_price) || 0,
+            discount_percent: parseFloat(item.discount_percent) || 0,
+            discount_amount: parseFloat(item.discount_amount) || 0,
+            line_total: parseFloat(item.line_total) || 0,
+            sort_order: item.sort_order || 0,
+          }))
+        : [],
     });
 
     setIsEditing(true);
@@ -829,11 +880,11 @@ export default function AdminQuotes() {
     });
   };
 
-//validation 
-const [isSubmitted, setIsSubmitted] = useState(false);
+  //validation
+  const [isSubmitted, setIsSubmitted] = useState(false);
   const handleSubmit = (e) => {
     e.preventDefault();
-    setIsSubmitted(true);  
+    setIsSubmitted(true);
 
     if (!currentUserId) {
       toast.error("Unable to determine current user. Please log in again.");
@@ -845,14 +896,14 @@ const [isSubmitted, setIsSubmitted] = useState(false);
       return;
     }
 
-     const assignedTo = formData.assigned_to;
-          if (!assignedTo) {
-            toast.error("Assigned To is required.");
-            return;
-          }
+    const assignedTo = formData.assigned_to;
+    if (!assignedTo) {
+      toast.error("Assigned To is required.");
+      return;
+    }
 
-
-   {/* if (!formData.total_amount || Number(formData.total_amount) <= 0) {
+    {
+      /* if (!formData.total_amount || Number(formData.total_amount) <= 0) {
       toast.error("Total amount must be greater than 0.");
       return;
     }
@@ -860,7 +911,8 @@ const [isSubmitted, setIsSubmitted] = useState(false);
     if (formData.validity_days !== "" && Number(formData.validity_days) < 0) {
       toast.error("Validity days must be 0 or higher.");
       return;
-    } */}
+    } */
+    }
 
     const derived = deriveAccountAndContactFromDealId(formData.deal_id);
 
@@ -974,7 +1026,7 @@ const [isSubmitted, setIsSubmitted] = useState(false);
         await fetchQuotes(
           currentSelectedId && currentSelectedId !== targetId
             ? currentSelectedId
-            : null
+            : null,
         );
         if (currentSelectedId === targetId) setSelectedQuote(null);
       } else if (type === "bulk-delete") {
@@ -991,8 +1043,8 @@ const [isSubmitted, setIsSubmitted] = useState(false);
         type === "create"
           ? "Failed to create quote. Please review the details and try again."
           : type === "update"
-          ? "Failed to update quote. Please review the details and try again."
-          : "Failed to delete quote. Please try again.";
+            ? "Failed to update quote. Please review the details and try again."
+            : "Failed to delete quote. Please try again.";
       toast.error(defaultMessage);
 
       if (type === "create" || type === "update") setIsSubmitting(false);
@@ -1049,8 +1101,8 @@ const [isSubmitted, setIsSubmitted] = useState(false);
           quote?.validity_days === "" || quote?.validity_days === undefined
             ? null
             : quote?.validity_days === null
-            ? null
-            : Number(quote.validity_days),
+              ? null
+              : Number(quote.validity_days),
         status: overrideStatus, // Title Case (same as your working PUT flow)
         assigned_to:
           assignedToRaw !== null &&
@@ -1061,7 +1113,7 @@ const [isSubmitted, setIsSubmitted] = useState(false);
         notes: quote?.notes?.trim() || null,
       };
     },
-    [deriveAccountAndContactFromDealId]
+    [deriveAccountAndContactFromDealId],
   );
 
   // ✅ requirement: once changed status, close the popup modal (detail view)
@@ -1075,7 +1127,7 @@ const [isSubmitted, setIsSubmitted] = useState(false);
       return api.patch(
         `/quotes/admin/${selectedQuote.id}/status`,
         { status: statusValue },
-        { headers: { "Content-Type": "application/json" } }
+        { headers: { "Content-Type": "application/json" } },
       );
     };
 
@@ -1099,13 +1151,13 @@ const [isSubmitted, setIsSubmitted] = useState(false);
 
         if (!payload.deal_id) {
           toast.error(
-            "Cannot update status: missing deal_id on selected quote."
+            "Cannot update status: missing deal_id on selected quote.",
           );
           return;
         }
         if (!payload.total_amount || payload.total_amount <= 0) {
           toast.error(
-            "Cannot update status: missing/invalid total_amount on selected quote."
+            "Cannot update status: missing/invalid total_amount on selected quote.",
           );
           return;
         }
@@ -1179,14 +1231,14 @@ const [isSubmitted, setIsSubmitted] = useState(false);
         </div>
 
         <div className="p-6 lg:p-4">
-        <div className="flex flex-col md:flex-row md:justify-between lg:flex-row lg:items-center lg:justify-between mt-3 gap-2 px-2 md:items-center lg:gap-4 md:mx-7 lg:mx-7">
-  <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-    <h1 className="text-xl sm:text-2xl font-semibold text-gray-800">
+          <div className="flex flex-col md:flex-row md:justify-between lg:flex-row lg:items-center lg:justify-between mt-3 gap-2 px-2 md:items-center lg:gap-4 md:mx-7 lg:mx-7">
+            <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+              <h1 className="text-xl sm:text-2xl font-semibold text-gray-800">
                 {resolveDealLabel(selectedQuote)}
               </h1>
               <span
                 className={`text-xs sm:text-sm font-medium px-2 sm:px-3 py-1 rounded-full whitespace-nowrap ${getDetailBadgeClass(
-                  selectedQuote.status
+                  selectedQuote.status,
                 )}`}
               >
                 {formatStatusLabel(selectedQuote.status)}
@@ -1194,6 +1246,15 @@ const [isSubmitted, setIsSubmitted] = useState(false);
             </div>
 
             <div className="flex flex-col sm:flex-row sm:space-x-3 space-y-2 sm:space-y-0">
+              <button
+                className="inline-flex items-center justify-center w-full sm:w-auto bg-white text-gray-700 px-4 py-2 rounded-md border border-gray-300 hover:bg-gray-50 disabled:opacity-70 transition text-sm focus:outline-none focus:ring-2 focus:ring-gray-300"
+                onClick={handlePrintInvoice}
+                disabled={invoicePrinting || isSubmitting || confirmProcessing}
+              >
+                <FiFileText className="mr-2" />
+                {invoicePrinting ? "Preparing..." : "Print Invoice"}
+              </button>
+
               <button
                 className="inline-flex items-center justify-center w-full sm:w-auto bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 disabled:opacity-70 transition text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
                 onClick={() => handleEditClick(selectedQuote)}
@@ -1275,7 +1336,7 @@ const [isSubmitted, setIsSubmitted] = useState(false);
                           {/* ✅ Use dynamic currency symbol in Detail View */}
                           {selectedQuote.total_amount
                             ? `${currencySymbol}${Number(
-                                selectedQuote.total_amount
+                                selectedQuote.total_amount,
                               ).toLocaleString()}`
                             : "N/A"}
                         </p>
@@ -1304,8 +1365,8 @@ const [isSubmitted, setIsSubmitted] = useState(false);
                           {formatDate(
                             computeExpiryDate(
                               selectedQuote.presented_date,
-                              selectedQuote.validity_days
-                            )
+                              selectedQuote.validity_days,
+                            ),
                           ) || "N/A"}
                         </p>
                       </div>
@@ -1358,7 +1419,9 @@ const [isSubmitted, setIsSubmitted] = useState(false);
                           readOnly={true}
                           taxRate={parseFloat(selectedQuote.tax_rate) || 0}
                           discountType={selectedQuote.discount_type}
-                          discountValue={parseFloat(selectedQuote.discount_value) || 0}
+                          discountValue={
+                            parseFloat(selectedQuote.discount_value) || 0
+                          }
                         />
                       </div>
                     )}
@@ -1366,12 +1429,21 @@ const [isSubmitted, setIsSubmitted] = useState(false);
                 )}
 
                 {activeTab === "Notes" && (
-                  <div className="bg-white p-4 sm:p-6 rounded-xl border border-gray-200 shadow-sm">
-                    <h3 className="font-semibold text-gray-800 mb-2">Notes:</h3>
-                    <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">
-                      {selectedQuote.notes || "No notes available."}
-                    </p>
-                  </div>
+                  <>
+                    <div className="bg-white p-4 sm:p-6 rounded-xl border border-gray-200 shadow-sm">
+                      <h3 className="font-semibold text-gray-800 mb-2">
+                        Notes:
+                      </h3>
+                      <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">
+                        {selectedQuote.notes || "No notes available."}
+                      </p>
+                    </div>
+
+                    <CommentSection
+                      comments={quoteComments}
+                      onAddComment={addQuoteComment}
+                    />
+                  </>
                 )}
               </div>
 
@@ -1483,17 +1555,17 @@ const [isSubmitted, setIsSubmitted] = useState(false);
           <FiFileText className="mr-2 text-blue-600" /> Quotes
         </h2>
 
-         <div className="flex justify-center lg:justify-end w-full sm:w-auto gap-2">
-        <button
+        <div className="flex justify-center lg:justify-end w-full sm:w-auto gap-2">
+          <button
             onClick={() => {
-          handleOpenAddModal();  // open the modal
-          setIsSubmitted(false); // reset all error borders
-        }}
-        className="flex items-center bg-black text-white px-3 sm:px-4 py-2 rounded-md hover:bg-gray-800 text-sm sm:text-base mx-auto sm:ml-auto cursor-pointer"
-        >
-          <FiPlus className="mr-2" /> Add Quote
-        </button>
-      </div>
+              handleOpenAddModal(); // open the modal
+              setIsSubmitted(false); // reset all error borders
+            }}
+            className="flex items-center bg-black text-white px-3 sm:px-4 py-2 rounded-md hover:bg-gray-800 text-sm sm:text-base mx-auto sm:ml-auto cursor-pointer"
+          >
+            <FiPlus className="mr-2" /> Add Quote
+          </button>
+        </div>
       </div>
 
       <div className="bg-white rounded-xl p-4 shadow-sm mb-6 flex flex-col lg:flex-row items-center justify-between gap-3 w-full">
@@ -1530,7 +1602,10 @@ const [isSubmitted, setIsSubmitted] = useState(false);
               <th className="py-3 px-4 w-12">
                 <input
                   type="checkbox"
-                  checked={paginatedQuotes.length > 0 && selectedIds.length === paginatedQuotes.length}
+                  checked={
+                    paginatedQuotes.length > 0 &&
+                    selectedIds.length === paginatedQuotes.length
+                  }
                   onChange={handleSelectAll}
                   className="cursor-pointer"
                 />
@@ -1573,7 +1648,7 @@ const [isSubmitted, setIsSubmitted] = useState(false);
               paginatedQuotes.map((quote) => {
                 const expiry = computeExpiryDate(
                   quote.presented_date,
-                  quote.validity_days
+                  quote.validity_days,
                 );
                 return (
                   <tr
@@ -1581,7 +1656,10 @@ const [isSubmitted, setIsSubmitted] = useState(false);
                     className="hover:bg-gray-50 text-sm cursor-pointer transition"
                     onClick={() => handleQuoteClick(quote)}
                   >
-                    <td className="py-3 px-4 align-top w-12" onClick={(e) => e.stopPropagation()}>
+                    <td
+                      className="py-3 px-4 align-top w-12"
+                      onClick={(e) => e.stopPropagation()}
+                    >
                       <input
                         type="checkbox"
                         checked={selectedIds.includes(quote.id)}
@@ -1625,7 +1703,7 @@ const [isSubmitted, setIsSubmitted] = useState(false);
                     <td className="py-3 px-4 align-top">
                       <span
                         className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${getStatusBadgeClass(
-                          quote.status
+                          quote.status,
                         )}`}
                       >
                         {formatStatusLabel(quote.status)}
@@ -1664,19 +1742,19 @@ const [isSubmitted, setIsSubmitted] = useState(false);
       </div>
 
       <PaginationControls
-              className="mt-4"
-              totalItems={filteredQuotes.length}
-              pageSize={itemsPerPage}
-              currentPage={currentPage}
-              onPrev={handlePrevPage}
-              onNext={handleNextPage}
-              onPageSizeChange={(newSize) => {
-                setItemsPerPage(newSize);
-                setCurrentPage(1);
-              }}
-              pageSizeOptions={[10, 20, 30, 40, 50]}
-              label="quotes"
-            />
+        className="mt-4"
+        totalItems={filteredQuotes.length}
+        pageSize={itemsPerPage}
+        currentPage={currentPage}
+        onPrev={handlePrevPage}
+        onNext={handleNextPage}
+        onPageSizeChange={(newSize) => {
+          setItemsPerPage(newSize);
+          setCurrentPage(1);
+        }}
+        pageSizeOptions={[10, 20, 30, 40, 50]}
+        label="quotes"
+      />
     </div>
   );
 
@@ -1692,9 +1770,9 @@ const [isSubmitted, setIsSubmitted] = useState(false);
       >
         <button
           onClick={() => {
-                closeModal();          // close the modal
-                setIsSubmitted(false); // reset validation errors
-              }}
+            closeModal(); // close the modal
+            setIsSubmitted(false); // reset validation errors
+          }}
           className="absolute top-4 right-4 text-gray-500 hover:text-black transition disabled:opacity-60"
           disabled={isSubmitting || confirmProcessing}
         >
@@ -1713,24 +1791,26 @@ const [isSubmitted, setIsSubmitted] = useState(false);
             label="Deal"
             name="deal_id"
             value={formData.deal_id}
-            onChange={(newId) =>
-              {const { accountId, contactId } = deriveAccountAndContactFromDealId(newId);
-      setFormData((prev) => ({
-        ...prev,
-        deal_id: newId,
-        account_id: accountId,
-        contact_id: contactId,
-      }));
-      return;}
-            }
+            onChange={(newId) => {
+              const { accountId, contactId } =
+                deriveAccountAndContactFromDealId(newId);
+              setFormData((prev) => ({
+                ...prev,
+                deal_id: newId,
+                account_id: accountId,
+                contact_id: contactId,
+              }));
+              return;
+            }}
             items={Array.isArray(deals) ? deals : []}
             getLabel={(item) => {
-              const name = `${formatDealId(item?.deal_id ?? "")} ${item?.name ?? ""}`.trim();
+              const name =
+                `${formatDealId(item?.deal_id ?? "")} ${item?.name ?? ""}`.trim();
               return name;
             }}
             placeholder="Search deal..."
-             required={true}                // <-- use required directly
-          isSubmitted={isSubmitted}  
+            required={true} // <-- use required directly
+            isSubmitted={isSubmitted}
             disabled={isSubmitting || deals.length === 0}
             className="md:col-span-2"
           />
@@ -1757,7 +1837,9 @@ const [isSubmitted, setIsSubmitted] = useState(false);
           <div className="md:col-span-2 mt-2">
             <QuoteItemsEditor
               items={formData.items}
-              onChange={(newItems) => setFormData((prev) => ({ ...prev, items: newItems }))}
+              onChange={(newItems) =>
+                setFormData((prev) => ({ ...prev, items: newItems }))
+              }
               currencySymbol={currencySymbol}
               readOnly={isSubmitting}
               taxRate={formData.tax_rate}
@@ -1780,10 +1862,17 @@ const [isSubmitted, setIsSubmitted] = useState(false);
             <h4 className="font-medium text-gray-700 mb-3">Pricing Settings</h4>
             <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
               <div>
-                <label className="block text-gray-600 text-xs mb-1">Discount Type</label>
+                <label className="block text-gray-600 text-xs mb-1">
+                  Discount Type
+                </label>
                 <select
                   value={formData.discount_type || ""}
-                  onChange={(e) => setFormData((prev) => ({ ...prev, discount_type: e.target.value }))}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      discount_type: e.target.value,
+                    }))
+                  }
                   className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm"
                   disabled={isSubmitting}
                 >
@@ -1794,26 +1883,41 @@ const [isSubmitted, setIsSubmitted] = useState(false);
               </div>
               <div>
                 <label className="block text-gray-600 text-xs mb-1">
-                  Discount {formData.discount_type === "percentage" ? "%" : "Amount"}
+                  Discount{" "}
+                  {formData.discount_type === "percentage" ? "%" : "Amount"}
                 </label>
                 <input
                   type="number"
                   value={formData.discount_value || ""}
-                  onChange={(e) => setFormData((prev) => ({ ...prev, discount_value: e.target.value }))}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      discount_value: e.target.value,
+                    }))
+                  }
                   className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm"
                   placeholder="0"
                   min="0"
-                  max={formData.discount_type === "percentage" ? "100" : undefined}
+                  max={
+                    formData.discount_type === "percentage" ? "100" : undefined
+                  }
                   step="0.01"
                   disabled={isSubmitting || !formData.discount_type}
                 />
               </div>
               <div>
-                <label className="block text-gray-600 text-xs mb-1">Tax Rate (%)</label>
+                <label className="block text-gray-600 text-xs mb-1">
+                  Tax Rate (%)
+                </label>
                 <input
                   type="number"
                   value={formData.tax_rate || ""}
-                  onChange={(e) => setFormData((prev) => ({ ...prev, tax_rate: e.target.value }))}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      tax_rate: e.target.value,
+                    }))
+                  }
                   className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm"
                   placeholder="0"
                   min="0"
@@ -1823,9 +1927,15 @@ const [isSubmitted, setIsSubmitted] = useState(false);
                 />
               </div>
               <div>
-                <label className="block text-gray-600 text-xs mb-1">Total Amount</label>
+                <label className="block text-gray-600 text-xs mb-1">
+                  Total Amount
+                </label>
                 <div className="w-full bg-gray-100 border border-gray-300 rounded-md px-2 py-1.5 text-sm font-medium">
-                  {currencySymbol}{parseFloat(formData.total_amount || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  {currencySymbol}
+                  {parseFloat(formData.total_amount || 0).toLocaleString(
+                    "en-US",
+                    { minimumFractionDigits: 2, maximumFractionDigits: 2 },
+                  )}
                 </div>
               </div>
             </div>
@@ -1858,13 +1968,14 @@ const [isSubmitted, setIsSubmitted] = useState(false);
             }
             items={Array.isArray(users) ? users : []}
             getLabel={(item) => {
-              const name = `${item?.first_name ?? ""} ${item?.last_name ?? ""}`.trim();
+              const name =
+                `${item?.first_name ?? ""} ${item?.last_name ?? ""}`.trim();
               if (!name) return item?.email || "";
               return item?.role ? `${name} (${item.role})` : name;
             }}
             placeholder="Search assignee..."
-            required={true}            
-             isSubmitted={isSubmitted} 
+            required={true}
+            isSubmitted={isSubmitted}
             disabled={isSubmitting}
           />
 
@@ -1893,8 +2004,8 @@ const [isSubmitted, setIsSubmitted] = useState(false);
           <div className="flex flex-col sm:flex-row justify-end space-y-2 sm:space-y-0 sm:space-x-2 md:col-span-2 mt-4">
             <button
               type="button"
-                onClick={() => {
-                closeModal();          // close the modal
+              onClick={() => {
+                closeModal(); // close the modal
                 setIsSubmitted(false); // reset validation errors
               }}
               className="w-full sm:w-auto px-4 py-2 text-white bg-red-400 border border-red-300 rounded hover:bg-red-500 transition disabled:opacity-70"
@@ -1910,8 +2021,8 @@ const [isSubmitted, setIsSubmitted] = useState(false);
               {isSubmitting
                 ? "Saving..."
                 : isEditing
-                ? "Update Quote"
-                : "Save Quote"}
+                  ? "Update Quote"
+                  : "Save Quote"}
             </button>
           </div>
         </form>
@@ -1953,14 +2064,14 @@ function InputField({
   required = false,
   disabled = false,
   className = "",
-  isSubmitted = false, 
+  isSubmitted = false,
 }) {
   const hasError = isSubmitted && !value?.trim();
 
   return (
     <div className={className}>
       <label className="block text-gray-700 font-medium mb-1 text-sm">
-         {label} {required && <span className="text-red-500">*</span>}
+        {label} {required && <span className="text-red-500">*</span>}
       </label>
       <input
         type={type}
@@ -1970,13 +2081,15 @@ function InputField({
         placeholder={placeholder}
         required={required}
         disabled={disabled}
-         className={`w-full rounded-md px-2 py-1.5 text-sm outline-none border focus:ring-2
-          ${hasError
-            ? "border-red-500 focus:ring-red-500"
-            : "border-gray-300 focus:ring-blue-400"
+        className={`w-full rounded-md px-2 py-1.5 text-sm outline-none border focus:ring-2
+          ${
+            hasError
+              ? "border-red-500 focus:ring-red-500"
+              : "border-gray-300 focus:ring-blue-400"
           }
           ${className}
-        `}/>  
+        `}
+      />
     </div>
   );
 }
@@ -2010,7 +2123,7 @@ function SelectField({
   const stringValue =
     value !== null && value !== undefined ? String(value) : "";
   const hasValidValue = options.some(
-    (opt) => String(opt.value) === stringValue
+    (opt) => String(opt.value) === stringValue,
   );
   const displayValue = hasValidValue ? stringValue : "";
 
@@ -2080,7 +2193,7 @@ function SearchableSelect({
   placeholder = "Search...",
   disabled = false,
   maxRender = 200,
-  hasError = false, 
+  hasError = false,
 }) {
   const [open, setOpen] = useState(false);
   const [q, setQ] = useState("");
@@ -2092,9 +2205,7 @@ function SearchableSelect({
   const filtered = useMemo(() => {
     const query = q.trim().toLowerCase();
     const base = query
-      ? items.filter((it) =>
-          (getLabel(it) || "").toLowerCase().includes(query)
-        )
+      ? items.filter((it) => (getLabel(it) || "").toLowerCase().includes(query))
       : items;
 
     return base.slice(0, maxRender);
@@ -2102,7 +2213,8 @@ function SearchableSelect({
 
   useEffect(() => {
     const onDoc = (e) => {
-      if (wrapRef.current && !wrapRef.current.contains(e.target)) setOpen(false);
+      if (wrapRef.current && !wrapRef.current.contains(e.target))
+        setOpen(false);
     };
     document.addEventListener("mousedown", onDoc);
     return () => document.removeEventListener("mousedown", onDoc);
@@ -2123,11 +2235,13 @@ function SearchableSelect({
           setQ(e.target.value);
           if (!open) setOpen(true);
         }}
- className={`w-full border rounded-md px-2 py-1.5 text-sm outline-none focus:ring-2
-          ${hasError
-            ? "border-red-500 focus:ring-red-500"
-            : "border-gray-300 focus:ring-blue-400"
-          }`}/>  
+        className={`w-full border rounded-md px-2 py-1.5 text-sm outline-none focus:ring-2
+          ${
+            hasError
+              ? "border-red-500 focus:ring-red-500"
+              : "border-gray-300 focus:ring-blue-400"
+          }`}
+      />
 
       {open && !disabled && (
         <div className="absolute z-50 mt-1 w-full bg-white border border-gray-200 rounded-md shadow-lg overflow-hidden">

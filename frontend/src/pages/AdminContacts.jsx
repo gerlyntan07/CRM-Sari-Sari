@@ -467,8 +467,8 @@ export default function AdminContacts() {
     if (!emailRegex.test(email)) {
       toast.error("Please enter a valid email address.");
       return;
-    };
-    
+    }
+
     const payload = {
       first_name: trimmedFirstName,
       last_name: trimmedLastName,
@@ -792,11 +792,6 @@ export default function AdminContacts() {
                       </p>
                     </div>
                   </div>
-
-                  <CommentSection
-                    comments={contactComments}
-                    onAddComment={addContactComment}
-                  />
                 </div>
               )}
 
@@ -821,6 +816,11 @@ export default function AdminContacts() {
                       {selectedContact.notes || "No notes available."}
                     </div>
                   </div>
+
+                  <CommentSection
+                    comments={contactComments}
+                    onAddComment={addContactComment}
+                  />
                 </div>
               )}
 
@@ -931,7 +931,12 @@ export default function AdminContacts() {
                               {relatedActs.meetings.map((meeting, idx) => (
                                 <div
                                   key={`meeting-${idx}`}
-                                  className="flex flex-col sm:flex-row justify-between items-start border border-gray-100 rounded-lg p-3 bg-gray-50 w-full break-words cursor-pointer" onClick={() => navigate(`/admin/meetings`, { state: { meetingID: meeting.id } })}
+                                  className="flex flex-col sm:flex-row justify-between items-start border border-gray-100 rounded-lg p-3 bg-gray-50 w-full break-words cursor-pointer"
+                                  onClick={() =>
+                                    navigate(`/admin/meetings`, {
+                                      state: { meetingID: meeting.id },
+                                    })
+                                  }
                                 >
                                   <div className="flex gap-3 mb-2 sm:mb-0 flex-1 min-w-0">
                                     <div className="text-green-600 mt-1">
@@ -997,7 +1002,12 @@ export default function AdminContacts() {
                             {relatedActs.calls.map((call, idx) => (
                               <div
                                 key={`call-${idx}`}
-                                className="flex flex-col sm:flex-row justify-between items-start border border-gray-100 rounded-lg p-3 bg-gray-50 w-full break-words cursor-pointer" onClick={() => navigate(`/admin/calls`, { state: { callID: call.id } })}
+                                className="flex flex-col sm:flex-row justify-between items-start border border-gray-100 rounded-lg p-3 bg-gray-50 w-full break-words cursor-pointer"
+                                onClick={() =>
+                                  navigate(`/admin/calls`, {
+                                    state: { callID: call.id },
+                                  })
+                                }
                               >
                                 <div className="flex gap-3 mb-2 sm:mb-0 flex-1 min-w-0">
                                   <div className="text-purple-600 mt-1">
@@ -1053,7 +1063,12 @@ export default function AdminContacts() {
                             {relatedActs.deals.map((deal, idx) => (
                               <div
                                 key={`deal-${idx}`}
-                                className="flex flex-col sm:flex-row justify-between items-start border border-gray-100 rounded-lg p-3 bg-gray-50 w-full break-words cursor-pointer" onClick={() => navigate(`/admin/deals`, { state: { dealID: deal.id } })}
+                                className="flex flex-col sm:flex-row justify-between items-start border border-gray-100 rounded-lg p-3 bg-gray-50 w-full break-words cursor-pointer"
+                                onClick={() =>
+                                  navigate(`/admin/deals`, {
+                                    state: { dealID: deal.id },
+                                  })
+                                }
                               >
                                 <div className="flex gap-3 mb-2 sm:mb-0 flex-1 min-w-0">
                                   <div className="text-indigo-600 mt-1">
@@ -1117,7 +1132,12 @@ export default function AdminContacts() {
                             {relatedActs.quotes.map((quote, idx) => (
                               <div
                                 key={`quote-${idx}`}
-                                className="flex flex-col sm:flex-row justify-between items-start border border-gray-100 rounded-lg p-3 bg-gray-50 w-full break-words cursor-pointer" onClick={() => navigate(`/admin/quotes`, { state: { quoteID: quote.id } })}
+                                className="flex flex-col sm:flex-row justify-between items-start border border-gray-100 rounded-lg p-3 bg-gray-50 w-full break-words cursor-pointer"
+                                onClick={() =>
+                                  navigate(`/admin/quotes`, {
+                                    state: { quoteID: quote.id },
+                                  })
+                                }
                               >
                                 <div className="flex gap-3 mb-2 sm:mb-0 flex-1 min-w-0">
                                   <div className="text-orange-600 mt-1">
@@ -1185,7 +1205,8 @@ export default function AdminContacts() {
                         state: {
                           openCallModal: true,
                           initialCallData: {
-                            subject: `Call with ${getContactFullName(selectedContact) || ""}`.trim(),
+                            subject:
+                              `Call with ${getContactFullName(selectedContact) || ""}`.trim(),
                             relatedType1: "Account",
                             relatedTo1: selectedContact?.account_id
                               ? String(selectedContact.account_id)
@@ -1241,7 +1262,8 @@ export default function AdminContacts() {
                         state: {
                           openMeetingModal: true,
                           initialMeetingData: {
-                            subject: `Meeting with ${getContactFullName(selectedContact) || ""}`.trim(),
+                            subject:
+                              `Meeting with ${getContactFullName(selectedContact) || ""}`.trim(),
                             relatedType1: "Account",
                             relatedTo1: selectedContact?.account_id
                               ? String(selectedContact.account_id)
@@ -1271,7 +1293,8 @@ export default function AdminContacts() {
                         state: {
                           openTaskModal: true,
                           initialTaskData: {
-                            subject: `Task for ${getContactFullName(selectedContact) || ""}`.trim(),
+                            subject:
+                              `Task for ${getContactFullName(selectedContact) || ""}`.trim(),
                             relatedType1: "Account",
                             relatedTo1: selectedContact?.account_id
                               ? String(selectedContact.account_id)
@@ -1629,7 +1652,7 @@ export default function AdminContacts() {
             }
             items={users || []}
             getLabel={(item) =>
-              `${item?.first_name ?? ""} ${item?.last_name ?? ""} (${item?.role?.toUpperCase() === "CEO" ? "Admin" : item?.role ?? ""})`.trim()
+              `${item?.first_name ?? ""} ${item?.last_name ?? ""} (${item?.role?.toUpperCase() === "CEO" ? "Admin" : (item?.role ?? "")})`.trim()
             }
             placeholder="Search assignee..."
             required={true} // <-- use required directly

@@ -77,9 +77,10 @@ export default function AdminCompanyDetails() {
         tax_rate: parseFloat(taxRate),
       };
 
-      // Include logo if changed
+      // Include logo if changed (newLogo is non-null means user made a change)
+      // "" = remove logo, base64 string = new logo
       if (newLogo !== null) {
-        payload.company_logo = newLogo || null; // "" means remove, otherwise set new
+        payload.company_logo = newLogo; // Send "" to remove, or base64 to set new
       }
 
       await api.put("/company/update-name", payload);

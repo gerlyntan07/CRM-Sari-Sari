@@ -310,6 +310,13 @@ export default function SalesHeader({ toggleSidebar }) {
         >
           <FiMenu className="text-2xl" />
         </button>
+        {user?.company?.company_logo && (
+          <img 
+            src={user.company.company_logo} 
+            alt="Company Logo" 
+            className="w-20 h-10 object-contain rounded"
+          />
+        )}
         <h1 className="text-lg sm:text-xl font-semibold text-gray-800 truncate max-w-[150px] sm:max-w-none">
           {currentTitle}
         </h1>
@@ -492,6 +499,19 @@ export default function SalesHeader({ toggleSidebar }) {
                     Sales
                </p>
               </div>
+              {/* Company Info */}
+              {user?.company && (
+                <div className="flex items-center gap-2 pt-2 border-t border-gray-100 w-full justify-center">
+                  {user.company.company_logo && (
+                    <img 
+                      src={user.company.company_logo} 
+                      alt="Company Logo" 
+                      className="w-6 h-6 object-contain rounded"
+                    />
+                  )}
+                  <span className="text-xs text-gray-500 truncate">{user.company.company_name}</span>
+                </div>
+              )}
               </div>
 
               <div className="mt-4 space-y-1 px-4 text-left">

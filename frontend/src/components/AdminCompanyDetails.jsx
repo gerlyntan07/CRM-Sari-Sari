@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { FiSave, FiBriefcase, FiAlertCircle, FiDollarSign, FiCalendar } from "react-icons/fi"; // Added FiCalendar
+import { FiSave, FiBriefcase, FiAlertCircle, FiDollarSign, FiCalendar, FiPercent } from "react-icons/fi"; 
 import api from "../api"; 
 import useFetchUser from "../hooks/useFetchUser";
 
@@ -9,7 +9,8 @@ export default function AdminCompanyDetails() {
   // Form States
   const [companyName, setCompanyName] = useState("");
   const [currency, setCurrency] = useState("₱");
-  const [quotaPeriod, setQuotaPeriod] = useState("January"); // Default start month
+  const [quotaPeriod, setQuotaPeriod] = useState("January");
+  const [taxRate, setTaxRate] = useState(0); 
   
   // UI States
   const [loading, setLoading] = useState(false);
@@ -25,8 +26,8 @@ export default function AdminCompanyDetails() {
     if (user?.company) {
       if (user.company.company_name) setCompanyName(user.company.company_name);
       if (user.company.currency) setCurrency(user.company.currency);
-      // Load Quota Period (ensure exact string match or default to January)
       if (user.company.quota_period) setQuotaPeriod(user.company.quota_period);
+      if (user.company.tax_rate !== undefined) setTaxRate(user.company.tax_rate);
     }
   }, [user]);
 
@@ -36,11 +37,12 @@ export default function AdminCompanyDetails() {
     setMessage({ type: "", text: "" });
 
     try {
-      // Send all details in the payload
+      // Send all details in the payload including the new tax_rate
       await api.put("/company/update-name", {
         company_name: companyName,
         currency: currency,
         quota_period: quotaPeriod, 
+        tax_rate: parseFloat(taxRate)
       });
 
       // Refresh global user data
@@ -95,7 +97,7 @@ export default function AdminCompanyDetails() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* 2. Fiscal Year Start (Quota Period) */}
+            {/* 2. Fiscal Year Start */}
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
                 <FiCalendar className="text-gray-500" /> Fiscal Year Start
@@ -111,29 +113,47 @@ export default function AdminCompanyDetails() {
                     <option key={month} value={month}>{month}</option>
                     ))}
                 </select>
-                {/* Custom arrow icon for select */}
                 <div className="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none text-gray-500">
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
                 </div>
               </div>
-              <p className="text-xs text-gray-500 mt-1">
-                Select the month your sales year begins.
-              </p>
             </div>
 
-            {/* 3. Currency Selection */}
+            {/* 3. Tax Rate */}
             <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
-                <FiDollarSign className="text-gray-500" /> Currency
-            </label>
-            <div className="flex gap-3">
-                <label 
+              <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
+                <FiPercent className="text-gray-500" /> Default Tax Rate
+              </label>
+              <div className="relative">
+                <input
+                  type="number"
+                  step="0.01"
+                  value={taxRate}
+                  onChange={(e) => setTaxRate(e.target.value)}
+                  disabled={!canEdit || loading}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#fbbf24] focus:border-transparent outline-none transition disabled:bg-gray-50"
+                  placeholder="0.00"
+                />
+                <div className="absolute inset-y-0 right-0 flex items-center pr-8 pointer-events-none text-gray-400 font-medium">
+                  %
+                </div>
+              </div>
+            </div>
+        </div>
+
+        {/* 4. Currency Selection */}
+        <div>
+          <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
+              <FiDollarSign className="text-gray-500" /> Currency
+          </label>
+          <div className="flex gap-3 max-w-xs">
+              <label 
                 className={`flex-1 flex items-center justify-center gap-1 p-2 border rounded-lg cursor-pointer transition-all ${
                     currency === "₱" 
                     ? "bg-amber-50 border-[#fbbf24] text-amber-900 font-medium ring-1 ring-[#fbbf24]" 
                     : "border-gray-200 hover:bg-gray-50 text-gray-600"
                 } ${(!canEdit || loading) ? "opacity-50 cursor-not-allowed" : ""}`}
-                >
+              >
                 <input 
                     type="radio" 
                     name="currency" 
@@ -144,15 +164,15 @@ export default function AdminCompanyDetails() {
                     className="hidden"
                 />
                 <span className="text-lg font-bold">₱</span> PHP
-                </label>
+              </label>
 
-                <label 
+              <label 
                 className={`flex-1 flex items-center justify-center gap-1 p-2 border rounded-lg cursor-pointer transition-all ${
                     currency === "$" 
                     ? "bg-amber-50 border-[#fbbf24] text-amber-900 font-medium ring-1 ring-[#fbbf24]" 
                     : "border-gray-200 hover:bg-gray-50 text-gray-600"
                 } ${(!canEdit || loading) ? "opacity-50 cursor-not-allowed" : ""}`}
-                >
+              >
                 <input 
                     type="radio" 
                     name="currency" 
@@ -163,9 +183,8 @@ export default function AdminCompanyDetails() {
                     className="hidden"
                 />
                 <span className="text-lg font-bold">$</span> USD
-                </label>
-            </div>
-            </div>
+              </label>
+          </div>
         </div>
 
         {/* Status Message */}

@@ -114,6 +114,10 @@ import TManagerCalls from "./pages/TManagerCalls";
 import TManagerAudit from "./pages/TManagerAudit";
 import TManagerUser from "./pages/TManagerUser";
 
+// 🔹 Admin Team (Support) layout + pages
+import AdminTeamPanel from "./components/AdminTeamPanel";
+import AdminTeamDashboard from "./pages/AdminTeamDashboard";
+
 function App() {
   return (
     <Router>
@@ -274,6 +278,17 @@ function App() {
           <Route path="audit" element={<TManagerAudit />} />
           <Route path="users" element={<TManagerUser />} />
           <Route path="manage-account" element={<PublicManageAccount />} />
+        </Route>
+
+        {/* ================= Admin Team (Support) Layout ================= */}
+        <Route path="/support" element={<PrivateRoute requiredRole="admin team"><AdminTeamPanel /></PrivateRoute>}>
+          <Route index element={<Navigate to="dashboard" replace />} />
+          <Route path="dashboard" element={<AdminTeamDashboard />} />
+          <Route path="tickets" element={<AdminTeamDashboard />} />
+          <Route path="chat" element={<AdminTeamDashboard />} />
+          <Route path="subscriptions" element={<AdminTeamDashboard />} />
+          <Route path="help" element={<AdminHelp />} />
+          <Route path="settings" element={<PublicManageAccount />} />
         </Route>
       </Routes>
     </Router>

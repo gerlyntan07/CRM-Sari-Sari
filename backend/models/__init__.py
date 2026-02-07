@@ -13,10 +13,11 @@ from .target import Target
 from .task import Task
 from .territory import Territory
 from .comment import Comment
+from .support import SupportTicket, SupportChatSession, ChatMessage
 
 __all__ = [
     "Account", "Auditlog", "User", "Call", "Company",
     "Contact", "Deal", "Lead", "Meeting", "Quote", "QuoteItem",
     "Subscription", "Target", "Task", "Territory", 
-    "Comment"
+    "Comment", "SupportTicket", "SupportChatSession", "ChatMessage"
 ]

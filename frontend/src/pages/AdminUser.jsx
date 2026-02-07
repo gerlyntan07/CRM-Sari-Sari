@@ -24,6 +24,7 @@ const ROLE_OPTIONS = [
   { value: "Manager", label: "Manager" },
   // { value: "Marketing", label: "Marketing" },
   { value: "Sales", label: "Sales" },
+  { value: "Admin Team", label: "Admin Team" },
 ];
 
 const INITIAL_FORM_STATE = {
@@ -41,6 +42,7 @@ const ROLE_BADGE_CLASS = {
   MANAGER: "bg-blue-100 text-blue-700",
   MARKETING: "bg-yellow-100 text-yellow-700",
   SALES: "bg-green-100 text-green-700",
+  ADMIN_TEAM: "bg-teal-100 text-teal-700",
 };
 
 const normalizeRoleValue = (role) => {

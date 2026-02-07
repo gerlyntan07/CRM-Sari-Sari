@@ -41,8 +41,14 @@ export const useAuth = () => {
     saveAuthData(user);
     if (user.role === 'CEO' || user.role === 'Admin') {
       navigate(`/admin`);
+    } else if (user.role === 'Group Manager') {
+      navigate(`/group-manager/dashboard`);
     } else if (user.role === 'Manager') {
-      navigate(`/manager/dashboard`)
+      navigate(`/manager/dashboard`);
+    } else if (user.role === 'Sales') {
+      navigate(`/sales/dashboard`);
+    } else if (user.role === 'Admin Team') {
+      navigate(`/support/dashboard`);
     } else {
       navigate('/');
     }

@@ -1,6 +1,7 @@
-import React, { useState, useEffect, useRef } from "react";
-import { FiAlertCircle, FiBookOpen, FiChevronRight, FiX, FiSend, FiSearch, FiMessageSquare, FiHelpCircle, FiCheckCircle, FiHeadphones, FiUser } from "react-icons/fi";
+import React, { useState, useEffect, useRef, useCallback } from "react";
+import { FiAlertCircle, FiBookOpen, FiChevronRight, FiX, FiSend, FiSearch, FiMessageSquare, FiHelpCircle, FiCheckCircle, FiHeadphones, FiUser, FiClock, FiList } from "react-icons/fi";
 import { toast } from "react-toastify";
+import { createSupportTicket, createChatSession, sendChatMessage, getChatMessages, closeChatSession, getSupportTickets, getWebSocketUrl } from "../api/support";
 
 export default function AdminHelp() {
   const [activeSection, setActiveSection] = useState(null);
@@ -8,23 +9,26 @@ export default function AdminHelp() {
     subject: "",
     category: "",
     description: "",
-    priority: "medium",
+    priority: "Medium",
   });
   const [searchQuery, setSearchQuery] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   
   // Live Chat State
-  const [chatMessages, setChatMessages] = useState([
-    {
-      id: 1,
-      sender: "support",
-      message: "Hello! Welcome to Sari-Sari CRM Support. How can I help you today?",
-      timestamp: new Date(),
-    },
-  ]);
+  const [chatSession, setChatSession] = useState(null);
+  const [chatMessages, setChatMessages] = useState([]);
   const [chatInput, setChatInput] = useState("");
   const [isTyping, setIsTyping] = useState(false);
+  const [isConnecting, setIsConnecting] = useState(false);
   const chatEndRef = useRef(null);
+  const wsRef = useRef(null);
+  
+  // My Tickets State
+  const [myTickets, setMyTickets] = useState([]);
+  const [loadingTickets, setLoadingTickets] = useState(false);
+  
+  // Get current user from localStorage
+  const currentUser = JSON.parse(localStorage.getItem("user") || "{}");
 
   // Auto-scroll chat to bottom
   useEffect(() => {
@@ -34,6 +38,34 @@ export default function AdminHelp() {
   useEffect(() => {
     document.title = "Help Center | Sari-Sari CRM";
   }, []);
+  
+  // Cleanup WebSocket on unmount
+  useEffect(() => {
+    return () => {
+      if (wsRef.current) {
+        wsRef.current.close();
+      }
+    };
+  }, []);
+  
+  // Load my tickets
+  const loadMyTickets = useCallback(async () => {
+    setLoadingTickets(true);
+    try {
+      const tickets = await getSupportTickets();
+      setMyTickets(tickets);
+    } catch (error) {
+      console.error("Failed to load tickets:", error);
+    } finally {
+      setLoadingTickets(false);
+    }
+  }, []);
+  
+  useEffect(() => {
+    if (activeSection === "tickets") {
+      loadMyTickets();
+    }
+  }, [activeSection, loadMyTickets]);
 
   // Sample FAQ/Solutions data
   const solutions = [
@@ -127,64 +159,152 @@ export default function AdminHelp() {
 
     setIsSubmitting(true);
     
-    // Simulate API call
-    setTimeout(() => {
+    try {
+      await createSupportTicket({
+        subject: issueForm.subject,
+        category: issueForm.category,
+        description: issueForm.description,
+        priority: issueForm.priority,
+      });
+      
       toast.success("Your issue has been submitted successfully! We'll get back to you soon.");
       setIssueForm({
         subject: "",
         category: "",
         description: "",
-        priority: "medium",
+        priority: "Medium",
       });
       setActiveSection(null);
+    } catch (error) {
+      console.error("Failed to submit ticket:", error);
+      toast.error("Failed to submit your issue. Please try again.");
+    } finally {
       setIsSubmitting(false);
-    }, 1500);
+    }
   };
 
   const [expandedSolution, setExpandedSolution] = useState(null);
+  
+  // Start chat session
+  const startChatSession = async () => {
+    setIsConnecting(true);
+    try {
+      const session = await createChatSession();
+      setChatSession(session);
+      setChatMessages([{
+        id: Date.now(),
+        sender: "support",
+        message: "Hello! Welcome to Sari-Sari CRM Support. How can I help you today?",
+        timestamp: new Date(),
+      }]);
+      
+      // Connect to WebSocket
+      const wsUrl = getWebSocketUrl(session.id, currentUser.id, false);
+      wsRef.current = new WebSocket(wsUrl);
+      
+      wsRef.current.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+        setChatMessages((prev) => [...prev, {
+          id: Date.now(),
+          sender: data.is_support ? "support" : "user",
+          message: data.message,
+          timestamp: new Date(data.timestamp),
+        }]);
+        setIsTyping(false);
+      };
+      
+      wsRef.current.onclose = () => {
+        console.log("WebSocket closed");
+      };
+      
+      wsRef.current.onerror = (error) => {
+        console.error("WebSocket error:", error);
+      };
+      
+    } catch (error) {
+      console.error("Failed to start chat session:", error);
+      toast.error("Failed to connect to support. Please try again.");
+    } finally {
+      setIsConnecting(false);
+    }
+  };
+  
+  // End chat session
+  const endChatSession = async () => {
+    if (chatSession) {
+      try {
+        await closeChatSession(chatSession.id);
+      } catch (error) {
+        console.error("Failed to close chat session:", error);
+      }
+    }
+    if (wsRef.current) {
+      wsRef.current.close();
+    }
+    setChatSession(null);
+    setChatMessages([]);
+  };
 
   // Handle sending chat message
-  const handleSendMessage = (e) => {
+  const handleSendMessage = async (e) => {
     e.preventDefault();
     if (!chatInput.trim()) return;
+    
+    // If no session exists yet, start one first
+    if (!chatSession) {
+      await startChatSession();
+    }
 
+    const messageText = chatInput.trim();
     const userMessage = {
-      id: chatMessages.length + 1,
+      id: Date.now(),
       sender: "user",
-      message: chatInput.trim(),
+      message: messageText,
       timestamp: new Date(),
     };
 
     setChatMessages((prev) => [...prev, userMessage]);
     setChatInput("");
-    setIsTyping(true);
-
-    // Simulate support response
-    setTimeout(() => {
-      const responses = [
-        "Thank you for your message. Let me look into that for you.",
-        "I understand your concern. Can you provide more details?",
-        "That's a great question! Here's what I can help you with...",
-        "I'm checking our system now. Please hold on for a moment.",
-        "Thanks for reaching out! I'll make sure to assist you with this.",
-      ];
-      const randomResponse = responses[Math.floor(Math.random() * responses.length)];
-      
-      setChatMessages((prev) => [
-        ...prev,
-        {
-          id: prev.length + 1,
-          sender: "support",
-          message: randomResponse,
-          timestamp: new Date(),
-        },
-      ]);
-      setIsTyping(false);
-    }, 1500);
+    
+    // Send via WebSocket if connected
+    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+      wsRef.current.send(JSON.stringify({ message: messageText }));
+    }
+    
+    // Also save to database
+    if (chatSession) {
+      try {
+        await sendChatMessage({
+          session_id: chatSession.id,
+          message: messageText,
+        });
+      } catch (error) {
+        console.error("Failed to save message:", error);
+      }
+    }
   };
 
   const formatTime = (date) => {
     return new Date(date).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  };
+  
+  const getStatusBadge = (status) => {
+    const styles = {
+      "Open": "bg-blue-100 text-blue-700",
+      "In Progress": "bg-yellow-100 text-yellow-700",
+      "Resolved": "bg-green-100 text-green-700",
+      "Closed": "bg-gray-100 text-gray-700",
+    };
+    return styles[status] || "bg-gray-100 text-gray-700";
+  };
+  
+  const getPriorityBadge = (priority) => {
+    const styles = {
+      "High": "bg-red-100 text-red-700",
+      "Medium": "bg-yellow-100 text-yellow-700",
+      "Low": "bg-green-100 text-green-700",
+    };
+    return styles[priority] || "bg-gray-100 text-gray-700";
   };
 
   return (
@@ -196,7 +316,7 @@ export default function AdminHelp() {
       </div>
 
       {/* Main Action Cards */}
-      <div className="grid md:grid-cols-3 gap-6 mb-8">
+      <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         {/* Report an Issue Card */}
         <div
           onClick={() => setActiveSection(activeSection === "report" ? null : "report")}
@@ -278,7 +398,94 @@ export default function AdminHelp() {
             </div>
           </div>
         </div>
+
+        {/* My Tickets Card */}
+        <div
+          onClick={() => setActiveSection(activeSection === "tickets" ? null : "tickets")}
+          className={`bg-white rounded-xl shadow-md border-2 cursor-pointer transition-all duration-300 hover:shadow-lg ${
+            activeSection === "tickets" ? "border-purple-400 ring-2 ring-purple-100" : "border-transparent hover:border-purple-200"
+          }`}
+        >
+          <div className="p-6">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <div className="w-14 h-14 bg-purple-100 rounded-full flex items-center justify-center">
+                  <FiList className="w-7 h-7 text-purple-600" />
+                </div>
+                <div>
+                  <h2 className="text-xl font-semibold text-gray-800">My Tickets</h2>
+                  <p className="text-gray-500 text-sm">View your submitted tickets</p>
+                </div>
+              </div>
+              <FiChevronRight
+                className={`w-6 h-6 text-gray-400 transition-transform duration-300 ${
+                  activeSection === "tickets" ? "rotate-90" : ""
+                }`}
+              />
+            </div>
+          </div>
+        </div>
       </div>
+
+      {/* My Tickets Section */}
+      {activeSection === "tickets" && (
+        <div className="bg-white rounded-xl shadow-md p-6 mb-8 animate-fade-in">
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
+              <FiList className="text-purple-500" />
+              My Tickets
+            </h3>
+            <button
+              onClick={() => setActiveSection(null)}
+              className="p-2 hover:bg-gray-100 rounded-full transition"
+            >
+              <FiX className="w-5 h-5 text-gray-500" />
+            </button>
+          </div>
+
+          {loadingTickets ? (
+            <div className="flex items-center justify-center py-12">
+              <div className="w-8 h-8 border-3 border-purple-500 border-t-transparent rounded-full animate-spin"></div>
+            </div>
+          ) : myTickets.length > 0 ? (
+            <div className="space-y-3">
+              {myTickets.map((ticket) => (
+                <div key={ticket.id} className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <h4 className="font-medium text-gray-800">{ticket.subject}</h4>
+                      <p className="text-sm text-gray-500 mt-1 line-clamp-2">{ticket.description}</p>
+                      <div className="flex items-center gap-3 mt-2">
+                        <span className={`text-xs px-2 py-1 rounded-full ${getStatusBadge(ticket.status)}`}>
+                          {ticket.status}
+                        </span>
+                        <span className={`text-xs px-2 py-1 rounded-full ${getPriorityBadge(ticket.priority)}`}>
+                          {ticket.priority}
+                        </span>
+                        <span className="text-xs text-gray-400 flex items-center gap-1">
+                          <FiClock className="w-3 h-3" />
+                          {new Date(ticket.created_at).toLocaleDateString()}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-12">
+              <FiList className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+              <p className="text-gray-500">No tickets submitted yet</p>
+              <button
+                onClick={() => setActiveSection("report")}
+                className="text-purple-500 hover:underline text-sm mt-2"
+              >
+                Report an issue
+              </button>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Report Issue Section */}
       {activeSection === "report" && (

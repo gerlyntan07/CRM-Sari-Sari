@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session, joinedload
 from database import SessionLocal
 from jose import jwt, JWTError
 from models.auth import User
+from models.subscription import Subscription
 from schemas.auth import UserCreate, UserLogin, UserResponse, EmailCheck, EmailCheckResponse, UserWithCompany
 from .auth_utils import hash_password, verify_password, create_access_token, get_default_avatar
 import requests, os
@@ -113,6 +114,17 @@ def login(user: UserLogin, response: Response, db: Session = Depends(get_db)):
     if not db_user.is_active:
         raise HTTPException(status_code=403, detail="Your account has been deactivated. Please contact your administrator.")
     
+    # Check subscription status (skip for Admin Team - they manage subscriptions)
+    if db_user.role.upper() != 'ADMIN TEAM' and db_user.related_to_company:
+        subscription = db.query(Subscription).filter(
+            Subscription.company_id == db_user.related_to_company
+        ).first()
+        if subscription and subscription.status in ['Cancelled', 'Expired']:
+            raise HTTPException(
+                status_code=403, 
+                detail=f"Your company's subscription is {subscription.status.lower()}. Please contact support to reactivate."
+            )
+    
     db_user.last_login = datetime.now(timezone.utc)
     db.commit()
     db.refresh(db_user)
@@ -175,6 +187,17 @@ def google_login(token: dict, response: Response, db: Session = Depends(get_db))
     # Check if user is active
     if not db_user.is_active:
         raise HTTPException(status_code=403, detail="Your account has been deactivated. Please contact your administrator.")
+
+    # Check subscription status (skip for Admin Team - they manage subscriptions)
+    if db_user.role.upper() != 'ADMIN TEAM' and db_user.related_to_company:
+        subscription = db.query(Subscription).filter(
+            Subscription.company_id == db_user.related_to_company
+        ).first()
+        if subscription and subscription.status in ['Cancelled', 'Expired']:
+            raise HTTPException(
+                status_code=403, 
+                detail=f"Your company's subscription is {subscription.status.lower()}. Please contact support to reactivate."
+            )
 
     token = create_access_token({"sub": str(db_user.id)})
 

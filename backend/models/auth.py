@@ -11,6 +11,7 @@ class UserRole(str, Enum):
     MANAGER = "Manager"
     MARKETING = "Marketing"
     SALES = "Sales"
+    ADMIN_TEAM = "Admin Team"  # Support team role for live chat and subscription management
 
 class User(Base):
     __tablename__ = "users"

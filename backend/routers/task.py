@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Request, Body
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 from typing import List
 from datetime import datetime
 from sqlalchemy import or_
@@ -16,6 +16,7 @@ from models.quote import Quote
 from .logs_utils import serialize_instance, create_audit_log
 from models.deal import Deal
 from models.territory import Territory
+import traceback
 
 router = APIRouter(prefix="/tasks", tags=["Tasks"])
 
@@ -76,20 +77,25 @@ async def create_task(
     # ------------------------------------------
 
     # --- 1. NORMALIZE ENUM VALUES (THE FIX) ---
-    # Defines valid DB values mapped from possible uppercase frontend inputs
-    priority_map = {
-        "HIGH": "High", "NORMAL": "Normal", "LOW": "Low"
+    # Map frontend inputs to enum objects
+    priority_enum_map = {
+        "HIGH": PriorityCategory.HIGH, 
+        "NORMAL": PriorityCategory.NORMAL, 
+        "LOW": PriorityCategory.LOW
     }
     
-    status_map = {
-        "NOT_STARTED": "Not started", "NOT STARTED": "Not started",
-        "IN_PROGRESS": "In progress", "IN PROGRESS": "In progress",
-        "COMPLETED": "Completed", "DEFERRED": "Deferred"
+    status_enum_map = {
+        "NOT_STARTED": StatusCategory.NOT_STARTED, 
+        "NOT STARTED": StatusCategory.NOT_STARTED,
+        "IN_PROGRESS": StatusCategory.IN_PROGRESS, 
+        "IN PROGRESS": StatusCategory.IN_PROGRESS,
+        "COMPLETED": StatusCategory.COMPLETED, 
+        "DEFERRED": StatusCategory.DEFERRED
     }
 
-    # Convert payload to Upper Case for lookup, fallback to original if not found
-    clean_priority = priority_map.get(payload.priority.upper(), payload.priority)
-    clean_status = status_map.get(payload.status.upper(), payload.status)
+    # Convert payload to Upper Case for lookup, fallback to original string if not found
+    clean_priority = priority_enum_map.get(payload.priority.upper(), payload.priority)
+    clean_status = status_enum_map.get(payload.status.upper(), payload.status)
     # ------------------------------------------
 
     assigned_user = None
@@ -201,51 +207,187 @@ async def create_task(
 # -----------------------------------------
 # GET ALL TASKS
 # -----------------------------------------
-@router.get("/all", response_model=List[TaskFetch])
+@router.get("/all")
 def get_all_tasks(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    """Get all meetings for admin users"""
-    if current_user.role.upper() in ["CEO", "ADMIN"]:
-        tasks = (
-            db.query(Task)
-            .join(User, Task.assigned_to == User.id)
-            .filter(User.related_to_company == current_user.related_to_company)
-            .all()
-        )
-    elif current_user.role.upper() == "GROUP MANAGER":
-        tasks = (
-            db.query(Task)
-            .join(User, Task.assigned_to == User.id)
-            .filter(User.related_to_company == current_user.related_to_company)
-            .filter(~User.role.in_(["CEO", "Admin"]))
-            .all()
-        )
-    elif current_user.role.upper() == "MANAGER":
-        subquery_user_ids = (
-            db.query(Territory.user_id)
-            .filter(Territory.manager_id == current_user.id)
-            .scalar_subquery()
-        )
+    """Get all tasks based on user role"""
+    try:
+        if current_user.role.upper() in ["CEO", "ADMIN"]:
+            # Admins see all tasks in their company
+            company_users = (
+                db.query(User.id)
+                .where(User.related_to_company == current_user.related_to_company)
+                .subquery()
+            )
+            tasks = (
+                db.query(Task)
+                .options(
+                    selectinload(Task.task_creator),
+                    selectinload(Task.task_assign_to),
+                    selectinload(Task.account),
+                    selectinload(Task.contact),
+                    selectinload(Task.lead),
+                    selectinload(Task.deal),
+                    selectinload(Task.quote)
+                )
+                .filter(
+                    (Task.assigned_to.in_(company_users)) | (Task.created_by.in_(company_users))
+                )
+                .all()
+            )
+        elif current_user.role.upper() == "GROUP MANAGER":
+            # Group managers see tasks for their company's non-admin users
+            company_users = (
+                db.query(User.id)
+                .where(User.related_to_company == current_user.related_to_company)
+                .where(~User.role.in_(["CEO", "ADMIN"]))
+                .subquery()
+            )
+            tasks = (
+                db.query(Task)
+                .options(
+                    selectinload(Task.task_creator),
+                    selectinload(Task.task_assign_to),
+                    selectinload(Task.account),
+                    selectinload(Task.contact),
+                    selectinload(Task.lead),
+                    selectinload(Task.deal),
+                    selectinload(Task.quote)
+                )
+                .filter(
+                    (Task.assigned_to.in_(company_users)) | (Task.created_by.in_(company_users))
+                )
+                .all()
+            )
+        elif current_user.role.upper() == "MANAGER":
+            # Managers see tasks assigned to their territory users + their own tasks
+            subquery_user_ids = (
+                db.query(Territory.user_id)
+                .filter(Territory.manager_id == current_user.id)
+                .scalar_subquery()
+            )
 
-        tasks = (
-            db.query(Task)
-            .join(User, Task.assigned_to == User.id)
-            .filter(User.related_to_company == current_user.related_to_company)
-            .filter(
-                (User.id.in_(subquery_user_ids)) | 
-                (Task.assigned_to == current_user.id) | # Leads owned by manager
-                (Task.created_by == current_user.id)
-            ).all()
-        )
-    else:
-        tasks = (
-            db.query(Task)
-            .filter(
-                (Task.assigned_to == current_user.id) | 
-                (Task.created_by == current_user.id)
-            ).all()
-        )
+            tasks = (
+                db.query(Task)
+                .options(
+                    selectinload(Task.task_creator),
+                    selectinload(Task.task_assign_to),
+                    selectinload(Task.account),
+                    selectinload(Task.contact),
+                    selectinload(Task.lead),
+                    selectinload(Task.deal),
+                    selectinload(Task.quote)
+                )
+                .filter(
+                    (Task.assigned_to.in_(subquery_user_ids)) | 
+                    (Task.assigned_to == current_user.id) |
+                    (Task.created_by == current_user.id)
+                ).all()
+            )
+        else:
+            # SALES users - see only their own tasks (created or assigned)
+            tasks = (
+                db.query(Task)
+                .options(
+                    selectinload(Task.task_creator),
+                    selectinload(Task.task_assign_to),
+                    selectinload(Task.account),
+                    selectinload(Task.contact),
+                    selectinload(Task.lead),
+                    selectinload(Task.deal),
+                    selectinload(Task.quote)
+                )
+                .filter(
+                    (Task.assigned_to == current_user.id) | (Task.created_by == current_user.id)
+                )
+                .all()
+            )
+            # Filter out INACTIVE tasks in Python to avoid SQLAlchemy enum binding issues
+            tasks = [t for t in tasks if (t.status.value if hasattr(t.status, 'value') else t.status) != "Inactive"]
 
-    return tasks
+        # Convert to dict format - simple and clean
+        result = []
+        for task in tasks:
+            try:
+                # Get priority and status values safely
+                priority_val = task.priority if task.priority else "Normal"
+                if hasattr(priority_val, 'value'):
+                    priority_val = priority_val.value
+                
+                status_val = task.status if task.status else "Not started"
+                if hasattr(status_val, 'value'):
+                    status_val = status_val.value
+                
+                task_dict = {
+                    "id": task.id,
+                    "title": task.title,
+                    "description": task.description,
+                    "priority": str(priority_val),
+                    "status": str(status_val),
+                    "due_date": task.due_date.isoformat() if task.due_date else None,
+                    "created_at": task.created_at.isoformat() if task.created_at else None,
+                    "task_creator": {
+                        "id": task.task_creator.id,
+                        "first_name": task.task_creator.first_name,
+                        "last_name": task.task_creator.last_name,
+                        "email": task.task_creator.email,
+                        "profile_picture": task.task_creator.profile_picture,
+                        "role": task.task_creator.role,
+                    } if task.task_creator else None,
+                    "task_assign_to": {
+                        "id": task.task_assign_to.id,
+                        "first_name": task.task_assign_to.first_name,
+                        "last_name": task.task_assign_to.last_name,
+                        "email": task.task_assign_to.email,
+                        "profile_picture": task.task_assign_to.profile_picture,
+                        "role": task.task_assign_to.role,
+                    } if task.task_assign_to else None,
+                    "account": {
+                        "id": task.account.id,
+                        "name": task.account.name,
+                    } if task.account else None,
+                    "contact": {
+                        "id": task.contact.id,
+                        "first_name": task.contact.first_name,
+                        "last_name": task.contact.last_name,
+                        "email": task.contact.email,
+                    } if task.contact else None,
+                    "lead": {
+                        "id": task.lead.id,
+                        "title": task.lead.title,
+                        "first_name": task.lead.first_name,
+                        "last_name": task.lead.last_name,
+                    } if task.lead else None,
+                    "deal": {
+                        "id": task.deal.id,
+                        "deal_id": task.deal.deal_id,
+                        "name": task.deal.name,
+                    } if task.deal else None,
+                    "quote": {
+                        "id": task.quote.id,
+                        "quote_id": task.quote.quote_id,
+                    } if task.quote else None,
+                }
+                result.append(task_dict)
+            except Exception as task_err:
+                print(f"Error serializing task {task.id}: {str(task_err)}")
+                traceback.print_exc()
+                # Still try to add a minimal version
+                result.append({
+                    "id": task.id,
+                    "title": task.title,
+                    "description": task.description,
+                    "priority": "Normal",
+                    "status": "Not started",
+                    "due_date": None,
+                    "created_at": None,
+                })
+        
+        return result
+        
+    except Exception as e:
+        print(f"Error in get_all_tasks: {str(e)}")
+        traceback.print_exc()
+        return []
 
 
 # -----------------------------------------
@@ -315,17 +457,142 @@ async def update_task(
 
 
 # -----------------------------------------
+# -----------------------------------------
 # DELETE TASK
 # -----------------------------------------
 @router.delete("/{task_id}", status_code=status.HTTP_200_OK)
-def delete_task(task_id: int, db: Session = Depends(get_db)):
-    task = db.query(Task).filter(Task.id == task_id).first()
-    if not task:
-        raise HTTPException(status_code=404, detail="Task not found")
+def delete_task(
+    task_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    request: Request = None
+):
+    """Delete endpoint: SALES users archive, ADMINS hard delete"""
+    try:
+        task = db.query(Task).filter(Task.id == task_id).first()
+        if not task:
+            raise HTTPException(status_code=404, detail="Task not found")
 
-    db.delete(task)
-    db.commit()
-    return {"message": "Task deleted successfully"}
+        title = task.title
+        old_data = serialize_instance(task)
+
+        # SALES users archive (mark as INACTIVE) instead of hard delete
+        if current_user.role.upper() == "SALES":
+            if task.created_by != current_user.id:
+                raise HTTPException(status_code=403, detail="Permission denied - you can only archive your own tasks")
+
+            task.status = StatusCategory.INACTIVE
+            db.flush()  # Flush changes but don't commit yet
+            new_data = serialize_instance(task)
+
+            create_audit_log(
+                db=db,
+                current_user=current_user,
+                instance=task,
+                action="UPDATE",
+                request=request,
+                old_data=old_data,
+                new_data=new_data,
+                custom_message=f"archive task '{title}'"
+            )
+            db.commit()
+            return {"message": "Task archived successfully"}
+        else:
+            # Admins can hard delete
+            old_data = serialize_instance(task)
+            db.delete(task)
+            db.flush()
+            
+            create_audit_log(
+                db=db,
+                current_user=current_user,
+                instance=task,
+                action="DELETE",
+                request=request,
+                old_data=old_data,
+                custom_message=f"delete task '{title}'"
+            )
+            db.commit()
+            return {"message": "Task deleted successfully"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        print(f"Error deleting/archiving task {task_id}: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error archiving task: {str(e)}")
+
+
+# -----------------------------------------
+# BULK ARCHIVE TASKS (must come before single archive route)
+# -----------------------------------------
+@router.post("/bulk-archive", status_code=status.HTTP_200_OK)
+def bulk_archive_tasks(
+    data: TaskBulkDelete = Body(...),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    request: Request = None
+):
+    """Archive multiple tasks (set status to INACTIVE) for SALES users"""
+    try:
+        if current_user.role.upper() not in ["SALES", "ADMIN", "CEO", "MANAGER", "GROUP MANAGER"]:
+            raise HTTPException(status_code=403, detail="Permission denied")
+
+        if not data.task_ids:
+            return {"detail": "No tasks provided for archiving."}
+
+        # For SALES users, only allow archiving their own tasks
+        if current_user.role.upper() == "SALES":
+            tasks_to_archive = db.query(Task).filter(
+                Task.id.in_(data.task_ids),
+                Task.created_by == current_user.id
+            ).all()
+        else:
+            # Admins can archive any task in their company
+            company_users = (
+                db.query(User.id)
+                .where(User.related_to_company == current_user.related_to_company)
+                .subquery()
+            )
+            tasks_to_archive = db.query(Task).filter(
+                Task.id.in_(data.task_ids),
+                ((Task.created_by.in_(company_users)) | (Task.assigned_to.in_(company_users)))
+            ).all()
+
+        if not tasks_to_archive:
+            raise HTTPException(status_code=404, detail="No matching tasks found for archiving.")
+
+        archived_count = 0
+        for task in tasks_to_archive:
+            old_data = serialize_instance(task)
+            
+            # Mark as INACTIVE using proper enum instead of string
+            task.status = StatusCategory.INACTIVE
+            db.flush()  # Flush changes but don't commit yet
+            new_data = serialize_instance(task)
+            
+            create_audit_log(
+                db=db,
+                current_user=current_user,
+                instance=task,
+                action="UPDATE",
+                request=request,
+                old_data=old_data,
+                new_data=new_data,
+                custom_message=f"archive task '{task.title}'"
+            )
+            archived_count += 1
+
+        db.commit()
+
+        return {"detail": f"Successfully archived {archived_count} task(s)."}
+    except HTTPException:
+        db.rollback()
+        raise
+    except Exception as e:
+        db.rollback()
+        print(f"Error bulk archiving tasks: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error archiving tasks: {str(e)}")
+
 
 
 # -----------------------------------------
@@ -337,6 +604,11 @@ def get_assigned_tasks(
     current_user: User = Depends(get_current_user)
 ):
     tasks = db.query(Task).filter(Task.assigned_to == current_user.id).all()
+    
+    # SALES users don't see INACTIVE tasks
+    if current_user.role.upper() == "SALES":
+        tasks = [t for t in tasks if (t.status.value if hasattr(t.status, 'value') else t.status) != "Inactive"]
+    
     return [task_to_response(t) for t in tasks]
 
 
@@ -354,6 +626,10 @@ def get_task_notifications(
         .order_by(Task.created_at.desc())
         .all()
     )
+
+    # SALES users don't see INACTIVE tasks
+    if current_user.role.upper() == "SALES":
+        tasks = [t for t in tasks if (t.status.value if hasattr(t.status, 'value') else t.status) != "Inactive"]
 
     return [
         {

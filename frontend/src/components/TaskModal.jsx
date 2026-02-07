@@ -5,9 +5,9 @@ import api from "../api";
 import { toast } from "react-toastify";
 import { useMemo } from "react";
 import { HiX } from "react-icons/hi";
-import { FiTrash2 } from "react-icons/fi";
 import CommentSection from "../components/CommentSection.jsx";
 import { useComments } from "../hooks/useComments.js";
+import { FiTrash2, FiArchive, FiEdit2 } from "react-icons/fi";
 
 export default function TaskModal({
   isOpen,
@@ -337,24 +337,41 @@ export default function TaskModal({
                                 {formData.subject || "No Title"}
                               </h1>
                             </div>
-
+                            
                             <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-                              <button
-                                className="inline-flex items-center justify-center w-full sm:w-auto bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 transition text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 cursor-pointer"
-                                onClick={() => {
-                                  if (setFormData) setFormData(formData);
-                                  if (typeof onEdit === "function") onEdit();
-                                }}
-                              >
-                                Edit
-                              </button>
-                              <button
-                                className="inline-flex items-center justify-center w-full sm:w-auto px-4 py-2 rounded-md text-sm bg-red-500 text-white hover:bg-red-600 transition focus:outline-none focus:ring-2 focus:ring-red-400 cursor-pointer"
-                                onClick={() => onDelete(formData)} // <-- call your delete function here
-                              >
-                                <FiTrash2 className="mr-2" />
-                                Delete
-                              </button>
+                              {String(formData?.createdById) === String(currentUser?.id) && (
+                                <button
+                                  className="inline-flex items-center justify-center w-full sm:w-auto bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 transition text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 cursor-pointer"
+                                  onClick={() => {
+                                    if (setFormData) setFormData(formData);
+                                    if (typeof onEdit === "function") onEdit();
+                                  }}
+                                >
+                                  <FiEdit2 className="mr-2" />
+                                  Edit
+                                </button>
+                              )}
+                              {String(formData?.createdById) === String(currentUser?.id) && (
+                                <>
+                                  {currentUser?.role === "Sales" ? (
+                                    <button
+                                      className="inline-flex items-center justify-center w-full sm:w-auto px-4 py-2 rounded-md text-sm bg-orange-500 text-white hover:bg-orange-600 transition focus:outline-none focus:ring-2 focus:ring-orange-400 cursor-pointer"
+                                      onClick={() => onDelete(formData)}
+                                    >
+                                      <FiArchive className="mr-2" />
+                                      Archive
+                                    </button>
+                                  ) : (
+                                    <button
+                                      className="inline-flex items-center justify-center w-full sm:w-auto px-4 py-2 rounded-md text-sm bg-red-500 text-white hover:bg-red-600 transition focus:outline-none focus:ring-2 focus:ring-red-400 cursor-pointer"
+                                      onClick={() => onDelete(formData)}
+                                    >
+                                      <FiTrash2 className="mr-2" />
+                                      Delete
+                                    </button>
+                                  )}
+                                </>
+                              )}
                             </div>
                           </div>
                         </div>

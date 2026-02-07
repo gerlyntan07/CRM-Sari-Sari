@@ -68,31 +68,49 @@ class UserBase(BaseModel):
     email: EmailStr
     profile_picture: str
     role: str
+    
+    class Config:
+        from_attributes = True
 
 class AccountBase(BaseModel):
     id: int
     name: str
+    
+    class Config:
+        from_attributes = True
 
 class ContactBase(BaseModel):
     id: int
     first_name: str
     last_name: str
     email: str
+    
+    class Config:
+        from_attributes = True
 
 class LeadBase(BaseModel):
     id: int
     title: str
     first_name: str
     last_name: str
+    
+    class Config:
+        from_attributes = True
 
 class DealBase(BaseModel):
     id: int
     deal_id: str
     name: str
+    
+    class Config:
+        from_attributes = True
 
 class QuoteBase(BaseModel):
     id: int
     quote_id: str
+    
+    class Config:
+        from_attributes = True
 
 class TaskFetch(BaseModel):
     id: int
@@ -111,3 +129,5 @@ class TaskFetch(BaseModel):
     deal: Optional[DealBase] = None
     quote: Optional[QuoteBase] = None
     
+    class Config:
+        from_attributes = True

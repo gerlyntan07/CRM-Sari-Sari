@@ -9,7 +9,7 @@ import {
   FiEdit2,
   FiSearch,
   FiPlus,
-  FiTrash2,
+  FiArchive,
   FiCheckSquare,
 } from "react-icons/fi";
 import TaskModal from "../components/TaskModal";
@@ -266,7 +266,7 @@ const mapBackendTaskToFrontend = (task) => {
     assignedToName: assignedToName,
     
     createdAt: task.created_at || null,
-    createdById: task.created_by ?? null,
+    createdById: task.task_creator?.id ?? null,
     createdBy: createdByName,
     notes: task.notes || "",
     isPersonal: Boolean(task.is_personal),
@@ -319,6 +319,7 @@ export default function AdminTask() {
     dueDate: "",
     assignedTo: "",
     notes: "",
+    createdById: null,
     relatedType1: "Lead",
     relatedType2: "Contact",
     relatedTo1: "",
@@ -458,6 +459,7 @@ export default function AdminTask() {
         dueDate: "",
         assignedTo: currentUser?.role === "Sales" ? String(currentUser.id) : "",
         notes: "",
+        createdById: null,
         relatedType1: "Lead",
         relatedType2: "Contact",
         relatedTo1: "",
@@ -479,6 +481,7 @@ export default function AdminTask() {
         dueDate: toDateTimeInputValue(task.dueDate),
         assignedTo: task.assignedToId ? String(task.assignedToId) : "",
         notes: task.notes || "",
+        createdById: task.createdById || null,
         
         relatedType1Text: task.relatedType1Text || "",
         relatedTo1Text: task.relatedTo1Text || "",
@@ -524,55 +527,67 @@ export default function AdminTask() {
       }
   };
 
-  const handleDeleteTask = (task) => {
+  const handleArchiveTask = (task) => {
     if (!task) return;
 
     setConfirmModalData({
-      title: "Delete Task",
+      title: "Archive Task",
       message: (
         <>
-          Are you sure you want to delete <span className="font-semibold">{task.title}</span>? 
+          Are you sure you want to archive <span className="font-semibold">{task.title}</span>? 
         </>
       ),
-      confirmLabel: "Delete Task",
+      confirmLabel: "Archive Task",
       cancelLabel: "Cancel",
-      variant: "danger",
-      action: { type: "delete", targetId: task.id },
+      variant: "warning",
+      action: { type: "archive", targetId: task.id },
     });
   };
 
+  // Helper: Get tasks that can be selected (only tasks created by current user)
+  const getSelectableTasks = () => {
+    return displayTasks.filter((t) => String(t.createdById) === String(currentUser?.id));
+  };
+
   const handleSelectAll = () => {
-    if (displayTasks.every((t) => selectedIds.includes(t.id))) {
-      setSelectedIds(selectedIds.filter((id) => !displayTasks.map((t) => t.id).includes(id)));
+    const selectableTasks = getSelectableTasks();
+    if (selectableTasks.length === 0) return;
+    
+    if (selectableTasks.every((t) => selectedIds.includes(t.id))) {
+      setSelectedIds(selectedIds.filter((id) => !selectableTasks.map((t) => t.id).includes(id)));
     } else {
-      const newIds = displayTasks.map((t) => t.id);
+      const newIds = selectableTasks.map((t) => t.id);
       setSelectedIds([...new Set([...selectedIds, ...newIds])]);
     }
   };
 
   const handleCheckboxChange = (id) => {
+    // Only allow selecting tasks created by the current user (defensive check)
+    const task = displayTasks.find((t) => t.id === id);
+    if (String(task?.createdById) !== String(currentUser?.id)) return;
+    
     setSelectedIds((prev) =>
       prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
     );
   };
 
-  const handleBulkDelete = async () => {
+  const handleBulkArchive = async () => {
     if (selectedIds.length === 0) return;
 
     setConfirmModalData({
-      title: "Delete Tasks",
+      title: "Archive Tasks",
       message: (
         <span>
-          Are you sure you want to delete{" "}
+          Are you sure you want to archive{" "}
           <span className="font-semibold">{selectedIds.length}</span> selected
-          tasks? This action cannot be undone.
+          tasks?
         </span>
       ),
-      confirmLabel: `Delete ${selectedIds.length} Task(s)`,
+      confirmLabel: `Archive ${selectedIds.length} Task(s)`,
       cancelLabel: "Cancel",
-      variant: "danger",
+      variant: "warning",
       action: {
-        type: "bulk-delete",
+        type: "bulk-archive",
         task_ids: selectedIds,
       },
     });
@@ -587,21 +602,22 @@ export default function AdminTask() {
     setConfirmProcessing(true);
 
     try {
-      if (action.type === "delete") {
+      if (action.type === "archive") {
         await api.delete(`/tasks/${action.targetId}`);
-        toast.success("Task deleted successfully.");
+        toast.success("Task archived successfully.");
         await fetchTasks();
-      } else if (action.type === "bulk-delete") {
-        await api.delete("/tasks/admin/bulk-delete", {
-          data: { task_ids: action.task_ids },
+      } else if (action.type === "bulk-archive") {
+        await api.post("/tasks/bulk-archive", {
+          task_ids: action.task_ids,
         });
-        toast.success(`Successfully deleted ${action.task_ids.length} tasks`);
+        toast.success(`Successfully archived ${action.task_ids.length} tasks`);
         setSelectedIds([]);
         await fetchTasks();
       } 
     } catch (error) {
       console.error("Task action failed:", error);
-      toast.error("Failed to delete task.");
+      const errorMsg = error.response?.data?.detail || "Failed to archive task.";
+      toast.error(errorMsg);
     } finally {
       setConfirmProcessing(false);
       setConfirmModalData(null);
@@ -839,20 +855,24 @@ export default function AdminTask() {
                           </p>
                         </div>
                         <div className="flex items-center gap-2 ml-3">
-                          <button
-                            type="button"
-                            onClick={(e) => { e.stopPropagation(); handleOpenModal(task); }}
-                            className="text-blue-500 hover:text-blue-700"
-                          >
-                            <FiEdit2 />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={(e) => { e.stopPropagation(); handleDeleteTask(task); }}
-                            className="text-red-500 hover:text-red-700"
-                          >
-                            <FiTrash2 />
-                          </button>
+                          {(String(task.createdById) === String(currentUser?.id) || currentUser?.role !== "Sales") && (
+                            <>
+                              <button
+                                type="button"
+                                onClick={(e) => { e.stopPropagation(); handleOpenModal(task); }}
+                                className="text-blue-500 hover:text-blue-700"
+                              >
+                                <FiEdit2 />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={(e) => { e.stopPropagation(); handleArchiveTask(task); }}
+                                className="text-orange-500 hover:text-orange-700"
+                              >
+                                <FiArchive />
+                              </button>
+                            </>
+                          )}
                         </div>
                       </div>
                     ))
@@ -881,8 +901,8 @@ export default function AdminTask() {
                       type="checkbox"
                       className="w-4 h-4 accent-blue-600"
                       checked={
-                        displayTasks.length > 0 &&
-                        displayTasks.every((t) => selectedIds.includes(t.id))
+                        getSelectableTasks().length > 0 &&
+                        getSelectableTasks().every((t) => selectedIds.includes(t.id))
                       }
                       onChange={handleSelectAll}
                     />
@@ -895,11 +915,11 @@ export default function AdminTask() {
                   <th className="py-3 px-4 font-medium text-center w-24">
                     {selectedIds.length > 0 ? (
                       <button
-                        onClick={handleBulkDelete}
-                        className="text-red-600 hover:text-red-800 transition p-1 rounded-full hover:bg-red-50"
-                        title={`Delete ${selectedIds.length} selected tasks`}
+                        onClick={handleBulkArchive}
+                        className="text-orange-600 hover:text-orange-800 transition p-1 rounded-full hover:bg-orange-50"
+                        title={`Archive ${selectedIds.length} selected tasks`}
                       >
-                        <FiTrash2 size={18} />
+                        <FiArchive size={18} />
                       </button>
                     ) : (
                       ""
@@ -914,12 +934,14 @@ export default function AdminTask() {
                     className="hover:bg-gray-50 transition-colors text-sm cursor-pointer"
                   >
                     <td className="py-3 px-4" onClick={(e) => e.stopPropagation()}>
-                      <input
-                        type="checkbox"
-                        className="w-4 h-4 accent-blue-600"
-                        checked={selectedIds.includes(task.id)}
-                        onChange={() => handleCheckboxChange(task.id)}
-                      />
+                      {String(task.createdById) === String(currentUser?.id) ? (
+                        <input
+                          type="checkbox"
+                          className="w-4 h-4 accent-blue-600"
+                          checked={selectedIds.includes(task.id)}
+                          onChange={() => handleCheckboxChange(task.id)}
+                        />
+                      ) : null}
                     </td>
                     <td className="py-3 px-4 text-gray-700 whitespace-nowrap font-medium" onClick={() => handleOpenModal(task, true)}>{task.title}</td>
                     <td className="py-3 px-4 whitespace-nowrap" onClick={() => handleOpenModal(task, true)}>
@@ -970,7 +992,7 @@ export default function AdminTask() {
         viewMode={viewMode}
         users={users}
         currentUser={currentUser}
-        onDelete={handleDeleteTask}
+        onDelete={handleArchiveTask}
       />
 
       {confirmModalData && (
@@ -1009,7 +1031,7 @@ function MetricCard({ icon: Icon, title, value, color, bgColor, onClick }) {
 
 function ConfirmationModal({ open, title, message, confirmLabel, cancelLabel, variant, loading, onConfirm, onCancel }) {
   if (!open) return null;
-  const confirmClasses = variant === "danger" ? "bg-red-500 hover:bg-red-600 border border-red-400" : "bg-tertiary hover:bg-secondary border border-tertiary";
+  const confirmClasses = variant === "danger" ? "bg-red-500 hover:bg-red-600 border border-red-400" : variant === "warning" ? "bg-orange-500 hover:bg-orange-600 border border-orange-400" : "bg-tertiary hover:bg-secondary border border-tertiary";
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-[60]">

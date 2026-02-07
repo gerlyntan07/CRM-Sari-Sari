@@ -87,7 +87,7 @@ export default function AdminHeader({ toggleSidebar }) {
       console.log("🔌 Admin WS Disconnected");
       reconnect();
     };
-    
+
     return () => {
       clearTimeout(reconnectTimeout);
       if (ws && ws.readyState === WebSocket.OPEN) {
@@ -121,9 +121,9 @@ export default function AdminHeader({ toggleSidebar }) {
           <FiMenu className="text-2xl" />
         </button>
         {user?.company?.company_logo && (
-          <img 
-            src={user.company.company_logo} 
-            alt="Company Logo" 
+          <img
+            src={user.company.company_logo}
+            alt="Company Logo"
             className="w-20 h-10 object-contain rounded"
           />
         )}
@@ -134,7 +134,7 @@ export default function AdminHeader({ toggleSidebar }) {
       <div className="flex items-center space-x-4">
         {/* Notifications */}
         <div className="relative" ref={notifRef}>
-          <button 
+          <button
             onClick={() => setNotifOpen(!notifOpen)}
             className="relative text-gray-600 hover:text-gray-800 transition"
           >
@@ -148,23 +148,23 @@ export default function AdminHeader({ toggleSidebar }) {
 
           {/* Notification Dropdown (Optional: Same style as SalesHeader) */}
           {notifOpen && (
-             <div className="absolute right-0 mt-3 w-80 bg-white rounded-xl shadow-lg border z-50 overflow-hidden animate-fade-in">
-                <div className="p-3 border-b bg-gray-50 flex justify-between items-center">
-                  <h3 className="font-semibold text-gray-800 text-sm">Notifications</h3>
-                  <button onClick={() => {setNotifications([]); setUnreadCount(0);}} className="text-xs text-blue-600 hover:underline">Clear</button>
-                </div>
-                <div className="max-h-60 overflow-y-auto">
-                  {notifications.length > 0 ? (
-                    notifications.map((n, i) => (
-                      <div key={i} className="p-3 border-b text-sm hover:bg-gray-50 cursor-pointer">
-                        {n.title || n.message || "New Update"}
-                      </div>
-                    ))
-                  ) : (
-                    <div className="p-4 text-center text-gray-500 text-xs">No notifications</div>
-                  )}
-                </div>
-             </div>
+            <div className="absolute right-0 mt-3 w-80 bg-white rounded-xl shadow-lg border z-50 overflow-hidden animate-fade-in">
+              <div className="p-3 border-b bg-gray-50 flex justify-between items-center">
+                <h3 className="font-semibold text-gray-800 text-sm">Notifications</h3>
+                <button onClick={() => { setNotifications([]); setUnreadCount(0); }} className="text-xs text-blue-600 hover:underline">Clear</button>
+              </div>
+              <div className="max-h-60 overflow-y-auto">
+                {notifications.length > 0 ? (
+                  notifications.map((n, i) => (
+                    <div key={i} className="p-3 border-b text-sm hover:bg-gray-50 cursor-pointer">
+                      {n.title || n.message || "New Update"}
+                    </div>
+                  ))
+                ) : (
+                  <div className="p-4 text-center text-gray-500 text-xs">No notifications</div>
+                )}
+              </div>
+            </div>
           )}
         </div>
 
@@ -192,30 +192,38 @@ export default function AdminHeader({ toggleSidebar }) {
                   alt="Profile"
                   className="w-16 h-16 rounded-full object-cover"
                 />
-                 <div>
-                <h2 className="text-gray-800 font-semibold text-sm">
-                  {user?.first_name} {user?.middle_name} {user?.last_name}
-                </h2>
+                <div>
+                  <h2 className="text-gray-800 font-semibold text-sm">
+                    {user?.first_name} {user?.middle_name} {user?.last_name}
+                  </h2>
                   <p className="text-[11px] text-gray-600 font-light w-full truncate">
                     Admin
-               </p>
-              </div>
+                  </p>
+                </div>
               </div>
 
               <div className="mt-6 space-y-1 px-4 text-left">
-                <button 
+                <button
                   onClick={() => { navigate("/admin/users"); setOpen(false); }}
                   className="block w-full text-sm text-gray-700 hover:bg-gray-50 py-1 rounded text-left"
                 >
                   Invite Your Team
                 </button>
 
-                <button 
+                <button
                   onClick={() => { navigate("/admin/manage-account"); setOpen(false); }}
                   className="block w-full text-sm text-gray-700 hover:bg-gray-50 py-1 rounded text-left"
                 >
                   Manage Your Account
                 </button>
+                <button
+                  onClick={() => { navigate("/admin/help"); setOpen(false); }}
+                  className="block w-full text-sm text-gray-700 hover:bg-gray-50 py-1 rounded text-left"
+                >
+                  Help
+                </button>
+
+
 
                 <div className="border-t border-gray-200 my-2"></div>
 

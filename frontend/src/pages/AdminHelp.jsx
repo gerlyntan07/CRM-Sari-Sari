@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from "react";
-import { FiAlertCircle, FiBookOpen, FiChevronRight, FiX, FiSend, FiSearch, FiMessageSquare, FiHelpCircle, FiCheckCircle } from "react-icons/fi";
+import React, { useState, useEffect, useRef } from "react";
+import { FiAlertCircle, FiBookOpen, FiChevronRight, FiX, FiSend, FiSearch, FiMessageSquare, FiHelpCircle, FiCheckCircle, FiHeadphones, FiUser } from "react-icons/fi";
 import { toast } from "react-toastify";
 
 export default function AdminHelp() {
@@ -12,6 +12,24 @@ export default function AdminHelp() {
   });
   const [searchQuery, setSearchQuery] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  // Live Chat State
+  const [chatMessages, setChatMessages] = useState([
+    {
+      id: 1,
+      sender: "support",
+      message: "Hello! Welcome to Sari-Sari CRM Support. How can I help you today?",
+      timestamp: new Date(),
+    },
+  ]);
+  const [chatInput, setChatInput] = useState("");
+  const [isTyping, setIsTyping] = useState(false);
+  const chatEndRef = useRef(null);
+
+  // Auto-scroll chat to bottom
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [chatMessages]);
 
   useEffect(() => {
     document.title = "Help Center | Sari-Sari CRM";
@@ -125,6 +143,50 @@ export default function AdminHelp() {
 
   const [expandedSolution, setExpandedSolution] = useState(null);
 
+  // Handle sending chat message
+  const handleSendMessage = (e) => {
+    e.preventDefault();
+    if (!chatInput.trim()) return;
+
+    const userMessage = {
+      id: chatMessages.length + 1,
+      sender: "user",
+      message: chatInput.trim(),
+      timestamp: new Date(),
+    };
+
+    setChatMessages((prev) => [...prev, userMessage]);
+    setChatInput("");
+    setIsTyping(true);
+
+    // Simulate support response
+    setTimeout(() => {
+      const responses = [
+        "Thank you for your message. Let me look into that for you.",
+        "I understand your concern. Can you provide more details?",
+        "That's a great question! Here's what I can help you with...",
+        "I'm checking our system now. Please hold on for a moment.",
+        "Thanks for reaching out! I'll make sure to assist you with this.",
+      ];
+      const randomResponse = responses[Math.floor(Math.random() * responses.length)];
+      
+      setChatMessages((prev) => [
+        ...prev,
+        {
+          id: prev.length + 1,
+          sender: "support",
+          message: randomResponse,
+          timestamp: new Date(),
+        },
+      ]);
+      setIsTyping(false);
+    }, 1500);
+  };
+
+  const formatTime = (date) => {
+    return new Date(date).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  };
+
   return (
     <div className="p-6 max-w-6xl mx-auto">
       {/* Header */}
@@ -134,7 +196,7 @@ export default function AdminHelp() {
       </div>
 
       {/* Main Action Cards */}
-      <div className="grid md:grid-cols-2 gap-6 mb-8">
+      <div className="grid md:grid-cols-3 gap-6 mb-8">
         {/* Report an Issue Card */}
         <div
           onClick={() => setActiveSection(activeSection === "report" ? null : "report")}
@@ -183,6 +245,34 @@ export default function AdminHelp() {
               <FiChevronRight
                 className={`w-6 h-6 text-gray-400 transition-transform duration-300 ${
                   activeSection === "solutions" ? "rotate-90" : ""
+                }`}
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Live Chat Support Card */}
+        <div
+          onClick={() => setActiveSection(activeSection === "chat" ? null : "chat")}
+          className={`bg-white rounded-xl shadow-md border-2 cursor-pointer transition-all duration-300 hover:shadow-lg ${
+            activeSection === "chat" ? "border-green-400 ring-2 ring-green-100" : "border-transparent hover:border-green-200"
+          }`}
+        >
+          <div className="p-6">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <div className="w-14 h-14 bg-green-100 rounded-full flex items-center justify-center relative">
+                  <FiHeadphones className="w-7 h-7 text-green-600" />
+                  <span className="absolute -top-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-white"></span>
+                </div>
+                <div>
+                  <h2 className="text-xl font-semibold text-gray-800">Live Chat Support</h2>
+                  <p className="text-gray-500 text-sm">Chat with our support team</p>
+                </div>
+              </div>
+              <FiChevronRight
+                className={`w-6 h-6 text-gray-400 transition-transform duration-300 ${
+                  activeSection === "chat" ? "rotate-90" : ""
                 }`}
               />
             </div>
@@ -403,6 +493,121 @@ export default function AdminHelp() {
               </div>
             )}
           </div>
+        </div>
+      )}
+
+      {/* Live Chat Section */}
+      {activeSection === "chat" && (
+        <div className="bg-white rounded-xl shadow-md mb-8 animate-fade-in overflow-hidden">
+          {/* Chat Header */}
+          <div className="bg-green-500 text-white p-4 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
+                <FiHeadphones className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="font-semibold">Live Chat Support</h3>
+                <p className="text-green-100 text-xs flex items-center gap-1">
+                  <span className="w-2 h-2 bg-green-300 rounded-full animate-pulse"></span>
+                  Online - Typically replies in minutes
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={() => setActiveSection(null)}
+              className="p-2 hover:bg-white/10 rounded-full transition"
+            >
+              <FiX className="w-5 h-5" />
+            </button>
+          </div>
+
+          {/* Chat Messages */}
+          <div className="h-80 overflow-y-auto p-4 bg-gray-50 space-y-4">
+            {chatMessages.map((msg) => (
+              <div
+                key={msg.id}
+                className={`flex ${
+                  msg.sender === "user" ? "justify-end" : "justify-start"
+                }`}
+              >
+                <div
+                  className={`flex items-end gap-2 max-w-[80%] ${
+                    msg.sender === "user" ? "flex-row-reverse" : ""
+                  }`}
+                >
+                  <div
+                    className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
+                      msg.sender === "user"
+                        ? "bg-blue-500 text-white"
+                        : "bg-green-500 text-white"
+                    }`}
+                  >
+                    {msg.sender === "user" ? (
+                      <FiUser className="w-4 h-4" />
+                    ) : (
+                      <FiHeadphones className="w-4 h-4" />
+                    )}
+                  </div>
+                  <div
+                    className={`px-4 py-2.5 rounded-2xl ${
+                      msg.sender === "user"
+                        ? "bg-blue-500 text-white rounded-br-md"
+                        : "bg-white shadow-sm border border-gray-200 text-gray-700 rounded-bl-md"
+                    }`}
+                  >
+                    <p className="text-sm">{msg.message}</p>
+                    <p
+                      className={`text-[10px] mt-1 ${
+                        msg.sender === "user" ? "text-blue-100" : "text-gray-400"
+                      }`}
+                    >
+                      {formatTime(msg.timestamp)}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            ))}
+            
+            {/* Typing indicator */}
+            {isTyping && (
+              <div className="flex justify-start">
+                <div className="flex items-end gap-2">
+                  <div className="w-8 h-8 rounded-full bg-green-500 text-white flex items-center justify-center">
+                    <FiHeadphones className="w-4 h-4" />
+                  </div>
+                  <div className="bg-white shadow-sm border border-gray-200 px-4 py-3 rounded-2xl rounded-bl-md">
+                    <div className="flex gap-1">
+                      <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: "0ms" }}></span>
+                      <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: "150ms" }}></span>
+                      <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: "300ms" }}></span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+            <div ref={chatEndRef} />
+          </div>
+
+          {/* Chat Input */}
+          <form onSubmit={handleSendMessage} className="p-4 border-t border-gray-200 bg-white">
+            <div className="flex gap-3">
+              <input
+                type="text"
+                value={chatInput}
+                onChange={(e) => setChatInput(e.target.value)}
+                placeholder="Type your message..."
+                className="flex-1 px-4 py-2.5 border border-gray-300 rounded-full focus:ring-2 focus:ring-green-200 focus:border-green-400 outline-none transition"
+              />
+              <button
+                type="submit"
+                disabled={!chatInput.trim()}
+                className="px-5 py-2.5 bg-green-500 hover:bg-green-600 text-white rounded-full transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              >
+                <FiSend className="w-4 h-4" />
+                <span className="hidden sm:inline">Send</span>
+              </button>
+            </div>
+          </form>
         </div>
       )}
 

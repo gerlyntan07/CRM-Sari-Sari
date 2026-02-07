@@ -43,6 +43,7 @@ class CompanyInvoiceInfo(BaseModel):
     company_name: str
     company_number: str
     company_logo: Optional[str] = None
+    company_website: Optional[str] = None
     ceo_email: Optional[str] = None
 
     class Config:

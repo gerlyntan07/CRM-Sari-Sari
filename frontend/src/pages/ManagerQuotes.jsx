@@ -1460,21 +1460,21 @@ export default function AdminQuotes() {
 
                   <div className="flex flex-col gap-2 w-full">
                     <button
-                      onClick={() =>
-                        navigate("/manager/tasks", {
+                       onClick={() =>
+                        navigate("/manager/calls", {
                           state: {
-                            openTaskModal: true,
-                            initialTaskData: {
-                              subject: `Follow up with ${selectedQuote.quote_id}`,
+                            openCallModal: true,
+                            initialCallData: {
+                              subject: `Call regarding Quote ${formatQuoteId(selectedQuote.quote_id)}`,
 
-                              assignedTo: selectedQuote.assigned_user?.id
+                              assigned_to: selectedQuote.assigned_user?.id
                                 ? String(selectedQuote.assigned_user.id)
                                 : selectedQuote.assigned_to
                                   ? String(selectedQuote.assigned_to)
                                   : "",
 
-                              priority: "NORMAL",
-                              status: "Not Started",
+                              direction: "Outgoing",
+                              status: "Planned",
                             },
                           },
                         })
@@ -1487,7 +1487,7 @@ export default function AdminQuotes() {
 
                     <button
                       className="flex items-center gap-2 border border-gray-100 rounded-md py-1.5 px-2 sm:px-3 hover:bg-gray-50 transition text-sm"
-                      onClick={() =>
+                     onClick={() =>
                          navigate("/manager/meetings", {
                           state: {
                             openMeetingModal: true,
@@ -1511,11 +1511,22 @@ export default function AdminQuotes() {
                     </button>
 
                     <button
-                      onClick={() =>
-                        navigate("/admin/tasks", {
+                     onClick={() =>
+                        navigate("/manager/tasks", {
                           state: {
                             openTaskModal: true,
-                            initialTaskData: { relatedTo: "Quotes" },
+                            initialTaskData: {
+                              subject: `Follow up with ${selectedQuote.quote_id}`,
+
+                              assignedTo: selectedQuote.assigned_user?.id
+                                ? String(selectedQuote.assigned_user.id)
+                                : selectedQuote.assigned_to
+                                  ? String(selectedQuote.assigned_to)
+                                  : "",
+
+                              priority: "NORMAL",
+                              status: "Not Started",
+                            },
                           },
                         })
                       }

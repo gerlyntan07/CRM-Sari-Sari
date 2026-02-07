@@ -844,7 +844,7 @@ export default function AdminLeads() {
             </h2>
 
             {/* Form grid */}
-            <form className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 text-sm">
+            <form className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-sm">
               {/* First Name */}
               <div className="flex flex-col">
                 <label className="block text-gray-700 font-medium mb-1 text-sm">
@@ -951,7 +951,7 @@ export default function AdminLeads() {
               </div>
 
               {/* Work Phone */}
-              <div className="flex flex-col">
+              <div className="flex flex-col col-span-1 md:col-span-2 lg:col-span-1">
                 <label className="block text-gray-700 font-medium mb-1 text-sm">
                   Work Phone
                 </label>
@@ -1028,7 +1028,7 @@ export default function AdminLeads() {
               </div>
 
               {/* Assign To */}
-              <div className="flex flex-col">
+              <div className="flex flex-col col-span-1 md:col-span-2 lg:col-span-1">
                 <label className="block text-gray-700 font-medium mb-1 text-sm">
                   Assign To <span className="text-red-500">*</span></label>
                   <div

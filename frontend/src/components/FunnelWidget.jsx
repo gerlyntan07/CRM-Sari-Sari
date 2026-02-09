@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import { 
   FiFilter, FiLayout, FiMail, 
   FiArrowDown, FiArrowUp, FiDownload, FiPhone, FiUser, FiTarget, 
@@ -135,7 +135,6 @@ const SortableUserItem = ({ id, children }) => {
 };
 
 const UserComparisonCard = ({ user, metrics, stages, currencySymbol, target, dragHandleProps }) => {
-    const weightedForecast = metrics.filteredDeals.reduce((a, b) => a + (parseFloat(b.amount || 0) * ((b.probability||0)/100)), 0);
     const closedWonAmount = metrics.metrics['CLOSED_WON']?.value || 0;
     const closedLostAmount = metrics.metrics['CLOSED_LOST']?.value || 0;
     
@@ -235,7 +234,7 @@ const UserComparisonCard = ({ user, metrics, stages, currencySymbol, target, dra
 };
 
 // ... [DetailTable Component remains exactly the same as before] ...
-const DetailTable = ({ data, stageKey, currencySymbol }) => {
+const DetailTable = ({ data, stageKey, currencySymbol, basePath = '/admin' }) => {
     const navigate = useNavigate();
     const [sortConfig, setSortConfig] = useState({ key: null, direction: 'desc' });
   
@@ -337,7 +336,7 @@ const DetailTable = ({ data, stageKey, currencySymbol }) => {
                   <tr 
                     key={item.id} 
                     className="hover:bg-blue-50 transition-colors cursor-pointer group"
-                    onClick={() => navigate(isLeadStage ? `/admin/leads/${item.id}` : `/admin/deals/info?id=${item.id}`)}
+                    onClick={() => navigate(isLeadStage ? `${basePath}/leads/${item.id}` : `${basePath}/deals/info?id=${item.id}`)}
                   >
                     <td className="p-4">
                       <p className="font-bold text-gray-800 text-sm group-hover:text-blue-600 transition-colors">
@@ -413,7 +412,7 @@ const DetailTable = ({ data, stageKey, currencySymbol }) => {
 
 // --- MAIN EXPORTED WIDGET ---
 
-const FunnelWidget = ({ leads, deals, currencySymbol, targets = [] }) => {
+const FunnelWidget = ({ leads, deals, currencySymbol, targets = [], basePath = '/admin' }) => {
     const [selectedStage, setSelectedStage] = useState('ALL'); 
     const [filterTime, setFilterTime] = useState('ALL'); 
     const [filterUser, setFilterUser] = useState('ALL');
@@ -595,7 +594,7 @@ const FunnelWidget = ({ leads, deals, currencySymbol, targets = [] }) => {
     const handleDragEnd = (event) => {
         const { active, over } = event;
         if (active.id !== over.id) {
-            setUserOrder((prevOrder) => {
+        setUserOrder(() => {
                 // Determine the current order of IDs
                 const currentIds = sortedUserGroups.map(g => g.user.id);
                 const oldIndex = currentIds.indexOf(active.id);
@@ -833,6 +832,7 @@ const FunnelWidget = ({ leads, deals, currencySymbol, targets = [] }) => {
                            data={activeTableData} 
                            stageKey={selectedStage}
                            currencySymbol={currencySymbol} 
+                          basePath={basePath}
                         />
                   )}
                </div>

@@ -35,6 +35,8 @@ import { useNavigate } from "react-router-dom";
 import api from "../api";
 import useFetchUser from "../hooks/useFetchUser";
 import LoadingSpinner from "../components/LoadingSpinner";
+import FunnelWidget from "../components/FunnelWidget";
+import TopPerformers from "../components/TopPerformers";
 import { LineChart } from "@mui/x-charts/LineChart";
 
 // --- Icon Components using React Icons ---
@@ -69,10 +71,16 @@ export const IconFiClipboard = (props) => <FiClipboard {...props} />;
 // --- Constants (No more mock data, all will be dynamic) ---
 
 // Utility function to format currency
-const formatCurrency = (amount) => {
-  return `P ${new Intl.NumberFormat("en-PH", {
-    minimumFractionDigits: 0,
-  }).format(amount)}`;
+const formatCurrency = (amount, symbol = "₱") => {
+  const numericAmount = parseFloat(amount) || 0;
+
+  return new Intl.NumberFormat("en-US", {
+    notation: "compact",
+    compactDisplay: "short",
+    maximumFractionDigits: 1,
+  })
+    .format(numericAmount)
+    .replace(/^/, `${symbol} `);
 };
 
 // Utility function to map DEAL status to classes
@@ -990,6 +998,7 @@ const DealItem = ({
   created_at,
   id,
   previousAmount,
+  currencySymbol,
 }) => {
   const navigate = useNavigate();
 
@@ -1045,7 +1054,7 @@ const DealItem = ({
         {/* Right side: Value and Sparkline Icon */}
         <div className="text-right flex flex-col items-end flex-shrink-0">
           <p className="text-md font-bold text-gray-800">
-            {formatCurrency(currentAmount)}
+            {formatCurrency(currentAmount, currencySymbol)}
           </p>
           {/* Dynamic Trend icon with color */}
           <TrendIcon size={16} className={`${trendColor} mt-1`} />
@@ -1197,6 +1206,8 @@ const TManagerDashboard = () => {
   const navigate = useNavigate();
   const { user } = useFetchUser();
 
+  const currencySymbol = user?.company?.currency || "₱";
+
   // State for all data
   const [metrics, setMetrics] = useState({
     activeLeads: 0,
@@ -1218,6 +1229,9 @@ const TManagerDashboard = () => {
   const [allLeads, setAllLeads] = useState([]);
   const [allDeals, setAllDeals] = useState([]);
   const [allAccounts, setAllAccounts] = useState([]);
+
+  const [allTargets, setAllTargets] = useState([]);
+  const [totalTarget, setTotalTarget] = useState(0);
 
   // Real-time update state
   const [lastUpdate, setLastUpdate] = useState(new Date());
@@ -1337,16 +1351,17 @@ const TManagerDashboard = () => {
         meetingsRes,
         callsRes,
         logsRes,
+        targetsRes,
       ] = await Promise.all([
-        api.get("/leads/group-manager/getLeads").catch((err) => {
+        api.get("/leads/admin/getLeads").catch((err) => {
           console.error("Error fetching leads:", err);
           return { data: [] };
         }),
-        api.get("/deals/group-manager/fetch-all").catch((err) => {
+        api.get("/deals/admin/fetch-all").catch((err) => {
           console.error("Error fetching deals:", err);
           return { data: [] };
         }),
-        api.get("/accounts/group-manager/fetch-all").catch((err) => {
+        api.get("/accounts/admin/fetch-all").catch((err) => {
           console.error("Error fetching accounts:", err);
           return { data: [] };
         }),
@@ -1354,16 +1369,20 @@ const TManagerDashboard = () => {
           console.error("Error fetching tasks:", err);
           return { data: [] };
         }),
-        api.get("/meetings/group-manager/fetch-all").catch((err) => {
+        api.get("/meetings/admin/fetch-all").catch((err) => {
           console.error("Error fetching meetings:", err);
           return { data: [] };
         }),
-        api.get("/calls/group-manager/fetch-all").catch((err) => {
+        api.get("/calls/admin/fetch-all").catch((err) => {
           console.error("Error fetching calls:", err);
           return { data: [] };
         }),
         api.get("/logs/read-all").catch((err) => {
           console.error("Error fetching logs:", err);
+          return { data: [] };
+        }),
+        api.get("/targets/admin/fetch-all").catch((err) => {
+          console.error("Error fetching targets:", err);
           return { data: [] };
         }),
       ]);
@@ -1375,6 +1394,7 @@ const TManagerDashboard = () => {
       const meetings = Array.isArray(meetingsRes.data) ? meetingsRes.data : [];
       const calls = Array.isArray(callsRes.data) ? callsRes.data : [];
       const logs = Array.isArray(logsRes.data) ? logsRes.data : [];
+      const targets = Array.isArray(targetsRes.data) ? targetsRes.data : [];
 
       // Log raw deals data structure
       console.log("=== RAW DEALS API RESPONSE ===");
@@ -1391,6 +1411,19 @@ const TManagerDashboard = () => {
       setAllLeads(leads);
       setAllDeals(deals);
       setAllAccounts(accounts);
+
+      setAllTargets(targets);
+
+      const totalTargetVal = targets.reduce((sum, t) => {
+        const val = t.amount || t.value || t.target_amount || 0;
+        const numericVal =
+          typeof val === "string"
+            ? parseFloat(val.replace(/[^\d.-]/g, ""))
+            : parseFloat(val);
+        return sum + (Number.isFinite(numericVal) ? numericVal : 0);
+      }, 0);
+
+      setTotalTarget(totalTargetVal);
 
       // Calculate metrics dynamically
       const activeLeads = leads.filter(
@@ -1721,20 +1754,20 @@ const TManagerDashboard = () => {
       onClick: () => navigate("/group-manager/leads"),
     },
     {
+      icon: IconFiTarget,
+      title: "Total Targets",
+      value: formatCurrency(totalTarget, currencySymbol),
+      color: "text-purple-600",
+      bgColor: "bg-purple-50",
+      onClick: () => navigate("/group-manager/targets"),
+    },
+    {
       icon: IconFiBriefcase,
       title: "Total Deals",
       value: metrics.totalDeals,
       color: "text-yellow-600",
       bgColor: "bg-yellow-50",
       onClick: () => navigate("/group-manager/deals"),
-    },
-    {
-      icon: IconBuilding,
-      title: "Active Account",
-      value: metrics.activeAccounts,
-      color: "text-green-600",
-      bgColor: "bg-green-50",
-      onClick: () => navigate("/group-manager/accounts"),
     },
     {
       icon: IconClock,
@@ -1770,45 +1803,46 @@ const TManagerDashboard = () => {
           </div>
         )}
 
-        {/* NEW LAYOUT: Top Section (TopBar, Metrics, and Tall Recent Logs) */}
-        {/* Removed lg:h-[200px] and ensured responsiveness with flex/grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 mb-8">
-          {/* Left Column: TopBar and Metrics (Spans 9 columns) */}
-          <div className="lg:col-span-9 flex flex-col space-y-4">
-            <TopBar
-              searchQuery={searchQuery}
-              onSearchChange={setSearchQuery}
-              searchResults={searchResults}
-              onSearchResultClick={handleSearchResultClick}
-            />
-
-            {/* 2. Metrics Container (Inner grid for the 4 cards) */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              {metricsConfig.map((metric) => (
-                <MetricCard key={metric.title} {...metric} loading={loading} />
-              ))}
-            </div>
-          </div>
-
-          {/* Right Column: Recent Logs Card (Spans 3 columns) */}
-          <div className="lg:col-span-3">
-            <RecentLogsCard logs={auditLogs} loading={loading} />
-          </div>
+        {/* ROW 1: Top Bar (Full Width) */}
+        <div className="mb-8">
+          <TopBar
+            searchQuery={searchQuery}
+            onSearchChange={setSearchQuery}
+            searchResults={searchResults}
+            onSearchResultClick={handleSearchResultClick}
+          />
         </div>
 
-        {/* Revenue Chart & Sales Pipeline - Side by Side on Large Screens */}
-        {/* Changed gap-8 to gap-6 for consistent spacing */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-          <div className="lg:col-span-2">
-            <RevenueChart revenueData={revenueData} loading={loading} />
-          </div>
-          <div>
-            <SalesPipeline pipelineData={salesPipeline} loading={loading} />
-          </div>
+        {/* ROW 2: Metrics Cards (Full Width) */}
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 mb-8">
+          {metricsConfig.map((metric) => (
+            <MetricCard key={metric.title} {...metric} loading={loading} />
+          ))}
         </div>
 
-        {/* Bottom Lists: Leads, Deals, Activities */}
-        {/* Changed gap-8 to gap-6 for consistent spacing */}
+        {/* ROW 3: Recent Logs & Top Performers */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+          <RecentLogsCard logs={auditLogs} loading={loading} />
+          <TopPerformers currencySymbol={currencySymbol} />
+        </div>
+
+        {/* ROW 4: Funnel Intelligence Section (With Targets passed in) */}
+        <div className="mb-8">
+          <FunnelWidget
+            leads={allLeads}
+            deals={allDeals}
+            targets={allTargets}
+            currencySymbol={currencySymbol}
+            basePath="/group-manager"
+          />
+        </div>
+
+        {/* ROW 5: Revenue Chart */}
+        <div className="grid grid-cols-1 mb-8">
+          <RevenueChart revenueData={revenueData} loading={loading} />
+        </div>
+
+        {/* ROW 6: Detailed Lists */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <ListCard title="Latest Leads">
             {latestLeads.length > 0 ? (
@@ -1830,7 +1864,11 @@ const TManagerDashboard = () => {
               </div>
             ) : latestDeals.length > 0 ? (
               latestDeals.map((deal, index) => (
-                <DealItem key={deal.id || index} {...deal} />
+                <DealItem
+                  key={deal.id || index}
+                  {...deal}
+                  currencySymbol={currencySymbol}
+                />
               ))
             ) : (
               <div className="text-sm text-gray-500 py-4 text-center">

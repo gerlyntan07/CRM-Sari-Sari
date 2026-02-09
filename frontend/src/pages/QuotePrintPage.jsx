@@ -458,22 +458,22 @@ export default function QuotePrintPage() {
 
           {/* Meta */}
           <div className="mt-4">
-            <div className="quote-meta-grid grid grid-cols-3 text-sm border border-gray-600">
-              <div className="flex gap-2 p-2 border border-gray-600 col-span-2">
+            <div className="quote-meta-grid grid grid-cols-3 text-sm border border-gray-300">
+              <div className="flex gap-2 p-2 border border-gray-300 col-span-2">
                 <div className="w-16 font-semibold">For:</div>
                 <div className="min-w-0 break-words">{draft.forName || ""}</div>
               </div>
 
-              <div className="quote-meta-quote justify-center text-center p-1 border-b border-t border-r border-gray-600">
+              <div className="quote-meta-quote justify-center text-center p-1 border-b border-t border-r border-gray-300">
                 <div className="text-xl font-bold text-gray-900">QUOTATION</div>
               </div>
 
-              <div className="flex gap-2 p-2 border border-gray-600 col-span-2">
+              <div className="flex gap-2 p-2 border border-gray-300 col-span-2">
                 <div className="w-16 font-semibold">Attn:</div>
                 <div className="min-w-0 break-words">{draft.attn || ""}</div>
               </div>
 
-              <div className="quote-meta-quote justify-center text-center p-2 border-t border-r border-gray-600">
+              <div className="quote-meta-quote justify-center text-center p-2 border-t border-r border-gray-300">
                 <div className="text-sm text-gray-700">
                   No.{" "}
                   <span className="font-semibold">
@@ -482,12 +482,12 @@ export default function QuotePrintPage() {
                 </div>
               </div>
 
-              <div className="flex gap-2 p-2 border border-gray-600 col-span-2">
+              <div className="flex gap-2 p-2 border border-gray-300 col-span-2">
                 <div className="w-16 font-semibold">Subject:</div>
                 <div className="min-w-0 break-words">{draft.subject || ""}</div>
               </div>
 
-              <div className="quote-meta-quote md:justify-center border-r border-b border-gray-600 text-center p-2">
+              <div className="quote-meta-quote md:justify-center border-r border-b border-gray-300 text-center p-2">
                 <div className="text-sm text-gray-700">
                   {formatLongDate(draft.issuedDate)}
                 </div>

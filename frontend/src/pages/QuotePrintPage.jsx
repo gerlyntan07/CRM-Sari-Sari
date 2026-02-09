@@ -76,7 +76,7 @@ const buildDefaultDraft = (quote, user, companyInfo) => {
     preparedBy: user
       ? `${user.first_name || ""} ${user.last_name || ""}`.trim()
       : "",
-    approvedBy: companyInfo?.ceo_email || "Admin",
+    approvedBy: companyInfo?.ceo_name || "Admin",
   };
 };
 
@@ -204,8 +204,7 @@ export default function QuotePrintPage() {
     draft.preparedBy ||
     (user ? `${user.first_name || ""} ${user.last_name || ""}`.trim() : "");
 
-  const approvedByDisplay =
-    draft.approvedBy || companyInfo?.ceo_email || "Admin";
+  const approvedByDisplay = draft.approvedBy || companyInfo?.ceo_name || "CEO";
 
   return (
     <div className="min-h-screen bg-gray-50 quote-print-root">
@@ -279,7 +278,9 @@ export default function QuotePrintPage() {
             </div>
 
             <div>
-              <label className="block text-sm text-gray-700 mb-1">Subject</label>
+              <label className="block text-sm text-gray-700 mb-1">
+                Subject
+              </label>
               <input
                 type="text"
                 className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
@@ -308,7 +309,9 @@ export default function QuotePrintPage() {
                 type="text"
                 className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
                 value={draft.attn || ""}
-                onChange={(e) => persistDraft({ ...draft, attn: e.target.value })}
+                onChange={(e) =>
+                  persistDraft({ ...draft, attn: e.target.value })
+                }
               />
             </div>
 
@@ -442,7 +445,7 @@ export default function QuotePrintPage() {
               ) : null}
             </div>
 
-            <div className="flex items-start gap-3 w-1/5">
+            <div className="flex items-start gap-3 w-1/6">
               {companyInfo?.company_logo ? (
                 <img
                   src={companyInfo.company_logo}
@@ -456,34 +459,33 @@ export default function QuotePrintPage() {
           {/* Meta */}
           <div className="mt-4">
             <div className="quote-meta-grid grid grid-cols-3 text-sm border border-gray-600">
+              <div className="flex gap-2 p-2 border border-gray-600 col-span-2">
+                <div className="w-16 font-semibold">For:</div>
+                <div className="min-w-0 break-words">{draft.forName || ""}</div>
+              </div>
+
+              <div className="quote-meta-quote justify-center text-center p-1 border-b border-t border-r border-gray-600">
+                <div className="text-xl font-bold text-gray-900">QUOTATION</div>
+              </div>
 
               <div className="flex gap-2 p-2 border border-gray-600 col-span-2">
-                  <div className="w-16 font-semibold">For:</div>
-                  <div className="min-w-0 break-words">{draft.forName || ""}</div>
-                </div>       
+                <div className="w-16 font-semibold">Attn:</div>
+                <div className="min-w-0 break-words">{draft.attn || ""}</div>
+              </div>
 
-                <div className="quote-meta-quote justify-center text-center p-1 border-b border-t border-r border-gray-600">
-                    <div className="text-xl font-bold text-gray-900">QUOTATION</div>
-                    </div>     
-
-                    <div className="flex gap-2 p-2 border border-gray-600 col-span-2">
-                  <div className="w-16 font-semibold">Attn:</div>
-                  <div className="min-w-0 break-words">{draft.attn || ""}</div>
-                </div>
-
-                 <div className="quote-meta-quote justify-center text-center p-2 border-t border-r border-gray-600">
-                    <div className="text-sm text-gray-700">
+              <div className="quote-meta-quote justify-center text-center p-2 border-t border-r border-gray-600">
+                <div className="text-sm text-gray-700">
                   No.{" "}
                   <span className="font-semibold">
                     {formatQuoteId(quote?.quote_id || quote?.id)}
                   </span>
                 </div>
-                    </div>   
+              </div>
 
-                    <div className="flex gap-2 p-2 border border-gray-600 col-span-2">
-                  <div className="w-16 font-semibold">Subject:</div>
-                  <div className="min-w-0 break-words">{draft.subject || ""}</div>
-                </div>
+              <div className="flex gap-2 p-2 border border-gray-600 col-span-2">
+                <div className="w-16 font-semibold">Subject:</div>
+                <div className="min-w-0 break-words">{draft.subject || ""}</div>
+              </div>
 
               <div className="quote-meta-quote md:justify-center border-r border-b border-gray-600 text-center p-2">
                 <div className="text-sm text-gray-700">
@@ -502,12 +504,16 @@ export default function QuotePrintPage() {
             <table className="w-full text-sm border border-gray-400 border-collapse">
               <thead>
                 <tr className="bg-gray-100">
-                  <th className="border border-gray-400 px-2 py-2 w-14">Item</th>
+                  <th className="border border-gray-400 px-2 py-2 w-14">
+                    Item
+                  </th>
                   <th className="border border-gray-400 px-2 py-2 text-left">
                     Description
                   </th>
                   <th className="border border-gray-400 px-2 py-2 w-20">Qty</th>
-                  <th className="border border-gray-400 px-2 py-2 w-20">Unit</th>
+                  <th className="border border-gray-400 px-2 py-2 w-20">
+                    Unit
+                  </th>
                   <th className="border border-gray-400 px-2 py-2 w-28">
                     Unit Price
                   </th>
@@ -532,7 +538,9 @@ export default function QuotePrintPage() {
                     const descriptionLine = it?.description
                       ? String(it.description).trim()
                       : "";
-                    const variant = it?.variant ? String(it.variant).trim() : "";
+                    const variant = it?.variant
+                      ? String(it.variant).trim()
+                      : "";
                     const sku = it?.sku ? String(it.sku).trim() : "";
 
                     const variantSkuLine =
@@ -542,7 +550,11 @@ export default function QuotePrintPage() {
                           ? `(${sku})`
                           : variant;
 
-                    const descParts = [nameLine, descriptionLine, variantSkuLine]
+                    const descParts = [
+                      nameLine,
+                      descriptionLine,
+                      variantSkuLine,
+                    ]
                       .map((v) => (v ? String(v).trim() : ""))
                       .filter(Boolean);
 
@@ -638,11 +650,15 @@ export default function QuotePrintPage() {
                 </div>
                 <div className="flex gap-2">
                   <div className="w-28 font-semibold">Delivery Period</div>
-                  <div className="flex-1">: {draft.terms?.deliveryPeriod || ""}</div>
+                  <div className="flex-1">
+                    : {draft.terms?.deliveryPeriod || ""}
+                  </div>
                 </div>
                 <div className="flex gap-2">
                   <div className="w-28 font-semibold">Delivery Point</div>
-                  <div className="flex-1">: {draft.terms?.deliveryPoint || ""}</div>
+                  <div className="flex-1">
+                    : {draft.terms?.deliveryPoint || ""}
+                  </div>
                 </div>
               </div>
             </div>

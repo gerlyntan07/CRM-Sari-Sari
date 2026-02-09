@@ -470,6 +470,7 @@ export default function AdminAccounts() {
       phone_number: account.phone_number || "",
       billing_address: account.billing_address || "",
       shipping_address: account.shipping_address || "",
+      parent_company: account.parent_company || "",
       industry: account.industry || "",
       status: normalizeStatus(account.status) || "PROSPECT",
       territory_id: account.territory?.id ? String(account.territory.id) : "",

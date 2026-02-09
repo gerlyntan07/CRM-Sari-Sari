@@ -428,6 +428,11 @@ export default function QuotePrintPage() {
               <div className="text-xl font-bold text-gray-900 uppercase">
                 {companyInfo?.company_name || ""}
               </div>
+              {companyInfo?.address ? (
+                <div className="text-sm text-gray-700">
+                  {companyInfo.address}
+                </div>
+              ) : null}
               {companyInfo?.company_number ? (
                 <div className="text-sm text-gray-700">
                   {companyInfo.company_number}

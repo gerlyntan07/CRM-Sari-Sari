@@ -36,7 +36,7 @@ const HeroSection = () => {
   const handleTouchStart = (e) => setTouchStart(e.targetTouches[0].clientX);
   const handleTouchMove = (e) => setTouchEnd(e.targetTouches[0].clientX);
   const handleTouchEnd = () => {
-    if (touchStart - touchEnd > 75) {pu
+    if (touchStart - touchEnd > 75) {
       // Swipe left → next
       setCurrent((prev) => (prev + 1) % images.length);
     }

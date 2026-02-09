@@ -19,7 +19,7 @@ import PaginationControls from "../components/PaginationControls.jsx";
 import LoadingSpinner from "../components/LoadingSpinner.jsx";
 
 const ROLE_OPTIONS = [
-  { value: "CEO", label: "CEO" },
+  { value: "CEO", label: "Admin" },
   { value: "Group Manager", label: "Group Manager" },
   { value: "Manager", label: "Manager" },
   // { value: "Marketing", label: "Marketing" },

@@ -8,6 +8,7 @@ class CompanyBase(BaseModel):
     company_number: str
     company_website: Optional[HttpUrl] = None
     company_logo: Optional[str] = None
+    address: Optional[str] = None
 
 class CompanyCreate(CompanyBase):
     pass
@@ -19,6 +20,7 @@ class CompanyUpdate(BaseModel):
     quota_period: Optional[str] = "January" # e.g., "April"
     tax_rate: Optional[float] = 0       # Default tax rate percentage
     company_logo: Optional[str] = None  # Base64 encoded logo image
+    address: Optional[str] = None
 
     class Config:
         orm_mode = True
@@ -45,6 +47,7 @@ class CompanyInvoiceInfo(BaseModel):
     company_logo: Optional[str] = None
     company_website: Optional[str] = None
     ceo_email: Optional[str] = None
+    address: Optional[str] = None
 
     class Config:
         orm_mode = True

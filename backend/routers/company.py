@@ -52,6 +52,7 @@ def get_company_invoice_info(
         "company_number": company.company_number,
         "company_logo": company.company_logo,
         "company_website": company.company_website,
+        "address": company.address,
         "ceo_name": {ceo.first_name},
         "ceo_email": (ceo.email if ceo else None),
     }
@@ -107,7 +108,9 @@ def update_company_details(
     # ✅ Update Company Logo (if provided or explicitly set to empty/null to remove)
     if payload.company_logo is not None:
         company.company_logo = payload.company_logo if payload.company_logo else None
-
+        
+    if payload.address is not None:
+        company.address = payload.address if payload.address else None
     db.commit()
     db.refresh(company)
 

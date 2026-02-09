@@ -10,7 +10,8 @@ class Company(Base):
     company_name = Column(String, nullable=False)
     company_number = Column(String, nullable=False)
     company_website = Column(String, nullable=True)
-    company_logo = Column(String, nullable=True)    
+    company_logo = Column(String, nullable=True) 
+    address=Column(String, nullable=True)
     currency = Column(String, default="₱", nullable=True)  
     quota_period = Column(String, default="January", nullable=True)
     tax_rate = Column(Numeric(5, 2), default=0, nullable=True)  # Default tax rate percentage

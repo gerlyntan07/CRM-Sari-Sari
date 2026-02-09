@@ -5,9 +5,13 @@ import { LuZap, LuGauge, LuUsers, LuMessageCircle } from "react-icons/lu";
 // --- Hero Section ---
 const HeroSection = () => {
   const images = [
-    "/image/Dashboard1.png",
-    "/image/lead1.png",
-    "/image/dashboard.jpg",
+    "/image/crm1.png",
+    "/image/crm2.png",
+    "/image/crm3.png",
+    "/image/crm4.png",
+    "/image/crm5.png",
+    "/image/crm7.png",
+    "/image/crm6.png",
   ];
 
   const [current, setCurrent] = useState(0);
@@ -32,7 +36,7 @@ const HeroSection = () => {
   const handleTouchStart = (e) => setTouchStart(e.targetTouches[0].clientX);
   const handleTouchMove = (e) => setTouchEnd(e.targetTouches[0].clientX);
   const handleTouchEnd = () => {
-    if (touchStart - touchEnd > 75) {
+    if (touchStart - touchEnd > 75) {pu
       // Swipe left → next
       setCurrent((prev) => (prev + 1) % images.length);
     }
@@ -195,29 +199,32 @@ const CTASection = () => (
 // --- Footer ---
 const Footer = () => (
   <footer className="bg-secondary text-white border-t py-10">
-    <div className="container mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-2 md:grid-cols-5 gap-8">
+    <div className="container mx-auto px-4 sm:px-6 lg:px-5 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8">
       <div>
         <span className="text-xl font-white">Sari-Sari <span className="text-accent">CRM</span></span>        
         <p className="text-sm text-white mt-4">
-          &copy; 2025 Sari-Sari CRM
+          &copy; 2026 Sari-Sari CRM
         </p>
       </div>
       {[
-        {
-          title: "Platform",
-          links: ["AI Features", "Automation", "Integrations", "APIs"],
-        },
+        // {
+        //   title: "Platform",
+        //   links: ["AI Features", "Automation", "Integrations", "APIs"],
+        // },
         {
           title: "Resources",
-          links: ["Case Studies", "Webinars", "Security", "Support"],
+          // links: ["Case Studies", "Webinars", "Security", "Support"],
+          links: ["Security", "Support"],
+          href: "/resources",
         },
-        {
-          title: "Company",
-          links: ["Leadership", "Partnerships", "Careers", "Newsroom"],
-        },
+        // {
+        //   title: "Company",
+        //   links: ["Leadership", "Partnerships", "Careers", "Newsroom"],
+        // },
         {
           title: "Legal",
           links: ["Terms", "Privacy", "SLA", "Compliance"],
+          href: "/legal",
         },
       ].map((col, i) => (
         <div key={i}>
@@ -227,7 +234,7 @@ const Footer = () => (
           <ul className="space-y-2 text-sm text-white">
             {col.links.map((link, j) => (
               <li key={j}>
-                <a href="#" className="hover:text-accent">
+                <a href={col.href} target="_blank" rel="noopener noreferrer" className="hover:text-accent">
                   {link}
                 </a>
               </li>

@@ -47,8 +47,8 @@ const Header = () => {
           {/* Desktop Navigation */}
           <nav className="hidden md:flex space-x-8 text-white font-medium">
             <a href="#platform" className="hover:text-accent transition duration-150">Platform</a>
-            <a href="#solutions" className="hover:text-accent transition duration-150">Solutions</a>
-            <a href="#insights" className="hover:text-accent transition duration-150">Insights</a>
+            {/* <a href="#solutions" className="hover:text-accent transition duration-150">Solutions</a>
+            <a href="#insights" className="hover:text-accent transition duration-150">Insights</a> */}
             <a href="#pricing" className="hover:text-accent transition duration-150">Pricing</a>
           </nav>
 

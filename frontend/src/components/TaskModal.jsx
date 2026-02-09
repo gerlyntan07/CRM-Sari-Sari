@@ -410,6 +410,14 @@ export default function TaskModal({
                                   </div>
                                 )}
                               <div>
+                                <p className="font-semibold">Assigned To:</p>
+                                <p>{formData.assignedToName || "—"}</p>
+                              </div>
+                              <div>
+                                <p className="font-semibold">Created By:</p>
+                                <p>{formData.createdBy || "—"}</p>
+                              </div>
+                              <div>
                                 <p className="font-semibold">Priority:</p>
                                 <p>{formData.priority || "—"}</p>
                               </div>

@@ -480,6 +480,8 @@ export default function AdminTask() {
         status: task.status || "Not started",
         dueDate: toDateTimeInputValue(task.dueDate),
         assignedTo: task.assignedToId ? String(task.assignedToId) : "",
+        assignedToName: task.assignedToName || "",
+        createdBy: task.createdBy || "",
         notes: task.notes || "",
         createdById: task.createdById || null,
         

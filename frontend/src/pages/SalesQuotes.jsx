@@ -26,7 +26,6 @@ import { useLocation, useNavigate } from "react-router-dom";
 import useFetchUser from "../hooks/useFetchUser"; // ✅ Import User Hook
 import CommentSection from "../components/CommentSection.jsx";
 import { useComments } from "../hooks/useComments.js";
-import { printQuoteInvoice } from "../utils/printQuoteInvoice.js";
 
 const STATUS_OPTIONS = [
   { value: "Draft", label: "Draft" },
@@ -214,7 +213,9 @@ const getUserIdFromLocalStorage = () => {
       const parsed = JSON.parse(raw);
       const id = tryExtractUserId(parsed);
       if (id) return id;
-    } catch {}
+    } catch {
+      // ignore invalid JSON
+    }
   }
   const fallback = localStorage.getItem("user_id");
   const id2 = tryExtractUserId(fallback);
@@ -302,22 +303,19 @@ export default function AdminQuotes() {
       const res = await api.get("/company/invoice-info");
       const companyInfo = res?.data;
 
-      printQuoteInvoice({
-        quote: selectedQuote,
-        companyInfo,
-        currencySymbol,
-        title: "Invoice",
+      navigate(`/sales/quotes/${encodeURIComponent(selectedQuote.id)}/print`, {
+        state: { quote: selectedQuote, companyInfo },
       });
     } catch (err) {
       const msg =
         err?.response?.data?.detail ||
         err?.message ||
-        "Failed to print invoice.";
+        "Failed to open print page.";
       toast.error(msg);
     } finally {
       setInvoicePrinting(false);
     }
-  }, [selectedQuote, currencySymbol]);
+  }, [selectedQuote, navigate]);
 
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
@@ -360,7 +358,7 @@ export default function AdminQuotes() {
       }
       setPendingQuoteId(null); // Clear pending quote ID
     }
-  }, [pendingQuoteId, contacts, quotesLoading]);
+  }, [pendingQuoteId, quotes, quotesLoading]);
 
   // Resolve current user id
   useEffect(() => {
@@ -380,7 +378,9 @@ export default function AdminQuotes() {
           setCurrentUserId(id);
           return;
         }
-      } catch {}
+      } catch {
+        // ignore
+      }
 
       try {
         const res = await api.get("/users/me");
@@ -389,7 +389,9 @@ export default function AdminQuotes() {
           setCurrentUserId(id);
           return;
         }
-      } catch {}
+      } catch {
+        // ignore
+      }
 
       if (mounted) setCurrentUserId(null);
     };
@@ -1258,7 +1260,7 @@ export default function AdminQuotes() {
                 disabled={invoicePrinting || isSubmitting || confirmProcessing}
               >
                 <FiFileText className="mr-2" />
-                {invoicePrinting ? "Preparing..." : "Print Invoice"}
+                {invoicePrinting ? "Preparing..." : "Print Quotation"}
               </button>
 
               <button
@@ -1462,10 +1464,21 @@ export default function AdminQuotes() {
                   <div className="flex flex-col gap-2 w-full">
                     <button
                       onClick={() =>
-                        navigate("/admin/calls", {
+                        navigate("/sales/calls", {
                           state: {
                             openCallModal: true,
-                            initialCallData: { relatedType1: "Quotes" },
+                            initialCallData: {
+                              subject: `Call regarding Quote ${formatQuoteId(selectedQuote.quote_id)}`,
+
+                              assigned_to: selectedQuote.assigned_user?.id
+                                ? String(selectedQuote.assigned_user.id)
+                                : selectedQuote.assigned_to
+                                  ? String(selectedQuote.assigned_to)
+                                  : "",
+
+                              direction: "Outgoing",
+                              status: "Planned",
+                            },
                           },
                         })
                       }
@@ -1478,10 +1491,20 @@ export default function AdminQuotes() {
                     <button
                       className="flex items-center gap-2 border border-gray-100 rounded-md py-1.5 px-2 sm:px-3 hover:bg-gray-50 transition text-sm"
                       onClick={() =>
-                        navigate("/admin/meetings", {
+                         navigate("/sales/meetings", {
                           state: {
                             openMeetingModal: true,
-                            initialMeetingData: { relatedType: "Quotes" },
+                            initialMeetingData: {
+                              subject: `Meeting with ${selectedQuote.quote_id}`,
+
+                              assignedTo: selectedQuote.assigned_user?.id
+                                ? String(selectedQuote.assigned_user.id)
+                                : selectedQuote.assigned_to
+                                  ? String(selectedQuote.assigned_to)
+                                  : "",
+
+                              status: "Planned",
+                            },
                           },
                         })
                       }
@@ -1492,10 +1515,21 @@ export default function AdminQuotes() {
 
                     <button
                       onClick={() =>
-                        navigate("/admin/tasks", {
+                        navigate("/sales/tasks", {
                           state: {
                             openTaskModal: true,
-                            initialTaskData: { relatedTo: "Quotes" },
+                            initialTaskData: {
+                              subject: `Follow up with ${selectedQuote.quote_id}`,
+
+                              assignedTo: selectedQuote.assigned_user?.id
+                                ? String(selectedQuote.assigned_user.id)
+                                : selectedQuote.assigned_to
+                                  ? String(selectedQuote.assigned_to)
+                                  : "",
+
+                              priority: "NORMAL",
+                              status: "Not Started",
+                            },
                           },
                         })
                       }

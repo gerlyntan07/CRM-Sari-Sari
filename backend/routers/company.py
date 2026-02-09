@@ -51,6 +51,7 @@ def get_company_invoice_info(
         "company_name": company.company_name,
         "company_number": company.company_number,
         "company_logo": company.company_logo,
+        "company_website": company.company_website,
         "ceo_email": (ceo.email if ceo else None),
     }
 

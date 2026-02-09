@@ -95,6 +95,9 @@ import MarketingTask from "./pages/MarketingTask";
 import MarketingCampaign from "./pages/MarketingCampaign";
 import MarketingTemplates from "./pages/MarketingTemplates";
 
+// 🔹 Print pages
+import QuotePrintPage from "./pages/QuotePrintPage";
+
 // 🔹 Team Manager layout + pages
 import TManagerPanel from "./components/TManagerPanel";
 import TManagerDashboard from "./pages/TManagerDashboard";
@@ -137,6 +140,40 @@ function App() {
         <Route path="/signup" element={<Signup />} />
         <Route path="/login" element={<Login />} />
         <Route path="/forgot-password" element={<ForgotPass />} />        
+
+        {/* ================= Print Routes (Standalone) ================= */}
+        <Route
+          path="/admin/quotes/:quoteId/print"
+          element={
+            <PrivateRoute requiredRole="ceo">
+              <QuotePrintPage />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/sales/quotes/:quoteId/print"
+          element={
+            <PrivateRoute requiredRole="sales">
+              <QuotePrintPage />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/manager/quotes/:quoteId/print"
+          element={
+            <PrivateRoute requiredRole="manager">
+              <QuotePrintPage />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/group-manager/quotes/:quoteId/print"
+          element={
+            <PrivateRoute requiredRole="group manager">
+              <QuotePrintPage />
+            </PrivateRoute>
+          }
+        />
 
         {/* ================= Admin Layout ================= */}
         <Route path="/admin" element={<PrivateRoute requiredRole="ceo"><AdminPanel /></PrivateRoute>}>

@@ -26,7 +26,6 @@ import { useLocation, useNavigate } from "react-router-dom";
 import useFetchUser from "../hooks/useFetchUser"; // ✅ Import User Hook
 import CommentSection from "../components/CommentSection.jsx";
 import { useComments } from "../hooks/useComments.js";
-import { printQuoteInvoice } from "../utils/printQuoteInvoice.js";
 
 const STATUS_OPTIONS = [
   { value: "Draft", label: "Draft" },
@@ -302,17 +301,14 @@ export default function AdminQuotes() {
       const res = await api.get("/company/invoice-info");
       const companyInfo = res?.data;
 
-      printQuoteInvoice({
-        quote: selectedQuote,
-        companyInfo,
-        currencySymbol,
-        title: "Invoice",
+      navigate(`/admin/quotes/${encodeURIComponent(selectedQuote.id)}/print`, {
+        state: { quote: selectedQuote, companyInfo },
       });
     } catch (err) {
       const msg =
         err?.response?.data?.detail ||
         err?.message ||
-        "Failed to print invoice.";
+        "Failed to open print page.";
       toast.error(msg);
     } finally {
       setInvoicePrinting(false);
@@ -1257,7 +1253,7 @@ export default function AdminQuotes() {
                 disabled={invoicePrinting || isSubmitting || confirmProcessing}
               >
                 <FiFileText className="mr-2" />
-                {invoicePrinting ? "Preparing..." : "Print Invoice"}
+                {invoicePrinting ? "Preparing..." : "Print Quotation"}
               </button>
 
               <button

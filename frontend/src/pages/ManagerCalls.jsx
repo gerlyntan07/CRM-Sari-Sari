@@ -13,7 +13,7 @@ import {
   FiCalendar,
   FiCheckSquare,
   FiEdit,
-  FiTrash2,
+  FiArchive,
 } from "react-icons/fi";
 import { HiX } from "react-icons/hi";
 import PaginationControls from "../components/PaginationControls.jsx";
@@ -23,6 +23,7 @@ import { useSearchParams, useNavigate, useLocation } from "react-router-dom";
 import LoadingSpinner from "../components/LoadingSpinner.jsx";
 import CommentSection from "../components/CommentSection.jsx";
 import { useComments } from "../hooks/useComments.js";
+import useFetchUser from "../hooks/useFetchUser.js";
 
 // --- Constants (UI Options) ---
 const PRIORITY_OPTIONS = [
@@ -112,6 +113,10 @@ export default function AdminCalls() {
   const [updatingStatus, setUpdatingStatus] = useState(false);
   const [callsLoading, setCallsLoading] = useState(false);
   const [pendingCallId, setPendingCallId] = useState(null);
+  const [selectedCallIds, setSelectedCallIds] = useState(new Set());
+  const [bulkDeleting, setBulkDeleting] = useState(false);
+
+  const { user: currentUser } = useFetchUser();
 
   const {
     comments: callComments,
@@ -268,18 +273,23 @@ export default function AdminCalls() {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
 
-  const filteredCalls = calls;
-  const paginatedCalls = calls;
+  // Filter out INACTIVE calls for non-admin roles (archived calls)
+  // Admins (CEO, ADMIN) can see all calls including archived
+  const nonAdminRoles = ["GROUP MANAGER", "MANAGER", "SALES"];
+  const filteredCalls = nonAdminRoles.includes(currentUser?.role?.toUpperCase())
+    ? calls.filter((c) => c.status !== "INACTIVE")
+    : calls;
+  const paginatedCalls = filteredCalls;
 
-  // Metrics
-  const totalCalls = calls.length;
-  const plannedCalls = calls.filter(
+  // Metrics - only count non-INACTIVE calls for non-admin roles
+  const totalCalls = filteredCalls.length;
+  const plannedCalls = filteredCalls.filter(
     (c) => toAdminCallStatus(c.status) === "PLANNED",
   ).length;
-  const heldCalls = calls.filter(
+  const heldCalls = filteredCalls.filter(
     (c) => toAdminCallStatus(c.status) === "HELD",
   ).length;
-  const notHeldCalls = calls.filter(
+  const notHeldCalls = filteredCalls.filter(
     (c) => toAdminCallStatus(c.status) === "NOT_HELD",
   ).length;
 
@@ -533,11 +543,28 @@ export default function AdminCalls() {
         setCurrentCallId(null);
         await fetchCalls();
       } else if (type === "delete") {
-        if (!targetId) throw new Error("Missing call identifier for deletion.");
-        await api.delete(`/calls/${targetId}`);
-        toast.success(`Call "${name}" deleted successfully.`);
+        if (!targetId) throw new Error("Missing call identifier for archiving.");
+        await api.put(`/calls/${targetId}`, { status: "INACTIVE" });
+        toast.success(`Call "${name}" archived successfully.`);
         if (selectedCall?.id === targetId) setSelectedCall(null);
         await fetchCalls();
+      } else if (type === "bulk-delete") {
+        const { targetIds, count } = action;
+        if (!targetIds || targetIds.length === 0) {
+          throw new Error("Missing call identifiers for bulk archiving.");
+        }
+        setBulkDeleting(true);
+        await api.put(`/calls/bulk-archive`, {
+          call_ids: targetIds,
+        });
+        toast.success(
+          `${count} call${count !== 1 ? "s" : ""} archived successfully.`,
+        );
+        setSelectedCallIds(new Set());
+        await fetchCalls();
+        if (selectedCall && selectedCallIds.has(selectedCall.id)) {
+          setSelectedCall(null);
+        }
       }
     } catch (err) {
       const defaultMessage =
@@ -545,12 +572,15 @@ export default function AdminCalls() {
           ? "Failed to create call. Please review the details and try again."
           : type === "update"
             ? "Failed to update call. Please review the details and try again."
-            : "Failed to delete call. Please try again.";
+            : type === "bulk-delete"
+              ? "Failed to archive calls. Please try again."
+              : "Failed to archive call. Please try again.";
 
       const message = err?.response?.data?.detail || defaultMessage;
       toast.error(message);
     } finally {
       if (type === "create" || type === "update") setIsSubmitting(false);
+      if (type === "bulk-delete") setBulkDeleting(false);
       setConfirmProcessing(false);
       setConfirmModalData(null);
     }
@@ -583,6 +613,57 @@ export default function AdminCalls() {
     } finally {
       setUpdatingStatus(false);
     }
+  };
+
+  const handleSelectCall = (callId) => {
+    const call = paginatedCalls.find((c) => c.id === callId);
+    // Only allow selecting calls created by current user
+    if (call && call.call_creator?.id === currentUser?.id) {
+      setSelectedCallIds((prev) => {
+        const newSet = new Set(prev);
+        if (newSet.has(callId)) {
+          newSet.delete(callId);
+        } else {
+          newSet.add(callId);
+        }
+        return newSet;
+      });
+    }
+  };
+
+  const handleSelectAllCalls = () => {
+    const selectableCalls = paginatedCalls.filter(
+      (c) => c.call_creator?.id === currentUser?.id
+    );
+    if (selectedCallIds.size === selectableCalls.length && selectableCalls.length > 0) {
+      setSelectedCallIds(new Set());
+    } else {
+      setSelectedCallIds(new Set(selectableCalls.map((c) => c.id)));
+    }
+  };
+
+  const handleBulkDelete = () => {
+    if (selectedCallIds.size === 0) return;
+
+    const selectedCount = selectedCallIds.size;
+    setConfirmModalData({
+      title: "Archive Calls",
+      message: (
+        <span>
+          Are you sure you want to archive{" "}
+          <span className="font-semibold">{selectedCount}</span> call
+          {selectedCount !== 1 ? "s" : ""}? You can restore them later if needed.
+        </span>
+      ),
+      confirmLabel: `Archive ${selectedCount} Call${selectedCount !== 1 ? "s" : ""}`,
+      cancelLabel: "Cancel",
+      variant: "archive",
+      action: {
+        type: "bulk-delete",
+        targetIds: Array.from(selectedCallIds),
+        count: selectedCount,
+      },
+    });
   };
 
   useEffect(() => {
@@ -630,22 +711,24 @@ export default function AdminCalls() {
             </div>
 
             <div className="flex flex-col sm:flex-row sm:space-x-3 space-y-2 sm:space-y-0">
-              <button
-                className="inline-flex items-center justify-center w-full sm:w-auto bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 transition text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
-                onClick={() => {
-                  const toLocal = (iso) => {
-                    if (!iso) return "";
-                    const d = new Date(iso);
-                    const yyyy = d.getFullYear();
-                    const mm = String(d.getMonth() + 1).padStart(2, "0");
-                    const dd = String(d.getDate()).padStart(2, "0");
-                    const hh = String(d.getHours()).padStart(2, "0");
-                    const min = String(d.getMinutes()).padStart(2, "0");
-                    return `${yyyy}-${mm}-${dd}T${hh}:${min}`;
-                  };
+              {currentUser?.id === selectedCall?.call_creator?.id && (
+                <>
+                  <button
+                    className="inline-flex items-center justify-center w-full sm:w-auto bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 transition text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+                    onClick={() => {
+                      const toLocal = (iso) => {
+                        if (!iso) return "";
+                        const d = new Date(iso);
+                        const yyyy = d.getFullYear();
+                        const mm = String(d.getMonth() + 1).padStart(2, "0");
+                        const dd = String(d.getDate()).padStart(2, "0");
+                        const hh = String(d.getHours()).padStart(2, "0");
+                        const min = String(d.getMinutes()).padStart(2, "0");
+                        return `${yyyy}-${mm}-${dd}T${hh}:${min}`;
+                      };
 
-                  const relatedType1 = selectedCall.lead
-                    ? "Lead"
+                      const relatedType1 = selectedCall.lead
+                        ? "Lead"
                     : selectedCall.account
                       ? "Account"
                       : "Lead";
@@ -707,15 +790,15 @@ export default function AdminCalls() {
               </button>
 
               <button
-                className="inline-flex items-center justify-center w-full sm:w-auto px-4 py-2 rounded-md text-sm bg-red-500 text-white hover:bg-red-600 transition focus:outline-none focus:ring-2 focus:ring-red-400"
+                className="inline-flex items-center justify-center w-full sm:w-auto px-4 py-2 rounded-md text-sm bg-orange-500 text-white hover:bg-orange-600 transition focus:outline-none focus:ring-2 focus:ring-orange-400"
                 onClick={() => {
                   const name = selectedCall.subject || "this call";
                   setConfirmModalData({
-                    title: "Delete Call",
-                    message: `Are you sure you want to permanently delete "${name}"? This action cannot be undone.`,
-                    confirmLabel: "Delete Call",
+                    title: "Archive Call",
+                    message: `Are you sure you want to archive "${name}"? You can restore it later if needed.`,
+                    confirmLabel: "Archive Call",
                     cancelLabel: "Cancel",
-                    variant: "danger",
+                    variant: "archive",
                     action: {
                       type: "delete",
                       targetId: selectedCall.id,
@@ -724,9 +807,11 @@ export default function AdminCalls() {
                   });
                 }}
               >
-                <FiTrash2 className="mr-2" />
-                Delete
+                <FiArchive className="mr-2" />
+                Archive
               </button>
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -1172,18 +1257,42 @@ export default function AdminCalls() {
           <table className="w-full min-w-[500px] border border-gray-200 rounded-lg bg-white shadow-sm text-sm mb-4">
             <thead className="bg-gray-100 text-left text-gray-600 font-semibold">
               <tr>
+                <th className="py-3 px-4 w-12">
+                  <input
+                    type="checkbox"
+                    checked={
+                      selectedCallIds.size > 0 &&
+                      selectedCallIds.size === paginatedCalls.filter((c) => c.call_creator?.id === currentUser?.id).length &&
+                      paginatedCalls.filter((c) => c.call_creator?.id === currentUser?.id).length > 0
+                    }
+                    onChange={handleSelectAllCalls}
+                    className="w-4 h-4 cursor-pointer"
+                  />
+                </th>
                 <th className="py-3 px-4">Subject</th>
                 <th className="py-3 px-4">Related To</th>
                 <th className="py-3 px-4">Call Time</th>
                 <th className="py-3 px-4">Assigned To</th>
                 <th className="py-3 px-4">Status</th>
+                <th className="py-3 px-4 w-12">
+                  {selectedCallIds.size > 0 && (
+                    <button
+                      onClick={handleBulkDelete}
+                      className="text-orange-500 hover:text-orange-700 transition"
+                      title="Archive selected calls"
+                      disabled={bulkDeleting}
+                    >
+                      <FiArchive size={18} />
+                    </button>
+                  )}
+                </th>
               </tr>
             </thead>
 
             <tbody>
               {callsLoading ? (
                 <tr>
-                  <td colSpan={6} className="py-10">
+                  <td colSpan={7} className="py-10">
                     <LoadingSpinner message="Loading calls..." />
                   </td>
                 </tr>
@@ -1191,14 +1300,32 @@ export default function AdminCalls() {
                 paginatedCalls.map((call) => (
                   <tr
                     key={call.id}
-                    onClick={() => handleCallClick(call)}
                     className="hover:bg-gray-50 cursor-pointer border-b border-gray-100"
                   >
-                    <td className="py-3 px-4 text-blue-600 font-medium">
+                    <td className="py-3 px-4">
+                      {currentUser?.id === call.call_creator?.id && (
+                        <input
+                          type="checkbox"
+                          checked={selectedCallIds.has(call.id)}
+                          onChange={(e) => {
+                            e.stopPropagation();
+                            handleSelectCall(call.id);
+                          }}
+                          className="w-4 h-4 cursor-pointer"
+                        />
+                      )}
+                    </td>
+                    <td
+                      className="py-3 px-4 text-blue-600 font-medium"
+                      onClick={() => handleCallClick(call)}
+                    >
                       {call.subject || "--"}
                     </td>
 
-                    <td className="py-3 px-4">
+                    <td
+                      className="py-3 px-4"
+                      onClick={() => handleCallClick(call)}
+                    >
                       {call.lead && (
                         <p className="font-medium text-blue-500 text-xs">
                           {call.lead.title}
@@ -1226,19 +1353,28 @@ export default function AdminCalls() {
                       )}
                     </td>
 
-                    <td className="py-3 px-4 text-gray-800">
+                    <td
+                      className="py-3 px-4 text-gray-800"
+                      onClick={() => handleCallClick(call)}
+                    >
                       {call.call_time
                         ? new Date(call.call_time).toLocaleString()
                         : "--"}
                     </td>
 
-                    <td className="py-3 px-4 text-gray-800">
+                    <td
+                      className="py-3 px-4 text-gray-800"
+                      onClick={() => handleCallClick(call)}
+                    >
                       {call?.call_assign_to
                         ? `${call.call_assign_to.first_name} ${call.call_assign_to.last_name}`
                         : "--"}
                     </td>
 
-                    <td className="py-3 px-4">
+                    <td
+                      className="py-3 px-4"
+                      onClick={() => handleCallClick(call)}
+                    >
                       <span
                         className={`px-2 py-1 rounded-full text-xs font-medium ${getCallStatusBadgeClass(
                           call.status,
@@ -1247,11 +1383,13 @@ export default function AdminCalls() {
                         {formatAdminCallStatusLabel(call.status)}
                       </span>
                     </td>
+
+                    <td className="py-3 px-4"></td>
                   </tr>
                 ))
               ) : (
                 <tr>
-                  <td colSpan={6} className="text-center py-4 text-gray-500">
+                  <td colSpan={7} className="text-center py-4 text-gray-500">
                     No calls found.
                   </td>
                 </tr>
@@ -1284,6 +1422,8 @@ export default function AdminCalls() {
           title={confirmModalData.title}
           message={confirmModalData.message}
           confirmLabel={confirmModalData.confirmLabel}
+          cancelLabel={confirmModalData.cancelLabel}
+          variant={confirmModalData.variant}
           onConfirm={handleConfirmAction}
           onCancel={handleCancelConfirm}
           loading={confirmProcessing}
@@ -1387,7 +1527,9 @@ function ConfirmationModal({
   const confirmClasses =
     variant === "danger"
       ? "bg-red-500 hover:bg-red-600 border border-red-400"
-      : "bg-tertiary hover:bg-secondary border border-tertiary";
+      : variant === "archive"
+        ? "bg-orange-500 hover:bg-orange-600 border border-orange-400"
+        : "bg-tertiary hover:bg-secondary border border-tertiary";
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-[60]">

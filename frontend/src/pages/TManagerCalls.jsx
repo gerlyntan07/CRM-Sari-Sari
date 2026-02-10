@@ -13,7 +13,7 @@ import {
   FiCalendar,
   FiCheckSquare,
   FiEdit,
-  FiTrash2,
+  FiArchive,
 } from "react-icons/fi";
 import { HiX } from "react-icons/hi";
 import PaginationControls from "../components/PaginationControls.jsx";
@@ -23,6 +23,7 @@ import { useSearchParams, useNavigate, useLocation } from "react-router-dom";
 import LoadingSpinner from "../components/LoadingSpinner.jsx";
 import CommentSection from "../components/CommentSection.jsx";
 import { useComments } from "../hooks/useComments.js";
+import useFetchUser from "../hooks/useFetchUser.js";
 
 // --- Constants (UI Options) ---
 const PRIORITY_OPTIONS = [
@@ -116,6 +117,10 @@ export default function AdminCalls() {
   const [updatingStatus, setUpdatingStatus] = useState(false);
   const [callsLoading, setCallsLoading] = useState(false);
   const [pendingCallId, setPendingCallId] = useState(null);
+  const [selectedCallIds, setSelectedCallIds] = useState(new Set());
+  const [bulkDeleting, setBulkDeleting] = useState(false);
+
+  const { user: currentUser } = useFetchUser();
 
   const {
     comments: callComments,
@@ -271,7 +276,12 @@ export default function AdminCalls() {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
 
-  const filteredCalls = calls;
+  // Filter out INACTIVE calls for non-admin roles (archived calls)
+  // Admins (CEO, ADMIN) can see all calls including archived
+  const nonAdminRoles = ["GROUP MANAGER", "MANAGER", "SALES"];
+  const filteredCalls = nonAdminRoles.includes(currentUser?.role?.toUpperCase())
+    ? calls.filter((c) => c.status !== "INACTIVE")
+    : calls;
   const totalPages = Math.max(
     1,
     Math.ceil(filteredCalls.length / itemsPerPage) || 1,
@@ -599,11 +609,28 @@ export default function AdminCalls() {
         setCurrentCallId(null);
         await fetchCalls();
       } else if (type === "delete") {
-        if (!targetId) throw new Error("Missing call identifier for deletion.");
-        await api.delete(`/calls/${targetId}`);
-        toast.success(`Call "${name}" deleted successfully.`);
+        if (!targetId) throw new Error("Missing call identifier for archiving.");
+        await api.put(`/calls/${targetId}`, { status: "INACTIVE" });
+        toast.success(`Call "${name}" archived successfully.`);
         if (selectedCall?.id === targetId) setSelectedCall(null);
         await fetchCalls();
+      } else if (type === "bulk-delete") {
+        const { targetIds, count } = action;
+        if (!targetIds || targetIds.length === 0) {
+          throw new Error("Missing call identifiers for bulk archiving.");
+        }
+        setBulkDeleting(true);
+        await api.put(`/calls/bulk-archive`, {
+          call_ids: targetIds,
+        });
+        toast.success(
+          `${count} call${count !== 1 ? "s" : ""} archived successfully.`,
+        );
+        setSelectedCallIds(new Set());
+        await fetchCalls();
+        if (selectedCall && selectedCallIds.has(selectedCall.id)) {
+          setSelectedCall(null);
+        }
       }
     } catch (err) {
       const defaultMessage =
@@ -611,12 +638,15 @@ export default function AdminCalls() {
           ? "Failed to create call. Please review the details and try again."
           : type === "update"
             ? "Failed to update call. Please review the details and try again."
-            : "Failed to delete call. Please try again.";
+            : type === "bulk-delete"
+              ? "Failed to archive calls. Please try again."
+              : "Failed to archive call. Please try again.";
 
       const message = err?.response?.data?.detail || defaultMessage;
       toast.error(message);
     } finally {
       if (type === "create" || type === "update") setIsSubmitting(false);
+      if (type === "bulk-delete") setBulkDeleting(false);
       setConfirmProcessing(false);
       setConfirmModalData(null);
     }
@@ -625,6 +655,56 @@ export default function AdminCalls() {
   const handleCancelConfirm = () => {
     if (confirmProcessing) return;
     setConfirmModalData(null);
+  };
+
+  const handleSelectCall = (callId) => {
+    const call = paginatedCalls.find((c) => c.id === callId);
+    if (call && call.call_creator?.id === currentUser?.id) {
+      setSelectedCallIds((prev) => {
+        const newSet = new Set(prev);
+        if (newSet.has(callId)) {
+          newSet.delete(callId);
+        } else {
+          newSet.add(callId);
+        }
+        return newSet;
+      });
+    }
+  };
+
+  const handleSelectAllCalls = () => {
+    const selectableCalls = paginatedCalls.filter(
+      (c) => c.call_creator?.id === currentUser?.id,
+    );
+    if (selectedCallIds.size === selectableCalls.length) {
+      setSelectedCallIds(new Set());
+    } else {
+      setSelectedCallIds(new Set(selectableCalls.map((c) => c.id)));
+    }
+  };
+
+  const handleBulkDelete = () => {
+    if (selectedCallIds.size === 0) return;
+
+    const selectedCount = selectedCallIds.size;
+    setConfirmModalData({
+      title: "Archive Calls",
+      message: (
+        <span>
+          Are you sure you want to archive{" "}
+          <span className="font-semibold">{selectedCount}</span> call
+          {selectedCount !== 1 ? "s" : ""}? You can restore them later if needed.
+        </span>
+      ),
+      confirmLabel: `Archive ${selectedCount} Call${selectedCount !== 1 ? "s" : ""}`,
+      cancelLabel: "Cancel",
+      variant: "archive",
+      action: {
+        type: "bulk-delete",
+        targetIds: Array.from(selectedCallIds),
+        count: selectedCount,
+      },
+    });
   };
 
   const handleStatusUpdate = async () => {
@@ -696,6 +776,8 @@ export default function AdminCalls() {
             </div>
 
             <div className="flex flex-col sm:flex-row sm:space-x-3 space-y-2 sm:space-y-0">
+              {currentUser?.id === selectedCall.call_creator?.id && (
+                <>
               <button
                 className="inline-flex items-center justify-center w-full sm:w-auto bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 transition text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
                 onClick={() => {
@@ -773,15 +855,15 @@ export default function AdminCalls() {
               </button>
 
               <button
-                className="inline-flex items-center justify-center w-full sm:w-auto px-4 py-2 rounded-md text-sm bg-red-500 text-white hover:bg-red-600 transition focus:outline-none focus:ring-2 focus:ring-red-400"
+                className="inline-flex items-center justify-center w-full sm:w-auto px-4 py-2 rounded-md text-sm bg-orange-500 text-white hover:bg-orange-600 transition focus:outline-none focus:ring-2 focus:ring-orange-400"
                 onClick={() => {
                   const name = selectedCall.subject || "this call";
                   setConfirmModalData({
-                    title: "Delete Call",
-                    message: `Are you sure you want to permanently delete "${name}"? This action cannot be undone.`,
-                    confirmLabel: "Delete Call",
+                    title: "Archive Call",
+                    message: `Are you sure you want to archive "${name}"? You can restore it later if needed.`,
+                    confirmLabel: "Archive Call",
                     cancelLabel: "Cancel",
-                    variant: "danger",
+                    variant: "archive",
                     action: {
                       type: "delete",
                       targetId: selectedCall.id,
@@ -790,9 +872,11 @@ export default function AdminCalls() {
                   });
                 }}
               >
-                <FiTrash2 className="mr-2" />
-                Delete
+                <FiArchive className="mr-2" />
+                Archive
               </button>
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -1238,11 +1322,39 @@ export default function AdminCalls() {
           <table className="w-full min-w-[500px] border border-gray-200 rounded-lg bg-white shadow-sm text-sm mb-4">
             <thead className="bg-gray-100 text-left text-gray-600 font-semibold">
               <tr>
+                <th className="py-3 px-4">
+                  <input
+                    type="checkbox"
+                    checked={
+                      selectedCallIds.size ===
+                        paginatedCalls.filter(
+                          (c) => c.call_creator?.id === currentUser?.id,
+                        ).length &&
+                      paginatedCalls.filter(
+                        (c) => c.call_creator?.id === currentUser?.id,
+                      ).length > 0
+                    }
+                    onChange={handleSelectAllCalls}
+                    className="w-4 h-4"
+                  />
+                </th>
                 <th className="py-3 px-4">Subject</th>
                 <th className="py-3 px-4">Related To</th>
                 <th className="py-3 px-4">Call Time</th>
                 <th className="py-3 px-4">Assigned To</th>
                 <th className="py-3 px-4">Status</th>
+                <th className="py-3 px-4 w-12">
+                  {selectedCallIds.size > 0 && (
+                    <button
+                      onClick={handleBulkDelete}
+                      className="text-orange-500 hover:text-orange-700 transition"
+                      title="Archive selected calls"
+                      disabled={bulkDeleting}
+                    >
+                      <FiArchive size={18} />
+                    </button>
+                  )}
+                </th>
               </tr>
             </thead>
 
@@ -1260,6 +1372,19 @@ export default function AdminCalls() {
                     onClick={() => handleCallClick(call)}
                     className="hover:bg-gray-50 cursor-pointer border-b border-gray-100"
                   >
+                    <td className="py-3 px-4" onClick={(e) => e.stopPropagation()}>
+                      {currentUser?.id === call.call_creator?.id && (
+                        <input
+                          type="checkbox"
+                          checked={selectedCallIds.has(call.id)}
+                          onChange={(e) => {
+                            e.stopPropagation();
+                            handleSelectCall(call.id);
+                          }}
+                          className="w-4 h-4"
+                        />
+                      )}
+                    </td>
                     <td className="py-3 px-4 text-blue-600 font-medium">
                       {call.subject || "--"}
                     </td>
@@ -1346,6 +1471,8 @@ export default function AdminCalls() {
           title={confirmModalData.title}
           message={confirmModalData.message}
           confirmLabel={confirmModalData.confirmLabel}
+          cancelLabel={confirmModalData.cancelLabel}
+          variant={confirmModalData.variant}
           onConfirm={handleConfirmAction}
           onCancel={handleCancelConfirm}
           loading={confirmProcessing}
@@ -1449,6 +1576,8 @@ function ConfirmationModal({
   const confirmClasses =
     variant === "danger"
       ? "bg-red-500 hover:bg-red-600 border border-red-400"
+      : variant === "archive"
+      ? "bg-orange-500 hover:bg-orange-600 border border-orange-400"
       : "bg-tertiary hover:bg-secondary border border-tertiary";
 
   return (

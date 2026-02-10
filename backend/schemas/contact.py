@@ -35,6 +35,7 @@ class ContactUpdate(BaseModel):
     mobile_phone_1: Optional[str] = None
     mobile_phone_2: Optional[str] = None
     notes: Optional[str] = None
+    status: Optional[str] = None
     assigned_to: Optional[int] = None
 
 class ContactBulkDelete(BaseModel):

@@ -142,7 +142,7 @@ export default function AdminCompanyDetails() {
           />
         </div>
         <div>
-          <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
+          <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-2">
             <FiMapPin className="text-gray-500" /> Company Address
           </label>
           <textarea
@@ -157,7 +157,7 @@ export default function AdminCompanyDetails() {
 
         {/* 2. Company Logo */}
         <div>
-          <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
+          <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-2">
             <FiImage className="text-gray-500" /> Company Logo
           </label>
           <div className="flex items-center gap-4">
@@ -215,7 +215,7 @@ export default function AdminCompanyDetails() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* 2. Fiscal Year Start */}
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
+            <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-2">
               <FiCalendar className="text-gray-500" /> Fiscal Year Start
             </label>
             <div className="relative">
@@ -237,7 +237,7 @@ export default function AdminCompanyDetails() {
 
           {/* 3. Tax Rate */}
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
+            <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-2">
               <FiPercent className="text-gray-500" /> Default Tax Rate
             </label>
             <div className="relative">
@@ -259,7 +259,7 @@ export default function AdminCompanyDetails() {
 
         {/* 4. Currency Selection */}
         <div>
-          <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
+          <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-2">
             <FiDollarSign className="text-gray-500" /> Currency
           </label>
           <div className="flex gap-3 max-w-xs">

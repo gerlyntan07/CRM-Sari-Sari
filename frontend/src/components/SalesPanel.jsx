@@ -290,7 +290,7 @@ useEffect(() => {
             className={({ isActive }) => (isActive ? activeLink : normalLink)}
           >
             <FiUser className="text-lg" />
-            <span>Manage Account</span>
+            <span>Your Profile</span>
           </NavLink>     
         </nav>
 

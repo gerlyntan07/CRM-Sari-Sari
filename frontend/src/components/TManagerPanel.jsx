@@ -211,7 +211,7 @@ export default function TManagerPanel() {
             >
               <span className="flex items-center gap-2">
                 <FiSettings className="text-lg" />
-                User Management
+                Settings
               </span>
               <FiChevronDown
                 className={`transition-transform ${userMgmtOpen ? "rotate-180" : ""}`}
@@ -230,7 +230,7 @@ export default function TManagerPanel() {
                   to="/group-manager/manage-account"
                   className={({ isActive }) => (isActive ? activeLink : normalLink)}
                 >
-                  <FiUser /> Manage Account
+                  <FiUser /> Your Profile
                 </NavLink>
               </div>
             )}

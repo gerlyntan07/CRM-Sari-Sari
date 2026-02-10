@@ -191,7 +191,7 @@ export default function AdminManageAccount() {
         {/* Header */}
         <div className="mb-6">
           <h1 className="text-2xl sm:text-3xl font-semibold text-gray-800 mb-2">
-            Manage Your Account
+            Manage Your Profile
           </h1>
           <p className="text-gray-600 text-sm sm:text-base">
             Update your account information and change your password

@@ -237,7 +237,7 @@ export default function AdminPanel() {
             >
               <span className="flex items-center gap-2">
                 <FiSettings className="text-lg" />
-                User Management
+                Settings
               </span>
               <FiChevronDown
                 className={`transition-transform ${userMgmtOpen ? "rotate-180" : ""
@@ -261,13 +261,13 @@ export default function AdminPanel() {
                     isActive ? activeLink : normalLink
                   }
                 >
-                  <FiUser /> Manage Account
+                  <FiUser />Your Profile
                 </NavLink>
                 <NavLink
                   to="/admin/company-details"
                   className={({ isActive }) => (isActive ? activeLink : normalLink)}
                 >
-                  <FiShield /> Settings
+                  <FiShield />Organization
                 </NavLink>
               </div>
             )}

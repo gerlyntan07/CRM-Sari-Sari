@@ -40,9 +40,9 @@ class TaskUpdate(BaseModel):
     status: str
     priority: str
     description: Optional[str] = None
-    related_type_1: str
+    related_type_1: Optional[str] = None
     related_type_2: Optional[str] = None
-    related_to_1: int
+    related_to_1: Optional[int] = None
     related_to_2: Optional[int] = None
     assigned_to: Optional[int] = None
 

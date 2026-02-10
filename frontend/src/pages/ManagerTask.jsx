@@ -19,6 +19,16 @@ import { toast } from "react-toastify";
 import useFetchUser from "../hooks/useFetchUser";
 import LoadingSpinner from "../components/LoadingSpinner.jsx";
 import { useLocation, useNavigate } from "react-router-dom";
+import {
+  DndContext,
+  DragOverlay,
+  closestCenter,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  useDroppable,
+  useDraggable,
+} from "@dnd-kit/core";
 
 const BOARD_COLUMNS = ["Not started", "In progress", "Deferred", "Completed"];
 
@@ -305,6 +315,7 @@ export default function AdminTask() {
   const [confirmModalData, setConfirmModalData] = useState(null);
   const [confirmProcessing, setConfirmProcessing] = useState(false);
   const [selectedIds, setSelectedIds] = useState([]);
+  const [activeTask, setActiveTask] = useState(null); // For drag overlay
   
   const navigate = useNavigate();
   const location = useLocation();
@@ -326,6 +337,73 @@ export default function AdminTask() {
 
   // State to track taskID passed from navigation (e.g., from AdminAccounts)
   const [pendingTaskId, setPendingTaskId] = useState(null);
+
+  // --- DnD Configuration ---
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    })
+  );
+
+  const handleDragStart = (event) => {
+    const { active } = event;
+    const draggedTask = tasks.find((t) => t.id === active.id);
+    setActiveTask(draggedTask);
+  };
+
+  const handleDragEnd = async (event) => {
+    const { active, over } = event;
+    setActiveTask(null);
+
+    if (!over) return;
+
+    const taskId = active.id;
+    const newStatus = over.id;
+
+    const task = tasks.find((t) => t.id === taskId);
+    if (!task || task.status === newStatus) return;
+
+    setTasks((prev) =>
+      prev.map((t) => (t.id === taskId ? { ...t, status: newStatus } : t))
+    );
+
+    try {
+      const payload = {
+        title: task.title,
+        description: task.description || "",
+        priority: task.priority || "Normal",
+        status: newStatus,
+        due_date: task.dueDate || null,
+        assigned_to: task.assignedToId || null,
+        related_type_1: task.relatedType1 || null,
+        related_to_1: task.relatedTo1 ? parseInt(task.relatedTo1, 10) : null,
+        related_type_2: task.relatedType2 || null,
+        related_to_2: task.relatedTo2 ? parseInt(task.relatedTo2, 10) : null,
+      };
+
+      if (!payload.related_to_1 || isNaN(payload.related_to_1)) {
+        payload.related_to_1 = null;
+      }
+      if (!payload.related_to_2 || isNaN(payload.related_to_2)) {
+        payload.related_to_2 = null;
+      }
+
+      await api.put(`/tasks/${taskId}`, payload);
+      toast.success(`Task moved to "${newStatus}"`);
+    } catch (error) {
+      console.error("Failed to update task status:", error);
+      toast.error("Failed to update task status");
+      setTasks((prev) =>
+        prev.map((t) => (t.id === taskId ? { ...t, status: task.status } : t))
+      );
+    }
+  };
+
+  const handleDragCancel = () => {
+    setActiveTask(null);
+  };
 
   // --- Auto-Open Modal Logic ---
   useEffect(() => {
@@ -769,60 +847,41 @@ export default function AdminTask() {
       {/* Board View */}
       {!loading && !userLoading && view === "board" && (
         filteredTasks.length > 0 ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 rounded-md">
-          {BOARD_COLUMNS.map((column) => {
-            const columnTasks = displayTasks.filter((task) => task.status === column);
-            return (
-              <div key={column} className="bg-white p-4 shadow border border-gray-200 flex flex-col relative rounded-md">
-                <div className="absolute top-0 left-0 w-full h-5 bg-secondary rounded-t-md" /> 
-                <div className="flex items-center justify-between mb-3 pt-7">
-                  <h3 className="font-medium text-gray-900">{column}</h3>
-                  <span className="text-xs bg-gray-100 px-2 py-1 rounded-full text-gray-500">
-                    {columnTasks.length}
-                  </span>
-                </div>
-                <div className={`space-y-3 ${columnTasks.length > 3 ? 'overflow-y-auto max-h-[480px] hide-scrollbar' : ''}`}>
-                  {columnTasks.length > 0 ? (
-                    columnTasks.map((task) => (
-                      <div
-                        key={task.id}
-                        className={`border rounded-lg p-3 transition flex justify-between items-start cursor-pointer ${getTaskCardColor(task)}`}
-                        onClick={() => handleOpenModal(task, true)}
-                      >
-                        <div className="text-left flex-1">
-                          <p className="font-medium text-gray-800 text-sm">{task.title}</p>
-                          <p className="text-xs text-gray-500 mt-1">Priority: {task.priority}</p>
-                          <p className="text-xs text-gray-500 mt-1">Assigned To: {task.assignedToName}</p>
-                          <p className="text-xs mt-1 text-gray-500">
-                            Date: <span className={isTaskOverdue(task) ? "text-red-600" : "text-gray-600"}>{task.dateAssigned ? formatDateDisplay(task.dateAssigned) : "—"}</span>
-                          </p>
-                        </div>
-                        <div className="flex items-center gap-2 ml-3">
-                          <button
-                            type="button"
-                            onClick={(e) => { e.stopPropagation(); handleOpenModal(task); }}
-                            className="text-blue-500 hover:text-blue-700"
-                          >
-                            <FiEdit2 />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={(e) => { e.stopPropagation(); handleDeleteTask(task); }}
-                            className="text-red-500 hover:text-red-700"
-                          >
-                            <FiTrash2 />
-                          </button>
-                        </div>
-                      </div>
-                    ))
-                  ) : (
-                    <div className="text-center py-10 text-gray-500">No tasks</div>
-                  )}
-                </div>
-              </div>
-            );
-          })}
-        </div>
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragStart={handleDragStart}
+          onDragEnd={handleDragEnd}
+          onDragCancel={handleDragCancel}
+        >
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 rounded-md">
+            {BOARD_COLUMNS.map((column) => {
+              const columnTasks = displayTasks.filter((task) => task.status === column);
+              return (
+                <ManagerDroppableColumn
+                  key={column}
+                  column={column}
+                  columnTasks={columnTasks}
+                  getTaskCardColor={getTaskCardColor}
+                  isTaskOverdue={isTaskOverdue}
+                  formatDateDisplay={formatDateDisplay}
+                  handleOpenModal={handleOpenModal}
+                  handleDeleteTask={handleDeleteTask}
+                />
+              );
+            })}
+          </div>
+          <DragOverlay>
+            {activeTask ? (
+              <ManagerTaskCardOverlay
+                task={activeTask}
+                getTaskCardColor={getTaskCardColor}
+                isTaskOverdue={isTaskOverdue}
+                formatDateDisplay={formatDateDisplay}
+              />
+            ) : null}
+          </DragOverlay>
+        </DndContext>
         ) : (
           <div className="col-span-4 text-center py-10 text-gray-500 border border-dashed rounded-xl">No tasks found.</div>
         )
@@ -979,6 +1038,125 @@ function ConfirmationModal({ open, title, message, confirmLabel, cancelLabel, va
           <button type="button" onClick={onCancel} className="w-full sm:w-auto px-4 py-2 rounded-md border border-gray-300 text-gray-700 hover:bg-gray-100 transition disabled:opacity-70" disabled={loading}>{cancelLabel}</button>
           <button type="button" onClick={onConfirm} className={`w-full sm:w-auto px-4 py-2 rounded-md text-white transition disabled:opacity-70 ${confirmClasses}`} disabled={loading}>{loading ? "Processing..." : confirmLabel}</button>
         </div>
+      </div>
+    </div>
+  );
+}
+
+// --- Droppable Column Component for Manager ---
+function ManagerDroppableColumn({ column, columnTasks, getTaskCardColor, isTaskOverdue, formatDateDisplay, handleOpenModal, handleDeleteTask }) {
+  const { isOver, setNodeRef } = useDroppable({
+    id: column,
+  });
+
+  return (
+    <div
+      ref={setNodeRef}
+      className={`bg-white p-4 shadow border flex flex-col relative rounded-md transition-all duration-200 min-h-[200px] ${
+        isOver ? "border-blue-400 bg-blue-50 ring-2 ring-blue-300" : "border-gray-200"
+      }`}
+    >
+      <div className="absolute top-0 left-0 w-full h-5 bg-secondary rounded-t-md" />
+      <div className="flex items-center justify-between mb-3 pt-7">
+        <h3 className="font-medium text-gray-900">{column}</h3>
+        <span className="text-xs bg-gray-100 px-2 py-1 rounded-full text-gray-500">
+          {columnTasks.length}
+        </span>
+      </div>
+      <div className={`space-y-3 flex-1 ${columnTasks.length > 3 ? 'overflow-y-auto max-h-[480px] hide-scrollbar' : ''}`}>
+        {columnTasks.length > 0 ? (
+          columnTasks.map((task) => (
+            <ManagerDraggableTaskCard
+              key={task.id}
+              task={task}
+              getTaskCardColor={getTaskCardColor}
+              isTaskOverdue={isTaskOverdue}
+              formatDateDisplay={formatDateDisplay}
+              handleOpenModal={handleOpenModal}
+              handleDeleteTask={handleDeleteTask}
+            />
+          ))
+        ) : (
+          <div className={`text-center py-10 text-gray-500 border-2 border-dashed rounded-lg ${isOver ? "border-blue-300 bg-blue-50" : "border-gray-200"}`}>
+            {isOver ? "Drop here" : "No tasks"}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// --- Draggable Task Card Component for Manager ---
+function ManagerDraggableTaskCard({ task, getTaskCardColor, isTaskOverdue, formatDateDisplay, handleOpenModal, handleDeleteTask }) {
+  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
+    id: task.id,
+  });
+
+  const style = transform
+    ? {
+        transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
+      }
+    : undefined;
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={`border rounded-lg p-3 transition flex justify-between items-start cursor-grab active:cursor-grabbing ${getTaskCardColor(task)} ${
+        isDragging ? "opacity-50 shadow-lg ring-2 ring-blue-400" : ""
+      }`}
+      {...listeners}
+      {...attributes}
+    >
+      <div 
+        className="text-left flex-1"
+        onClick={(e) => { e.stopPropagation(); handleOpenModal(task, true); }}
+      >
+        <p className="font-medium text-gray-800 text-sm">{task.title}</p>
+        <p className="text-xs text-gray-500 mt-1">Priority: {task.priority}</p>
+        <p className="text-xs text-gray-500 mt-1">Assigned To: {task.assignedToName}</p>
+        <p className="text-xs mt-1 text-gray-500">
+          Date: <span className={isTaskOverdue(task) ? "text-red-600" : "text-gray-600"}>
+            {task.dateAssigned ? formatDateDisplay(task.dateAssigned) : "—"}
+          </span>
+        </p>
+      </div>
+      <div className="flex items-center gap-2 ml-3" onClick={(e) => e.stopPropagation()}>
+        <button
+          type="button"
+          onClick={(e) => { e.stopPropagation(); handleOpenModal(task); }}
+          className="text-blue-500 hover:text-blue-700"
+        >
+          <FiEdit2 />
+        </button>
+        <button
+          type="button"
+          onClick={(e) => { e.stopPropagation(); handleDeleteTask(task); }}
+          className="text-red-500 hover:text-red-700"
+        >
+          <FiTrash2 />
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// --- Task Card Overlay for Manager (shown while dragging) ---
+function ManagerTaskCardOverlay({ task, getTaskCardColor, isTaskOverdue, formatDateDisplay }) {
+  return (
+    <div
+      className={`border rounded-lg p-3 shadow-xl ring-2 ring-blue-400 ${getTaskCardColor(task)}`}
+      style={{ width: "280px" }}
+    >
+      <div className="text-left flex-1">
+        <p className="font-medium text-gray-800 text-sm">{task.title}</p>
+        <p className="text-xs text-gray-500 mt-1">Priority: {task.priority}</p>
+        <p className="text-xs text-gray-500 mt-1">Assigned To: {task.assignedToName}</p>
+        <p className="text-xs mt-1 text-gray-500">
+          Date: <span className={isTaskOverdue(task) ? "text-red-600" : "text-gray-600"}>
+            {task.dateAssigned ? formatDateDisplay(task.dateAssigned) : "—"}
+          </span>
+        </p>
       </div>
     </div>
   );

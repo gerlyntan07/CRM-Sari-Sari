@@ -8,7 +8,7 @@ import React, {
 import {
   FiSearch,
   FiEdit,
-  FiTrash2,
+  FiArchive,
   FiPlus,
   FiPhone,
   FiUsers,
@@ -32,6 +32,7 @@ import LoadingSpinner from "../components/LoadingSpinner.jsx";
 import { useLocation, useNavigate } from "react-router-dom";
 import CommentSection from "../components/CommentSection.jsx";
 import { useComments } from "../hooks/useComments.js";
+import useFetchUser from "../hooks/useFetchUser.js";
 
 const ITEMS_PER_PAGE = 10;
 
@@ -69,6 +70,7 @@ const formattedDateTime = (datetime) => {
 export default function AdminContacts() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { user: currentUser } = useFetchUser();
 
   useEffect(() => {
     document.title = "Contacts | Sari-Sari CRM";
@@ -95,6 +97,8 @@ export default function AdminContacts() {
   const [relatedActs, setRelatedActs] = useState({});
   const [expandedSection, setExpandedSection] = useState(null);
   const [pendingContactId, setPendingContactId] = useState(null);
+  const [selectedContactIds, setSelectedContactIds] = useState(new Set());
+  const [bulkDeleting, setBulkDeleting] = useState(false);
 
   const {
     comments: contactComments,
@@ -277,9 +281,16 @@ export default function AdminContacts() {
         normalizedFilter === "Filter by Accounts" ||
         String(contact.account_id) === normalizedFilter;
 
-      return matchesSearch && matchesAccount;
+      // Filter out archived (Inactive) contacts from manager view
+      const isNotArchived = contact?.status !== "Inactive";
+
+      // Only show contacts assigned to the group manager or created by the group manager
+      const isAssignedToUser = contact?.assigned_to === currentUser?.id;
+      const isCreatedByUser = contact?.created_by === currentUser?.id;
+
+      return matchesSearch && matchesAccount && isNotArchived && (isAssignedToUser || isCreatedByUser);
     });
-  }, [contacts, searchQuery, accountFilter]);
+  }, [contacts, searchQuery, accountFilter, currentUser?.id]);
 
   const totalPages = Math.max(
     1,
@@ -384,25 +395,75 @@ export default function AdminContacts() {
     setSelectedContact(null);
   };
 
-  const handleDelete = (contact) => {
+  const handleArchive = (contact) => {
     if (!contact) return;
     const name = getContactFullName(contact) || "this contact";
     setConfirmModalData({
-      title: "Delete Contact",
+      title: "Archive Contact",
       message: (
         <span>
-          Are you sure you want to permanently delete{" "}
-          <span className="font-semibold">{name}</span>? This action cannot be
-          undone.
+          Are you sure you want to archive{" "}
+          <span className="font-semibold">{name}</span>? You can restore it later if needed.
         </span>
       ),
-      confirmLabel: "Delete Contact",
+      confirmLabel: "Archive Contact",
       cancelLabel: "Cancel",
-      variant: "danger",
+      variant: "archive",
       action: {
-        type: "delete",
+        type: "archive",
         targetId: contact.id,
         name,
+      },
+    });
+  };
+
+  const handleSelectContact = (contactId) => {
+    const contact = paginatedContacts.find((c) => c.id === contactId);
+    // Only allow selecting contacts created by current user
+    if (contact && contact.contact_creator?.id === currentUser?.id) {
+      setSelectedContactIds((prev) => {
+        const newSet = new Set(prev);
+        if (newSet.has(contactId)) {
+          newSet.delete(contactId);
+        } else {
+          newSet.add(contactId);
+        }
+        return newSet;
+      });
+    }
+  };
+
+  const handleSelectAll = () => {
+    const selectableContacts = paginatedContacts.filter(
+      (c) => c.contact_creator?.id === currentUser?.id
+    );
+    if (selectedContactIds.size === selectableContacts.length && selectableContacts.length > 0) {
+      setSelectedContactIds(new Set());
+    } else {
+      setSelectedContactIds(new Set(selectableContacts.map((c) => c.id)));
+    }
+  };
+
+  const handleBulkArchive = () => {
+    if (selectedContactIds.size === 0) return;
+
+    const selectedCount = selectedContactIds.size;
+    setConfirmModalData({
+      title: "Archive Contacts",
+      message: (
+        <span>
+          Are you sure you want to archive{" "}
+          <span className="font-semibold">{selectedCount}</span> contact
+          {selectedCount !== 1 ? "s" : ""}? You can restore them later if needed.
+        </span>
+      ),
+      confirmLabel: `Archive ${selectedCount} Contact${selectedCount !== 1 ? "s" : ""}`,
+      cancelLabel: "Cancel",
+      variant: "archive",
+      action: {
+        type: "bulk-archive",
+        targetIds: Array.from(selectedContactIds),
+        count: selectedCount,
       },
     });
   };
@@ -530,14 +591,14 @@ export default function AdminContacts() {
         if (selectedContact?.id === targetId) {
           setSelectedContact(null);
         }
-      } else if (type === "delete") {
+      } else if (type === "archive") {
         if (!targetId) {
-          throw new Error("Missing contact identifier for deletion.");
+          throw new Error("Missing contact identifier for archiving.");
         }
         const currentSelectedId = selectedContact?.id;
         setDeletingId(targetId);
-        await api.delete(`/contacts/admin/${targetId}`);
-        toast.success(`Contact "${name}" deleted successfully.`);
+        await api.put(`/contacts/admin/${targetId}`, { status: "Inactive" });
+        toast.success(`Contact "${name}" archived successfully.`);
         const preserveId =
           currentSelectedId && currentSelectedId !== targetId
             ? currentSelectedId
@@ -546,6 +607,24 @@ export default function AdminContacts() {
         if (currentSelectedId === targetId) {
           setSelectedContact(null);
         }
+      } else if (type === "bulk-archive") {
+        const { targetIds, count } = action;
+        if (!targetIds || targetIds.length === 0) {
+          throw new Error("Missing contact identifiers for bulk archiving.");
+        }
+        setBulkDeleting(true);
+        await Promise.all(
+          targetIds.map((id) =>
+            api.put(`/contacts/admin/${id}`, { status: "Inactive" })
+          )
+        );
+        toast.success(
+          `${count} contact${count !== 1 ? "s" : ""} archived successfully.`,
+        );
+
+        setSelectedContactIds(new Set());
+        await fetchContacts();
+        setSelectedContact(null);
       }
     } catch (err) {
       console.error(err);
@@ -554,15 +633,20 @@ export default function AdminContacts() {
           ? "Failed to create contact. Please review the details and try again."
           : type === "update"
             ? "Failed to update contact. Please review the details and try again."
-            : "Failed to delete contact. Please try again.";
+            : type === "bulk-archive"
+              ? "Failed to archive contacts. Please try again."
+              : "Failed to archive contact. Please try again.";
       const message = err.response?.data?.detail || defaultMessage;
       toast.error(message);
     } finally {
       if (type === "create" || type === "update") {
         setIsSubmitting(false);
       }
-      if (type === "delete") {
+      if (type === "archive") {
         setDeletingId(null);
+      }
+      if (type === "bulk-archive") {
+        setBulkDeleting(false);
       }
       setConfirmProcessing(false);
       setConfirmModalData(null);
@@ -633,32 +717,36 @@ export default function AdminContacts() {
           </div>
 
           <div className="flex flex-col sm:flex-row sm:space-x-3 space-y-2 sm:space-y-0">
-            <button
-              className="inline-flex items-center justify-center w-full sm:w-auto bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 disabled:opacity-70 transition text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
-              onClick={() => handleEditClick(selectedContact)}
-              disabled={
-                confirmProcessing ||
-                (confirmModalData?.action?.type === "update" &&
-                  confirmModalData.action.targetId === selectedContact.id)
-              }
-            >
-              <FiEdit className="mr-2" />
-              Edit
-            </button>
-            <button
-              className="inline-flex items-center justify-center w-full sm:w-auto px-4 py-2 rounded-md text-sm bg-red-500 text-white hover:bg-red-600 transition focus:outline-none focus:ring-2 focus:ring-red-400"
-              onClick={() => handleDelete(selectedContact)}
-              disabled={Boolean(selectedContactDeleteDisabled)}
-            >
-              {selectedContactDeleting ? (
-                "Deleting..."
-              ) : (
-                <>
-                  <FiTrash2 className="mr-2" />
-                  Delete
-                </>
-              )}
-            </button>
+            {currentUser?.id === selectedContact?.contact_creator?.id && (
+              <>
+                <button
+                  className="inline-flex items-center justify-center w-full sm:w-auto bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 disabled:opacity-70 transition text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+                  onClick={() => handleEditClick(selectedContact)}
+                  disabled={
+                    confirmProcessing ||
+                    (confirmModalData?.action?.type === "update" &&
+                      confirmModalData.action.targetId === selectedContact.id)
+                  }
+                >
+                  <FiEdit className="mr-2" />
+                  Edit
+                </button>
+                <button
+                  className="inline-flex items-center justify-center w-full sm:w-auto px-4 py-2 rounded-md text-sm bg-orange-500 text-white hover:bg-orange-600 transition focus:outline-none focus:ring-2 focus:ring-orange-400"
+                  onClick={() => handleArchive(selectedContact)}
+                  disabled={Boolean(selectedContactDeleteDisabled)}
+                >
+                  {selectedContactDeleting ? (
+                    "Archiving..."
+                  ) : (
+                    <>
+                      <FiArchive className="mr-2" />
+                      Archive
+                    </>
+                  )}
+                </button>
+              </>
+            )}
           </div>
         </div>
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-2 px-2 lg:gap-4 md:mx-7 lg:mx-7">
@@ -1348,12 +1436,36 @@ export default function AdminContacts() {
         <table className="w-full min-w-[600px] border border-gray-200 rounded-lg bg-white shadow-sm text-sm">
           <thead className="bg-gray-100 text-left text-gray-600 text-sm tracking-wide font-semibold">
             <tr>
+              <th className="py-3 px-4 w-12">
+                <input
+                  type="checkbox"
+                  checked={
+                    selectedContactIds.size > 0 &&
+                    selectedContactIds.size === paginatedContacts.filter(c => c.contact_creator?.id === currentUser?.id).length &&
+                    paginatedContacts.filter(c => c.contact_creator?.id === currentUser?.id).length > 0
+                  }
+                  onChange={handleSelectAll}
+                  className="w-4 h-4 cursor-pointer"
+                />
+              </th>
               <th className="py-3 px-4 truncate">Contact</th>
               <th className="py-3 px-4">Account</th>
               <th className="py-3 px-4 truncate">Contact Info</th>
               <th className="py-3 px-4">Department</th>
               <th className="py-3 px-4">Assigned To</th>
               <th className="py-3 px-4">Created</th>
+              <th className="py-3 px-4 w-12">
+                {selectedContactIds.size > 0 && (
+                  <button
+                    onClick={handleBulkArchive}
+                    className="text-orange-500 hover:text-orange-700 transition"
+                    title="Archive selected contacts"
+                    disabled={bulkDeleting}
+                  >
+                    <FiArchive size={18} />
+                  </button>
+                )}
+              </th>
             </tr>
           </thead>
           <tbody>
@@ -1361,7 +1473,7 @@ export default function AdminContacts() {
               <tr>
                 <td
                   className="py-4 px-4 text-center text-sm text-gray-500"
-                  colSpan={6}
+                  colSpan={8}
                 >
                   Loading contacts...
                 </td>
@@ -1391,12 +1503,26 @@ export default function AdminContacts() {
                   <tr
                     key={contact.id}
                     className="hover:bg-gray-50 text-sm cursor-pointer transition"
-                    onClick={() => {
-                      handleContactClick(contact);
-                      fetchRelatedActivities(contact.id);
-                    }}
                   >
-                    <td className="py-3 px-4 align-top">
+                    <td className="py-3 px-4">
+                      {currentUser?.id === contact.contact_creator?.id && (
+                        <input
+                          type="checkbox"
+                          checked={selectedContactIds.has(contact.id)}
+                          onChange={(e) => {
+                            e.stopPropagation();
+                            handleSelectContact(contact.id);
+                          }}
+                          className="w-4 h-4 cursor-pointer"
+                        />
+                      )}
+                    </td>
+                    <td className="py-3 px-4 align-top"
+                      onClick={() => {
+                        handleContactClick(contact);
+                        fetchRelatedActivities(contact.id);
+                      }}
+                    >
                       <div className="font-medium text-blue-600 hover:underline break-all text-sm">
                         {getContactFullName(contact) || "--"}
                       </div>
@@ -1404,7 +1530,12 @@ export default function AdminContacts() {
                         {contact.title || "No title"}
                       </div>
                     </td>
-                    <td className="py-3 px-4 align-top">
+                    <td className="py-3 px-4 align-top"
+                      onClick={() => {
+                        handleContactClick(contact);
+                        fetchRelatedActivities(contact.id);
+                      }}
+                    >
                       <div className="flex items-center space-x-2 text-sm text-gray-700">
                         <BsBuilding className="text-gray-500 flex-shrink-0" />
                         <span className="break-words">
@@ -1412,7 +1543,12 @@ export default function AdminContacts() {
                         </span>
                       </div>
                     </td>
-                    <td className="py-3 px-4 align-top">
+                    <td className="py-3 px-4 align-top"
+                      onClick={() => {
+                        handleContactClick(contact);
+                        fetchRelatedActivities(contact.id);
+                      }}
+                    >
                       {contactInfoItems.length > 0 ? (
                         <div className="space-y-1 text-gray-700">
                           {contactInfoItems.map(({ Icon, value, key }) => {
@@ -1435,13 +1571,23 @@ export default function AdminContacts() {
                         <span className="text-gray-400 text-sm">--</span>
                       )}
                     </td>
-                    <td className="py-3 px-4 align-top">
+                    <td className="py-3 px-4 align-top"
+                      onClick={() => {
+                        handleContactClick(contact);
+                        fetchRelatedActivities(contact.id);
+                      }}
+                    >
                       <div className="flex items-center space-x-2 text-gray-700 text-sm">
                         <FiBriefcase className="text-gray-500 flex-shrink-0" />
                         <span>{contact.department || "--"}</span>
                       </div>
                     </td>
-                    <td className="py-3 px-4 align-top">
+                    <td className="py-3 px-4 align-top"
+                      onClick={() => {
+                        handleContactClick(contact);
+                        fetchRelatedActivities(contact.id);
+                      }}
+                    >
                       <div className="flex items-center space-x-2 text-sm">
                         <FiUser className="text-gray-500 flex-shrink-0" />
                         <span>
@@ -1451,13 +1597,20 @@ export default function AdminContacts() {
                         </span>
                       </div>
                     </td>
-                    <td className="py-3 px-4 align-top">
+                    <td className="py-3 px-4 align-top"
+                      onClick={() => {
+                        handleContactClick(contact);
+                        fetchRelatedActivities(contact.id);
+                      }}
+                    >
                       <div className="flex items-center space-x-2 text-gray-500">
                         <FiCalendar className="text-gray-500 flex-shrink-0" />
                         <span className="text-xs">
                           {formattedDateTime(contact.created_at) || "--"}
                         </span>
                       </div>
+                    </td>
+                    <td className="py-3 px-4">
                     </td>
                   </tr>
                 );
@@ -1466,7 +1619,7 @@ export default function AdminContacts() {
               <tr>
                 <td
                   className="py-4 px-4 text-center text-sm text-gray-500"
-                  colSpan={6}
+                  colSpan={8}
                 >
                   No contacts found.
                 </td>
@@ -1949,7 +2102,9 @@ function ConfirmationModal({
   const confirmClasses =
     variant === "danger"
       ? "bg-red-500 hover:bg-red-600 border border-red-400"
-      : "bg-tertiary hover:bg-secondary border border-tertiary";
+      : variant === "archive"
+        ? "bg-orange-500 hover:bg-orange-600 border border-orange-400"
+        : "bg-tertiary hover:bg-secondary border border-tertiary";
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-[60]">

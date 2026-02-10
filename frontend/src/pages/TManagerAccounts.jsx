@@ -553,7 +553,7 @@ export default function AdminAccounts() {
 
     const selectedCount = selectedAccountIds.size;
     setConfirmModalData({
-      title: "Bulk Archive Accounts",
+      title: "Archive Accounts",
       message: (
         <span>
           Are you sure you want to archive{" "}

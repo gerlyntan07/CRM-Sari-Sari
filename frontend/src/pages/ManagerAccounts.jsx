@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import {
   FiSearch,
   FiEdit,
-  FiTrash2,
+  FiArchive,
   FiPlus,
   FiPhone,
   FiUsers,
@@ -26,6 +26,7 @@ import LoadingSpinner from "../components/LoadingSpinner.jsx";
 import { useNavigate } from "react-router-dom";
 import CommentSection from "../components/CommentSection.jsx";
 import { useComments } from "../hooks/useComments.js";
+import useFetchUser from "../hooks/useFetchUser.js";
 
 const STATUS_OPTIONS = [
   { value: "CUSTOMER", label: "Customer" },
@@ -99,6 +100,7 @@ const getTableBadgeClass = (status) => {
 
 export default function AdminAccounts() {
   const navigate = useNavigate();
+  const { user: currentUser } = useFetchUser();
 
   useEffect(() => {
     document.title = "Accounts | Sari-Sari CRM";
@@ -128,6 +130,8 @@ export default function AdminAccounts() {
   const [updatingStatus, setUpdatingStatus] = useState(false);
   const [relatedActs, setRelatedActs] = useState({});
   const [expandedSection, setExpandedSection] = useState(null);
+  const [selectedAccountIds, setSelectedAccountIds] = useState(new Set());
+  const [bulkDeleting, setBulkDeleting] = useState(false);
 
   const {
     comments: accountComments,
@@ -353,9 +357,21 @@ export default function AdminAccounts() {
         normalizedFilter === "FILTER BY STATUS" ||
         normalizeStatus(acc.status) === normalizedFilter;
 
-      return matchesSearch && matchesStage;
+      // Only show accounts assigned to current user OR created by current user
+      const isAssignedToUser =
+        acc?.assigned_to?.id === currentUser?.id ||
+        acc?.assigned_to === currentUser?.id;
+      const isCreatedByUser = acc?.acc_creator?.id === currentUser?.id;
+      const matchesPermission = isAssignedToUser || isCreatedByUser;
+
+      // Hide INACTIVE accounts from manager view unless explicitly filtering by INACTIVE
+      const isInactive = normalizeStatus(acc.status) === "INACTIVE";
+      const shouldHideInactive =
+        isInactive && normalizedFilter !== "INACTIVE";
+
+      return matchesSearch && matchesStage && matchesPermission && !shouldHideInactive;
     });
-  }, [accounts, searchQuery, stageFilter]);
+  }, [accounts, searchQuery, stageFilter, currentUser?.id]);
 
   const totalPages = Math.max(
     1,
@@ -478,25 +494,75 @@ export default function AdminAccounts() {
     setShowModal(true);
   };
 
-  const handleDelete = (account) => {
+  const handleArchive = (account) => {
     if (!account) return;
 
     setConfirmModalData({
-      title: "Delete Account",
+      title: "Archive Account",
       message: (
         <span>
-          Are you sure you want to permanently delete the account{" "}
-          <span className="font-semibold">{account.name}</span>? This action
-          cannot be undone.
+          Are you sure you want to archive the account{" "}
+          <span className="font-semibold">{account.name}</span>? You can restore it later if needed.
         </span>
       ),
-      confirmLabel: "Delete Account",
+      confirmLabel: "Archive Account",
       cancelLabel: "Cancel",
-      variant: "danger",
+      variant: "archive",
       action: {
-        type: "delete",
+        type: "archive",
         targetId: account.id,
         name: account.name,
+      },
+    });
+  };
+
+  const handleSelectAccount = (accountId) => {
+    const account = paginatedAccounts.find((acc) => acc.id === accountId);
+    // Only allow selecting accounts created by current user
+    if (account && account.acc_creator?.id === currentUser?.id) {
+      setSelectedAccountIds((prev) => {
+        const newSet = new Set(prev);
+        if (newSet.has(accountId)) {
+          newSet.delete(accountId);
+        } else {
+          newSet.add(accountId);
+        }
+        return newSet;
+      });
+    }
+  };
+
+  const handleSelectAll = () => {
+    const selectableAccounts = paginatedAccounts.filter(
+      (acc) => acc.acc_creator?.id === currentUser?.id
+    );
+    if (selectedAccountIds.size === selectableAccounts.length && selectableAccounts.length > 0) {
+      setSelectedAccountIds(new Set());
+    } else {
+      setSelectedAccountIds(new Set(selectableAccounts.map((acc) => acc.id)));
+    }
+  };
+
+  const handleBulkArchive = () => {
+    if (selectedAccountIds.size === 0) return;
+
+    const selectedCount = selectedAccountIds.size;
+    setConfirmModalData({
+      title: "Archive Accounts",
+      message: (
+        <span>
+          Are you sure you want to archive{" "}
+          <span className="font-semibold">{selectedCount}</span> account
+          {selectedCount !== 1 ? "s" : ""}? You can restore them later if needed.
+        </span>
+      ),
+      confirmLabel: `Archive ${selectedCount} Account${selectedCount !== 1 ? "s" : ""}`,
+      cancelLabel: "Cancel",
+      variant: "archive",
+      action: {
+        type: "bulk-archive",
+        targetIds: Array.from(selectedAccountIds),
+        count: selectedCount,
       },
     });
   };
@@ -508,7 +574,7 @@ export default function AdminAccounts() {
     }
 
     const { action } = confirmModalData;
-    const { type, payload, targetId, name } = action;
+    const { type, payload, targetId, name, targetIds, count } = action;
 
     setConfirmProcessing(true);
 
@@ -545,14 +611,14 @@ export default function AdminAccounts() {
         if (selectedAccount?.id === targetId) {
           setSelectedAccount(null);
         }
-      } else if (type === "delete") {
+      } else if (type === "archive") {
         if (!targetId) {
-          throw new Error("Missing account identifier for deletion.");
+          throw new Error("Missing account identifier for archiving.");
         }
         const currentSelectedId = selectedAccount?.id;
         setDeletingId(targetId);
-        await api.delete(`/accounts/admin/${targetId}`);
-        toast.success(`Account "${name}" deleted successfully.`);
+        await api.put(`/accounts/admin/${targetId}`, { status: "INACTIVE" });
+        toast.success(`Account "${name}" archived successfully.`);
 
         const preserveId =
           currentSelectedId && currentSelectedId !== targetId
@@ -563,6 +629,23 @@ export default function AdminAccounts() {
         if (currentSelectedId === targetId) {
           setSelectedAccount(null);
         }
+      } else if (type === "bulk-archive") {
+        if (!targetIds || targetIds.length === 0) {
+          throw new Error("Missing account identifiers for bulk archiving.");
+        }
+        setBulkDeleting(true);
+        await Promise.all(
+          targetIds.map((id) =>
+            api.put(`/accounts/admin/${id}`, { status: "INACTIVE" })
+          )
+        );
+        toast.success(
+          `${count} account${count !== 1 ? "s" : ""} archived successfully.`,
+        );
+
+        setSelectedAccountIds(new Set());
+        await fetchAccounts();
+        setSelectedAccount(null);
       }
     } catch (err) {
       console.error(err);
@@ -571,7 +654,9 @@ export default function AdminAccounts() {
           ? "Failed to create account. Please review the details and try again."
           : type === "update"
           ? "Failed to update account. Please review the details and try again."
-          : "Failed to delete account. Please try again.";
+          : type === "bulk-archive"
+            ? "Failed to archive accounts. Please try again."
+            : "Failed to archive account. Please try again.";
 
       const message = err.response?.data?.detail || defaultMessage;
       toast.error(message);
@@ -580,15 +665,22 @@ export default function AdminAccounts() {
         setIsSubmitting(false);
       }
 
-      if (type === "delete") {
+      if (type === "archive") {
         setDeletingId(null);
+      }
+
+      if (type === "bulk-archive") {
+        setBulkDeleting(false);
       }
     } finally {
       if (type === "create" || type === "update") {
         setIsSubmitting(false);
       }
-      if (type === "delete") {
+      if (type === "archive") {
         setDeletingId(null);
+      }
+      if (type === "bulk-archive") {
+        setBulkDeleting(false);
       }
       setConfirmProcessing(false);
       setConfirmModalData(null);
@@ -771,33 +863,35 @@ const [isSubmitted, setIsSubmitted] = useState(false);
             </span>
           </div>
 
-          <div className="flex flex-col sm:flex-row sm:space-x-3 space-y-2 sm:space-y-0">
-            <button
-              className="inline-flex items-center justify-center w-full sm:w-auto bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 disabled:opacity-70 transition text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
-              onClick={() => handleEditClick(selectedAccount)}
-              disabled={
-                confirmModalData?.action?.type === "update" &&
-                confirmModalData.action.targetId === selectedAccount.id
-              }
-            >
-              <FiEdit className="mr-2" />
-              Edit
-            </button>
-            <button
-              className="inline-flex items-center justify-center w-full sm:w-auto px-4 py-2 rounded-md text-sm bg-red-500 text-white hover:bg-red-600 transition focus:outline-none focus:ring-2 focus:ring-red-400"
-              onClick={() => handleDelete(selectedAccount)}
-              disabled={Boolean(selectedAccountDeleteDisabled)}
-            >
-              {selectedAccountDeleting ? (
-                "Deleting..."
-              ) : (
-                <>
-                  <FiTrash2 className="mr-2" />
-                  Delete
-                </>
-              )}
-            </button>
-          </div>
+          {currentUser?.id === selectedAccount?.acc_creator?.id && (
+            <div className="flex flex-col sm:flex-row sm:space-x-3 space-y-2 sm:space-y-0">
+              <button
+                className="inline-flex items-center justify-center w-full sm:w-auto bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 disabled:opacity-70 transition text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+                onClick={() => handleEditClick(selectedAccount)}
+                disabled={
+                  confirmModalData?.action?.type === "update" &&
+                  confirmModalData.action.targetId === selectedAccount.id
+                }
+              >
+                <FiEdit className="mr-2" />
+                Edit
+              </button>
+              <button
+                className="inline-flex items-center justify-center w-full sm:w-auto px-4 py-2 rounded-md text-sm bg-orange-500 text-white hover:bg-orange-600 transition focus:outline-none focus:ring-2 focus:ring-orange-400"
+                onClick={() => handleArchive(selectedAccount)}
+                disabled={Boolean(selectedAccountDeleteDisabled)}
+              >
+                {selectedAccountDeleting ? (
+                  "Archiving..."
+                ) : (
+                  <>
+                    <FiArchive className="mr-2" />
+                    Archive
+                  </>
+                )}
+              </button>
+            </div>
+          )}
         </div>
 
         <div className="border-b border-gray-200 my-5"></div>
@@ -1368,11 +1462,34 @@ const [isSubmitted, setIsSubmitted] = useState(false);
         <table className="w-full min-w-[500px] border border-gray-200 rounded-lg bg-white shadow-sm text-sm">
           <thead className="bg-gray-100 text-left text-gray-600 text-sm tracking-wide font-semibold">
             <tr>
+              <th className="py-3 px-4 w-12">
+                <input
+                  type="checkbox"
+                  checked={
+                    selectedAccountIds.size > 0 &&
+                    selectedAccountIds.size === paginatedAccounts.filter(acc => acc.acc_creator?.id === currentUser?.id).length &&
+                    paginatedAccounts.filter(acc => acc.acc_creator?.id === currentUser?.id).length > 0
+                  }
+                  onChange={handleSelectAll}
+                  className="w-4 h-4 cursor-pointer"
+                />
+              </th>
               <th className="py-3 px-4 truncate">Account</th>
               <th className="py-3 px-4">Status</th>
               <th className="py-3 px-4">Industry</th>
               <th className="py-3 px-4">Territory</th>
               <th className="py-3 px-4">Phone</th>
+              <th className="py-3 px-4 w-12">
+                {selectedAccountIds.size > 0 && (
+                  <button
+                    onClick={handleBulkArchive}
+                    className="text-orange-500 hover:text-orange-700 transition"
+                    title="Archive selected accounts"
+                  >
+                    <FiArchive size={18} />
+                  </button>
+                )}
+              </th>
             </tr>
           </thead>
           <tbody>
@@ -1380,7 +1497,7 @@ const [isSubmitted, setIsSubmitted] = useState(false);
               <tr>
                 <td
                   className="py-4 px-4 text-center text-sm text-gray-500"
-                  colSpan={5}
+                  colSpan={7}
                 >
                   Loading accounts...
                 </td>
@@ -1390,13 +1507,28 @@ const [isSubmitted, setIsSubmitted] = useState(false);
                 return (
                   <tr
                     key={acc.id}
-                    className="hover:bg-gray-50 text-xs cursor-pointer"
-                    onClick={() => {
-                      handleAccountClick(acc);
-                      fetchRelatedActivities(acc.id);
-                    }}
+                    className="hover:bg-gray-50 text-xs"
                   >
                     <td className="py-3 px-4">
+                      {acc.acc_creator?.id === currentUser?.id && (
+                        <input
+                          type="checkbox"
+                          checked={selectedAccountIds.has(acc.id)}
+                          onChange={(e) => {
+                            e.stopPropagation();
+                            handleSelectAccount(acc.id);
+                          }}
+                          className="w-4 h-4 cursor-pointer"
+                        />
+                      )}
+                    </td>
+                    <td
+                      className="py-3 px-4 cursor-pointer"
+                      onClick={() => {
+                        handleAccountClick(acc);
+                        fetchRelatedActivities(acc.id);
+                      }}
+                    >
                       <div>
                         <div className="font-medium text-blue-600 hover:underline break-all text-sm">
                           {acc.name}
@@ -1406,7 +1538,13 @@ const [isSubmitted, setIsSubmitted] = useState(false);
                         </div>
                       </div>
                     </td>
-                    <td className="py-3 px-4">
+                    <td
+                      className="py-3 px-4 cursor-pointer"
+                      onClick={() => {
+                        handleAccountClick(acc);
+                        fetchRelatedActivities(acc.id);
+                      }}
+                    >
                       <span
                         className={`px-3 py-1 rounded-full text-xs font-medium ${getTableBadgeClass(
                           acc.status
@@ -1415,13 +1553,31 @@ const [isSubmitted, setIsSubmitted] = useState(false);
                         {formatStatusLabel(acc.status)}
                       </span>
                     </td>
-                    <td className="py-3 px-4 text-sm">
+                    <td
+                      className="py-3 px-4 text-sm cursor-pointer"
+                      onClick={() => {
+                        handleAccountClick(acc);
+                        fetchRelatedActivities(acc.id);
+                      }}
+                    >
                       {acc.industry || "--"}
                     </td>
-                    <td className="py-3 px-4 text-sm">
+                    <td
+                      className="py-3 px-4 text-sm cursor-pointer"
+                      onClick={() => {
+                        handleAccountClick(acc);
+                        fetchRelatedActivities(acc.id);
+                      }}
+                    >
                       {acc.territory?.name || "--"}
                     </td>
-                    <td className="py-3 px-4">
+                    <td
+                      className="py-3 px-4 cursor-pointer"
+                      onClick={() => {
+                        handleAccountClick(acc);
+                        fetchRelatedActivities(acc.id);
+                      }}
+                    >
                       <div className="flex items-center space-x-2 text-sm">
                         <FiPhone className="text-gray-500" />
                         <span>{acc.phone_number || "--"}</span>
@@ -1434,7 +1590,7 @@ const [isSubmitted, setIsSubmitted] = useState(false);
               <tr>
                 <td
                   className="py-4 px-4 text-center text-sm text-gray-500"
-                  colSpan={5}
+                  colSpan={7}
                 >
                   No accounts found.
                 </td>
@@ -1941,6 +2097,8 @@ function ConfirmationModal({
   const confirmClasses =
     variant === "danger"
       ? "bg-red-500 hover:bg-red-600 border border-red-400"
+      : variant === "archive"
+      ? "bg-orange-500 hover:bg-orange-600 border border-orange-400"
       : "bg-tertiary hover:bg-secondary border border-tertiary";
 
   return (

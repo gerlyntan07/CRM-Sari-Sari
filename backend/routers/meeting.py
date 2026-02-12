@@ -216,6 +216,161 @@ def admin_get_accounts(
             (Lead.id.in_(lead_account_ids)) # <--- NEW: Accounts linked to their deals
         ).all()
 
+@router.delete("/admin/bulk-delete", status_code=status.HTTP_200_OK)
+def admin_bulk_delete_meetings(
+    data: MeetingBulkDelete,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    request: Request = None
+):
+    """Admin hard delete meetings - permanent deletion"""
+    if current_user.role.upper() not in ALLOWED_ADMIN_ROLES:
+        raise HTTPException(status_code=403, detail="Permission denied")
+
+    if not data.meeting_ids:
+        return {"detail": "No meetings provided for deletion."}
+
+    company_users = (
+        db.query(User.id)
+        .where(User.related_to_company == current_user.related_to_company)
+        .subquery()
+    )
+
+    meetings_to_delete = db.query(Meeting).filter(
+        Meeting.id.in_(data.meeting_ids),
+        ((Meeting.created_by.in_(company_users)) | (Meeting.assigned_to.in_(company_users)))
+    ).all()
+
+    if not meetings_to_delete:
+        raise HTTPException(status_code=404, detail="No matching meetings found for deletion.")
+
+    deleted_count = 0
+    for meeting in meetings_to_delete:
+        deleted_data = serialize_instance(meeting)
+        meeting_name = meeting.subject
+        target_user_id = meeting.assigned_to or meeting.created_by
+
+        db.delete(meeting)
+        
+        create_audit_log(
+            db=db,
+            current_user=current_user,
+            instance=meeting,
+            action="DELETE",
+            request=request,
+            old_data=deleted_data,
+            target_user_id=target_user_id,
+            custom_message=f"hard delete meeting '{meeting_name}' via admin panel"
+        )
+        deleted_count += 1
+
+    db.commit()
+
+    return {"detail": f"Successfully deleted {deleted_count} meeting(s)."}
+
+
+@router.put("/bulk-archive", status_code=status.HTTP_200_OK)
+def bulk_archive_meetings(
+    data: MeetingBulkDelete,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    request: Request = None
+):
+    """Bulk archive meetings - All non-admin roles (GROUP MANAGER, MANAGER, SALES) can only archive meetings they created"""
+    # Only non-admin roles can use this endpoint
+    if current_user.role.upper() not in ["GROUP MANAGER", "MANAGER", "SALES"]:
+        raise HTTPException(status_code=403, detail="Permission denied - only non-admin roles can archive meetings")
+
+    if not data.meeting_ids:
+        return {"detail": "No meetings provided for archiving."}
+
+    # All non-admin roles can only archive their own meetings
+    meetings_to_archive = db.query(Meeting).filter(
+        Meeting.id.in_(data.meeting_ids),
+        Meeting.created_by == current_user.id
+    ).all()
+
+    if not meetings_to_archive:
+        raise HTTPException(status_code=404, detail="No matching meetings found for archiving.")
+
+    archived_count = 0
+    for meeting in meetings_to_archive:
+        old_data = serialize_instance(meeting)
+        meeting_name = meeting.subject
+        
+        # Mark as INACTIVE instead of hard delete
+        meeting.status = MeetingStatus.INACTIVE
+        db.flush()
+        new_data = serialize_instance(meeting)
+        
+        create_audit_log(
+            db=db,
+            current_user=current_user,
+            instance=meeting,
+            action="UPDATE",
+            request=request,
+            old_data=old_data,
+            new_data=new_data,
+            custom_message=f"archive meeting '{meeting_name}'"
+        )
+        archived_count += 1
+
+    db.commit()
+
+    return {"detail": f"Successfully archived {archived_count} meeting(s)."}
+
+
+@router.post("/sales/bulk-delete", status_code=status.HTTP_200_OK)
+def sales_bulk_delete_meetings(
+    data: MeetingBulkDelete,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    request: Request = None
+):
+    """Bulk archive meetings for SALES users - sets meetings to INACTIVE status"""
+    if current_user.role.upper() != "SALES":
+        raise HTTPException(status_code=403, detail="Permission denied. Only SALES users can bulk archive their meetings.")
+
+    if not data.meeting_ids:
+        return {"detail": "No meetings provided for archiving."}
+
+    # SALES users can only archive their own meetings (created by them)
+    meetings_to_archive = db.query(Meeting).filter(
+        Meeting.id.in_(data.meeting_ids),
+        Meeting.created_by == current_user.id
+    ).all()
+
+    if not meetings_to_archive:
+        raise HTTPException(status_code=404, detail="No matching meetings found for archiving. You can only archive your own meetings.")
+
+    archived_count = 0
+    for meeting in meetings_to_archive:
+        old_data = serialize_instance(meeting)
+        meeting_name = meeting.subject
+
+        # Set status to INACTIVE instead of deleting
+        meeting.status = MeetingStatus.INACTIVE
+        db.flush()  # Flush changes but don't commit yet
+        new_data = serialize_instance(meeting)
+        
+        create_audit_log(
+            db=db,
+            current_user=current_user,
+            instance=meeting,
+            action="UPDATE",
+            request=request,
+            old_data=old_data,
+            new_data=new_data,
+            target_user_id=current_user.id,
+            custom_message=f"archived meeting '{meeting_name}'"
+        )
+        archived_count += 1
+
+    db.commit()
+
+    return {"detail": f"Successfully archived {archived_count} meeting(s)."}
+
+
 @router.put("/{meeting_id}", response_model=MeetingResponse)
 def update_meeting(
     meeting_id: int,
@@ -330,6 +485,7 @@ def update_meeting(
     
     return meeting
 
+
 @router.delete("/{meeting_id}", status_code=status.HTTP_200_OK)
 def delete_meeting(
     meeting_id: int,
@@ -337,7 +493,7 @@ def delete_meeting(
     current_user: User = Depends(get_current_user),
     request: Request = None
 ):
-    """Delete a meeting - SALES users archive (set to INACTIVE), ADMIN users hard delete"""
+    """Delete a meeting - Non-admin users archive (set to INACTIVE), ADMIN users hard delete"""
     meeting = db.query(Meeting).filter(Meeting.id == meeting_id).first()
     if not meeting:
         raise HTTPException(status_code=404, detail="Meeting not found")
@@ -345,8 +501,8 @@ def delete_meeting(
     meeting_subject = meeting.subject
     old_data = serialize_instance(meeting)
     
-    if current_user.role.upper() == "SALES":
-        # SALES users can only archive their own meetings (set status to INACTIVE)
+    if current_user.role.upper() in ["SALES", "GROUP MANAGER", "MANAGER"]:
+        # Non-admin users can only archive their own meetings (set status to INACTIVE)
         if meeting.created_by != current_user.id:
             raise HTTPException(status_code=403, detail="You can only archive your own meetings.")
         
@@ -385,107 +541,3 @@ def delete_meeting(
         )
         
         return {"message": "Meeting deleted successfully"}
-
-
-@router.delete("/admin/bulk-delete", status_code=status.HTTP_200_OK)
-def admin_bulk_delete_meetings(
-    data: MeetingBulkDelete = Body(...),
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-    request: Request = None
-):
-    """Admin hard delete meetings - permanent deletion"""
-    if current_user.role.upper() not in ALLOWED_ADMIN_ROLES:
-        raise HTTPException(status_code=403, detail="Permission denied")
-
-    if not data.meeting_ids:
-        return {"detail": "No meetings provided for deletion."}
-
-    company_users = (
-        db.query(User.id)
-        .where(User.related_to_company == current_user.related_to_company)
-        .subquery()
-    )
-
-    meetings_to_delete = db.query(Meeting).filter(
-        Meeting.id.in_(data.meeting_ids),
-        ((Meeting.created_by.in_(company_users)) | (Meeting.assigned_to.in_(company_users)))
-    ).all()
-
-    if not meetings_to_delete:
-        raise HTTPException(status_code=404, detail="No matching meetings found for deletion.")
-
-    deleted_count = 0
-    for meeting in meetings_to_delete:
-        deleted_data = serialize_instance(meeting)
-        meeting_name = meeting.subject
-        target_user_id = meeting.assigned_to or meeting.created_by
-
-        db.delete(meeting)
-        
-        create_audit_log(
-            db=db,
-            current_user=current_user,
-            instance=meeting,
-            action="DELETE",
-            request=request,
-            old_data=deleted_data,
-            target_user_id=target_user_id,
-            custom_message=f"hard delete meeting '{meeting_name}' via admin panel"
-        )
-        deleted_count += 1
-
-    db.commit()
-
-    return {"detail": f"Successfully deleted {deleted_count} meeting(s)."}
-
-
-@router.post("/sales/bulk-delete", status_code=status.HTTP_200_OK)
-def sales_bulk_delete_meetings(
-    data: MeetingBulkDelete = Body(...),
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-    request: Request = None
-):
-    """Bulk archive meetings for SALES users - sets meetings to INACTIVE status"""
-    if current_user.role.upper() != "SALES":
-        raise HTTPException(status_code=403, detail="Permission denied. Only SALES users can bulk archive their meetings.")
-
-    if not data.meeting_ids:
-        return {"detail": "No meetings provided for archiving."}
-
-    # SALES users can only archive their own meetings (created by them)
-    meetings_to_archive = db.query(Meeting).filter(
-        Meeting.id.in_(data.meeting_ids),
-        Meeting.created_by == current_user.id
-    ).all()
-
-    if not meetings_to_archive:
-        raise HTTPException(status_code=404, detail="No matching meetings found for archiving. You can only archive your own meetings.")
-
-    archived_count = 0
-    for meeting in meetings_to_archive:
-        old_data = serialize_instance(meeting)
-        meeting_name = meeting.subject
-
-        # Set status to INACTIVE instead of deleting
-        meeting.status = MeetingStatus.INACTIVE
-        db.flush()  # Flush changes but don't commit yet
-        new_data = serialize_instance(meeting)
-        
-        create_audit_log(
-            db=db,
-            current_user=current_user,
-            instance=meeting,
-            action="UPDATE",
-            request=request,
-            old_data=old_data,
-            new_data=new_data,
-            target_user_id=current_user.id,
-            custom_message=f"archived meeting '{meeting_name}'"
-        )
-        archived_count += 1
-
-    db.commit()
-
-    return {"detail": f"Successfully archived {archived_count} meeting(s)."}

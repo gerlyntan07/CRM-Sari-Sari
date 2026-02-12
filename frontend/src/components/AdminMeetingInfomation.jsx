@@ -26,6 +26,13 @@ const AdminMeetingInfomation = ({
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("Overview");
 
+  useEffect(() => {
+    console.log("AdminMeetingInformation - checking permissions:");
+    console.log("meeting.created_by:", meeting?.created_by);
+    console.log("currentUser?.id:", currentUser?.id);
+    console.log("Match:", meeting?.created_by === currentUser?.id);
+  }, [meeting, currentUser]);
+
   const formatQuoteId = (quoteId) => {
     if (!quoteId) return "";
     // Convert D25-1-00001 to D25-00001 (remove middle company ID)
@@ -149,11 +156,13 @@ const AdminMeetingInfomation = ({
               </div>
 
               <div className="flex flex-col sm:flex-row sm:space-x-3 space-y-2 sm:space-y-0">
-                {(!isSalesView || meeting.created_by === currentUser?.id) && (
+                {/* Show buttons only if: ADMIN/CEO OR (MANAGER/GROUP MANAGER/SALES AND user created this meeting) */}
+                {(!["MANAGER", "GROUP MANAGER", "SALES"].includes(currentUser?.role?.toUpperCase()) || meeting?.created_by === currentUser?.id) && (
                   <>
                     <button
                       type="button"
                       onClick={() => {
+                        console.log("Edit button clicked");
                         if (onEdit) {
                           onEdit(meeting);
                         }
@@ -166,6 +175,7 @@ const AdminMeetingInfomation = ({
                     <button
                       type="button"
                       onClick={() => {
+                        console.log("Archive button clicked");
                         if (onDelete) {
                           onDelete(meeting);
                         }

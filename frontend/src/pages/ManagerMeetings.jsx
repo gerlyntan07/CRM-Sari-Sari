@@ -6,6 +6,7 @@ import {
   FiClock,
   FiCheckCircle,
   FiXCircle,
+  FiArchive,
 } from "react-icons/fi";
 import { toast } from "react-toastify";
 import { useSearchParams, useNavigate, useLocation } from "react-router-dom";
@@ -14,6 +15,7 @@ import CreateMeetingModal from "../components/CreateMeetingModal";
 import AdminMeetingInfomation from "../components/AdminMeetingInfomation";
 import PaginationControls from "../components/PaginationControls.jsx";
 import LoadingSpinner from "../components/LoadingSpinner.jsx";
+import useFetchUser from "../hooks/useFetchUser.js";
 
 // --- HELPER FUNCTIONS ---
 const normalizeStatus = (status) => (status ? status.toUpperCase() : "");
@@ -111,6 +113,10 @@ const AdminMeeting = () => {
   const [confirmModalData, setConfirmModalData] = useState(null);
   const [confirmProcessing, setConfirmProcessing] = useState(false);
   const [pendingMeetingId, setPendingMeetingId] = useState(null);
+  const [selectedMeetingIds, setSelectedMeetingIds] = useState(new Set());
+  const [bulkDeleting, setBulkDeleting] = useState(false);
+
+  const { user: currentUser } = useFetchUser();
 
   // Auto-open logic
   useEffect(() => {
@@ -134,6 +140,13 @@ const AdminMeeting = () => {
       navigate(location.pathname, { replace: true, state: {} });
     }
   }, [location, searchParams, navigate]);
+
+  // Monitor current user for debugging
+  useEffect(() => {
+    console.log("ManagerMeetings - Current User:", currentUser);
+    console.log("Current User Role:", currentUser?.role);
+    console.log("Is non-admin:", ["GROUP MANAGER", "MANAGER", "SALES"].includes(currentUser?.role?.toUpperCase()));
+  }, [currentUser]);
 
   useEffect(() => {
     if (pendingMeetingId && meetings.length > 0 && !meetingsLoading) {
@@ -168,14 +181,21 @@ const AdminMeeting = () => {
 
     setMeetingsLoading(true);
     try {
+      console.log("=== FETCH MEETINGS START ===");
       const res = await api.get(`/meetings/admin/fetch-all`);
       const data = Array.isArray(res.data) ? res.data : [];
+      console.log("Total meetings fetched:", data.length);
+      console.log("Meeting statuses:", data.map((m) => ({ id: m.id, subject: m.subject, status: m.status })));
+      
       const sorted = [...data].sort((a, b) => {
-        const aDate = a?.createdAt ? new Date(a.createdAt).getTime() : 0;
-        const bDate = b?.createdAt ? new Date(b.createdAt).getTime() : 0;
+        const aDate = a?.created_at ? new Date(a.created_at).getTime() : 0;
+        const bDate = b?.created_at ? new Date(b.created_at).getTime() : 0;
         return bDate - aDate;
       });
       setMeetings(sorted);
+      console.log("Meetings set after sort");
+      console.log("=== FETCH MEETINGS COMPLETE ===");
+      
       if (meetingIdFromQuery && !selectedMeeting) {
         const meeting = sorted.find(
           (m) => m.id === parseInt(meetingIdFromQuery),
@@ -183,6 +203,7 @@ const AdminMeeting = () => {
         if (meeting) setSelectedMeeting(meeting);
       }
     } catch (err) {
+      console.error("fetchMeetings error:", err);
       toast.error("Failed to load meetings.");
     } finally {
       setMeetingsLoading(false);
@@ -207,11 +228,32 @@ const AdminMeeting = () => {
 
   const handleSearch = (event) => setSearchTerm(event.target.value);
 
+  // Filter out INACTIVE meetings for non-admin roles (archived meetings)
+  // Non-admin roles are GROUP MANAGER, MANAGER, SALES
+  const nonAdminRoles = ["GROUP MANAGER", "MANAGER", "SALES"];
+  const userIsNonAdmin = nonAdminRoles.includes(currentUser?.role?.toUpperCase());
+  const visibleMeetings = userIsNonAdmin
+    ? meetings.filter((m) => {
+        const isInactive = m.status?.toUpperCase() === "INACTIVE";
+        if (isInactive) {
+          console.log(`Filtering out INACTIVE meeting: ${m.subject} (status: ${m.status})`);
+        }
+        return !isInactive;
+      })
+    : meetings;
+
+  console.log("=== FILTER SUMMARY ===");
+  console.log("User role:", currentUser?.role);
+  console.log("Is non-admin:", userIsNonAdmin);
+  console.log("Total meetings:", meetings.length);
+  console.log("Visible meetings after filter:", visibleMeetings.length);
+  console.log("=== END FILTER SUMMARY ===");
+
   const filteredMeetings = useMemo(() => {
     const normalizedQuery = searchTerm.trim().toLowerCase();
     const normalizedStatusFilter = statusFilter.trim().toUpperCase();
 
-    return meetings.filter((meeting) => {
+    return visibleMeetings.filter((meeting) => {
       const searchFields = [
         meeting?.activity,
         meeting?.description,
@@ -232,7 +274,7 @@ const AdminMeeting = () => {
 
       return matchesSearch && matchesStatus;
     });
-  }, [meetings, searchTerm, statusFilter]);
+  }, [visibleMeetings, searchTerm, statusFilter]);
 
   const paginatedMeetings = useMemo(() => {
     const startIndex = (currentPage - 1) * itemsPerPage;
@@ -413,7 +455,7 @@ const AdminMeeting = () => {
 
   const handleConfirmAction = async () => {
     if (!confirmModalData?.action) return;
-    const { type, payload, targetId, name } = confirmModalData.action;
+    const { type, payload, targetId, name, targetIds, count } = confirmModalData.action;
 
     setConfirmProcessing(true);
     try {
@@ -430,17 +472,58 @@ const AdminMeeting = () => {
         closeModal();
         await fetchMeetings();
       } else if (type === "delete") {
-        await api.delete(`/meetings/${targetId}`);
-        toast.success(`Meeting "${name}" deleted.`);
-        if (selectedMeeting?.id === targetId) setSelectedMeeting(null);
+        console.log("=== ARCHIVE FLOW START ===");
+        console.log("Archiving meeting:", targetId);
+        console.log("Meeting name:", name);
+        try {
+          const response = await api.delete(`/meetings/${targetId}`);
+          console.log("Archive API response:", response);
+          console.log("Response data:", response.data);
+          toast.success(`Meeting "${name}" archived successfully.`);
+          if (selectedMeeting?.id === targetId) setSelectedMeeting(null);
+          console.log("Calling fetchMeetings to refresh list...");
+          await fetchMeetings();
+          console.log("=== ARCHIVE FLOW COMPLETE ===");
+        } catch (error) {
+          console.error("Archive failed:", error);
+          throw error;
+        }
+      } else if (type === "bulk-delete") {
+        if (!targetIds || targetIds.length === 0) {
+          throw new Error("Missing meeting identifiers for bulk archiving.");
+        }
+        console.log("Bulk archiving meetings:", targetIds);
+        setBulkDeleting(true);
+        await api.put(`/meetings/bulk-archive`, {
+          meeting_ids: targetIds,
+        });
+        toast.success(
+          `${count} meeting${count !== 1 ? "s" : ""} archived successfully.`,
+        );
+        setSelectedMeetingIds(new Set());
         await fetchMeetings();
+        if (selectedMeeting && selectedMeetingIds.has(selectedMeeting.id)) {
+          setSelectedMeeting(null);
+        }
       }
     } catch (err) {
-      const msg = err.response?.data?.detail || "Action failed.";
-      toast.error(typeof msg === "string" ? msg : JSON.stringify(msg));
-      console.error(msg);
+      console.error("Error in handleConfirmAction:", err);
+      console.error("Error response:", err?.response);
+      console.error("Error details:", err?.response?.data);
+      const defaultMessage =
+        type === "create"
+          ? "Failed to create meeting. Please review the details and try again."
+          : type === "update"
+            ? "Failed to update meeting. Please review the details and try again."
+            : type === "bulk-delete"
+              ? "Failed to archive meetings. Please try again."
+              : "Failed to delete meeting. Please try again.";
+
+      const message = err?.response?.data?.detail || defaultMessage;
+      toast.error(message);
     } finally {
-      setIsSubmitting(false);
+      if (type === "create" || type === "update") setIsSubmitting(false);
+      if (type === "bulk-delete") setBulkDeleting(false);
       setConfirmProcessing(false);
       setConfirmModalData(null);
     }
@@ -448,12 +531,16 @@ const AdminMeeting = () => {
 
   // ... (Keep existing MetricCard, handleStatusUpdate, handleDelete logic same as provided) ...
   const handleDelete = (meeting) => {
+    console.log("Delete button clicked for meeting:", meeting);
+    console.log("Meeting created_by:", meeting.created_by);
+    console.log("Current user ID:", currentUser?.id);
+    console.log("Can delete?:", meeting.created_by === currentUser?.id);
     setConfirmModalData({
-      title: "Delete Meeting",
-      message: `Permanently delete "${meeting.activity}"?`,
-      confirmLabel: "Delete",
-      variant: "danger",
-      action: { type: "delete", targetId: meeting.id, name: meeting.activity },
+      title: "Archive Meeting",
+      message: `Are you sure you want to archive "${meeting.subject || meeting.activity}"? You can restore it later if needed.`,
+      confirmLabel: "Archive",
+      variant: "archive",
+      action: { type: "delete", targetId: meeting.id, name: meeting.subject || meeting.activity },
     });
   };
 
@@ -467,6 +554,56 @@ const AdminMeeting = () => {
     } catch (e) {
       toast.error("Failed to update status");
     }
+  };
+
+  const handleSelectMeeting = (meetingId) => {
+    const meeting = paginatedMeetings.find((m) => m.id === meetingId);
+    if (meeting && meeting.created_by === currentUser?.id) {
+      setSelectedMeetingIds((prev) => {
+        const newSet = new Set(prev);
+        if (newSet.has(meetingId)) {
+          newSet.delete(meetingId);
+        } else {
+          newSet.add(meetingId);
+        }
+        return newSet;
+      });
+    }
+  };
+
+  const handleSelectAllMeetings = () => {
+    const selectableMeetings = paginatedMeetings.filter(
+      (m) => m.created_by === currentUser?.id,
+    );
+    if (selectedMeetingIds.size === selectableMeetings.length) {
+      setSelectedMeetingIds(new Set());
+    } else {
+      setSelectedMeetingIds(new Set(selectableMeetings.map((m) => m.id)));
+    }
+  };
+
+  const handleBulkDelete = () => {
+    if (selectedMeetingIds.size === 0) return;
+
+    const selectedCount = selectedMeetingIds.size;
+    setConfirmModalData({
+      title: "Archive Meetings",
+      message: (
+        <span>
+          Are you sure you want to archive{" "}
+          <span className="font-semibold">{selectedCount}</span> meeting
+          {selectedCount !== 1 ? "s" : ""}? You can restore them later if needed.
+        </span>
+      ),
+      confirmLabel: `Archive ${selectedCount} Meeting${selectedCount !== 1 ? "s" : ""}`,
+      cancelLabel: "Cancel",
+      variant: "archive",
+      action: {
+        type: "bulk-delete",
+        targetIds: Array.from(selectedMeetingIds),
+        count: selectedCount,
+      },
+    });
   };
 
   // If Info Route (Keep existing logic)
@@ -483,6 +620,8 @@ const AdminMeeting = () => {
         onEdit={handleEditClick}
         onDelete={handleDelete}
         onStatusUpdate={handleStatusUpdate}
+        currentUser={currentUser}
+        isSalesView={true}
       />
     );
   }
@@ -536,11 +675,39 @@ const AdminMeeting = () => {
         <table className="w-full min-w-[500px] border border-gray-200 rounded-lg bg-white shadow-sm text-sm mb-4">
           <thead className="bg-gray-100 text-left text-gray-600 font-semibold">
             <tr>
+              <th className="py-3 px-4">
+                <input
+                  type="checkbox"
+                  checked={
+                    selectedMeetingIds.size ===
+                      paginatedMeetings.filter(
+                        (m) => m.created_by === currentUser?.id,
+                      ).length &&
+                    paginatedMeetings.filter(
+                      (m) => m.created_by === currentUser?.id,
+                    ).length > 0
+                  }
+                  onChange={handleSelectAllMeetings}
+                  className="w-4 h-4"
+                />
+              </th>
               <th className="py-3 px-4">Subject</th>
               <th className="py-3 px-4">Related To</th>
               <th className="py-3 px-4">Start Time</th>
               <th className="py-3 px-4">Assigned</th>
               <th className="py-3 px-4">Status</th>
+              <th className="py-3 px-4 w-12">
+                {selectedMeetingIds.size > 0 && (
+                  <button
+                    onClick={handleBulkDelete}
+                    className="text-orange-500 hover:text-orange-700 transition"
+                    title="Archive selected meetings"
+                    disabled={bulkDeleting}
+                  >
+                    <FiArchive size={18} />
+                  </button>
+                )}
+              </th>
             </tr>
           </thead>
           <tbody>
@@ -551,6 +718,19 @@ const AdminMeeting = () => {
                   onClick={() => setSelectedMeeting(m)}
                   className="hover:bg-gray-50 cursor-pointer border-b border-gray-100"
                 >
+                  <td className="py-3 px-4" onClick={(e) => e.stopPropagation()}>
+                    {currentUser?.id === m.created_by && (
+                      <input
+                        type="checkbox"
+                        checked={selectedMeetingIds.has(m.id)}
+                        onChange={(e) => {
+                          e.stopPropagation();
+                          handleSelectMeeting(m.id);
+                        }}
+                        className="w-4 h-4"
+                      />
+                    )}
+                  </td>
                   <td className="py-3 px-4 font-medium text-blue-600">
                     {m.subject}
                   </td>
@@ -596,7 +776,7 @@ const AdminMeeting = () => {
               ))
             ) : (
               <tr>
-                <td colSpan={5} className="text-center py-4 text-gray-500">
+                <td colSpan={7} className="text-center py-4 text-gray-500">
                   No meetings found.
                 </td>
               </tr>
@@ -639,6 +819,8 @@ const AdminMeeting = () => {
           onEdit={handleEditClick}
           onDelete={handleDelete}
           onStatusUpdate={handleStatusUpdate}
+          currentUser={currentUser}
+          isSalesView={true}
         />
       )}
 
@@ -674,7 +856,9 @@ function ConfirmationModal({
   const btnClass =
     variant === "danger"
       ? "bg-red-500 hover:bg-red-600 border border-red-400"
-      : "bg-tertiary hover:bg-secondary border border-tertiary";
+      : variant === "archive"
+        ? "bg-orange-500 hover:bg-orange-600 border border-orange-400"
+        : "bg-tertiary hover:bg-secondary border border-tertiary";
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-[60]">
       <div className="bg-white w-full max-w-md rounded-xl shadow-lg p-6 border border-gray-200">

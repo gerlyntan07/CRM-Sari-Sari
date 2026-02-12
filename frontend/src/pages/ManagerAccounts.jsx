@@ -357,21 +357,14 @@ export default function AdminAccounts() {
         normalizedFilter === "FILTER BY STATUS" ||
         normalizeStatus(acc.status) === normalizedFilter;
 
-      // Only show accounts assigned to current user OR created by current user
-      const isAssignedToUser =
-        acc?.assigned_to?.id === currentUser?.id ||
-        acc?.assigned_to === currentUser?.id;
-      const isCreatedByUser = acc?.acc_creator?.id === currentUser?.id;
-      const matchesPermission = isAssignedToUser || isCreatedByUser;
-
       // Hide INACTIVE accounts from manager view unless explicitly filtering by INACTIVE
       const isInactive = normalizeStatus(acc.status) === "INACTIVE";
       const shouldHideInactive =
         isInactive && normalizedFilter !== "INACTIVE";
 
-      return matchesSearch && matchesStage && matchesPermission && !shouldHideInactive;
+      return matchesSearch && matchesStage && !shouldHideInactive;
     });
-  }, [accounts, searchQuery, stageFilter, currentUser?.id]);
+  }, [accounts, searchQuery, stageFilter]);
 
   const totalPages = Math.max(
     1,

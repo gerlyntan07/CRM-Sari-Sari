@@ -47,14 +47,6 @@ export default function SalesPanel() {
 const location = useLocation();
 const isSalesActive = salesRoutes.includes(location.pathname);
 
-useEffect(() => {
-  if (isSalesActive) {
-    setSalesOpen(true);
-  }
-}, [location.pathname]);
-
-
-
   const activeLink =
     "flex items-center gap-3 px-3 py-2 rounded-lg bg-white text-[#1e293b] font-semibold shadow-sm";
   const normalLink =

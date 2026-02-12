@@ -22,7 +22,7 @@ import TManagerHeader from "./TManagerHeader";
 import useFetchUser from "../hooks/useFetchUser";
 
 export default function TManagerPanel() {
-  const [salesOpen, setSalesOpen] = useState(true);
+  const [salesOpen, setSalesOpen] = useState(false);
   const [activityOpen, setActivityOpen] = useState(false);
   const [userMgmtOpen, setUserMgmtOpen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false); 

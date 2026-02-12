@@ -10,6 +10,7 @@ import {
   FiFileText,
   FiChevronDown,
   FiChevronRight,
+  FiArchive
 } from "react-icons/fi";
 import { toast } from "react-toastify";
 import { useNavigate, useParams } from "react-router-dom";
@@ -436,10 +437,10 @@ export default function AdminLeadsInformation({
                     onDelete(lead);
                   }
                 }}
-                className="inline-flex items-center justify-center w-full sm:w-auto px-4 py-2 rounded-md text-sm bg-red-500 text-white hover:bg-red-600 transition focus:outline-none focus:ring-2 focus:ring-red-400"
+                className="inline-flex items-center justify-center w-full sm:w-auto px-4 py-2 rounded-md text-sm bg-orange-500 text-white hover:bg-orange-600 transition focus:outline-none focus:ring-2 focus:ring-orange-400"
               >
-                <FiTrash2 className="mr-2" />
-                Delete
+                <FiArchive className="mr-2" />
+                Archive
               </button>
             </div>
           </div>

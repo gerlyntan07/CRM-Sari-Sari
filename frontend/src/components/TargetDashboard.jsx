@@ -1507,7 +1507,7 @@ function MetricCard({ title, value, icon, color = "blue" }) {
       <div className={`p-3 rounded-full ${colorMap[color]} mr-4`}>{icon}</div>
       <div>
         <p className="text-xs text-gray-500 uppercase">{title}</p>
-        <p className="text-2xl font-bold">{value}</p>
+        <p className="text-xl font-bold">{value}</p>
       </div>
     </div>
   );

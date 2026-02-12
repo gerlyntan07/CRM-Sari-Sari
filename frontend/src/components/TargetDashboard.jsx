@@ -214,15 +214,15 @@ export default function TargetDashboard({ currentUserRole, currentUserId }) {
   const [filterPeriodType, setFilterPeriodType] = useState("");
   const [filterPeriodNumber, setFilterPeriodNumber] = useState(1);
 
-  // Determine if user can create targets (SALES is read-only)
+  // Determine if user can create targets (SALES and MANAGER are read-only)
   const canCreateTarget = useMemo(
-    () => ["CEO", "ADMIN", "GROUP MANAGER", "MANAGER"].includes(currentUserRole?.toUpperCase()),
+    () => ["CEO", "ADMIN", "GROUP MANAGER"].includes(currentUserRole?.toUpperCase()),
     [currentUserRole]
   );
 
-  // Determine if user can delete targets (SALES is read-only)
+  // Determine if user can delete targets (SALES and MANAGER are read-only)
   const canDeleteTarget = useMemo(
-    () => ["CEO", "ADMIN", "GROUP MANAGER", "MANAGER"].includes(currentUserRole?.toUpperCase()),
+    () => ["CEO", "ADMIN", "GROUP MANAGER"].includes(currentUserRole?.toUpperCase()),
     [currentUserRole]
   );
 

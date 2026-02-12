@@ -100,11 +100,11 @@ export default function TManagerPanel() {
                 Sales
               </span>
               <FiChevronDown
-                className={`transition-transform ${salesOpen || isSalesActive ? "rotate-180" : ""}`}
+                className={`transition-transform ${salesOpen ? "rotate-180" : ""}`}
               />
             </button>
 
-            {(salesOpen || isSalesActive) && (
+            {salesOpen && (
               <div className="ml-6 mt-2 space-y-1">
                 <NavLink
                   to="/group-manager/accounts"

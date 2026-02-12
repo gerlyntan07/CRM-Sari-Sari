@@ -184,6 +184,7 @@ export default function AdminLeads() {
   useEffect(() => {
     if (showModal && !isEditing && isSales && currentUser && !leadData.lead_owner) {
         setLeadData((prev) => ({ ...prev, lead_owner: currentUser.id }));
+        setSelectedUser(currentUser);
     }
   }, [showModal, isEditing, isSales, currentUser, leadData.lead_owner]);
 

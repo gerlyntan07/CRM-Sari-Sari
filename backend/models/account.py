@@ -1,8 +1,16 @@
 #backend/models/auth.py
-from sqlalchemy import Column, Integer, String, Boolean, DateTime, func, ForeignKey, UniqueConstraint
+from sqlalchemy import Column, Integer, String, Boolean, DateTime, func, ForeignKey, UniqueConstraint, Table
 from sqlalchemy.orm import relationship
 from database import Base
 from enum import Enum
+
+# Association table for many-to-many relationship between Account and Territory
+account_territory_association = Table(
+    'account_territory',
+    Base.metadata,
+    Column('account_id', Integer, ForeignKey('accounts.id', ondelete='CASCADE'), primary_key=True),
+    Column('territory_id', Integer, ForeignKey('territories.id', ondelete='CASCADE'), primary_key=True)
+)
 
 class AccountStatus(str, Enum):
     ACTIVE = 'Active'
@@ -30,7 +38,8 @@ class Account(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())    
         
-    territory = relationship("Territory", back_populates="accounts")
+    territory = relationship("Territory", back_populates="accounts", foreign_keys=[territory_id])
+    territories = relationship("Territory", secondary=account_territory_association, back_populates="accounts_multi")
 
     assigned_accs = relationship("User", back_populates="accounts", foreign_keys=[assigned_to])
     acc_creator = relationship("User", back_populates="created_acc", foreign_keys=[created_by])

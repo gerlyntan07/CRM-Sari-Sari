@@ -40,3 +40,4 @@ class Territory(Base):
     # Note: When a lead is assigned to territory.id = 101, it effectively belongs to User 7
     leads = relationship("Lead", back_populates="territory", cascade="all, delete-orphan")
     accounts = relationship("Account", back_populates="territory", cascade="all, delete-orphan")
+    accounts_multi = relationship("Account", secondary="account_territory", back_populates="territories")

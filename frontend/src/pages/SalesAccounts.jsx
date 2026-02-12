@@ -152,6 +152,7 @@ export default function AdminAccounts() {
         ...prev,
         assigned_to: currentUser.id,
       }));
+      setSelectedUser(currentUser); // NEW: Also set selectedUser so territories are available
     }
   }, [showModal, isEditing, isSales, currentUser, formData.assigned_to]);
 
@@ -559,12 +560,17 @@ export default function AdminAccounts() {
     // Close the account details modal
     setSelectedAccount(null);
 
-    // Set the selected user if the account has an assigned user
+    // Find the full user object with territories from the users array
+    let userToSelect = null;
     if (account.assigned_accs) {
-      setSelectedUser(account.assigned_accs);
-    } else {
-      setSelectedUser(null);
+      userToSelect = users.find((u) => u.id === account.assigned_accs.id);
+      if (!userToSelect) {
+        // Fallback to account data if not found in users array
+        userToSelect = account.assigned_accs;
+      }
     }
+
+    setSelectedUser(userToSelect);
 
     setFormData({
       name: account.name || "",
@@ -1975,20 +1981,9 @@ export default function AdminAccounts() {
               const user = users.find((u) => String(u.id) === String(newId));
               setSelectedUser(user);
 
-              // Auto-select territory if user has exactly one, otherwise reset
-              let newTerritoryId = null;
-              if (
-                user &&
-                user.assigned_territory &&
-                user.assigned_territory.length === 1
-              ) {
-                newTerritoryId = user.assigned_territory[0].id;
-              }
-
               setFormData((prev) => ({
                 ...prev,
                 assigned_to: newId,
-                territory_id: newTerritoryId, // Reset or Auto-select
               }));
             }}
             items={users || []}
@@ -2186,7 +2181,7 @@ function SelectField({
         className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-400 outline-none disabled:bg-gray-100"
       >
         {options.map((option) => (
-          <option key={option.value} value={option.value}>
+          <option key={option.value} value={option.value} disabled={option.value === ""}>
             {option.label}
           </option>
         ))}

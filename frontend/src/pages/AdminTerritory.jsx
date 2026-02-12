@@ -693,7 +693,7 @@ const [isSubmitted, setIsSubmitted] = useState(false);
              <table className="min-w-full text-sm">
                 <thead className="bg-gray-100 text-gray-600 text-left">
                   <tr>
-                    {userRole.toLowerCase() !== 'sales' && (
+                    {!['sales', 'manager'].includes(userRole.toLowerCase()) && (
                       <th className="py-3 px-4 w-10">
                         <input
                           type="checkbox"
@@ -709,7 +709,7 @@ const [isSubmitted, setIsSubmitted] = useState(false);
                     <th className="py-3 px-4">Territory</th>
                     <th className="py-3 px-4">Assigned To</th>
                     <th className="py-3 px-4">Manager</th>
-                    {userRole.toLowerCase() !== 'sales' && (
+                    {!['sales', 'manager'].includes(userRole.toLowerCase()) && (
                       <th className="py-3 px-4 text-center w-24">
                         {selectedIds.length > 0 ? (
                           <button
@@ -729,7 +729,7 @@ const [isSubmitted, setIsSubmitted] = useState(false);
                 <tbody>
                   {hasResults ? paginatedTerritories.map(t => (
                     <tr key={t.id} className="hover:bg-gray-50 cursor-pointer">
-                      {userRole.toLowerCase() !== 'sales' && (
+                      {!['sales', 'manager'].includes(userRole.toLowerCase()) && (
                         <td className="py-3 px-4" onClick={(e) => e.stopPropagation()}>
                           <input
                             type="checkbox"

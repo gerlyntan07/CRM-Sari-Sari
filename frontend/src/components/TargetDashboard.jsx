@@ -47,7 +47,7 @@ const INITIAL_FORM_STATE = {
   start_date: "",
   end_date: "",
   target_amount: "",
-  period_type: "CUSTOM",
+  period_type: "",
   period_year: new Date().getFullYear(),
   period_number: 1,
 };
@@ -578,19 +578,19 @@ export default function TargetDashboard({ currentUserRole, currentUserId }) {
     return;
   }
 
-  if (formData.period_type === "CUSTOM") {
-    toast.error("Period Type cannot be Custom. Please select a valid period type.");
-    return;
-  }
+  // if (formData.period_type === "CUSTOM") {
+  //   toast.error("Period Type cannot be Custom. Please select a valid period type.");
+  //   return;
+  // }
 
-  if (
-    formData.period_type !== "CUSTOM" &&
-    formData.period_type !== "ANNUAL" &&
-    !formData.period_number
-  ) {
-    toast.error("Please select a period.");
-    return;
-  }
+  // if (
+  //   formData.period_type !== "CUSTOM" &&
+  //   formData.period_type !== "ANNUAL" &&
+  //   !formData.period_number
+  // ) {
+  //   toast.error("Please select a period.");
+  //   return;
+  // }
 
   if (!formData.target_amount || Number(formData.target_amount) <= 0) {
     toast.error("Target amount must be greater than 0.");
@@ -1649,7 +1649,7 @@ function FormModal({
   // Define validation errors
   const targetAmountError =
     isSubmitted && (!formData.target_amount || Number(formData.target_amount) <= 0);
-  const periodTypeError = isSubmitted && (formData.period_type === "CUSTOM" || !formData.period_type);
+  const periodTypeError = isSubmitted && !formData.period_type;
   
   
   // Helper to format date as YYYY-MM-DD without timezone issues
@@ -1840,6 +1840,7 @@ function FormModal({
                     : "border-gray-300 focus:ring-blue-400 focus:border-blue-400"
                 }`}
             >
+              <option value="">-- Choose Period Type --</option>
               {PERIOD_TYPES.map((pt) => (
                 <option key={pt.value} value={pt.value}>
                   {pt.label}
@@ -1849,7 +1850,7 @@ function FormModal({
           </div>
 
           {/* Period Number (for non-custom periods) */}
-          {formData.period_type !== "CUSTOM" && formData.period_type !== "ANNUAL" && (
+          {formData.period_type && formData.period_type !== "CUSTOM" && formData.period_type !== "ANNUAL" && (
             <div className="flex flex-col gap-1">
               <label className="text-sm font-medium text-gray-700 text-left">
                 {formData.period_type === "MONTHLY" ? "Month" : 
@@ -1882,7 +1883,7 @@ function FormModal({
           )}
 
           {/* Year Selection */}
-          {formData.period_type !== "CUSTOM" && (
+          {formData.period_type && formData.period_type !== "CUSTOM" && (
             <div className="flex flex-col gap-1">
               <label className="text-sm font-medium text-gray-700 text-left">
                 {fiscalStartMonth !== 1 ? "Fiscal Year" : "Year"}

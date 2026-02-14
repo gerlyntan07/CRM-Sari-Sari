@@ -486,7 +486,8 @@ export default function AdminManageAccount() {
             <div>
               <p className="text-sm text-gray-500 mb-1">Role</p>
               <span className="inline-block px-3 py-1 bg-blue-100 text-blue-700 text-sm font-semibold rounded-md">
-                {currentUser.role}
+                {/* {currentUser.role} */}
+                {currentUser.role.toUpperCase() === "CEO" && "Admin"}
               </span>
             </div>
             <div>

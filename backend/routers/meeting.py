@@ -128,11 +128,16 @@ def admin_get_meetings(
             .all()
         )
     elif current_user.role.upper() == "GROUP MANAGER":
+        # GROUP MANAGER can see all company meetings (except those assigned to CEO/ADMIN)
+        company_user_ids = (
+            db.query(User.id)
+            .filter(User.related_to_company == current_user.related_to_company)
+            .filter(~User.role.in_(["CEO", "ADMIN"]))
+            .subquery()
+        )
         meetings = (
             db.query(Meeting)
-            .join(User, Meeting.assigned_to == User.id)
-            .filter(User.related_to_company == current_user.related_to_company)
-            .filter(~User.role.in_(["CEO", "Admin"]))
+            .filter(Meeting.assigned_to.in_(company_user_ids))
             .all()
         )
     elif current_user.role.upper() == "MANAGER":

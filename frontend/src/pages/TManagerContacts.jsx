@@ -284,11 +284,18 @@ export default function AdminContacts() {
       // Filter out archived (Inactive) contacts from manager view
       const isNotArchived = contact?.status !== "Inactive";
 
-      // Only show contacts assigned to the group manager or created by the group manager
-      const isAssignedToUser = contact?.assigned_to === currentUser?.id;
-      const isCreatedByUser = contact?.created_by === currentUser?.id;
+      // GROUP MANAGER can see all company contacts, others only see their own
+      let matchesPermission = true;
+      const userRole = currentUser?.role?.toUpperCase();
+      
+      if (userRole !== "GROUP MANAGER" && userRole !== "CEO" && userRole !== "ADMIN") {
+        // For non-admin roles, only show contacts assigned to or created by current user
+        const isAssignedToUser = contact?.assigned_to === currentUser?.id;
+        const isCreatedByUser = contact?.created_by === currentUser?.id;
+        matchesPermission = isAssignedToUser || isCreatedByUser;
+      }
 
-      return matchesSearch && matchesAccount && isNotArchived && (isAssignedToUser || isCreatedByUser);
+      return matchesSearch && matchesAccount && isNotArchived && matchesPermission;
     });
   }, [contacts, searchQuery, accountFilter, currentUser?.id]);
 

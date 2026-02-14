@@ -232,6 +232,7 @@ const AdminMeeting = () => {
   // Non-admin roles are GROUP MANAGER, MANAGER, SALES
   const nonAdminRoles = ["GROUP MANAGER", "MANAGER", "SALES"];
   const userIsNonAdmin = nonAdminRoles.includes(currentUser?.role?.toUpperCase());
+  
   const visibleMeetings = userIsNonAdmin
     ? meetings.filter((m) => {
         const isInactive = m.status?.toUpperCase() === "INACTIVE";

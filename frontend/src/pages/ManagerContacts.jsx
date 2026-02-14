@@ -308,7 +308,7 @@ export default function AdminContacts() {
   const paginatedContacts = useMemo(() => {
     const startIndex = (currentPage - 1) * itemsPerPage;
     return filteredContacts.slice(startIndex, startIndex + itemsPerPage);
-  }, [filteredContacts, currentPage]);
+  }, [filteredContacts, currentPage, itemsPerPage]);
 
   const handlePrevPage = () => setCurrentPage((prev) => Math.max(prev - 1, 1));
   const handleNextPage = () =>

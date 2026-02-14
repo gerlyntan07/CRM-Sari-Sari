@@ -124,13 +124,12 @@ def admin_get_calls(
             .all()
         )
     elif current_user.role.upper() == "GROUP MANAGER":
-        # GROUP MANAGER can see calls assigned to them OR created by them
+        # GROUP MANAGER can see all company calls (except those assigned to CEO/ADMIN and INACTIVE)
         call = (
             db.query(Call)
-            .filter(
-                (Call.assigned_to == current_user.id) |
-                (Call.created_by == current_user.id)
-            )
+            .join(User, Call.assigned_to == User.id)
+            .filter(User.related_to_company == current_user.related_to_company)
+            .filter(~User.role.in_(["CEO", "ADMIN"]))
             .filter(Call.status != CallStatus.INACTIVE)
             .all()
         )

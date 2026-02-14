@@ -215,14 +215,23 @@ const AdminMeeting = () => {
 
   const handleSearch = (event) => setSearchTerm(event.target.value);
 
-  // Filter to show only meetings created by or assigned to the current user
+  // Filter to show meetings based on user role
+  // GROUP MANAGER can see all company meetings, others see only their own
   const userOwnedMeetings = useMemo(() => {
     if (!currentUser?.id) return [];
+    const userRole = currentUser?.role?.toUpperCase();
+    
+    if (userRole === "GROUP MANAGER" || userRole === "CEO" || userRole === "ADMIN") {
+      // Admin roles can see all meetings
+      return meetings;
+    }
+    
+    // Other roles only see their own meetings
     return meetings.filter(
       (m) =>
         m.created_by === currentUser.id || m.meet_assign_to?.id === currentUser.id
     );
-  }, [meetings, currentUser?.id]);
+  }, [meetings, currentUser?.id, currentUser?.role]);
 
   // Filter out INACTIVE meetings for non-admin roles (archived meetings)
   // Non-admin roles are GROUP MANAGER, MANAGER, SALES

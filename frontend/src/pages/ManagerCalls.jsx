@@ -276,6 +276,7 @@ export default function AdminCalls() {
   // Filter out INACTIVE calls for non-admin roles (archived calls)
   // Admins (CEO, ADMIN) can see all calls including archived
   const nonAdminRoles = ["GROUP MANAGER", "MANAGER", "SALES"];
+  
   const filteredCalls = nonAdminRoles.includes(currentUser?.role?.toUpperCase())
     ? calls.filter((c) => c.status !== "INACTIVE")
     : calls;

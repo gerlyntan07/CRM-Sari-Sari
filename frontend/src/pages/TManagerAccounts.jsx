@@ -365,12 +365,18 @@ export default function AdminAccounts() {
         normalizedFilter === "FILTER BY STATUS" ||
         normalizeStatus(acc.status) === normalizedFilter;
 
-      // Only show accounts assigned to current user OR created by current user
-      const isAssignedToUser =
-        acc?.assigned_to?.id === currentUser?.id ||
-        acc?.assigned_to === currentUser?.id;
-      const isCreatedByUser = acc?.acc_creator?.id === currentUser?.id;
-      const matchesPermission = isAssignedToUser || isCreatedByUser;
+      // GROUP MANAGER can see all company accounts, others only see their own
+      let matchesPermission = true;
+      const userRole = currentUser?.role?.toUpperCase();
+      
+      if (userRole !== "GROUP MANAGER" && userRole !== "CEO" && userRole !== "ADMIN") {
+        // For non-admin roles, only show accounts assigned to or created by current user
+        const isAssignedToUser =
+          acc?.assigned_to?.id === currentUser?.id ||
+          acc?.assigned_to === currentUser?.id;
+        const isCreatedByUser = acc?.acc_creator?.id === currentUser?.id;
+        matchesPermission = isAssignedToUser || isCreatedByUser;
+      }
 
       // Hide INACTIVE accounts from group manager view unless explicitly filtering by INACTIVE
       const isInactive = normalizeStatus(acc.status) === "INACTIVE";

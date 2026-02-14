@@ -269,49 +269,80 @@ export default function AdminAccounts() {
     }
   }, [selectedAccount]);
 
-  // Filter accounts to only include those created by and assigned to the current user
-  const userAccounts = accounts.filter(
-    (acc) =>
-      acc.acc_creator?.id === currentUser?.id &&
-      acc.assigned_accs?.id === currentUser?.id,
-  );
+  const filteredAccounts = useMemo(() => {
+    const normalizedQuery = searchQuery.trim().toLowerCase();
+    const normalizedFilter = stageFilter.trim().toUpperCase();
 
-  const total = userAccounts.length;
+    return accounts.filter((acc) => {
+      // If user is not admin, hide INACTIVE accounts
+      const isAdminUser =
+        currentUser?.role === "Admin" ||
+        currentUser?.role === "CEO" ||
+        currentUser?.role === "MANAGER" ||
+        currentUser?.role === "GROUP MANAGER";
+      if (!isAdminUser && acc.status?.toUpperCase() === "INACTIVE") {
+        return false;
+      }
+
+      const searchFields = [
+        acc?.name,
+        acc?.website,
+        acc?.industry,
+        acc?.territory?.name,
+        acc?.phone_number,
+      ];
+
+      const matchesSearch =
+        normalizedQuery === "" ||
+        searchFields.some((field) => {
+          if (field === null || field === undefined) return false;
+          return field.toString().toLowerCase().includes(normalizedQuery);
+        });
+
+      const matchesStage =
+        normalizedFilter === "FILTER BY STATUS" ||
+        normalizeStatus(acc.status) === normalizedFilter;
+
+      return matchesSearch && matchesStage;
+    });
+  }, [accounts, searchQuery, stageFilter, currentUser]);
+
+  const total = useMemo(() => filteredAccounts.length, [filteredAccounts]);
   const customers = useMemo(
     () =>
-      userAccounts.filter((acc) => acc.status?.toLowerCase() === "customer")
+      filteredAccounts.filter((acc) => acc.status?.toLowerCase() === "customer")
         .length,
-    [userAccounts],
+    [filteredAccounts],
   );
   const prospects = useMemo(
     () =>
-      userAccounts.filter((acc) => acc.status?.toLowerCase() === "prospect")
+      filteredAccounts.filter((acc) => acc.status?.toLowerCase() === "prospect")
         .length,
-    [userAccounts],
+    [filteredAccounts],
   );
   const partners = useMemo(
     () =>
-      userAccounts.filter((acc) => acc.status?.toLowerCase() === "partner")
+      filteredAccounts.filter((acc) => acc.status?.toLowerCase() === "partner")
         .length,
-    [userAccounts],
+    [filteredAccounts],
   );
   const active = useMemo(
     () =>
-      userAccounts.filter((acc) => acc.status?.toLowerCase() === "active")
+      filteredAccounts.filter((acc) => acc.status?.toLowerCase() === "active")
         .length,
-    [userAccounts],
+    [filteredAccounts],
   );
   const inactive = useMemo(
     () =>
-      userAccounts.filter((acc) => acc.status?.toLowerCase() === "inactive")
+      filteredAccounts.filter((acc) => acc.status?.toLowerCase() === "inactive")
         .length,
-    [userAccounts],
+    [filteredAccounts],
   );
   const former = useMemo(
     () =>
-      userAccounts.filter((acc) => acc.status?.toLowerCase() === "former")
+      filteredAccounts.filter((acc) => acc.status?.toLowerCase() === "former")
         .length,
-    [userAccounts],
+    [filteredAccounts],
   );
 
   const metricCards = useMemo(
@@ -368,44 +399,6 @@ export default function AdminAccounts() {
     ],
     [total, customers, prospects, partners, active, inactive, former],
   );
-
-  const filteredAccounts = useMemo(() => {
-    const normalizedQuery = searchQuery.trim().toLowerCase();
-    const normalizedFilter = stageFilter.trim().toUpperCase();
-
-    return accounts.filter((acc) => {
-      // If user is not admin, hide INACTIVE accounts
-      const isAdminUser =
-        currentUser?.role === "Admin" ||
-        currentUser?.role === "CEO" ||
-        currentUser?.role === "MANAGER" ||
-        currentUser?.role === "GROUP MANAGER";
-      if (!isAdminUser && acc.status?.toUpperCase() === "INACTIVE") {
-        return false;
-      }
-
-      const searchFields = [
-        acc?.name,
-        acc?.website,
-        acc?.industry,
-        acc?.territory?.name,
-        acc?.phone_number,
-      ];
-
-      const matchesSearch =
-        normalizedQuery === "" ||
-        searchFields.some((field) => {
-          if (field === null || field === undefined) return false;
-          return field.toString().toLowerCase().includes(normalizedQuery);
-        });
-
-      const matchesStage =
-        normalizedFilter === "FILTER BY STATUS" ||
-        normalizeStatus(acc.status) === normalizedFilter;
-
-      return matchesSearch && matchesStage;
-    });
-  }, [accounts, searchQuery, stageFilter, currentUser]);
 
   const totalPages = Math.max(
     1,

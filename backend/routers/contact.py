@@ -96,7 +96,9 @@ def create_contact(
         request=request,
         new_data=new_data,
         target_user_id=target_user_id,
-        custom_message=f"add new contact '{new_contact.first_name} {new_contact.last_name}' from a converted lead"
+        custom_message=(
+            f"add new contact '{' '.join(filter(None, [new_contact.first_name, new_contact.last_name]))}' from a converted lead"
+        )
     )
 
     _push_notif(
@@ -105,7 +107,7 @@ def create_contact(
         target_user_id=target_user_id,
         notif_data={
             "type": "contact_assignment",
-            "title": f"New contact assigned: {new_contact.first_name} {new_contact.last_name}",
+            "title": f"New contact assigned: {' '.join(filter(None, [new_contact.first_name, new_contact.last_name]))}",
             "contactId": new_contact.id,
             "accountId": new_contact.account_id,
             "assignedBy": f"{current_user.first_name} {current_user.last_name}",
@@ -210,10 +212,10 @@ def admin_create_contact(
     first_name = _clean_optional_string(data.first_name)
     last_name = _clean_optional_string(data.last_name)
 
-    if not first_name or not last_name:
+    if not last_name:
         raise HTTPException(
             status_code=400,
-            detail="First name and last name are required.",
+            detail="Last name is required.",
         )
 
     company_users = (
@@ -307,7 +309,7 @@ def admin_create_contact(
         new_data=new_data,
         target_user_id=target_user_id,
         custom_message=(
-            f"create contact '{new_contact.first_name} {new_contact.last_name}'"
+            f"create contact '{' '.join(filter(None, [new_contact.first_name, new_contact.last_name]))}'"
         ),
     )
 
@@ -317,7 +319,7 @@ def admin_create_contact(
         target_user_id=target_user_id,
         notif_data={
             "type": "contact_assignment",
-            "title": f"New contact assigned: {new_contact.first_name} {new_contact.last_name}",
+            "title": f"New contact assigned: {' '.join(filter(None, [new_contact.first_name, new_contact.last_name]))}",
             "contactId": new_contact.id,
             "accountId": new_contact.account_id,
             "assignedBy": f"{current_user.first_name} {current_user.last_name}",
@@ -367,10 +369,6 @@ def admin_update_contact(
 
     if "first_name" in update_data:
         cleaned_first = _clean_optional_string(update_data["first_name"])
-        if not cleaned_first:
-            raise HTTPException(
-                status_code=400, detail="First name cannot be empty."
-            )
         update_data["first_name"] = cleaned_first
 
     if "last_name" in update_data:
@@ -470,7 +468,7 @@ def admin_update_contact(
         new_data=new_data,
         target_user_id=target_user_id,
         custom_message=(
-            f"update contact '{contact.first_name} {contact.last_name}'"
+            f"update contact '{' '.join(filter(None, [contact.first_name, contact.last_name]))}'" 
         ),
     )
 
@@ -478,9 +476,9 @@ def admin_update_contact(
     was_reassigned = ("assigned_to" in update_data) and (old_assigned_to != contact.assigned_to)
     notif_type = "contact_assignment" if was_reassigned else "contact_update"
     notif_title = (
-        f"New contact assigned: {contact.first_name} {contact.last_name}"
+        f"New contact assigned: {' '.join(filter(None, [contact.first_name, contact.last_name]))}"
         if was_reassigned
-        else f"Contact updated: {contact.first_name} {contact.last_name}"
+        else f"Contact updated: {' '.join(filter(None, [contact.first_name, contact.last_name]))}"
     )
 
     _push_notif(
@@ -546,7 +544,7 @@ def admin_bulk_delete_contacts(
 
     deleted_count = 0
     for contact in contacts_to_delete:
-        contact_name = f"{contact.first_name} {contact.last_name}"
+        contact_name = ' '.join(filter(None, [contact.first_name, contact.last_name]))
         target_user_id = contact.assigned_to or contact.created_by
 
         if role in ALLOWED_ADMIN_ROLES:
@@ -636,7 +634,7 @@ def admin_delete_contact(
     if not contact:
         raise HTTPException(status_code=404, detail="Contact not found.")
 
-    contact_name = f"{contact.first_name} {contact.last_name}"
+    contact_name = ' '.join(filter(None, [contact.first_name, contact.last_name]))
     target_user_id = contact.assigned_to or contact.created_by
 
     if role in ALLOWED_ADMIN_ROLES:

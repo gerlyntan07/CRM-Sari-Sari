@@ -434,10 +434,9 @@ export default function AdminContacts() {
     e.preventDefault();
     setIsSubmitted(true);
 
-    const trimmedFirstName = formData.first_name.trim();
     const trimmedLastName = formData.last_name.trim();
-    if (!trimmedFirstName || !trimmedLastName) {
-      toast.error("First name and last name are required.");
+    if (!trimmedLastName) {
+      toast.error("Last name is required.");
       return;
     }
 
@@ -445,6 +444,7 @@ export default function AdminContacts() {
       toast.error("Account is required.");
       return;
     }
+
     const assignedTo = formData.assigned_to;
     if (!assignedTo) {
       toast.error("Assigned To is required.");
@@ -468,6 +468,8 @@ export default function AdminContacts() {
       toast.error("Please enter a valid email address.");
       return;
     }
+
+    const trimmedFirstName = formData.first_name?.trim() || "";
 
     const payload = {
       first_name: trimmedFirstName,
@@ -1610,7 +1612,6 @@ export default function AdminContacts() {
             value={formData.first_name}
             onChange={handleInputChange}
             placeholder="First name"
-            required
             isSubmitted={isSubmitted}
           />
 
@@ -1636,7 +1637,7 @@ export default function AdminContacts() {
             items={accounts || []}
             getLabel={(item) => item?.name ?? ""}
             placeholder="Search account..."
-            required={true} // <-- use required directly
+            required={true}
             isSubmitted={isSubmitted}
             disabled={isSubmitting || accounts.length === 0}
           />
@@ -1655,7 +1656,7 @@ export default function AdminContacts() {
               `${item?.first_name ?? ""} ${item?.last_name ?? ""} (${item?.role?.toUpperCase() === "CEO" ? "Admin" : (item?.role ?? "")})`.trim()
             }
             placeholder="Search assignee..."
-            required={true} // <-- use required directly
+            required={true}
             isSubmitted={isSubmitted}
             disabled={isSubmitting || users.length === 0}
           />

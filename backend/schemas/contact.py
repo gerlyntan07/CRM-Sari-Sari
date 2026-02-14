@@ -5,18 +5,18 @@ from datetime import datetime
 from .auth import UserBase
 
 class ContactBase(BaseModel):    
-    first_name: str
+    first_name: Optional[str] = None
     last_name: str
     account_id: int
     title: Optional[str] = None
     department: Optional[str] = None
-    email: Optional[EmailStr] = None
+    email: EmailStr
     work_phone: Optional[str] = None
     mobile_phone_1: Optional[str] = None
     mobile_phone_2: Optional[str] = None
     notes: Optional[str] = None
     status: Optional[str] = None
-    assigned_to: Optional[int] = None
+    assigned_to: int
     created_by: Optional[int] = None    
 
 class ContactCreate(ContactBase):

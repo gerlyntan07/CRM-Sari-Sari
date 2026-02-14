@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { FiSave, FiBriefcase, FiAlertCircle, FiDollarSign, FiCalendar, FiPercent, FiImage, FiUpload, FiMapPin } from "react-icons/fi";
+import { FiSave, FiBriefcase, FiAlertCircle, FiDollarSign, FiCalendar, FiPercent, FiImage, FiUpload, FiMapPin, FiDownload } from "react-icons/fi";
 import api from "../api";
 import useFetchUser from "../hooks/useFetchUser";
 
@@ -18,6 +18,7 @@ export default function AdminCompanyDetails() {
 
   // UI States
   const [loading, setLoading] = useState(false);
+  const [downloadingBackup, setDownloadingBackup] = useState(false);
   const [message, setMessage] = useState({ type: "", text: "" });
 
   const months = [
@@ -103,6 +104,39 @@ export default function AdminCompanyDetails() {
       setMessage({ type: "error", text: errorDetail });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDownloadBackup = async () => {
+    setDownloadingBackup(true);
+    setMessage({ type: "", text: "" });
+
+    try {
+      const res = await api.get("/admin/backup/csv", {
+        responseType: "blob",
+      });
+
+      // Try to use the filename from Content-Disposition if present
+      const contentDisposition = res.headers?.["content-disposition"] || "";
+      const match = /filename="?([^";]+)"?/i.exec(contentDisposition);
+      const filename = match?.[1] || "crm-backup.zip";
+
+      const blobUrl = window.URL.createObjectURL(new Blob([res.data]));
+      const link = document.createElement("a");
+      link.href = blobUrl;
+      link.setAttribute("download", filename);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(blobUrl);
+    } catch (error) {
+      console.error("Backup download error:", error);
+      const errorDetail =
+        error?.response?.data?.detail ||
+        "Failed to download backup. Please try again.";
+      setMessage({ type: "error", text: errorDetail });
+    } finally {
+      setDownloadingBackup(false);
     }
   };
 
@@ -314,14 +348,26 @@ export default function AdminCompanyDetails() {
         {/* Footer Actions */}
         <div className="flex justify-end pt-4 border-t border-gray-100">
           {canEdit && (
-            <button
-              type="submit"
-              disabled={loading}
-              className="flex items-center gap-2 bg-[#1e293b] text-white px-6 py-2 rounded-lg font-medium hover:bg-[#334155] disabled:opacity-50 transition shadow-md active:scale-95"
-            >
-              <FiSave />
-              {loading ? "Updating..." : "Save Settings"}
-            </button>
+            <div className="flex flex-wrap gap-3">
+              <button
+                type="button"
+                onClick={handleDownloadBackup}
+                disabled={loading || downloadingBackup}
+                className="flex items-center gap-2 border border-gray-300 bg-white text-gray-700 px-4 py-2 rounded-lg font-medium hover:bg-gray-50 disabled:opacity-50 transition active:scale-95"
+              >
+                <FiDownload />
+                {downloadingBackup ? "Preparing..." : "Download Backup (CSV)"}
+              </button>
+
+              <button
+                type="submit"
+                disabled={loading || downloadingBackup}
+                className="flex items-center gap-2 bg-[#1e293b] text-white px-6 py-2 rounded-lg font-medium hover:bg-[#334155] disabled:opacity-50 transition shadow-md active:scale-95"
+              >
+                <FiSave />
+                {loading ? "Updating..." : "Save Settings"}
+              </button>
+            </div>
           )}
         </div>
       </form>

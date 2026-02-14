@@ -282,7 +282,7 @@ export default function AdminLeads() {
     const normalizedQuery = searchTerm.trim().toLowerCase();
     const normalizedStatusFilter = statusFilter.trim().toUpperCase();
 
-    return leads.filter((lead) => {
+    let filteredData = leads.filter((lead) => {
       // 1. Search Logic (Keep as is)
       const searchFields = [
         lead?.first_name,
@@ -315,6 +315,15 @@ export default function AdminLeads() {
 
       return matchesSearch && matchesStatus;
     });
+
+    // 3. Sort by most recent first (newest first)
+    filteredData.sort((a, b) => {
+      const dateA = new Date(a.created_at).getTime();
+      const dateB = new Date(b.created_at).getTime();
+      return dateB - dateA;
+    });
+
+    return filteredData;
   }, [leads, searchTerm, statusFilter]);
 
   const totalPages = Math.max(

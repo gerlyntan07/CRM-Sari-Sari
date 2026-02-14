@@ -316,6 +316,13 @@ export default function AdminLeads() {
           ? nameA.localeCompare(nameB)
           : nameB.localeCompare(nameA);
       });
+    } else {
+      // Default: Sort by most recent first (newest first)
+      filteredData.sort((a, b) => {
+        const dateA = new Date(a.created_at).getTime();
+        const dateB = new Date(b.created_at).getTime();
+        return dateB - dateA;
+      });
     }
 
     return filteredData;

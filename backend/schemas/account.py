@@ -2,7 +2,7 @@
 from pydantic import BaseModel, HttpUrl, EmailStr
 from typing import Optional, List
 from datetime import datetime
-from .auth import UserBase
+from .auth import UserBase, UserResponse
 
 class AccountBase(BaseModel):
     name: str
@@ -61,8 +61,8 @@ class AccountResponse(AccountBase):
     id: int
     created_at: datetime
     updated_at: Optional[datetime] = None
-    assigned_accs: Optional[UserBase] = None
-    acc_creator: Optional[UserBase] = None
+    assigned_accs: Optional[UserResponse] = None
+    acc_creator: Optional[UserResponse] = None
     territory: Optional[TerritoryBase] = None
 
     class Config:

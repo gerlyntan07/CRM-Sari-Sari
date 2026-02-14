@@ -12,7 +12,7 @@ class Contact(Base):
     __tablename__ = "contacts"
 
     id = Column(Integer, primary_key=True, index=True)
-    first_name = Column(String, index=True, nullable=False)
+    first_name = Column(String, index=True, nullable=True)
     last_name = Column(String, index=True, nullable=False)
     account_id = Column(Integer, ForeignKey("accounts.id", ondelete="CASCADE"), nullable=False)
     title = Column(String, nullable=True)

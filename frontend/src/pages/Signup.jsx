@@ -41,7 +41,6 @@ const BackButton = () => {
 // Input Component
 const InputComponent = React.memo(({ label, id, placeholder, type = 'text', value, onChange, isVisible, onTogglePass, error, isSelect, options }) => {
   const isPass = id.toLowerCase().includes('password');
-  const inputType = isPass ? (isVisible ? 'text' : 'password') : type;
 
   const inputClasses = cn(
     "w-full bg-gray-50 border px-4 py-2.5 rounded-lg text-gray-800 transition shadow-inner placeholder-gray-400 focus:outline-none cursor-pointer",
@@ -62,7 +61,7 @@ const InputComponent = React.memo(({ label, id, placeholder, type = 'text', valu
             {options.map((opt) => (<option key={opt} value={opt}>{opt}</option>))}
           </select>
         ) : (
-          <input id={id} type={inputType} placeholder={placeholder} value={value} onChange={onChange} required className={inputClasses} />
+          <input id={id} type={isPass ? 'text' : type} style={isPass && !isVisible ? { WebkitTextSecurity: "disc" } : undefined} placeholder={placeholder} value={value} onChange={onChange} required className={inputClasses} />
         )}
         {isPass && (
           <button type="button" onClick={() => onTogglePass(id)}

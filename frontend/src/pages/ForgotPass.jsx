@@ -35,7 +35,8 @@ const InputField = ({
         {Icon && <Icon className="absolute left-3 text-gray-500 size-5" />}
         <input
           id={id}
-          type={isPassword && showPassword ? "text" : type}
+          type={isPassword ? "text" : type}
+          style={isPassword && !showPassword ? { WebkitTextSecurity: "disc" } : undefined}
           placeholder={placeholder}
           value={value}
           onChange={onChange}

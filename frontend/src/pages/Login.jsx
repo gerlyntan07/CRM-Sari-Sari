@@ -23,7 +23,6 @@ const BackButton = () => {
 // --- Input ---
 const InputField = ({ label, id, placeholder, type = "text", value, onChange, isPassVisible, onTogglePass }) => {
   const isPass = id.toLowerCase().includes("password");
-  const inputType = isPass ? (isPassVisible ? "text" : "password") : type;
 
   return (
     <div className="flex flex-col space-y-2">
@@ -33,7 +32,8 @@ const InputField = ({ label, id, placeholder, type = "text", value, onChange, is
       <div className="relative">
         <input
           id={id}
-          type={inputType}
+          type={isPass ? "text" : type}
+          style={isPass && !isPassVisible ? { WebkitTextSecurity: "disc" } : undefined}
           placeholder={placeholder}
           value={value}
           onChange={onChange}

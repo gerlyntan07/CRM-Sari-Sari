@@ -651,7 +651,7 @@ const AdminMeeting = () => {
         <table className="w-full min-w-[500px] border border-gray-200 rounded-lg bg-white shadow-sm text-sm mb-4">
           <thead className="bg-gray-100 text-left text-gray-600 font-semibold">
             <tr>
-              <th className="py-3 px-4">
+              <th className="py-3 px-4 w-12">
                 <input
                   type="checkbox"
                   checked={
@@ -664,7 +664,7 @@ const AdminMeeting = () => {
                     ).length > 0
                   }
                   onChange={handleSelectAllMeetings}
-                  className="w-4 h-4"
+                  className="w-4 h-4 cursor-pointer rounded border-gray-300"
                 />
               </th>
               <th className="py-3 px-4">Subject</th>
@@ -703,7 +703,7 @@ const AdminMeeting = () => {
                           e.stopPropagation();
                           handleSelectMeeting(m.id);
                         }}
-                        className="w-4 h-4"
+                        className="w-4 h-4 cursor-pointer rounded border-gray-300"
                       />
                     )}
                   </td>

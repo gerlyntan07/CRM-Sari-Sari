@@ -1,192 +1,3 @@
-// import {
-//   FiUser,
-//   FiMail,
-//   FiPhone,
-//   FiMapPin,
-//   FiCalendar,
-//   FiUsers,
-//   FiTarget,
-//   FiPhoneCall,
-//   FiActivity,
-// } from "react-icons/fi";
-// import { useEffect, useState } from "react";
-// import useFetchUser from "../hooks/useFetchUser.js";
-// import api from "../api.js"; // ✅ Axios instance
-
-// export default function SalesOverview() {
-//     useEffect(() => {
-//     document.title = "SalesOverview | Sari-Sari CRM";
-//   }, []);
-//   const { user, loading } = useFetchUser();
-
-//   // ✅ Local state for sales data (can be fetched from backend)
-//   const [stats, setStats] = useState({
-//     contacts: 0,
-//     leads: 0,
-//     calls_today: 0,
-//     target_progress: 0,
-//   });
-
-//   // ✅ Local state for user's territories
-//   const [territories, setTerritories] = useState([]);
-
-//   // ✅ Fetch sales summary metrics for logged-in user
-//   useEffect(() => {
-//     const fetchSalesData = async () => {
-//       try {
-//         const res = await api.get("/sales/overview"); // Example endpoint
-//         setStats(res.data);
-//       } catch (err) {
-//         console.error("Error fetching sales overview:", err);
-//       }
-//     };
-//     fetchSalesData();
-//   }, []);
-
-//   // ✅ Fetch user's territories
-//   useEffect(() => {
-//     const fetchTerritories = async () => {
-//       if (!user) return;
-//       try {
-//         const res = await api.get("/territories/myterritory");
-//         setTerritories(res.data);
-//       } catch (err) {
-//         console.error("Error fetching territories:", err);
-//       }
-//     };
-//     fetchTerritories();
-//   }, [user]);
-
-//   if (loading) {
-//     return <p className="text-gray-500">Loading user data...</p>;
-//   }
-
-//   return (
-//     <div className="space-y-10">
-//       {/* Title */}
-//       <div className="flex items-center mb-8">
-//         <FiUser className="text-2xl text-gray-700 mr-2" />
-//         <h1 className="text-2xl font-semibold text-gray-800">SALES Dashboard</h1>
-//       </div>
-
-//       {/* User Info Section */}
-//       <div className="bg-white shadow-sm rounded-lg p-6 grid grid-cols-1 md:grid-cols-3 gap-6">
-//         <div>
-//           <p className="text-sm text-gray-500">Full Name</p>
-//           <p className="font-medium text-gray-900">
-//             {user?.first_name} {user?.last_name}
-//           </p>
-//         </div>
-//         <div>
-//           <p className="text-sm text-gray-500">Last Login</p>
-//           <div className="flex items-center gap-2">
-//             <FiCalendar className="text-gray-600" />
-//             <p className="font-medium text-gray-900">
-//               {user?.last_login
-//                 ? new Date(user.last_login).toLocaleString("en-PH", {
-//                     timeZone: "Asia/Manila",
-//                     year: "numeric",
-//                     month: "2-digit",
-//                     day: "2-digit",
-//                     hour: "2-digit",
-//                     minute: "2-digit",
-//                     second: "2-digit",
-//                   })
-//                 : "N/A"}
-//             </p>
-//           </div>
-//         </div>
-//         <div>
-//           <p className="text-sm text-gray-500">Date Joined</p>
-//           <p className="font-medium text-gray-900">
-//             {user?.created_at
-//               ? new Date(user.created_at).toLocaleDateString()
-//               : "N/A"}
-//           </p>
-//         </div>
-
-//         <div>
-//           <p className="text-sm text-gray-500">Email</p>
-//           <p className="font-medium text-gray-900">{user?.email}</p>
-//         </div>
-//         <div>
-//           <p className="text-sm text-gray-500">Territories</p>
-//           <div className="flex flex-col gap-2">
-//             {territories.length > 0 ? (
-//               territories.map((t) => (
-//                 <div key={t.id} className="flex items-center gap-2">
-//                   <FiMapPin className="text-gray-600" />
-//                   <p className="font-medium text-gray-900">{t.name}</p>
-//                 </div>
-//               ))
-//             ) : (
-//               <p className="font-medium text-gray-900">No territories assigned</p>
-//             )}
-//           </div>
-//         </div>
-//         <div>
-//           <p className="text-sm text-gray-500">Status</p>
-//           <span className="bg-black text-white text-xs font-semibold px-3 py-1 rounded-full">
-//             {user?.is_active ? "Active" : "Inactive"}
-//           </span>
-//         </div>
-//       </div>
-
-//       {/* Dashboard Summary */}
-//       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-//         <div className="bg-white p-6 rounded-lg shadow-md flex flex-col items-center">
-//           <FiUsers className="text-blue-600 text-3xl mb-2" />
-//           <p className="text-sm text-gray-500">My Contacts</p>
-//           <p className="text-2xl font-bold text-gray-800">{stats.contacts ?? 0}</p>
-//         </div>
-
-//         <div className="bg-white p-6 rounded-lg shadow-md flex flex-col items-center">
-//           <FiTarget className="text-green-600 text-3xl mb-2" />
-//           <p className="text-sm text-gray-500">My Leads</p>
-//           <p className="text-2xl font-bold text-gray-800">{stats.leads ?? 0}</p>
-//         </div>
-
-//         <div className="bg-white p-6 rounded-lg shadow-md flex flex-col items-center">
-//           <FiPhoneCall className="text-orange-500 text-3xl mb-2" />
-//           <p className="text-sm text-gray-500">My Calls Today</p>
-//           <p className="text-2xl font-bold text-gray-800">{stats.calls_today ?? 0}</p>
-//         </div>
-
-//         <div className="bg-white p-6 rounded-lg shadow-md flex flex-col items-center">
-//           <FiActivity className="text-purple-600 text-3xl mb-2" />
-//           <p className="text-sm text-gray-500">My Target Progress</p>
-//           <p className="text-2xl font-bold text-gray-800">{stats.target_progress ?? 0}%</p>
-//         </div>
-//       </div>
-
-//       {/* Recent Activities */}
-//       <div className="bg-white p-6 rounded-lg shadow-sm">
-//         <h2 className="text-lg font-semibold text-gray-800 mb-4">Recent Activities</h2>
-//         <div className="space-y-4">
-//           <div className="flex items-start gap-3">
-//             <span className="w-2 h-2 bg-green-500 rounded-full mt-2"></span>
-//             <div>
-//               <p className="text-gray-800 font-medium">
-//                 Deal moved to negotiation: TechStart Inc.
-//               </p>
-//               <p className="text-sm text-gray-500">1 hour ago</p>
-//             </div>
-//           </div>
-
-//           <div className="flex items-start gap-3">
-//             <span className="w-2 h-2 bg-blue-500 rounded-full mt-2"></span>
-//             <div>
-//               <p className="text-gray-800 font-medium">
-//                 Follow-up call scheduled with Global Solutions
-//               </p>
-//               <p className="text-sm text-gray-500">3 hours ago</p>
-//             </div>
-//           </div>
-//         </div>
-//       </div>
-//     </div>
-//   );
-// }
 import React, {
   useState,
   useEffect,
@@ -225,7 +36,6 @@ import api from "../api";
 import useFetchUser from "../hooks/useFetchUser";
 import LoadingSpinner from "../components/LoadingSpinner";
 import FunnelWidget from "../components/FunnelWidget";
-import TopPerformers from "../components/TopPerformers";
 import { LineChart } from "@mui/x-charts/LineChart";
 
 // --- Icon Components using React Icons ---
@@ -916,6 +726,321 @@ const RevenueChart = ({ revenueData, loading }) => {
   );
 };
 
+// My Activities Chart Component
+const MyActivitiesChart = ({ activityData, loading }) => {
+  const [showTasks, setShowTasks] = useState(true);
+  const [showMeetings, setShowMeetings] = useState(true);
+  const [showCalls, setShowCalls] = useState(true);
+  const [showLastYear, setShowLastYear] = useState(true);
+
+  const monthNames = [
+    "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+    "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
+  ];
+
+  // Prepare data for the chart
+  const chartData = useMemo(() => {
+    if (!activityData) {
+      return {
+        labels: monthNames,
+        tasksCurrentYear: new Array(12).fill(0),
+        tasksLastYear: new Array(12).fill(0),
+        meetingsCurrentYear: new Array(12).fill(0),
+        meetingsLastYear: new Array(12).fill(0),
+        callsCurrentYear: new Array(12).fill(0),
+        callsLastYear: new Array(12).fill(0),
+      };
+    }
+
+    return {
+      labels: monthNames,
+      tasksCurrentYear: activityData.tasks?.currentYear || new Array(12).fill(0),
+      tasksLastYear: activityData.tasks?.lastYear || new Array(12).fill(0),
+      meetingsCurrentYear: activityData.meetings?.currentYear || new Array(12).fill(0),
+      meetingsLastYear: activityData.meetings?.lastYear || new Array(12).fill(0),
+      callsCurrentYear: activityData.calls?.currentYear || new Array(12).fill(0),
+      callsLastYear: activityData.calls?.lastYear || new Array(12).fill(0),
+    };
+  }, [activityData]);
+
+  const hasData = 
+    chartData.tasksCurrentYear.some(val => val > 0) || 
+    chartData.tasksLastYear.some(val => val > 0) ||
+    chartData.meetingsCurrentYear.some(val => val > 0) || 
+    chartData.meetingsLastYear.some(val => val > 0) ||
+    chartData.callsCurrentYear.some(val => val > 0) || 
+    chartData.callsLastYear.some(val => val > 0);
+
+  // Calculate totals for current year
+  const currentYearTasks = chartData.tasksCurrentYear.reduce((sum, val) => sum + val, 0);
+  const currentYearMeetings = chartData.meetingsCurrentYear.reduce((sum, val) => sum + val, 0);
+  const currentYearCalls = chartData.callsCurrentYear.reduce((sum, val) => sum + val, 0);
+  const currentYearTotal = currentYearTasks + currentYearMeetings + currentYearCalls;
+
+  // Calculate totals for last year
+  const lastYearTasks = chartData.tasksLastYear.reduce((sum, val) => sum + val, 0);
+  const lastYearMeetings = chartData.meetingsLastYear.reduce((sum, val) => sum + val, 0);
+  const lastYearCalls = chartData.callsLastYear.reduce((sum, val) => sum + val, 0);
+  const lastYearTotal = lastYearTasks + lastYearMeetings + lastYearCalls;
+
+  const percentageChange = lastYearTotal > 0 
+    ? ((currentYearTotal - lastYearTotal) / lastYearTotal * 100).toFixed(1)
+    : 0;
+
+  // Calculate individual percentage changes
+  const tasksChange = lastYearTasks > 0 
+    ? ((currentYearTasks - lastYearTasks) / lastYearTasks * 100).toFixed(0)
+    : currentYearTasks > 0 ? 100 : 0;
+  const meetingsChange = lastYearMeetings > 0 
+    ? ((currentYearMeetings - lastYearMeetings) / lastYearMeetings * 100).toFixed(0)
+    : currentYearMeetings > 0 ? 100 : 0;
+  const callsChange = lastYearCalls > 0 
+    ? ((currentYearCalls - lastYearCalls) / lastYearCalls * 100).toFixed(0)
+    : currentYearCalls > 0 ? 100 : 0;
+
+  // Build series array based on toggles
+  const series = [];
+  if (showTasks) {
+    series.push({
+      data: chartData.tasksCurrentYear,
+      label: `Tasks ${new Date().getFullYear()}`,
+      color: '#10b981',
+      showMark: true,
+      curve: 'catmullRom',
+    });
+    if (showLastYear) {
+      series.push({
+        data: chartData.tasksLastYear,
+        label: `Tasks ${new Date().getFullYear() - 1}`,
+        color: '#86efac',
+        showMark: false,
+        curve: 'linear',
+      });
+    }
+  }
+  if (showMeetings) {
+    series.push({
+      data: chartData.meetingsCurrentYear,
+      label: `Meetings ${new Date().getFullYear()}`,
+      color: '#14b8a6',
+      showMark: true,
+      curve: 'catmullRom',
+    });
+    if (showLastYear) {
+      series.push({
+        data: chartData.meetingsLastYear,
+        label: `Meetings ${new Date().getFullYear() - 1}`,
+        color: '#5eead4',
+        showMark: false,
+        curve: 'linear',
+      });
+    }
+  }
+  if (showCalls) {
+    series.push({
+      data: chartData.callsCurrentYear,
+      label: `Calls ${new Date().getFullYear()}`,
+      color: '#6366f1',
+      showMark: true,
+      curve: 'catmullRom',
+    });
+    if (showLastYear) {
+      series.push({
+        data: chartData.callsLastYear,
+        label: `Calls ${new Date().getFullYear() - 1}`,
+        color: '#a5b4fc',
+        showMark: false,
+        curve: 'linear',
+      });
+    }
+  }
+
+  return (
+    <div className="bg-white p-6 rounded-xl shadow-lg border border-gray-100 flex flex-col h-full">
+      {/* Header */}
+      <div className="flex justify-between items-start mb-4">
+        <div>
+          <h2 className="text-lg font-semibold text-gray-800 flex items-center">
+            My Activities
+            {hasData && (
+              <span className={`ml-3 text-sm font-medium px-2 py-1 rounded-full ${
+                percentageChange >= 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+              }`}>
+                {percentageChange >= 0 ? '↑' : '↓'} {Math.abs(percentageChange)}%
+              </span>
+            )}
+          </h2>
+          <p className="text-xs text-gray-500 mt-1">
+            Track your productivity across tasks, meetings & calls
+          </p>
+        </div>
+        {hasData && (
+          <div className="text-right">
+            <p className="text-3xl font-bold text-gray-800">{currentYearTotal}</p>
+            <p className="text-xs text-gray-500 mt-1">Total this year</p>
+          </div>
+        )}
+      </div>
+
+      {/* Activity Type Summary Cards */}
+      {hasData && (
+        <div className="grid grid-cols-3 gap-3 mb-4">
+          {/* Tasks Card */}
+          <div className="bg-gradient-to-br from-green-50 to-green-100 p-3 rounded-lg border border-green-200">
+            <div className="flex items-center justify-between mb-1">
+              <IconFiCircleCheck size={16} className="text-green-600" />
+              {tasksChange !== 0 && (
+                <span className={`text-xs font-semibold ${
+                  tasksChange >= 0 ? 'text-green-700' : 'text-red-600'
+                }`}>
+                  {tasksChange >= 0 ? '+' : ''}{tasksChange}%
+                </span>
+              )}
+            </div>
+            <p className="text-xs text-gray-600 mb-1">Tasks</p>
+            <p className="text-xl font-bold text-green-700">{currentYearTasks}</p>
+            <p className="text-xs text-gray-500 mt-1">vs {lastYearTasks} last year</p>
+          </div>
+
+          {/* Meetings Card */}
+          <div className="bg-gradient-to-br from-teal-50 to-teal-100 p-3 rounded-lg border border-teal-200">
+            <div className="flex items-center justify-between mb-1">
+              <IconFiCalendar size={16} className="text-teal-600" />
+              {meetingsChange !== 0 && (
+                <span className={`text-xs font-semibold ${
+                  meetingsChange >= 0 ? 'text-teal-700' : 'text-red-600'
+                }`}>
+                  {meetingsChange >= 0 ? '+' : ''}{meetingsChange}%
+                </span>
+              )}
+            </div>
+            <p className="text-xs text-gray-600 mb-1">Meetings</p>
+            <p className="text-xl font-bold text-teal-700">{currentYearMeetings}</p>
+            <p className="text-xs text-gray-500 mt-1">vs {lastYearMeetings} last year</p>
+          </div>
+
+          {/* Calls Card */}
+          <div className="bg-gradient-to-br from-indigo-50 to-indigo-100 p-3 rounded-lg border border-indigo-200">
+            <div className="flex items-center justify-between mb-1">
+              <IconFiPhoneCall size={16} className="text-indigo-600" />
+              {callsChange !== 0 && (
+                <span className={`text-xs font-semibold ${
+                  callsChange >= 0 ? 'text-indigo-700' : 'text-red-600'
+                }`}>
+                  {callsChange >= 0 ? '+' : ''}{callsChange}%
+                </span>
+              )}
+            </div>
+            <p className="text-xs text-gray-600 mb-1">Calls</p>
+            <p className="text-xl font-bold text-indigo-700">{currentYearCalls}</p>
+            <p className="text-xs text-gray-500 mt-1">vs {lastYearCalls} last year</p>
+          </div>
+        </div>
+      )}
+
+      {/* Filter Toggles */}
+      {hasData && (
+        <div className="flex flex-wrap gap-2 mb-4 pb-4 border-b border-gray-100">
+          <button
+            onClick={() => setShowTasks(!showTasks)}
+            className={`text-xs px-3 py-1.5 rounded-full font-medium transition-all ${
+              showTasks
+                ? 'bg-green-100 text-green-700 border-2 border-green-300'
+                : 'bg-gray-100 text-gray-500 border-2 border-gray-200'
+            }`}
+          >
+            <IconFiCircleCheck size={12} className="inline mr-1" />
+            Tasks
+          </button>
+          <button
+            onClick={() => setShowMeetings(!showMeetings)}
+            className={`text-xs px-3 py-1.5 rounded-full font-medium transition-all ${
+              showMeetings
+                ? 'bg-teal-100 text-teal-700 border-2 border-teal-300'
+                : 'bg-gray-100 text-gray-500 border-2 border-gray-200'
+            }`}
+          >
+            <IconFiCalendar size={12} className="inline mr-1" />
+            Meetings
+          </button>
+          <button
+            onClick={() => setShowCalls(!showCalls)}
+            className={`text-xs px-3 py-1.5 rounded-full font-medium transition-all ${
+              showCalls
+                ? 'bg-indigo-100 text-indigo-700 border-2 border-indigo-300'
+                : 'bg-gray-100 text-gray-500 border-2 border-gray-200'
+            }`}
+          >
+            <IconFiPhoneCall size={12} className="inline mr-1" />
+            Calls
+          </button>
+          <button
+            onClick={() => setShowLastYear(!showLastYear)}
+            className={`text-xs px-3 py-1.5 rounded-full font-medium transition-all ml-auto ${
+              showLastYear
+                ? 'bg-gray-200 text-gray-700 border-2 border-gray-300'
+                : 'bg-gray-100 text-gray-500 border-2 border-gray-200'
+            }`}
+          >
+            Show {new Date().getFullYear() - 1}
+          </button>
+        </div>
+      )}
+
+      {/* Chart */}
+      <div className="flex-grow min-h-[320px]">
+        {loading ? (
+          <div className="flex items-center justify-center h-full">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+          </div>
+        ) : hasData && series.length > 0 ? (
+          <LineChart
+            xAxis={[
+              {
+                scaleType: 'point',
+                data: chartData.labels,
+              },
+            ]}
+            series={series}
+            height={320}
+            width={undefined}
+            grid={{ vertical: false, horizontal: true }}
+            margin={{ top: 10, right: 10, bottom: 40, left: 50 }}
+            sx={{
+              width: '100%',
+              maxWidth: '100%',
+              '& .MuiLineElement-root': {
+                strokeWidth: 2.5,
+              },
+              '& .MuiMarkElement-root': {
+                scale: '0.8',
+              },
+            }}
+          />
+        ) : hasData && series.length === 0 ? (
+          <div className="text-center text-gray-500 flex items-center justify-center h-full">
+            <div>
+              <FiCheckCircle size={48} className="mx-auto mb-3 text-gray-300" />
+              <p className="text-sm font-medium">Select at least one activity type</p>
+              <p className="text-xs mt-2">Toggle the filters above to view data</p>
+            </div>
+          </div>
+        ) : (
+          <div className="text-center text-gray-500 flex items-center justify-center h-full">
+            <div>
+              <FiCheckCircle size={48} className="mx-auto mb-3 text-gray-300" />
+              <p className="text-sm font-medium">No completed activities yet</p>
+              <p className="text-xs mt-2 text-gray-400">
+                Complete tasks, meetings, or calls to track your productivity
+              </p>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
 const SalesPipeline = ({ pipelineData, loading }) => {
   const navigate = useNavigate();
 
@@ -1402,6 +1527,9 @@ const SalesOverview= () => {
     totalDeals: 0,
     activeAccounts: 0,
     overdueTasks: 0,
+    completedTasks: 0,
+    completedMeetings: 0,
+    completedCalls: 0,
   });
   const [latestLeads, setLatestLeads] = useState([]);
   const [latestDeals, setLatestDeals] = useState([]);
@@ -1409,6 +1537,11 @@ const SalesOverview= () => {
   const [salesPipeline, setSalesPipeline] = useState([]);
   const [auditLogs, setAuditLogs] = useState([]);
   const [revenueData, setRevenueData] = useState([]);
+  const [taskCompletionData, setTaskCompletionData] = useState({
+    tasks: { currentYear: new Array(12).fill(0), lastYear: new Array(12).fill(0) },
+    meetings: { currentYear: new Array(12).fill(0), lastYear: new Array(12).fill(0) },
+    calls: { currentYear: new Array(12).fill(0), lastYear: new Array(12).fill(0) },
+  });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -1623,11 +1756,30 @@ const SalesOverview= () => {
         return new Date(task.dueDate) < new Date();
       }).length;
 
+      // Calculate completed items
+      const completedTasks = tasks.filter((task) => {
+        const status = (task.status || '').toLowerCase();
+        return status === 'completed';
+      }).length;
+
+      const completedMeetings = meetings.filter((meeting) => {
+        const status = (meeting.status || '').toUpperCase();
+        return status === 'COMPLETED' || status === 'DONE';
+      }).length;
+
+      const completedCalls = calls.filter((call) => {
+        const status = (call.status || '').toUpperCase();
+        return status === 'COMPLETED' || status === 'HELD';
+      }).length;
+
       setMetrics({
         activeLeads,
         totalDeals: deals.length,
         activeAccounts: accounts.length,
         overdueTasks,
+        completedTasks,
+        completedMeetings,
+        completedCalls,
       });
 
       // Get latest leads (sorted by created_at descending - most recent first) - dynamic
@@ -1741,6 +1893,162 @@ const SalesOverview= () => {
 
       // Set pipeline and revenue data
       setSalesPipeline(deals);
+
+      // Calculate activity completion data (tasks, meetings, calls)
+      const calculateActivityCompletion = () => {
+        const currentYear = new Date().getFullYear();
+        const lastYear = currentYear - 1;
+        
+        const tasksCurrentYear = new Array(12).fill(0);
+        const tasksLastYear = new Array(12).fill(0);
+        const meetingsCurrentYear = new Array(12).fill(0);
+        const meetingsLastYear = new Array(12).fill(0);
+        const callsCurrentYear = new Array(12).fill(0);
+        const callsLastYear = new Array(12).fill(0);
+
+        console.log('=== MY ACTIVITIES DEBUG ===');
+        console.log('Total tasks:', tasks.length);
+        console.log('Total meetings:', meetings.length);
+        console.log('Total calls:', calls.length);
+
+        let completedTasksCount = 0;
+        let completedMeetingsCount = 0;
+        let completedCallsCount = 0;
+
+        // Process tasks
+        tasks.forEach((task, index) => {
+          if (index === 0) {
+            console.log('Sample task:', {
+              id: task.id,
+              status: task.status,
+              due_date: task.due_date,
+              updated_at: task.updated_at,
+            });
+          }
+
+          const status = (task.status || '').toLowerCase();
+          if (status !== 'completed') return;
+
+          completedTasksCount++;
+          const completionDate = task.completedAt || task.completed_at || task.updatedAt || task.updated_at || task.dueDate || task.due_date;
+          if (!completionDate) return;
+
+          try {
+            const date = new Date(completionDate);
+            if (isNaN(date.getTime())) return;
+
+            const year = date.getFullYear();
+            const month = date.getMonth();
+
+            if (year === currentYear) {
+              tasksCurrentYear[month]++;
+            } else if (year === lastYear) {
+              tasksLastYear[month]++;
+            }
+          } catch (error) {
+            console.error('Error parsing task date:', error);
+          }
+        });
+
+        // Process meetings
+        meetings.forEach((meeting, index) => {
+          if (index === 0) {
+            console.log('Sample meeting:', {
+              id: meeting.id,
+              status: meeting.status,
+              dueDate: meeting.dueDate,
+              updated_at: meeting.updated_at,
+            });
+          }
+
+          const status = (meeting.status || '').toUpperCase();
+          if (status !== 'COMPLETED' && status !== 'DONE') return;
+
+          completedMeetingsCount++;
+          const completionDate = meeting.completedAt || meeting.completed_at || meeting.updatedAt || meeting.updated_at || meeting.dueDate || meeting.start_time;
+          if (!completionDate) return;
+
+          try {
+            const date = new Date(completionDate);
+            if (isNaN(date.getTime())) return;
+
+            const year = date.getFullYear();
+            const month = date.getMonth();
+
+            if (year === currentYear) {
+              meetingsCurrentYear[month]++;
+            } else if (year === lastYear) {
+              meetingsLastYear[month]++;
+            }
+          } catch (error) {
+            console.error('Error parsing meeting date:', error);
+          }
+        });
+
+        // Process calls
+        calls.forEach((call, index) => {
+          if (index === 0) {
+            console.log('Sample call:', {
+              id: call.id,
+              status: call.status,
+              due_date: call.due_date,
+              updated_at: call.updated_at,
+            });
+          }
+
+          const status = (call.status || '').toUpperCase();
+          if (status !== 'COMPLETED' && status !== 'HELD') return;
+
+          completedCallsCount++;
+          const completionDate = call.completedAt || call.completed_at || call.updatedAt || call.updated_at || call.due_date || call.call_time;
+          if (!completionDate) return;
+
+          try {
+            const date = new Date(completionDate);
+            if (isNaN(date.getTime())) return;
+
+            const year = date.getFullYear();
+            const month = date.getMonth();
+
+            if (year === currentYear) {
+              callsCurrentYear[month]++;
+            } else if (year === lastYear) {
+              callsLastYear[month]++;
+            }
+          } catch (error) {
+            console.error('Error parsing call date:', error);
+          }
+        });
+
+        console.log('Activities summary:', {
+          completedTasks: completedTasksCount,
+          completedMeetings: completedMeetingsCount,
+          completedCalls: completedCallsCount,
+          tasksCurrentYear,
+          tasksLastYear,
+          meetingsCurrentYear,
+          meetingsLastYear,
+          callsCurrentYear,
+          callsLastYear,
+        });
+
+        return {
+          tasks: {
+            currentYear: tasksCurrentYear,
+            lastYear: tasksLastYear,
+          },
+          meetings: {
+            currentYear: meetingsCurrentYear,
+            lastYear: meetingsLastYear,
+          },
+          calls: {
+            currentYear: callsCurrentYear,
+            lastYear: callsLastYear,
+          },
+        };
+      };
+
+      setTaskCompletionData(calculateActivityCompletion());
 
       // Log deals data for debugging
       console.log("=== ALL DEALS DATA ===");
@@ -1965,6 +2273,30 @@ const SalesOverview= () => {
       bgColor: "bg-red-50",
       onClick: () => navigate("/sales/tasks"),
     },
+    {
+      icon: IconFiCircleCheck,
+      title: "Completed Tasks",
+      value: metrics.completedTasks,
+      color: "text-green-600",
+      bgColor: "bg-green-50",
+      onClick: () => navigate("/sales/tasks"),
+    },
+    {
+      icon: IconFiCalendar,
+      title: "Completed Meetings",
+      value: metrics.completedMeetings,
+      color: "text-teal-600",
+      bgColor: "bg-teal-50",
+      onClick: () => navigate("/sales/meetings"),
+    },
+    {
+      icon: IconFiPhoneCall,
+      title: "Completed Calls",
+      value: metrics.completedCalls,
+      color: "text-indigo-600",
+      bgColor: "bg-indigo-50",
+      onClick: () => navigate("/sales/calls"),
+    },
   ];
 
   // Debug: Log render
@@ -2002,16 +2334,16 @@ const SalesOverview= () => {
         </div>
 
         {/* ROW 2: Metrics Cards (Full Width) */}
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-7 gap-4 mb-8">
           {metricsConfig.map((metric) => (
             <MetricCard key={metric.title} {...metric} loading={loading} />
           ))}
         </div>
 
-        {/* ROW 3: Recent Logs & Top Performers */}
+        {/* ROW 3: Recent Logs & My Activities */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
           <RecentLogsCard logs={auditLogs} loading={loading} />
-          <TopPerformers currencySymbol={currencySymbol} />
+          <MyActivitiesChart activityData={taskCompletionData} loading={loading} />
         </div>
 
         {/* ROW 4: Funnel Intelligence Section (With Targets passed in) */}

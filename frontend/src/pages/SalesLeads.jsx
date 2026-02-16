@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo, useRef, useCallback } from "react"
 import {
   FiSearch,
   FiEdit,
-  FiTrash2,
+  FiArchive,
   FiUserPlus,
   FiPlus,
   FiX,
@@ -12,6 +12,7 @@ import {
   FiDownload,
   FiPhone,
   FiXCircle,
+  FiCheckSquare,
 } from "react-icons/fi";
 import AdminLeadsInformation from "../components/SalesLeadsInformation.jsx";
 import PaginationControls from "../components/PaginationControls.jsx";
@@ -103,6 +104,9 @@ export default function AdminLeads() {
   const [confirmModalData, setConfirmModalData] = useState(null);
   const [confirmProcessing, setConfirmProcessing] = useState(false);
   const [relatedActs, setRelatedActs] = useState({});
+  const [selectedLeadIds, setSelectedLeadIds] = useState(new Set());
+  const [bulkArchiving, setBulkArchiving] = useState(false);
+  const [archivingId, setArchivingId] = useState(null);
   const editDataRef = useRef(null);
   const [convertModalOpen, setConvertModalOpen] = useState(false);
   const [leadToConvert, setLeadToConvert] = useState(null);
@@ -306,8 +310,9 @@ export default function AdminLeads() {
       let matchesStatus = false;
 
       if (normalizedStatusFilter === "FILTER BY STATUS") {
-        // DEFAULT VIEW: Show everything EXCEPT 'Converted'
-        matchesStatus = (lead.status ? lead.status.toUpperCase() : "") !== "CONVERTED";
+        // DEFAULT VIEW: Show everything EXCEPT 'Converted' and 'Inactive'
+        const status = lead.status ? lead.status.toUpperCase() : "";
+        matchesStatus = status !== "CONVERTED" && status !== "INACTIVE";
       } else {
         // SPECIFIC VIEW: Show only what the user asked for (e.g., if they select Converted, show Converted)
         matchesStatus = (lead.status ? lead.status.toUpperCase() : "") === normalizedStatusFilter;
@@ -473,30 +478,83 @@ export default function AdminLeads() {
     }
   };
 
-  const handleDelete = (lead) => {
+  const handleArchive = (lead) => {
     if (!lead) {
-      console.error("handleDelete: lead is null or undefined");
+      console.error("handleArchive: lead is null or undefined");
       return;
     }
     
-    console.log("handleDelete called with lead:", lead);
     const name = `${lead.first_name} ${lead.last_name}` || "this lead";
     setConfirmModalData({
-      title: "Delete Lead",
+      title: "Archive Lead",
       message: (
         <span>
-          Are you sure you want to permanently delete{" "}
-          <span className="font-semibold">{name}</span>? This action cannot be
-          undone.
+          Are you sure you want to archive{" "}
+          <span className="font-semibold">{name}</span>? You can restore it later if needed.
         </span>
       ),
-      confirmLabel: "Delete Lead",
+      confirmLabel: "Archive Lead",
       cancelLabel: "Cancel",
-      variant: "danger",
+      variant: "archive",
       action: {
-        type: "delete",
+        type: "archive",
         targetId: lead.id,
         name,
+      },
+    });
+  };
+
+  const handleSelectLead = (leadId) => {
+    const lead = leads.find((l) => l.id === leadId);
+    if (!lead) return;
+    
+    // Only allow selection if current user created the lead
+    const isCreator = lead.creator?.id === currentUser?.id;
+    if (!isCreator) return;
+    
+    setSelectedLeadIds((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(leadId)) {
+        newSet.delete(leadId);
+      } else {
+        newSet.add(leadId);
+      }
+      return newSet;
+    });
+  };
+
+  const handleSelectAll = () => {
+    const selectableLeads = paginatedLeads.filter(
+      (lead) => lead.creator?.id === currentUser?.id
+    );
+    
+    if (selectedLeadIds.size === selectableLeads.length && selectableLeads.length > 0) {
+      setSelectedLeadIds(new Set());
+    } else {
+      setSelectedLeadIds(new Set(selectableLeads.map((lead) => lead.id)));
+    }
+  };
+
+  const handleBulkArchive = () => {
+    if (selectedLeadIds.size === 0) {
+      toast.warning("Please select at least one lead to archive.");
+      return;
+    }
+
+    const count = selectedLeadIds.size;
+    setConfirmModalData({
+      title: "Archive Leads",
+      message: (
+        <span>
+          Are you sure you want to archive <span className="font-semibold">{count}</span> lead{count > 1 ? "s" : ""}? They will be marked as inactive.
+        </span>
+      ),
+      confirmLabel: `Archive ${count} Lead${count > 1 ? "s" : ""}`,
+      cancelLabel: "Cancel",
+      variant: "archive",
+      action: {
+        type: "bulk-archive",
+        targetIds: Array.from(selectedLeadIds),
       },
     });
   };
@@ -632,6 +690,35 @@ export default function AdminLeads() {
           setSelectedLead(null);
         }
         await fetchLeads();
+      } else if (type === "archive") {
+        if (!targetId) {
+          throw new Error("Missing lead identifier for archiving.");
+        }
+        const currentSelectedId = selectedLead?.id;
+        setArchivingId(targetId);
+        await api.put(`/leads/${targetId}`, { status: "Inactive" });
+        toast.success(`Lead "${name}" archived successfully.`);
+        await fetchLeads();
+        if (currentSelectedId === targetId) {
+          setSelectedLead(null);
+        }
+      } else if (type === "bulk-archive") {
+        const targetIds = action.targetIds;
+        if (!targetIds || targetIds.length === 0) {
+          throw new Error("Missing leads to archive.");
+        }
+        setBulkArchiving(true);
+        await Promise.all(
+          targetIds.map((id) =>
+            api.put(`/leads/${id}`, { status: "Inactive" })
+          )
+        );
+        toast.success(`${targetIds.length} lead${targetIds.length > 1 ? "s" : ""} archived successfully.`);
+        setSelectedLeadIds(new Set());
+        if (selectedLead && targetIds.includes(selectedLead.id)) {
+          setSelectedLead(null);
+        }
+        await fetchLeads();
       }
     } catch (err) {
       console.error(err);
@@ -640,12 +727,22 @@ export default function AdminLeads() {
           ? "Failed to create lead. Please review the details and try again."
           : type === "update"
           ? "Failed to update lead. Please review the details and try again."
-          : "Failed to delete lead. Please try again.";
+          : type === "delete"
+          ? "Failed to delete lead. Please try again."
+          : type === "archive"
+          ? "Failed to archive lead. Please try again."
+          : "Failed to archive leads. Please try again.";
       const message = err.response?.data?.detail || defaultMessage;
       toast.error(message);
     } finally {
       if (type === "create" || type === "update") {
         setIsSubmitting(false);
+      }
+      if (type === "archive") {
+        setArchivingId(null);
+      }
+      if (type === "bulk-archive") {
+        setBulkArchiving(false);
       }
       if (type !== "edit") {
         setConfirmProcessing(false);
@@ -762,15 +859,39 @@ export default function AdminLeads() {
       </div>
 
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[500px] border border-gray-200 rounded-lg bg-white shadow-sm text-sm">
+        <table className="w-full min-w-[600px] border border-gray-200 rounded-lg bg-white shadow-sm text-sm">
           <thead className="bg-gray-100 text-left text-gray-600 text-sm tracking-wide font-semibold">
             <tr>
+              <th className="py-3 px-4 w-12">
+                <input
+                  type="checkbox"
+                  checked={
+                    selectedLeadIds.size > 0 &&
+                    selectedLeadIds.size === paginatedLeads.filter(l => l.creator?.id === currentUser?.id).length &&
+                    paginatedLeads.filter(l => l.creator?.id === currentUser?.id).length > 0
+                  }
+                  onChange={handleSelectAll}
+                  className="w-4 h-4 cursor-pointer"
+                />
+              </th>
               <th className="py-3 px-4">Name</th>
               <th className="py-3 px-4">Company</th>
               <th className="py-3 px-4">Job Title</th>
               <th className="py-3 px-4">Email</th>
               <th className="py-3 px-4">Assigned To</th>
               <th className="py-3 px-4">Status</th>
+              <th className="py-3 px-4 w-12">
+                {selectedLeadIds.size > 0 && (
+                  <button
+                    onClick={handleBulkArchive}
+                    className="text-orange-500 hover:text-orange-700 transition"
+                    title="Archive selected leads"
+                    disabled={bulkArchiving}
+                  >
+                    <FiArchive size={18} />
+                  </button>
+                )}
+              </th>
             </tr>
           </thead>
           <tbody>
@@ -778,9 +899,22 @@ export default function AdminLeads() {
               paginatedLeads.map((lead) => (
                 <tr
                   key={lead.id}
-                  className="hover:bg-gray-50 text-sm cursor-pointer"
+                  className="hover:bg-gray-50 text-sm cursor-pointer transition"
                   onClick={() => handleLeadClick(lead)}
                 >
+                  <td className="py-3 px-4 w-12" onClick={(e) => e.stopPropagation()}>
+                    {lead.creator?.id === currentUser?.id && (
+                      <input
+                        type="checkbox"
+                        checked={selectedLeadIds.has(lead.id)}
+                        onChange={(e) => {
+                          e.stopPropagation();
+                          handleSelectLead(lead.id);
+                        }}
+                        className="w-4 h-4 cursor-pointer"
+                      />
+                    )}
+                  </td>
                   <td className="py-3 px-4">
                     <div className="font-medium text-blue-600 hover:underline break-all text-sm">
                       {lead.first_name} {lead.last_name}
@@ -811,13 +945,14 @@ export default function AdminLeads() {
                       {formatStatusLabel(lead.status || "New")}
                     </span>
                   </td>
+                  <td className="py-3 px-4 w-12"></td>
                 </tr>
               ))
             ) : (
               <tr>
                 <td
                   className="py-4 px-4 text-center text-sm text-gray-500"
-                  colSpan={7}
+                  colSpan={8}
                 >
                   No leads found.
                 </td>
@@ -1210,7 +1345,7 @@ export default function AdminLeads() {
           fetchLeads={fetchLeads}
           setSelectedLead={setSelectedLead}
           onEdit={handleEditClick}
-          onDelete={handleDelete} 
+          onArchive={handleArchive}
         />
       )}      
     </div>
@@ -1233,6 +1368,8 @@ function ConfirmationModal({
   const confirmClasses =
     variant === "danger"
       ? "bg-red-500 hover:bg-red-600 border border-red-400"
+      : variant === "archive"
+      ? "bg-orange-500 hover:bg-orange-600 border border-orange-400"
       : "bg-tertiary hover:bg-secondary border border-tertiary";
 
   return (

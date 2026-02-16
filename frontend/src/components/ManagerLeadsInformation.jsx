@@ -5,7 +5,7 @@ import {
   FiMail,
   FiCalendar,
   FiEdit2,
-  FiTrash2,
+  FiArchive,
   FiCheckSquare,
   FiFileText,
   FiChevronDown,
@@ -14,6 +14,7 @@ import {
 import { toast } from "react-toastify";
 import { useNavigate, useParams } from "react-router-dom";
 import api from "../api";
+import useFetchUser from "../hooks/useFetchUser";
 
 function Detail({ label, value }) {
   return (
@@ -43,17 +44,19 @@ export default function AdminLeadsInformation({
   onBack,
   fetchLeads,
   onEdit,
-  onDelete,
+  onArchive,
   setSelectedLead,
   relatedActs
 }) {
   const navigate = useNavigate();
   const { leadID } = useParams();
+  const { user: currentUser } = useFetchUser();
   const [lead, setLead] = useState(leadProp || null);
   const [activeTab, setActiveTab] = useState("Overview");
   const [selectedStatus, setSelectedStatus] = useState("");
   const canConvert = lead?.status?.toUpperCase() === "QUALIFIED";  
-  const [expandedSection, setExpandedSection] = useState(null);  
+  const [expandedSection, setExpandedSection] = useState(null);
+  const isCreator = lead && currentUser && lead.creator?.id === currentUser.id;  
 
   const [accountData, setAccountData] = useState({
     name: "",
@@ -416,32 +419,34 @@ export default function AdminLeadsInformation({
               </div>
             </div>
 
-            <div className="flex flex-col sm:flex-row sm:space-x-3 space-y-2 sm:space-y-0">
-              <button
-                type="button"
-                onClick={() => {
-                  if (onEdit && lead) {
-                    onEdit(lead);
-                  }
-                }}
-                className="inline-flex items-center justify-center w-full sm:w-auto bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 transition text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
-              >
-                <FiEdit2 className="mr-2" />
-                Edit
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  if (onDelete && lead) {
-                    onDelete(lead);
-                  }
-                }}
-                className="inline-flex items-center justify-center w-full sm:w-auto px-4 py-2 rounded-md text-sm bg-red-500 text-white hover:bg-red-600 transition focus:outline-none focus:ring-2 focus:ring-red-400"
-              >
-                <FiTrash2 className="mr-2" />
-                Delete
-              </button>
-            </div>
+            {isCreator && (
+              <div className="flex flex-col sm:flex-row sm:space-x-3 space-y-2 sm:space-y-0">
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (onEdit && lead) {
+                      onEdit(lead);
+                    }
+                  }}
+                  className="inline-flex items-center justify-center w-full sm:w-auto bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 transition text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+                >
+                  <FiEdit2 className="mr-2" />
+                  Edit
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (onArchive && lead) {
+                      onArchive(lead);
+                    }
+                  }}
+                  className="inline-flex items-center justify-center w-full sm:w-auto px-4 py-2 rounded-md text-sm bg-orange-500 text-white hover:bg-orange-600 transition focus:outline-none focus:ring-2 focus:ring-orange-400"
+                >
+                  <FiArchive className="mr-2" />
+                  Archive
+                </button>
+              </div>
+            )}
           </div>
           <div className="border-b border-gray-200 my-5"></div>
 

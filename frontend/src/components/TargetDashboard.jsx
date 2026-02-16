@@ -1053,7 +1053,6 @@ export default function TargetDashboard({ currentUserRole, currentUserId }) {
         </div>
 
         {/* Search Bar */}
-        {canCreateTarget && (
           <div className="bg-white rounded-xl p-4 shadow-sm mb-6 flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full">
             <div className="flex items-center border border-gray-300 rounded-lg px-4 h-11 w-full sm:flex-1 focus-within:ring-2 focus-within:ring-indigo-500 transition">
               <FiSearch className="text-gray-400 mr-3" />
@@ -1081,7 +1080,6 @@ export default function TargetDashboard({ currentUserRole, currentUserId }) {
               </select>
             </div>
           </div>
-        )}
 
         {/* Table */}
         <div className="overflow-x-auto">

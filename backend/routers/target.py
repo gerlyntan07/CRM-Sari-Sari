@@ -279,13 +279,18 @@ def admin_get_targets(
             db, current_user.id, current_user.related_to_company
         )
 
-        # Managers can only view targets of SALES assigned to territories they manage
+        # Managers can view:
+        # - their own targets
+        # - targets of SALES assigned to territories they manage
         targets = (
             db.query(Target)
             .join(User, Target.user_id == User.id)
             .filter(
                 User.related_to_company == current_user.related_to_company,
-                User.id.in_(managed_sales_user_ids) if managed_sales_user_ids else False,
+                or_(
+                    User.id == current_user.id,
+                    User.id.in_(managed_sales_user_ids) if managed_sales_user_ids else False,
+                ),
             )
             .all()
         )
@@ -667,12 +672,15 @@ def get_leaderboard(
         .options(joinedload(Target.user))
     )
 
-    # Managers can only see sales reps in territories they manage
+    # Managers can only see:
+    # - sales reps in territories they manage
+    # - themselves (if they have targets)
     if current_user.role.upper() == "MANAGER":
         managed_sales_user_ids = _get_manager_sales_user_ids(
             db, current_user.id, current_user.related_to_company
         )
-        if not managed_sales_user_ids:
+        allowed_user_ids = list({*(managed_sales_user_ids or []), current_user.id})
+        if not allowed_user_ids:
             return LeaderboardResponse(
                 period_type=period_type or "ALL",
                 period_year=period_year,
@@ -684,7 +692,7 @@ def get_leaderboard(
                 overall_achievement=0,
                 entries=[],
             )
-        query = query.filter(User.id.in_(managed_sales_user_ids))
+        query = query.filter(User.id.in_(allowed_user_ids))
 
     # Apply period filters
     filter_start = start_date
@@ -801,13 +809,16 @@ def get_user_history(
     if not target_user:
         raise HTTPException(status_code=404, detail="User not found")
 
-    # Managers can only view history for SALES in territories they manage
+    # Managers can only view history for:
+    # - themselves
+    # - SALES in territories they manage
     if current_user.role.upper() == "MANAGER":
-        managed_sales_user_ids = _get_manager_sales_user_ids(
-            db, current_user.id, current_user.related_to_company
-        )
-        if user_id not in managed_sales_user_ids:
-            raise HTTPException(status_code=403, detail="Permission denied")
+        if user_id != current_user.id:
+            managed_sales_user_ids = _get_manager_sales_user_ids(
+                db, current_user.id, current_user.related_to_company
+            )
+            if user_id not in managed_sales_user_ids:
+                raise HTTPException(status_code=403, detail="Permission denied")
 
     allowed_period_types = {"MONTHLY", "QUARTERLY", "SEMIANNUAL", "ANNUAL", "CUSTOM"}
     normalized_period_type = period_type.upper().strip() if period_type else None

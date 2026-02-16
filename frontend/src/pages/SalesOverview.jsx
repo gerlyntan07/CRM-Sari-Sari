@@ -2354,6 +2354,7 @@ const SalesOverview= () => {
             targets={allTargets}
             currencySymbol={currencySymbol}
             basePath="/sales"
+            currentUser={user}
           />
         </div>
 

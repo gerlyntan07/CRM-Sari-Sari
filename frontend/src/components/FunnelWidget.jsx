@@ -412,11 +412,15 @@ const DetailTable = ({ data, stageKey, currencySymbol, basePath = '/admin' }) =>
 
 // --- MAIN EXPORTED WIDGET ---
 
-const FunnelWidget = ({ leads, deals, currencySymbol, targets = [], basePath = '/admin' }) => {
+const FunnelWidget = ({ leads, deals, currencySymbol, targets = [], basePath = '/admin', currentUser = null }) => {
     const [selectedStage, setSelectedStage] = useState('ALL'); 
     const [filterTime, setFilterTime] = useState('ALL'); 
     const [filterUser, setFilterUser] = useState('ALL');
-    const [viewMode, setViewMode] = useState('AGGREGATE'); 
+    const [viewMode, setViewMode] = useState('AGGREGATE');
+    
+    // If currentUser is provided, always filter to that user
+    const effectiveFilterUser = currentUser ? currentUser.id.toString() : filterUser;
+    const isPersonalDashboard = !!currentUser;
     
     // --- DRAG AND DROP STATE ---
     const [userOrder, setUserOrder] = useState([]); 
@@ -478,8 +482,8 @@ const FunnelWidget = ({ leads, deals, currencySymbol, targets = [], basePath = '
         const itemDate = new Date(item.created_at);
         if (startDate && itemDate < startDate) return false;
         
-        if (filterUser !== 'ALL') {
-             const userId = parseInt(filterUser);
+        if (effectiveFilterUser !== 'ALL') {
+             const userId = parseInt(effectiveFilterUser);
              if (item.lead_owner) {
                  const oid = item.lead_owner.id || item.lead_owner;
                  if (oid === userId) return true;
@@ -539,7 +543,7 @@ const FunnelWidget = ({ leads, deals, currencySymbol, targets = [], basePath = '
   
       const userGroups = [];
       if (viewMode === 'COMPARE') {
-          const relevantUsers = filterUser === 'ALL' ? usersList : usersList.filter(u => u.id === parseInt(filterUser));
+          const relevantUsers = effectiveFilterUser === 'ALL' ? usersList : usersList.filter(u => u.id === parseInt(effectiveFilterUser));
           relevantUsers.forEach(u => {
               const uid = parseInt(u.id);
               const uLeads = filteredLeads.filter(l => {
@@ -564,7 +568,7 @@ const FunnelWidget = ({ leads, deals, currencySymbol, targets = [], basePath = '
           });
       }
       return { stages, aggregate, userGroups };
-    }, [deals, leads, filterTime, filterUser, viewMode, usersList, filteredTargets]);
+    }, [deals, leads, filterTime, effectiveFilterUser, viewMode, usersList, filteredTargets]);
 
     // --- SORTED USER GROUPS LOGIC ---
     const sortedUserGroups = useMemo(() => {
@@ -636,9 +640,11 @@ const FunnelWidget = ({ leads, deals, currencySymbol, targets = [], basePath = '
          <div className="flex flex-col md:flex-row justify-between items-center mb-6">
             <div>
                 <h3 className="text-lg font-bold text-gray-800 flex items-center">
-                    <FiLayout className="mr-2" /> Pipeline Intelligence
+                    <FiLayout className="mr-2" /> {isPersonalDashboard ? 'My Pipeline' : 'Pipeline Intelligence'}
                 </h3>
-                <p className="text-sm text-gray-500">Analyze pipeline velocity and bottlenecks.</p>
+                <p className="text-sm text-gray-500">
+                    {isPersonalDashboard ? 'Your personal pipeline performance and metrics.' : 'Analyze pipeline velocity and bottlenecks.'}
+                </p>
             </div>
             
             <div className="flex flex-wrap gap-2 mt-4 md:mt-0">
@@ -653,31 +659,36 @@ const FunnelWidget = ({ leads, deals, currencySymbol, targets = [], basePath = '
                   <option value="THIS_YEAR">This Year</option>
                </select>
   
-               <select
-                  value={filterUser}
-                  onChange={(e) => setFilterUser(e.target.value)}
-                  className="bg-gray-50 border border-gray-200 text-gray-700 text-xs rounded-lg p-2 focus:ring-blue-500 focus:border-blue-500"
-               >
-                  <option value="ALL">All Users</option>
-                  {usersList.map(u => (
-                      <option key={u.id} value={u.id}>{u.name}</option>
-                  ))}
-               </select>
-  
-               <div className="flex bg-gray-100 p-0.5 rounded-lg">
-                  <button 
-                      onClick={() => setViewMode('AGGREGATE')}
-                      className={`px-2 py-1 rounded-md text-xs font-medium transition-all ${viewMode === 'AGGREGATE' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
-                  >
-                      Aggregate
-                  </button>
-                  <button 
-                      onClick={() => setViewMode('COMPARE')}
-                      className={`px-2 py-1 rounded-md text-xs font-medium transition-all ${viewMode === 'COMPARE' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
-                  >
-                      Compare
-                  </button>
-               </div>
+               {/* Show user filter and compare mode only if not personal dashboard */}
+               {!isPersonalDashboard && (
+                 <>
+                   <select
+                      value={filterUser}
+                      onChange={(e) => setFilterUser(e.target.value)}
+                      className="bg-gray-50 border border-gray-200 text-gray-700 text-xs rounded-lg p-2 focus:ring-blue-500 focus:border-blue-500"
+                   >
+                      <option value="ALL">All Users</option>
+                      {usersList.map(u => (
+                          <option key={u.id} value={u.id}>{u.name}</option>
+                      ))}
+                   </select>
+      
+                   <div className="flex bg-gray-100 p-0.5 rounded-lg">
+                      <button 
+                          onClick={() => setViewMode('AGGREGATE')}
+                          className={`px-2 py-1 rounded-md text-xs font-medium transition-all ${viewMode === 'AGGREGATE' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                      >
+                          Aggregate
+                      </button>
+                      <button 
+                          onClick={() => setViewMode('COMPARE')}
+                          className={`px-2 py-1 rounded-md text-xs font-medium transition-all ${viewMode === 'COMPARE' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                      >
+                          Compare
+                      </button>
+                   </div>
+                 </>
+               )}
             </div>
          </div>
   

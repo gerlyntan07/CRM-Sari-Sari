@@ -732,36 +732,96 @@ const MyActivitiesChart = ({ activityData, loading }) => {
   const [showMeetings, setShowMeetings] = useState(true);
   const [showCalls, setShowCalls] = useState(true);
   const [showLastYear, setShowLastYear] = useState(true);
+  const [viewType, setViewType] = useState('monthly'); // 'monthly', 'quarterly', 'yearly'
 
   const monthNames = [
     "Jan", "Feb", "Mar", "Apr", "May", "Jun",
     "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
   ];
 
+  const quarterNames = ["Q1", "Q2", "Q3", "Q4"];
+
+  // Helper function to aggregate monthly data into quarters
+  const aggregateToQuarters = (monthlyData) => {
+    const quarters = [0, 0, 0, 0];
+    for (let i = 0; i < 12; i++) {
+      const quarterIndex = Math.floor(i / 3);
+      quarters[quarterIndex] += monthlyData[i];
+    }
+    return quarters;
+  };
+
+  // Helper function to aggregate monthly data into yearly total
+  const aggregateToYearly = (monthlyData) => {
+    return [monthlyData.reduce((sum, val) => sum + val, 0)];
+  };
+
   // Prepare data for the chart
   const chartData = useMemo(() => {
     if (!activityData) {
+      const emptyMonthly = new Array(12).fill(0);
+      const emptyQuarterly = new Array(4).fill(0);
+      const emptyYearly = new Array(1).fill(0);
+      
       return {
-        labels: monthNames,
-        tasksCurrentYear: new Array(12).fill(0),
-        tasksLastYear: new Array(12).fill(0),
-        meetingsCurrentYear: new Array(12).fill(0),
-        meetingsLastYear: new Array(12).fill(0),
-        callsCurrentYear: new Array(12).fill(0),
-        callsLastYear: new Array(12).fill(0),
+        labels: viewType === 'monthly' ? monthNames : (viewType === 'quarterly' ? quarterNames : [new Date().getFullYear().toString()]),
+        tasksCurrentYear: viewType === 'monthly' ? emptyMonthly : (viewType === 'quarterly' ? emptyQuarterly : emptyYearly),
+        tasksLastYear: viewType === 'monthly' ? emptyMonthly : (viewType === 'quarterly' ? emptyQuarterly : emptyYearly),
+        meetingsCurrentYear: viewType === 'monthly' ? emptyMonthly : (viewType === 'quarterly' ? emptyQuarterly : emptyYearly),
+        meetingsLastYear: viewType === 'monthly' ? emptyMonthly : (viewType === 'quarterly' ? emptyQuarterly : emptyYearly),
+        callsCurrentYear: viewType === 'monthly' ? emptyMonthly : (viewType === 'quarterly' ? emptyQuarterly : emptyYearly),
+        callsLastYear: viewType === 'monthly' ? emptyMonthly : (viewType === 'quarterly' ? emptyQuarterly : emptyYearly),
       };
     }
 
+    // Get monthly data
+    const tasksCurrentYearMonthly = activityData.tasks?.currentYear || new Array(12).fill(0);
+    const tasksLastYearMonthly = activityData.tasks?.lastYear || new Array(12).fill(0);
+    const meetingsCurrentYearMonthly = activityData.meetings?.currentYear || new Array(12).fill(0);
+    const meetingsLastYearMonthly = activityData.meetings?.lastYear || new Array(12).fill(0);
+    const callsCurrentYearMonthly = activityData.calls?.currentYear || new Array(12).fill(0);
+    const callsLastYearMonthly = activityData.calls?.lastYear || new Array(12).fill(0);
+
+    // Aggregate based on view type
+    let labels, tasksCurrentYear, tasksLastYear, meetingsCurrentYear, meetingsLastYear, callsCurrentYear, callsLastYear;
+
+    if (viewType === 'monthly') {
+      labels = monthNames;
+      tasksCurrentYear = tasksCurrentYearMonthly;
+      tasksLastYear = tasksLastYearMonthly;
+      meetingsCurrentYear = meetingsCurrentYearMonthly;
+      meetingsLastYear = meetingsLastYearMonthly;
+      callsCurrentYear = callsCurrentYearMonthly;
+      callsLastYear = callsLastYearMonthly;
+    } else if (viewType === 'quarterly') {
+      labels = quarterNames;
+      tasksCurrentYear = aggregateToQuarters(tasksCurrentYearMonthly);
+      tasksLastYear = aggregateToQuarters(tasksLastYearMonthly);
+      meetingsCurrentYear = aggregateToQuarters(meetingsCurrentYearMonthly);
+      meetingsLastYear = aggregateToQuarters(meetingsLastYearMonthly);
+      callsCurrentYear = aggregateToQuarters(callsCurrentYearMonthly);
+      callsLastYear = aggregateToQuarters(callsLastYearMonthly);
+    } else { // yearly
+      const currentYear = new Date().getFullYear();
+      labels = [currentYear.toString()];
+      tasksCurrentYear = aggregateToYearly(tasksCurrentYearMonthly);
+      tasksLastYear = aggregateToYearly(tasksLastYearMonthly);
+      meetingsCurrentYear = aggregateToYearly(meetingsCurrentYearMonthly);
+      meetingsLastYear = aggregateToYearly(meetingsLastYearMonthly);
+      callsCurrentYear = aggregateToYearly(callsCurrentYearMonthly);
+      callsLastYear = aggregateToYearly(callsLastYearMonthly);
+    }
+
     return {
-      labels: monthNames,
-      tasksCurrentYear: activityData.tasks?.currentYear || new Array(12).fill(0),
-      tasksLastYear: activityData.tasks?.lastYear || new Array(12).fill(0),
-      meetingsCurrentYear: activityData.meetings?.currentYear || new Array(12).fill(0),
-      meetingsLastYear: activityData.meetings?.lastYear || new Array(12).fill(0),
-      callsCurrentYear: activityData.calls?.currentYear || new Array(12).fill(0),
-      callsLastYear: activityData.calls?.lastYear || new Array(12).fill(0),
+      labels,
+      tasksCurrentYear,
+      tasksLastYear,
+      meetingsCurrentYear,
+      meetingsLastYear,
+      callsCurrentYear,
+      callsLastYear,
     };
-  }, [activityData]);
+  }, [activityData, viewType]);
 
   const hasData = 
     chartData.tasksCurrentYear.some(val => val > 0) || 
@@ -859,17 +919,29 @@ const MyActivitiesChart = ({ activityData, loading }) => {
     <div className="bg-white p-6 rounded-xl shadow-lg border border-gray-100 flex flex-col h-full">
       {/* Header */}
       <div className="flex justify-between items-start mb-4">
-        <div>
-          <h2 className="text-lg font-semibold text-gray-800 flex items-center">
-            My Activities
-            {hasData && (
-              <span className={`ml-3 text-sm font-medium px-2 py-1 rounded-full ${
-                percentageChange >= 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
-              }`}>
-                {percentageChange >= 0 ? '↑' : '↓'} {Math.abs(percentageChange)}%
-              </span>
-            )}
-          </h2>
+        <div className="flex-1">
+          <div className="flex items-center gap-3">
+            <h2 className="text-lg font-semibold text-gray-800 flex items-center">
+              My Activities
+              {hasData && (
+                <span className={`ml-3 text-sm font-medium px-2 py-1 rounded-full ${
+                  percentageChange >= 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                }`}>
+                  {percentageChange >= 0 ? '↑' : '↓'} {Math.abs(percentageChange)}%
+                </span>
+              )}
+            </h2>
+            {/* View Type Dropdown */}
+            <select
+              value={viewType}
+              onChange={(e) => setViewType(e.target.value)}
+              className="text-xs px-3 py-1.5 rounded-lg border border-gray-300 bg-white text-gray-700 font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 cursor-pointer"
+            >
+              <option value="monthly">Monthly</option>
+              <option value="quarterly">Quarterly</option>
+              <option value="yearly">Yearly</option>
+            </select>
+          </div>
           <p className="text-xs text-gray-500 mt-1">
             Track your productivity across tasks, meetings & calls
           </p>
@@ -982,7 +1054,7 @@ const MyActivitiesChart = ({ activityData, loading }) => {
                 : 'bg-gray-100 text-gray-500 border-2 border-gray-200'
             }`}
           >
-            Show {new Date().getFullYear() - 1}
+            Compare vs {new Date().getFullYear() - 1}
           </button>
         </div>
       )}

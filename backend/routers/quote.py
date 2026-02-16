@@ -67,6 +67,7 @@ def admin_get_quotes(
             .join(User, Quote.assigned_to == User.id)
             .filter(User.related_to_company == current_user.related_to_company)
             .filter(~User.role.in_(["CEO", "Admin"]))
+            .filter(Quote.status != "Inactive")  # Exclude archived quotes
             .all()
         )
     elif current_user.role.upper() == "MANAGER":
@@ -85,7 +86,9 @@ def admin_get_quotes(
                 (User.id.in_(subquery_user_ids)) | 
                 (Quote.assigned_to == current_user.id) |
                 (Quote.created_by == current_user.id)
-            ).all()
+            )
+            .filter(Quote.status != "Inactive")  # Exclude archived quotes
+            .all()
         )
     else:
         deals = (
@@ -94,7 +97,9 @@ def admin_get_quotes(
             .filter(
                 (Quote.assigned_to == current_user.id) | 
                 (Quote.created_by == current_user.id)
-            ).all()
+            )
+            .filter(Quote.status != "Inactive")  # Exclude archived quotes
+            .all()
         )
 
     return deals
@@ -438,23 +443,43 @@ def admin_delete_quote(
     if not quote:
         raise HTTPException(status_code=404, detail="Quote not found.")
 
-    deleted_data = serialize_instance(quote)
     quote_label = quote.quote_id or f"Quote #{quote.id}"
+    
+    # Manager/Territory Manager/Sales archives (sets to Inactive), Admin/CEO hard deletes
+    if (current_user.role or "").upper() in ["MANAGER", "GROUP MANAGER", "SALES"]:
+        old_status = quote.status
+        quote.status = "Inactive"
+        db.commit()
+        
+        create_audit_log(
+            db=db,
+            current_user=current_user,
+            instance=quote,
+            action="UPDATE",
+            request=request,
+            old_data={"status": old_status},
+            new_data={"status": "Inactive"},
+            custom_message=f"archive quote '{quote_label}' (set to Inactive)",
+        )
 
-    db.delete(quote)
-    db.commit()
+        return {"detail": f"Quote '{quote_label}' archived successfully."}
+    else:
+        # Hard delete for Admin/CEO
+        deleted_data = serialize_instance(quote)
+        db.delete(quote)
+        db.commit()
 
-    create_audit_log(
-        db=db,
-        current_user=current_user,
-        instance=quote,
-        action="DELETE",
-        request=request,
-        old_data=deleted_data,
-        custom_message=f"delete quote '{quote_label}' via admin panel",
-    )
+        create_audit_log(
+            db=db,
+            current_user=current_user,
+            instance=quote,
+            action="DELETE",
+            request=request,
+            old_data=deleted_data,
+            custom_message=f"delete quote '{quote_label}' via admin panel",
+        )
 
-    return {"detail": f"Quote '{quote_label}' deleted successfully."}
+        return {"detail": f"Quote '{quote_label}' deleted successfully."}
 
 
 @router.patch("/admin/{quote_id}/status", response_model=QuoteResponse)
@@ -532,28 +557,48 @@ def admin_bulk_delete_quotes(
         raise HTTPException(status_code=404, detail="No matching quotes found for deletion.")
 
     deleted_count = 0
-    for quote in quotes_to_delete:
-        deleted_data = serialize_instance(quote)
-        quote_name = f"quote #{quote.id}"
-        target_user_id = quote.assigned_to or quote.created_by
+    
+    # Manager/Territory Manager/Sales archives (sets to Inactive), Admin/CEO hard deletes
+    if (current_user.role or "").upper() in ["MANAGER", "GROUP MANAGER", "SALES"]:
+        for quote in quotes_to_delete:
+            old_status = quote.status
+            quote.status = "Inactive"
+            
+            create_audit_log(
+                db=db,
+                current_user=current_user,
+                instance=quote,
+                action="UPDATE",
+                request=request,
+                old_data={"status": old_status},
+                new_data={"status": "Inactive"},
+                custom_message=f"bulk archive quote '#{quote.id}' (set to Inactive)"
+            )
+            deleted_count += 1
+    else:
+        # Hard delete for Admin/CEO
+        for quote in quotes_to_delete:
+            deleted_data = serialize_instance(quote)
+            quote_name = f"quote #{quote.id}"
+            target_user_id = quote.assigned_to or quote.created_by
 
-        db.delete(quote)
-        
-        create_audit_log(
-            db=db,
-            current_user=current_user,
-            instance=quote,
-            action="DELETE",
-            request=request,
-            old_data=deleted_data,
-            target_user_id=target_user_id,
-            custom_message=f"bulk delete quote '#{quote.id}' via admin panel"
-        )
-        deleted_count += 1
+            db.delete(quote)
+            
+            create_audit_log(
+                db=db,
+                current_user=current_user,
+                instance=quote,
+                action="DELETE",
+                request=request,
+                old_data=deleted_data,
+                target_user_id=target_user_id,
+                custom_message=f"bulk delete quote '#{quote.id}' via admin panel"
+            )
+            deleted_count += 1
 
     db.commit()
 
-    return {"detail": f"Successfully deleted {deleted_count} quote(s)."}
+    return {"detail": f"Successfully archived {deleted_count} quote(s)." if (current_user.role or "").upper() in ["MANAGER", "GROUP MANAGER"] else f"Successfully deleted {deleted_count} quote(s)."}
 
 
 # ==================== QUOTE ITEMS ENDPOINTS ====================

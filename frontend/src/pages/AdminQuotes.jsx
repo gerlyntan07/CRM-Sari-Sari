@@ -64,6 +64,7 @@ const normalizeStatus = (status) => {
     presented: "Presented",
     accepted: "Accepted",
     rejected: "Rejected",
+    inactive: "Inactive",
   };
   return map[s] || "Draft";
 };
@@ -87,6 +88,8 @@ const getStatusBadgeClass = (status) => {
       return "bg-green-100 text-green-700";
     case "rejected":
       return "bg-red-100 text-red-700";
+    case "inactive":
+      return "bg-red-100 text-red-700";
     default:
       return "bg-gray-100 text-gray-700";
   }
@@ -102,6 +105,8 @@ const getDetailBadgeClass = (status) => {
     case "accepted":
       return "bg-green-600 text-white";
     case "rejected":
+      return "bg-red-600 text-white";
+    case "inactive":
       return "bg-red-600 text-white";
     default:
       return "bg-gray-600 text-white";

@@ -8,7 +8,7 @@ import React, {
 import {
   FiSearch,
   FiEdit,
-  FiTrash2,
+  FiArchive,
   FiPlus,
   FiFileText,
   FiX,
@@ -827,8 +827,10 @@ export default function AdminQuotes() {
 
   const handleSelectAll = (e) => {
     if (e.target.checked) {
-      const allIds = paginatedQuotes.map((item) => item.id);
-      setSelectedIds(allIds);
+      const selectableIds = paginatedQuotes
+        .filter((item) => item.created_by === currentUserId)
+        .map((item) => item.id);
+      setSelectedIds(selectableIds);
     } else {
       setSelectedIds([]);
     }
@@ -844,19 +846,23 @@ export default function AdminQuotes() {
     });
   };
 
+  const selectableQuotes = paginatedQuotes.filter(
+    (item) => item.created_by === currentUserId,
+  );
+
   const handleDelete = (quote) => {
     if (!quote) return;
     const quoteName = quote.quote_id || "this quote";
     setConfirmModalData({
-      title: "Delete Quote",
+      title: "Archive Quote",
       message: (
         <span>
-          Are you sure you want to permanently delete{" "}
+          Are you sure you want to archive{" "}
           <span className="font-semibold">{quoteName}</span>? This action cannot
           be undone.
         </span>
       ),
-      confirmLabel: "Delete Quote",
+      confirmLabel: "Archive Quote",
       cancelLabel: "Cancel",
       variant: "danger",
       action: { type: "delete", targetId: quote.id, name: quoteName },
@@ -867,15 +873,15 @@ export default function AdminQuotes() {
     if (selectedIds.length === 0) return;
 
     setConfirmModalData({
-      title: "Delete Quotes",
+      title: "Archive Quotes",
       message: (
         <span>
-          Are you sure you want to delete{" "}
+          Are you sure you want to archive{" "}
           <span className="font-semibold">{selectedIds.length}</span> selected
           quotes? This action cannot be undone.
         </span>
       ),
-      confirmLabel: `Delete ${selectedIds.length} Quote(s)`,
+      confirmLabel: `Archive ${selectedIds.length} Quote(s)`,
       cancelLabel: "Cancel",
       variant: "danger",
       action: {
@@ -1026,7 +1032,7 @@ export default function AdminQuotes() {
         setDeletingId(targetId);
 
         await api.delete(`/quotes/admin/${targetId}`);
-        toast.success(`Quote "${name}" deleted successfully.`);
+        toast.success(`Quote "${name}" archived successfully.`);
 
         await fetchQuotes(
           currentSelectedId && currentSelectedId !== targetId
@@ -1038,7 +1044,7 @@ export default function AdminQuotes() {
         await api.post("/quotes/admin/bulk-delete", {
           quote_ids: selectedIds,
         });
-        toast.success(`Successfully deleted ${selectedIds.length} quotes`);
+        toast.success(`Successfully archived ${selectedIds.length} quotes`);
         setSelectedIds([]);
         await fetchQuotes();
       }
@@ -1260,33 +1266,37 @@ export default function AdminQuotes() {
                 {invoicePrinting ? "Preparing..." : "Print Quotation"}
               </button>
 
-              <button
-                className="inline-flex items-center justify-center w-full sm:w-auto bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 disabled:opacity-70 transition text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
-                onClick={() => handleEditClick(selectedQuote)}
-                disabled={
-                  confirmProcessing ||
-                  (confirmModalData?.action?.type === "update" &&
-                    confirmModalData.action.targetId === selectedQuote.id)
-                }
-              >
-                <FiEdit className="mr-2" />
-                Edit
-              </button>
+              {currentUserId === selectedQuote.created_by && (
+                <>
+                  <button
+                    className="inline-flex items-center justify-center w-full sm:w-auto bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 disabled:opacity-70 transition text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+                    onClick={() => handleEditClick(selectedQuote)}
+                    disabled={
+                      confirmProcessing ||
+                      (confirmModalData?.action?.type === "update" &&
+                        confirmModalData.action.targetId === selectedQuote.id)
+                    }
+                  >
+                    <FiEdit className="mr-2" />
+                    Edit
+                  </button>
 
-              <button
-                className="inline-flex items-center justify-center w-full sm:w-auto px-4 py-2 rounded-md text-sm bg-red-500 text-white hover:bg-red-600 transition focus:outline-none focus:ring-2 focus:ring-red-400"
-                onClick={() => handleDelete(selectedQuote)}
-                disabled={Boolean(selectedQuoteDeleteDisabled)}
-              >
-                {selectedQuoteDeleting ? (
-                  "Deleting..."
-                ) : (
-                  <>
-                    <FiTrash2 className="mr-2" />
-                    Delete
-                  </>
-                )}
-              </button>
+                  <button
+                    className="inline-flex items-center justify-center w-full sm:w-auto px-4 py-2 rounded-md text-sm bg-orange-500 text-white hover:bg-orange-600 transition focus:outline-none focus:ring-2 focus:ring-orange-400"
+                    onClick={() => handleDelete(selectedQuote)}
+                    disabled={Boolean(selectedQuoteDeleteDisabled)}
+                  >
+                    {selectedQuoteDeleting ? (
+                      "Archiving..."
+                    ) : (
+                      <>
+                        <FiArchive className="mr-2" />
+                        Archive
+                      </>
+                    )}
+                  </button>
+                </>
+              )}
             </div>
           </div>
 
@@ -1640,8 +1650,8 @@ export default function AdminQuotes() {
                 <input
                   type="checkbox"
                   checked={
-                    paginatedQuotes.length > 0 &&
-                    selectedIds.length === paginatedQuotes.length
+                    selectableQuotes.length > 0 &&
+                    selectedIds.length === selectableQuotes.length
                   }
                   onChange={handleSelectAll}
                   className="cursor-pointer"
@@ -1659,10 +1669,10 @@ export default function AdminQuotes() {
                 {selectedIds.length > 0 ? (
                   <button
                     onClick={handleBulkDelete}
-                    className="text-red-600 hover:text-red-800 transition p-1 rounded-full hover:bg-red-50"
-                    title={`Delete ${selectedIds.length} selected items`}
+                    className="text-orange-600 hover:text-orange-800 transition p-1 rounded-full hover:bg-orange-50"
+                    title={`Archive ${selectedIds.length} selected items`}
                   >
-                    <FiTrash2 size={18} />
+                    <FiArchive size={18} />
                   </button>
                 ) : (
                   ""
@@ -1697,12 +1707,14 @@ export default function AdminQuotes() {
                       className="py-3 px-4 align-top w-12"
                       onClick={(e) => e.stopPropagation()}
                     >
-                      <input
-                        type="checkbox"
-                        checked={selectedIds.includes(quote.id)}
-                        onChange={() => handleCheckboxChange(quote.id)}
-                        className="cursor-pointer"
-                      />
+                      {quote.created_by === currentUserId && (
+                        <input
+                          type="checkbox"
+                          checked={selectedIds.includes(quote.id)}
+                          onChange={() => handleCheckboxChange(quote.id)}
+                          className="cursor-pointer"
+                        />
+                      )}
                     </td>
                     <td className="py-3 px-4 align-top">
                       <div className="font-medium text-blue-600 hover:underline whitespace-nowrap">
@@ -2363,7 +2375,7 @@ function ConfirmationModal({
 
   const confirmClasses =
     variant === "danger"
-      ? "bg-red-500 hover:bg-red-600 border border-red-400"
+      ? "bg-orange-500 hover:bg-orange-600 border border-orange-400"
       : "bg-tertiary hover:bg-secondary border border-tertiary";
 
   return (

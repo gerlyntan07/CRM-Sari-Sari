@@ -47,17 +47,20 @@ const INITIAL_FORM_STATE = {
   start_date: "",
   end_date: "",
   target_amount: "",
+  annual_amount: "",  // New: Base annual amount
   period_type: "",
   period_year: new Date().getFullYear(),
   period_number: 1,
+  prorate_first_period: true,  // New: Whether to prorate
+  use_annual_mode: true,  // New: Toggle between annual-based and manual mode
 };
 
 const PERIOD_TYPES = [
-  { value: "MONTHLY", label: "Monthly" },
-  { value: "QUARTERLY", label: "Quarterly" },
-  { value: "SEMIANNUAL", label: "Semi-Annual" },
-  { value: "ANNUAL", label: "Annual" },
-  { value: "CUSTOM", label: "Custom" },
+  { value: "MONTHLY", label: "Monthly", divisor: 12 },
+  { value: "QUARTERLY", label: "Quarterly", divisor: 4 },
+  { value: "SEMIANNUAL", label: "Semi-Annual", divisor: 2 },
+  { value: "ANNUAL", label: "Annual", divisor: 1 },
+  { value: "CUSTOM", label: "Custom (Manual)", divisor: 1 },
 ];
 
 const COLORS = [
@@ -179,6 +182,7 @@ export default function TargetDashboard({ currentUserRole, currentUserId }) {
   const [users, setUsers] = useState([]);
   const [targetsLoading, setTargetsLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [userFilterId, setUserFilterId] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
 
@@ -204,6 +208,7 @@ export default function TargetDashboard({ currentUserRole, currentUserId }) {
   const [leaderboardLoading, setLeaderboardLoading] = useState(false);
   const [selectedUserHistory, setSelectedUserHistory] = useState(null);
   const [historyLoading, setHistoryLoading] = useState(false);
+  const [historyPeriodType, setHistoryPeriodType] = useState("");
   const [teamSummary, setTeamSummary] = useState(null);
   
   // Fiscal settings from company
@@ -244,14 +249,17 @@ export default function TargetDashboard({ currentUserRole, currentUserId }) {
 
   const fetchUsers = useCallback(async () => {
     try {
-      if (canCreateTarget) {
-        const res = await api.get("/targets/admin/get-users");
-        setUsers(res.data);
-      }
+      // Backend scopes this list by role:
+      // - CEO/ADMIN: all users in company
+      // - GROUP MANAGER: company users excluding CEO/Admin
+      // - MANAGER: sales users in territories they manage (+ themselves)
+      // - SALES: only themselves
+      const res = await api.get("/targets/admin/get-users");
+      setUsers(res.data);
     } catch (err) {
       console.error(err);
     }
-  }, [canCreateTarget]);
+  }, []);
 
   const fetchFiscalSettings = useCallback(async () => {
     try {
@@ -294,10 +302,11 @@ export default function TargetDashboard({ currentUserRole, currentUserId }) {
     }
   }, [filterPeriodType, filterYear, filterPeriodNumber]);
 
-  const fetchUserHistory = useCallback(async (userId) => {
+  const fetchUserHistory = useCallback(async (userId, periodType = "") => {
     setHistoryLoading(true);
     try {
-      const res = await api.get(`/targets/history/${userId}`);
+      const qs = periodType ? `?period_type=${encodeURIComponent(periodType)}` : "";
+      const res = await api.get(`/targets/history/${userId}${qs}`);
       setSelectedUserHistory(res.data);
     } catch (err) {
       console.error(err);
@@ -443,19 +452,54 @@ export default function TargetDashboard({ currentUserRole, currentUserId }) {
   /* ======================================================
      SEARCH + PAGINATION
   ====================================================== */
+  const userFilterOptions = useMemo(() => {
+    const list = Array.isArray(users) && users.length
+      ? users
+      : targets
+          .filter((t) => t.user && t.user.id)
+          .map((t) => ({
+            id: t.user.id,
+            first_name: t.user.first_name,
+            last_name: t.user.last_name,
+          }));
+
+    const seen = new Set();
+    const deduped = [];
+    for (const u of list) {
+      const id = String(u.id);
+      if (seen.has(id)) continue;
+      seen.add(id);
+      deduped.push(u);
+    }
+
+    deduped.sort((a, b) => {
+      const an = `${a.first_name || ""} ${a.last_name || ""}`.trim().toLowerCase();
+      const bn = `${b.first_name || ""} ${b.last_name || ""}`.trim().toLowerCase();
+      return an.localeCompare(bn);
+    });
+
+    return deduped;
+  }, [users, targets]);
+
   const filteredTargets = useMemo(() => {
     const q = searchQuery.toLowerCase();
     return targets.filter((t) => {
+      const matchesUserFilter =
+        !userFilterId || String(t.user?.id || "") === String(userFilterId);
       const userName = t.user
         ? `${t.user.first_name} ${t.user.last_name}`.toLowerCase()
         : "";
-      return (
+      return matchesUserFilter && (
         userName.includes(q) ||
         t.start_date?.includes(q) ||
         t.end_date?.includes(q)
       );
     });
-  }, [targets, searchQuery]);
+  }, [targets, searchQuery, userFilterId]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, userFilterId]);
 
   const totalPages = Math.max(1, Math.ceil(filteredTargets.length / itemsPerPage));
   const paginatedTargets = useMemo(() => {
@@ -485,9 +529,12 @@ export default function TargetDashboard({ currentUserRole, currentUserId }) {
       start_date: target.start_date || "",
       end_date: target.end_date || "",
       target_amount: target.target_amount?.toString() || "",
+      annual_amount: "",  // Not needed for editing
       period_type: target.period_type || "CUSTOM",
       period_year: target.period_year || new Date().getFullYear(),
       period_number: target.period_number || 1,
+      prorate_first_period: true,
+      use_annual_mode: false,  // Disable annual mode when editing
     });
     setIsEditing(true);
     setCurrentTargetId(target.id);
@@ -578,45 +625,57 @@ export default function TargetDashboard({ currentUserRole, currentUserId }) {
     return;
   }
 
-  // if (formData.period_type === "CUSTOM") {
-  //   toast.error("Period Type cannot be Custom. Please select a valid period type.");
-  //   return;
-  // }
-
-  // if (
-  //   formData.period_type !== "CUSTOM" &&
-  //   formData.period_type !== "ANNUAL" &&
-  //   !formData.period_number
-  // ) {
-  //   toast.error("Please select a period.");
-  //   return;
-  // }
-
-  if (!formData.target_amount || Number(formData.target_amount) <= 0) {
-    toast.error("Target amount must be greater than 0.");
-    return;
+  // For annual mode (non-custom, non-editing), validate annual_amount
+  const useAnnualMode = formData.use_annual_mode && formData.period_type !== "CUSTOM" && !isEditing;
+  
+  if (useAnnualMode) {
+    if (!formData.annual_amount || Number(formData.annual_amount) <= 0) {
+      toast.error("Annual target amount must be greater than 0.");
+      return;
+    }
+  } else {
+    if (!formData.target_amount || Number(formData.target_amount) <= 0) {
+      toast.error("Target amount must be greater than 0.");
+      return;
+    }
   }
 
-     if (new Date(formData.end_date) < new Date(formData.start_date)) {
-      toast.error("End date must be after start date.");
-      return;
-    } 
+  // Only validate manual dates (Custom or Editing)
+  if (!useAnnualMode) {
+    if (formData.start_date && formData.end_date) {
+      if (new Date(formData.end_date) < new Date(formData.start_date)) {
+        toast.error("End date must be after start date.");
+        return;
+      }
+    }
+  }
 
-    const payload = {
-      user_id: Number(formData.user_id),
-      target_amount: Number(formData.target_amount),
-      start_date: formData.start_date,
-      end_date: formData.end_date,
-      period_type: formData.period_type || "CUSTOM",
-      period_year: formData.period_year || new Date().getFullYear(),
-      period_number: formData.period_number || null,
-    };
+  const actionLabel = isEditing ? "Update Target" : "Create Target(s)";
 
-    const actionLabel = isEditing ? "Update Target" : "Create Target";
+  // Calculate number of periods for display
+  const getPeriodCount = () => {
+    const startPn = Number(formData.period_number) || 1;
+    if (formData.period_type === "MONTHLY") return Math.max(1, 12 - startPn + 1);
+    if (formData.period_type === "QUARTERLY") return Math.max(1, 4 - startPn + 1);
+    if (formData.period_type === "SEMIANNUAL") return Math.max(1, 2 - startPn + 1);
+    return 1;
+  };
+
+  // Calculate period amount for display
+  const getPeriodAmount = () => {
+    const annual = Number(formData.annual_amount) || 0;
+    const periodType = PERIOD_TYPES.find(p => p.value === formData.period_type);
+    if (!periodType) return 0;
+    return (annual / periodType.divisor).toFixed(2);
+  };
+
+  const confirmMessage = useAnnualMode 
+    ? `This will create ${getPeriodCount()} ${formData.period_type?.toLowerCase()} target(s) for the selected user.\n\nAnnual Target: ${currencySymbol}${Number(formData.annual_amount).toLocaleString()}\nPer Period: ${currencySymbol}${Number(getPeriodAmount()).toLocaleString()}\n\nThe first period may be prorated if it starts mid-period.`
+    : "Are you sure you want to proceed?";
 
     setConfirmModalData({
       title: actionLabel,
-      message: "Are you sure you want to proceed?",
+      message: confirmMessage,
       confirmLabel: actionLabel,
       cancelLabel: "Cancel",
       variant: "primary",
@@ -624,10 +683,48 @@ export default function TargetDashboard({ currentUserRole, currentUserId }) {
         setIsSubmitting(true);
         try {
           if (isEditing) {
+            // When editing, always use the original single-target update
+            const payload = {
+              user_id: Number(formData.user_id),
+              target_amount: Number(formData.target_amount),
+              start_date: formData.start_date,
+              end_date: formData.end_date,
+              period_type: formData.period_type || "CUSTOM",
+              period_year: formData.period_year || new Date().getFullYear(),
+              period_number: formData.period_number || null,
+            };
             await api.put(`/targets/admin/${currentTargetId}`, payload);
             toast.success("Target updated successfully.");
+          } else if (useAnnualMode) {
+            // Use new annual-based target creation
+            const todayLocal = new Date().toISOString().split('T')[0];
+            const payload = {
+              user_id: Number(formData.user_id),
+              annual_amount: Number(formData.annual_amount),
+              period_type: formData.period_type,
+              // Use today as the generation date so optional proration is meaningful
+              // without exposing start/end date fields in the UI.
+              generation_date: formData.start_date || todayLocal,
+              period_year: Number(formData.period_year) || new Date().getFullYear(),
+              period_number: Number(formData.period_number) || 1,
+              prorate_first_period: formData.prorate_first_period !== false,
+            };
+            const response = await api.post("/targets/admin/create-annual-targets", payload);
+            fetchTargets();
+            toast.success(response.data.message || "Targets created successfully.");
           } else {
+            // Custom/manual mode - single target creation
+            const payload = {
+              user_id: Number(formData.user_id),
+              target_amount: Number(formData.target_amount),
+              start_date: formData.start_date,
+              end_date: formData.end_date,
+              period_type: formData.period_type || "CUSTOM",
+              period_year: formData.period_year || new Date().getFullYear(),
+              period_number: formData.period_number || null,
+            };
             await api.post("/targets/admin/create", payload);
+            fetchTargets();
             toast.success("Target created successfully.");
           }
           setShowModal(false);
@@ -957,8 +1054,8 @@ export default function TargetDashboard({ currentUserRole, currentUserId }) {
 
         {/* Search Bar */}
         {canCreateTarget && (
-          <div className="bg-white rounded-xl p-4 shadow-sm mb-6 flex flex-col lg:flex-row items-center justify-between gap-3 w-full">
-            <div className="flex items-center border border-gray-300 rounded-lg px-4 h-11 w-full focus-within:ring-2 focus-within:ring-indigo-500 transition">
+          <div className="bg-white rounded-xl p-4 shadow-sm mb-6 flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full">
+            <div className="flex items-center border border-gray-300 rounded-lg px-4 h-11 w-full sm:flex-1 focus-within:ring-2 focus-within:ring-indigo-500 transition">
               <FiSearch className="text-gray-400 mr-3" />
               <input
                 type="text"
@@ -967,6 +1064,21 @@ export default function TargetDashboard({ currentUserRole, currentUserId }) {
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full outline-none"
               />
+            </div>
+
+            <div className="w-full sm:w-64">
+              <select
+                value={userFilterId}
+                onChange={(e) => setUserFilterId(e.target.value)}
+                className="w-full h-11 border border-gray-300 rounded-lg px-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              >
+                <option value="">All users</option>
+                {userFilterOptions.map((u) => (
+                  <option key={u.id} value={String(u.id)}>
+                    {`${u.first_name || ""} ${u.last_name || ""}`.trim() || "Unknown"}
+                  </option>
+                ))}
+              </select>
             </div>
           </div>
         )}
@@ -1313,7 +1425,11 @@ export default function TargetDashboard({ currentUserRole, currentUserId }) {
               <h3 className="text-sm font-medium text-gray-700 mb-2">Select Sales Rep to View History:</h3>
               <div className="flex gap-4 flex-wrap">
                 <select
-                  onChange={(e) => e.target.value && fetchUserHistory(Number(e.target.value))}
+                  onChange={(e) => {
+                    const userId = Number(e.target.value);
+                    if (!userId) return;
+                    fetchUserHistory(userId, historyPeriodType);
+                  }}
                   className="border border-gray-300 rounded-lg px-4 py-2 text-sm"
                   value={selectedUserHistory?.user_id || ""}
                 >
@@ -1323,6 +1439,25 @@ export default function TargetDashboard({ currentUserRole, currentUserId }) {
                       {u.first_name} {u.last_name}
                     </option>
                   ))}
+                </select>
+
+                <select
+                  className="border border-gray-300 rounded-lg px-4 py-2 text-sm"
+                  value={historyPeriodType}
+                  onChange={(e) => {
+                    const next = e.target.value;
+                    setHistoryPeriodType(next);
+                    if (selectedUserHistory?.user_id) {
+                      fetchUserHistory(Number(selectedUserHistory.user_id), next);
+                    }
+                  }}
+                >
+                  <option value="">All period types</option>
+                  <option value="MONTHLY">Monthly</option>
+                  <option value="QUARTERLY">Quarterly</option>
+                  <option value="SEMIANNUAL">Semi-Annual</option>
+                  <option value="ANNUAL">Annual</option>
+                  <option value="CUSTOM">Custom</option>
                 </select>
               </div>
             </div>
@@ -1384,12 +1519,28 @@ export default function TargetDashboard({ currentUserRole, currentUserId }) {
                           <Tooltip
                             formatter={(value, name) => [
                               `${currencySymbol}${Number(value).toLocaleString()}`,
-                              name === "achieved_amount" ? "Achieved" : "Target"
+                              name,
                             ]}
                           />
                           <Legend />
-                          <Line type="monotone" dataKey="target_amount" stroke="#6366f1" name="Target" strokeWidth={2} />
-                          <Line type="monotone" dataKey="achieved_amount" stroke="#22c55e" name="Achieved" strokeWidth={2} />
+                          <Line
+                            type="monotone"
+                            dataKey="target_amount"
+                            stroke="#6366f1"
+                            name="Target"
+                            strokeWidth={2}
+                            dot={{ r: 2 }}
+                            activeDot={{ r: 5 }}
+                          />
+                          <Line
+                            type="monotone"
+                            dataKey="achieved_amount"
+                            stroke="#22c55e"
+                            name="Achieved"
+                            strokeWidth={2}
+                            dot={{ r: 3 }}
+                            activeDot={{ r: 6 }}
+                          />
                         </LineChart>
                       </ResponsiveContainer>
                     </div>
@@ -1646,10 +1797,20 @@ function FormModal({
   // Get fiscal start month (1-12), default to January if not set
   const fiscalStartMonth = fiscalSettings?.fiscal_start_month || 1;
 
+  // Determine if we should use annual mode (non-custom, non-editing)
+  const useAnnualMode = formData.use_annual_mode !== false && 
+                        formData.period_type !== "CUSTOM" && 
+                        formData.period_type !== "" &&
+                        !isEditing;
+
   // Define validation errors
+  const annualAmountError =
+    isSubmitted && useAnnualMode && (!formData.annual_amount || Number(formData.annual_amount) <= 0);
   const targetAmountError =
-    isSubmitted && (!formData.target_amount || Number(formData.target_amount) <= 0);
+    isSubmitted && !useAnnualMode && (!formData.target_amount || Number(formData.target_amount) <= 0);
   const periodTypeError = isSubmitted && !formData.period_type;
+
+  const showManualFields = isEditing || formData.period_type === "CUSTOM";
   
   
   // Helper to format date as YYYY-MM-DD without timezone issues
@@ -1731,13 +1892,33 @@ function FormModal({
   const handlePeriodTypeChange = (e) => {
     const periodType = e.target.value;
     onChange({ target: { name: "period_type", value: periodType } });
-    
+
+    const nextUseAnnualMode =
+      formData.use_annual_mode !== false &&
+      periodType !== "CUSTOM" &&
+      periodType !== "" &&
+      !isEditing;
+
+    if (nextUseAnnualMode) {
+      // In annual-mode, Start Date is user-controlled (used for proration).
+      // Default to today if it isn't set yet.
+      if (!formData.start_date) {
+        onChange({
+          target: {
+            name: "start_date",
+            value: new Date().toISOString().split("T")[0],
+          },
+        });
+      }
+      return;
+    }
+
     if (periodType !== "CUSTOM") {
       const year = formData.period_year || new Date().getFullYear();
       const periodNum = formData.period_number || 1;
-      
+
       const { startDate, endDate } = calculatePeriodDates(periodType, year, periodNum);
-      
+
       if (startDate && endDate) {
         onChange({ target: { name: "start_date", value: formatDateLocal(startDate) } });
         onChange({ target: { name: "end_date", value: formatDateLocal(endDate) } });
@@ -1752,7 +1933,7 @@ function FormModal({
     const year = formData.period_year || new Date().getFullYear();
     const periodType = formData.period_type;
     
-    if (periodType !== "CUSTOM") {
+    if (periodType !== "CUSTOM" && !useAnnualMode) {
       const { startDate, endDate } = calculatePeriodDates(periodType, year, periodNum);
       
       if (startDate && endDate) {
@@ -1769,7 +1950,7 @@ function FormModal({
     const periodType = formData.period_type;
     const periodNum = formData.period_number || 1;
     
-    if (periodType !== "CUSTOM") {
+    if (periodType !== "CUSTOM" && !useAnnualMode) {
       const { startDate, endDate } = calculatePeriodDates(periodType, year, periodNum);
       
       if (startDate && endDate) {
@@ -1781,7 +1962,7 @@ function FormModal({
 
   // Recalculate dates when modal opens or fiscal settings change
   useEffect(() => {
-    if (formData.period_type !== "CUSTOM" && !formData.start_date) {
+    if (!useAnnualMode && formData.period_type !== "CUSTOM" && !formData.start_date) {
       const year = formData.period_year || new Date().getFullYear();
       const periodNum = formData.period_number || 1;
       const { startDate, endDate } = calculatePeriodDates(formData.period_type, year, periodNum);
@@ -1902,56 +2083,179 @@ function FormModal({
             </div>
           )}
 
-          <div className="flex flex-col gap-1">
-            <label className="text-sm font-medium text-gray-700 text-left">
-              Target Amount <span className="text-red-500">*</span>
-            </label>
-            <div className="flex justify-center w-full">
-              <input
-                type="number"
-                name="target_amount"
-                placeholder="0.00"
-                value={formData.target_amount}
-                onChange={onChange}
-                required
-  className={`w-full max-w-md border rounded-lg p-2 text-gray-700 focus:outline-none focus:ring-1
-        ${
-          targetAmountError
-            ? "border-red-500 focus:ring-red-400 focus:border-red-400"
-            : "border-gray-300 focus:ring-blue-400 focus:border-blue-400"
-        }`}/>
+          {/* Annual-mode Start Date (used for proration / generation date) */}
+          {useAnnualMode && (
+            <div className="flex flex-col gap-1">
+              <label className="text-sm font-medium text-gray-700 text-left">
+                Start Date
+              </label>
+              <div className="flex justify-center w-full">
+                <input
+                  type="date"
+                  name="start_date"
+                  value={formData.start_date}
+                  onChange={onChange}
+                  className="w-full max-w-md border text-gray-500 border-gray-300 rounded-lg p-1 focus:outline-none focus:ring-1 focus:ring-blue-400 focus:border-blue-400"
+                />
+              </div>
+              <p className="text-xs text-gray-500 mt-1">
+                Used to prorate the first period when enabled.
+              </p>
             </div>
-        </div>
+          )}
 
-          <div className="flex flex-col gap-1">
-            <label className="text-sm font-medium text-gray-700 text-left">
-              Start Date {formData.period_type !== "CUSTOM" && <span className="text-gray-400 text-xs">(auto-calculated)</span>}
-            </label>
-            <div className="flex justify-center w-full">
-              <input
-                type="date"
-                name="start_date"
-                value={formData.start_date}
-                onChange={onChange}
-                className="w-full max-w-md border text-gray-500 border-gray-300 rounded-lg p-1 focus:outline-none focus:ring-1 focus:ring-blue-400 focus:border-blue-400"
-              />
-            </div>
-          </div>
+          {/* ANNUAL AMOUNT INPUT (for annual-based mode) */}
+          {useAnnualMode && (
+            <>
+              <div className="flex flex-col gap-1">
+                <label className="text-sm font-medium text-gray-700 text-left">
+                  Annual Target Amount <span className="text-red-500">*</span>
+                </label>
+                <div className="flex justify-center w-full">
+                  <input
+                    type="number"
+                    name="annual_amount"
+                    placeholder="e.g., 12000000 for 12M"
+                    value={formData.annual_amount}
+                    onChange={onChange}
+                    required
+                    className={`w-full max-w-md border rounded-lg p-2 text-gray-700 focus:outline-none focus:ring-1
+                      ${
+                        annualAmountError
+                          ? "border-red-500 focus:ring-red-400 focus:border-red-400"
+                          : "border-gray-300 focus:ring-blue-400 focus:border-blue-400"
+                      }`}
+                  />
+                </div>
+                <p className="text-xs text-gray-500 mt-1">
+                  Enter the full year target. It will be automatically divided based on the period type.
+                </p>
+              </div>
 
-          <div className="flex flex-col gap-1">
-            <label className="text-sm font-medium text-gray-700 text-left">
-              End Date
-            </label>
-            <div className="flex justify-center w-full">
-              <input
-                type="date"
-                name="end_date"
-                value={formData.end_date}
-                onChange={onChange}
-                className="w-full max-w-md border text-gray-500 border-gray-300 rounded-lg p-1 focus:outline-none focus:ring-1 focus:ring-blue-400 focus:border-blue-400"
-              />
+              {/* Period Amount Preview */}
+              {formData.annual_amount && Number(formData.annual_amount) > 0 && (
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                  <p className="text-sm font-medium text-blue-800 mb-2">Period Breakdown:</p>
+                  <div className="grid grid-cols-2 gap-2 text-sm">
+                    <div className="text-gray-600">Annual:</div>
+                    <div className="text-right font-semibold text-gray-900">
+                      {Number(formData.annual_amount).toLocaleString()}
+                    </div>
+                    
+                    {formData.period_type === "MONTHLY" && (
+                      <>
+                        <div className="text-gray-600">Monthly ({formData.period_type}):</div>
+                        <div className="text-right font-semibold text-green-600">
+                          {(Number(formData.annual_amount) / 12).toLocaleString(undefined, {maximumFractionDigits: 2})}
+                        </div>
+                      </>
+                    )}
+                    {formData.period_type === "QUARTERLY" && (
+                      <>
+                        <div className="text-gray-600">Quarterly:</div>
+                        <div className="text-right font-semibold text-green-600">
+                          {(Number(formData.annual_amount) / 4).toLocaleString(undefined, {maximumFractionDigits: 2})}
+                        </div>
+                      </>
+                    )}
+                    {formData.period_type === "SEMIANNUAL" && (
+                      <>
+                        <div className="text-gray-600">Semi-Annual:</div>
+                        <div className="text-right font-semibold text-green-600">
+                          {(Number(formData.annual_amount) / 2).toLocaleString(undefined, {maximumFractionDigits: 2})}
+                        </div>
+                      </>
+                    )}
+                    {formData.period_type === "ANNUAL" && (
+                      <>
+                        <div className="text-gray-600">Full Year:</div>
+                        <div className="text-right font-semibold text-green-600">
+                          {Number(formData.annual_amount).toLocaleString(undefined, {maximumFractionDigits: 2})}
+                        </div>
+                      </>
+                    )}
+                  </div>
+                  <p className="text-xs text-blue-600 mt-2">
+                    * First period may be prorated if starting mid-period
+                  </p>
+                </div>
+              )}
+
+              {/* Proration Toggle */}
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id="prorate_first_period"
+                  name="prorate_first_period"
+                  checked={formData.prorate_first_period !== false}
+                  onChange={(e) => onChange({ target: { name: "prorate_first_period", value: e.target.checked } })}
+                  className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                />
+                <label htmlFor="prorate_first_period" className="text-sm text-gray-700">
+                  Prorate first period based on remaining days
+                </label>
+              </div>
+            </>
+          )}
+
+          {/* MANUAL FIELDS (only for custom mode or editing) */}
+          {showManualFields && (
+            <div className="flex flex-col gap-1">
+              <label className="text-sm font-medium text-gray-700 text-left">
+                Target Amount <span className="text-red-500">*</span>
+              </label>
+              <div className="flex justify-center w-full">
+                <input
+                  type="number"
+                  name="target_amount"
+                  placeholder="0.00"
+                  value={formData.target_amount}
+                  onChange={onChange}
+                  required
+                  className={`w-full max-w-md border rounded-lg p-2 text-gray-700 focus:outline-none focus:ring-1
+                    ${
+                      targetAmountError
+                        ? "border-red-500 focus:ring-red-400 focus:border-red-400"
+                        : "border-gray-300 focus:ring-blue-400 focus:border-blue-400"
+                    }`}
+                />
+              </div>
             </div>
-          </div>
+          )}
+
+          {showManualFields && (
+            <>
+              <div className="flex flex-col gap-1">
+                <label className="text-sm font-medium text-gray-700 text-left">
+                  Start Date
+                </label>
+                <div className="flex justify-center w-full">
+                  <input
+                    type="date"
+                    name="start_date"
+                    value={formData.start_date}
+                    onChange={onChange}
+                    className="w-full max-w-md border text-gray-500 border-gray-300 rounded-lg p-1 focus:outline-none focus:ring-1 focus:ring-blue-400 focus:border-blue-400"
+                  />
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-1">
+                <label className="text-sm font-medium text-gray-700 text-left">
+                  End Date
+                </label>
+                <div className="flex justify-center w-full">
+                  <input
+                    type="date"
+                    name="end_date"
+                    value={formData.end_date}
+                    onChange={onChange}
+                    className="w-full max-w-md border text-gray-500 border-gray-300 rounded-lg p-1 focus:outline-none focus:ring-1 focus:ring-blue-400 focus:border-blue-400"
+                  />
+                </div>
+              </div>
+            </>
+          )}
 
           <div className="flex justify-end gap-3 mt-4">
             <button
@@ -1966,7 +2270,7 @@ function FormModal({
               disabled={isSubmitting}
               className="bg-tertiary text-white px-5 py-2 rounded-lg hover:bg-tertiary/90 disabled:opacity-50"
             >
-              {isSubmitting ? "Saving..." : "Save Target"}
+              {isSubmitting ? "Saving..." : isEditing ? "Update Target" : "Create Targets"}
             </button>
           </div>
         </form>

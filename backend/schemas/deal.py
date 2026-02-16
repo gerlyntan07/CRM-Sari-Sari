@@ -83,6 +83,7 @@ class DealResponse(DealBase):
     deal_id: Optional[str] = None
     created_at: datetime
     updated_at: Optional[datetime] = None    
+    status: Optional[str] = None
     
     # ✅ 🆕 The Missing Link for your "Bottleneck" view
     stage_updated_at: Optional[datetime] = None 

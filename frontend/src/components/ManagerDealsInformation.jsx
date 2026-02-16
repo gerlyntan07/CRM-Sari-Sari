@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { FiX, FiPhone, FiMail, FiCalendar, FiFileText, FiEdit2, FiTrash2 } from "react-icons/fi";
+import { FiX, FiPhone, FiMail, FiCalendar, FiFileText, FiEdit2, FiArchive } from "react-icons/fi";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import ManagerDealsQuickAction from "../components/ManagerDealsQuickAction";
 import api from "../api";
@@ -161,7 +161,7 @@ export default function ManagerDealsInformation({
 
       <p className="text-xs text-gray-500 break-words"> {selectedDeal.probability}% Complete </p>
 
-      {(selectedDeal.created_by === user?.id || selectedDeal.assigned_to === user?.id) && (
+      {selectedDeal.deal_creator?.id === user?.id && (
         <div className="flex items-center gap-2 sm:gap-3 mt-3">
         <button
           type="button"
@@ -183,10 +183,10 @@ export default function ManagerDealsInformation({
               onDelete(selectedDeal);
             }
           }}
-          className="inline-flex items-center justify-center px-3 sm:px-4 py-1.5 sm:py-2 rounded-md text-sm bg-red-500 text-white hover:bg-red-600 transition focus:outline-none focus:ring-2 focus:ring-red-400"
+          className="inline-flex items-center justify-center px-3 sm:px-4 py-1.5 sm:py-2 rounded-md text-sm bg-orange-500 text-white hover:bg-orange-600 transition focus:outline-none focus:ring-2 focus:ring-orange-400"
         >
-          <FiTrash2 className="mr-1 sm:mr-2" size={16} />
-          <span className="hidden sm:inline">Delete</span>
+          <FiArchive className="mr-1 sm:mr-2" size={16} />
+          <span className="hidden sm:inline">Archive</span>
         </button>
       </div>
       )}      

@@ -580,13 +580,13 @@ export default function AdminDeals() {
         if (e.target.id === "modalBackdrop") closeModal();
     };
 
-    const prospecting = (deals ?? []).filter((d) => d.stage === "PROSPECTING").length;
-    const qualification = (deals ?? []).filter((d) => d.stage === "QUALIFICATION").length;
-    const proposal = (deals ?? []).filter((d) => d.stage === "PROPOSAL").length;
-    const negotiation = (deals ?? []).filter((d) => d.stage === "NEGOTIATION").length;
-    const closedWon = (deals ?? []).filter((d) => d.stage === "CLOSED_WON").length;
-    const closedLost = (deals ?? []).filter((d) => d.stage === "CLOSED_LOST").length;
-    const closedCancelled = (deals ?? []).filter((d) => d.stage === "CLOSED_CANCELLED").length;
+    const prospecting = (deals ?? []).filter((d) => d.stage === "PROSPECTING" && d.status !== "Inactive").length;
+    const qualification = (deals ?? []).filter((d) => d.stage === "QUALIFICATION" && d.status !== "Inactive").length;
+    const proposal = (deals ?? []).filter((d) => d.stage === "PROPOSAL" && d.status !== "Inactive").length;
+    const negotiation = (deals ?? []).filter((d) => d.stage === "NEGOTIATION" && d.status !== "Inactive").length;
+    const closedWon = (deals ?? []).filter((d) => d.stage === "CLOSED_WON" && d.status !== "Inactive").length;
+    const closedLost = (deals ?? []).filter((d) => d.stage === "CLOSED_LOST" && d.status !== "Inactive").length;
+    const closedCancelled = (deals ?? []).filter((d) => d.stage === "CLOSED_CANCELLED" && d.status !== "Inactive").length;
 
 
     const metricCards = [
@@ -730,7 +730,7 @@ export default function AdminDeals() {
                             <th className="py-3 px-4 truncate">Deal Name</th>
                             <th className="py-3 px-4">Account</th>
                             <th className="py-3 px-4">Contact</th>
-                            <th className="py-3 px-4">Stage</th>
+                            <th className="py-3 px-4">Stage/Status</th>
                             <th className="py-3 px-4">Value</th>
                             <th className="py-3 px-4">Close Date</th>
                             <th className="py-3 px-4">Owner</th>
@@ -792,9 +792,15 @@ export default function AdminDeals() {
                                             : deal.contact?.first_name || deal.contact?.last_name || "--"}
                                     </td>
                                     <td className="py-3 px-4">
-                                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStageBadgeClasses(deal.stage)}`}>
-                                            {formatStageName(deal.stage)}
-                                        </span>
+                                        {deal.status === "Inactive" ? (
+                                            <span className="px-2 py-1 rounded-full text-xs font-medium bg-gray-300 text-gray-800">
+                                                Inactive
+                                            </span>
+                                        ) : (
+                                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStageBadgeClasses(deal.stage)}`}>
+                                                {formatStageName(deal.stage)}
+                                            </span>
+                                        )}
                                     </td>
                                     <td className="py-3 px-4 text-gray-800 font-medium text-sm">
                                         ₱ {deal.amount?.toLocaleString() || "0"}

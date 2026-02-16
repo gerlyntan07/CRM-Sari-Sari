@@ -6,7 +6,7 @@ import {
     FiTrendingUp,
     FiCheckCircle,
     FiXCircle,
-    FiTrash2,
+    FiArchive,
     FiX,
     FiPlus
 } from "react-icons/fi";
@@ -17,6 +17,7 @@ import PaginationControls from "../components/PaginationControls.jsx";
 import ManagerDealsInformation from "../components/ManagerDealsInformation";
 import LoadingSpinner from "../components/LoadingSpinner.jsx";
 import { useLocation, useNavigate } from "react-router-dom";
+import useFetchUser from "../hooks/useFetchUser";
 
 export default function ManagerDeals() {
     useEffect(() => {
@@ -46,6 +47,9 @@ export default function ManagerDeals() {
     const [users, setUsers] = useState([]);
     const [relatedActs, setRelatedActs] = useState({});
     const [pendingDealId, setPendingDealId] = useState(null);
+    const [selectedDealIds, setSelectedDealIds] = useState(new Set());
+    const [bulkDeleting, setBulkDeleting] = useState(false);
+    const {user: currentUser} = useFetchUser();
 
   useEffect(() => {
     const state = location.state;
@@ -400,23 +404,72 @@ export default function ManagerDeals() {
         });
     };
 
+    const handleSelectDeal = (dealId) => {
+        const deal = paginatedDeals?.find(d => d.id === dealId);
+        if (deal && deal.deal_creator?.id === currentUser?.id) {
+            setSelectedDealIds((prev) => {
+                const newSet = new Set(prev);
+                if (newSet.has(dealId)) {
+                    newSet.delete(dealId);
+                } else {
+                    newSet.add(dealId);
+                }
+                return newSet;
+            });
+        }
+    };
+
+    const handleSelectAll = () => {
+        const selectableDeals = paginatedDeals?.filter(
+            (d) => d.deal_creator?.id === currentUser?.id
+        ) || [];
+        if (selectedDealIds.size === selectableDeals.length && selectableDeals.length > 0) {
+            setSelectedDealIds(new Set());
+        } else {
+            setSelectedDealIds(new Set(selectableDeals.map((d) => d.id)));
+        }
+    };
+
+    const handleBulkArchive = () => {
+        if (selectedDealIds.size === 0) return;
+
+        const selectedCount = selectedDealIds.size;
+        setConfirmModalData({
+            title: "Archive Deals",
+            message: (
+                <span>
+                    Are you sure you want to archive{" "}
+                    <span className="font-semibold">{selectedCount}</span> deal
+                    {selectedCount !== 1 ? "s" : ""}? You can restore them later if needed.
+                </span>
+            ),
+            confirmLabel: `Archive ${selectedCount} Deal${selectedCount !== 1 ? "s" : ""}`,
+            cancelLabel: "Cancel",
+            variant: "archive",
+            action: {
+                type: "bulk-archive",
+                targetIds: Array.from(selectedDealIds),
+                count: selectedCount,
+            },
+        });
+    };
+
     const handleDeleteDeal = (deal) => {
         if (!deal) return;
         const name = deal.name || "this deal";
         setConfirmModalData({
-            title: "Delete Deal",
+            title: "Archive Deal",
             message: (
                 <span>
-                    Are you sure you want to permanently delete{" "}
-                    <span className="font-semibold">{name}</span>? This action cannot be
-                    undone.
+                    Are you sure you want to archive{" "}
+                    <span className="font-semibold">{name}</span>? You can restore it later if needed.
                 </span>
             ),
-            confirmLabel: "Delete Deal",
+            confirmLabel: "Archive Deal",
             cancelLabel: "Cancel",
-            variant: "danger",
+            variant: "archive",
             action: {
-                type: "delete",
+                type: "archive",
                 targetId: deal.id,
                 name,
             },
@@ -487,6 +540,30 @@ export default function ManagerDeals() {
                     setSelectedDeal(null);
                 }
                 await fetchDeals();
+            } else if (type === "archive") {
+                if (!targetId) {
+                    throw new Error("Missing deal identifier for archive.");
+                }
+                await api.put(`/deals/single-archive/${targetId}`);
+                toast.success(`Deal "${name}" archived successfully.`);
+                if (selectedDeal?.id === targetId) {
+                    setSelectedDeal(null);
+                }
+                await fetchDeals();
+            } else if (type === "bulk-archive") {
+                setBulkDeleting(true);
+                if (!action.targetIds || action.targetIds.length === 0) {
+                    throw new Error("No deals selected for archiving.");
+                }
+                await api.put(`/deals/bulk-archive`, {
+                    deal_ids: action.targetIds,
+                });
+                toast.success(`${action.count} deal${action.count !== 1 ? "s" : ""} archived successfully.`);
+                setSelectedDealIds(new Set());
+                if (selectedDeal && action.targetIds.includes(selectedDeal.id)) {
+                    setSelectedDeal(null);
+                }
+                await fetchDeals();
             }
         } catch (err) {
             console.error(err);
@@ -495,12 +572,19 @@ export default function ManagerDeals() {
                     ? "Failed to create deal. Please review the details and try again."
                     : type === "update"
                         ? "Failed to update deal. Please review the details and try again."
-                        : "Failed to delete deal. Please try again.";
+                        : type === "bulk-archive"
+                            ? "Failed to archive deals. Please try again."
+                            : type === "archive"
+                                ? "Failed to archive deal. Please try again."
+                                : "Failed to delete deal. Please try again.";
             const message = err.response?.data?.detail || defaultMessage;
             toast.error(message);
         } finally {
             if (type === "create" || type === "update") {
                 setIsSubmitting(false);
+            }
+            if (type === "bulk-archive") {
+                setBulkDeleting(false);
             }
             setConfirmProcessing(false);
             setConfirmModalData(null);
@@ -672,6 +756,18 @@ export default function ManagerDeals() {
                 <table className="w-full min-w-[500px] border border-gray-200 rounded-lg bg-white shadow-sm text-sm">
                     <thead className="bg-gray-100 text-left text-gray-600 text-sm tracking-wide font-semibold">
                         <tr>
+                            <th className="py-3 px-4 w-12">
+                                <input
+                                    type="checkbox"
+                                    checked={
+                                        selectedDealIds.size > 0 &&
+                                        selectedDealIds.size === paginatedDeals?.filter(d => d.deal_creator?.id === currentUser?.id).length &&
+                                        paginatedDeals?.filter(d => d.deal_creator?.id === currentUser?.id).length > 0
+                                    }
+                                    onChange={handleSelectAll}
+                                    className="w-4 h-4 cursor-pointer"
+                                />
+                            </th>
                             <th className="py-3 px-4">Deal ID</th>
                             <th className="py-3 px-4 truncate">Deal Name</th>
                             <th className="py-3 px-4">Account</th>
@@ -680,6 +776,18 @@ export default function ManagerDeals() {
                             <th className="py-3 px-4">Value</th>
                             <th className="py-3 px-4">Close Date</th>
                             <th className="py-3 px-4">Owner</th>
+                            <th className="py-3 px-4 w-12">
+                                {selectedDealIds.size > 0 && (
+                                    <button
+                                        onClick={handleBulkArchive}
+                                        className="text-orange-500 hover:text-orange-700 transition"
+                                        title="Archive selected deals"
+                                        disabled={bulkDeleting}
+                                    >
+                                        <FiArchive size={18} />
+                                    </button>
+                                )}
+                            </th>
                         </tr>
                     </thead>
                     <tbody>
@@ -694,6 +802,22 @@ export default function ManagerDeals() {
                                         fetchRelatedActivities(deal.id);
                                     }}
                                 >
+                                    <td className="py-3 px-4">
+                                        {currentUser?.id === deal.deal_creator?.id && (
+                                            <input
+                                                type="checkbox"
+                                                checked={selectedDealIds.has(deal.id)}
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                }}
+                                                onChange={(e) => {
+                                                    e.stopPropagation();
+                                                    handleSelectDeal(deal.id);
+                                                }}
+                                                className="w-4 h-4 cursor-pointer"
+                                            />
+                                        )}
+                                    </td>
                                     <td className="py-3 px-4 text-gray-800 font-medium text-sm">
                                         {deal.deal_id ? deal.deal_id.replace(/D(\d+)-\d+-/, "D$1-") : "--"}
                                     </td>
@@ -829,7 +953,9 @@ function ConfirmationModal({
     const confirmClasses =
         variant === "danger"
             ? "bg-red-500 hover:bg-red-600 border border-red-400"
-            : "bg-tertiary hover:bg-secondary border border-tertiary";
+            : variant === "archive"
+                ? "bg-orange-500 hover:bg-orange-600 border border-orange-400"
+                : "bg-tertiary hover:bg-secondary border border-tertiary";
 
     return (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-[10000]">

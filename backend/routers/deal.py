@@ -9,11 +9,12 @@ from database import get_db
 from schemas.deal import DealBase, DealResponse, DealCreate, DealUpdate, DealBulkDelete
 from .auth_utils import get_current_user
 from models.auth import User
-from models.deal import Deal, DealStage, STAGE_PROBABILITY_MAP
+from models.deal import Deal, DealStage, DealStatus, STAGE_PROBABILITY_MAP
 from models.account import Account
 from models.contact import Contact
 from .logs_utils import serialize_instance, create_audit_log
 from .ws_notification import broadcast_notification
+from sqlalchemy.orm import joinedload
 from sqlalchemy.orm import joinedload
 from models.territory import Territory
 
@@ -150,10 +151,12 @@ def admin_get_deals(
     current_user: User = Depends(get_current_user),
 ):
     if current_user.role.upper() in ["CEO", "ADMIN"]:
+        # Admin users can see all deals including archived ones
         deals = (
             db.query(Deal)
             .join(User, Deal.assigned_to == User.id)
             .filter(User.related_to_company == current_user.related_to_company)
+            .options(joinedload(Deal.deal_creator))
             .all()
         )
     elif current_user.role.upper() == "GROUP MANAGER":
@@ -162,6 +165,8 @@ def admin_get_deals(
             .join(User, Deal.assigned_to == User.id)
             .filter(User.related_to_company == current_user.related_to_company)
             .filter(~User.role.in_(["CEO", "Admin"]))
+            .filter(Deal.status != DealStatus.INACTIVE.value)
+            .options(joinedload(Deal.deal_creator))
             .all()
         )
     elif current_user.role.upper() == "MANAGER":
@@ -179,7 +184,10 @@ def admin_get_deals(
                 (User.id.in_(subquery_user_ids)) | 
                 (Deal.assigned_to == current_user.id) |
                 (Deal.created_by == current_user.id)
-            ).all()
+            )
+            .filter(Deal.status != DealStatus.INACTIVE.value)
+            .options(joinedload(Deal.deal_creator))
+            .all()
         )
     else:
         deals = (
@@ -187,7 +195,10 @@ def admin_get_deals(
             .filter(
                 (Deal.assigned_to == current_user.id) | 
                 (Deal.created_by == current_user.id)
-            ).all()
+            )
+            .filter(Deal.status != DealStatus.INACTIVE.value)
+            .options(joinedload(Deal.deal_creator))
+            .all()
         )
 
     return deals
@@ -497,6 +508,106 @@ def admin_bulk_delete_deals(
     db.commit()
 
     return {"detail": f"Successfully deleted {deleted_count} deal(s)."}
+
+
+@router.put("/bulk-archive", status_code=status.HTTP_200_OK)
+def bulk_archive_deals(
+    data: DealBulkDelete,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    request: Request = None
+):
+    """Bulk archive deals - All non-admin roles (GROUP MANAGER, MANAGER, SALES) can only archive deals they created"""
+    from models.deal import DealStatus
+    
+    # Only non-admin roles can use this endpoint
+    if current_user.role.upper() not in ["GROUP MANAGER", "MANAGER", "SALES"]:
+        raise HTTPException(status_code=403, detail="Permission denied - only non-admin roles can archive deals")
+
+    if not data.deal_ids:
+        return {"detail": "No deals provided for archiving."}
+
+    # All non-admin roles can only archive their own deals
+    deals_to_archive = db.query(Deal).filter(
+        Deal.id.in_(data.deal_ids),
+        Deal.created_by == current_user.id
+    ).all()
+
+    if not deals_to_archive:
+        raise HTTPException(status_code=404, detail="No matching deals found for archiving.")
+
+    archived_count = 0
+    for deal in deals_to_archive:
+        old_data = serialize_instance(deal)
+        deal_name = deal.name
+        
+        # Mark as INACTIVE instead of hard delete
+        deal.status = DealStatus.INACTIVE.value
+        db.flush()
+        new_data = serialize_instance(deal)
+        
+        create_audit_log(
+            db=db,
+            current_user=current_user,
+            instance=deal,
+            action="UPDATE",
+            request=request,
+            old_data=old_data,
+            new_data=new_data,
+            custom_message=f"archive deal '{deal_name}'"
+        )
+        archived_count += 1
+
+    db.commit()
+
+    return {"detail": f"Successfully archived {archived_count} deal(s)."}
+
+
+@router.put("/single-archive/{deal_id}", status_code=status.HTTP_200_OK)
+def archive_single_deal(
+    deal_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    request: Request = None
+):
+    """Archive a single deal - Only non-admin roles (GROUP MANAGER, MANAGER, SALES) can archive deals they created"""
+    from models.deal import DealStatus
+    
+    # Only non-admin roles can use this endpoint
+    if current_user.role.upper() not in ["GROUP MANAGER", "MANAGER", "SALES"]:
+        raise HTTPException(status_code=403, detail="Permission denied - only non-admin roles can archive deals")
+
+    # Non-admin roles can only archive deals they created
+    deal = db.query(Deal).filter(
+        Deal.id == deal_id,
+        Deal.created_by == current_user.id
+    ).first()
+
+    if not deal:
+        raise HTTPException(status_code=404, detail="Deal not found or you don't have permission to archive it.")
+
+    old_data = serialize_instance(deal)
+    deal_name = deal.name
+    
+    # Mark as INACTIVE instead of hard delete
+    deal.status = DealStatus.INACTIVE.value
+    db.flush()
+    new_data = serialize_instance(deal)
+    
+    create_audit_log(
+        db=db,
+        current_user=current_user,
+        instance=deal,
+        action="UPDATE",
+        request=request,
+        old_data=old_data,
+        new_data=new_data,
+        custom_message=f"archive deal '{deal_name}'"
+    )
+    
+    db.commit()
+
+    return {"detail": f"Deal '{deal_name}' archived successfully."}
 
 
 @router.delete("/admin/{deal_id}", status_code=status.HTTP_200_OK)

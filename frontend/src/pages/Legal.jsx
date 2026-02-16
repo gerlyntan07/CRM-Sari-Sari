@@ -99,7 +99,7 @@ const TermsModal = ({ isOpen, onClose }) => {
       title: "Support & Reporting",
       content: [
         "Questions or concerns regarding System use should be directed to:",
-        <strong key="dept">CRM Administration</strong>,
+        <strong key="dept">Sari-Sari CRM Administration</strong>,
     <a
       key="email"
       href="https://www.sari-sari.com/"
@@ -175,6 +175,7 @@ const TermsModal = ({ isOpen, onClose }) => {
     </div>
   );
 };
+
 
 // --- Privacy Policy Modal ---  
 
@@ -258,7 +259,7 @@ const PrivacyModal = ({ isOpen, onClose }) => {
         "By using Sari-Sari CRM, your organization acknowledges and agrees that:",
         "• Your organization is the Data Controller of all business and personal data entered into the CRM. \n• We implement technical and organizational measures to ensure data confidentiality, integrity, and security.\n• Developer access to business transaction data is strictly restricted and logged, and we will not use or disclose your organization's business data for any purpose other than providing and maintaining the CRM services."
       ]
-    },
+    }
     // {
     //   number: "11",
     //   title: "Changes to This Policy",
@@ -327,6 +328,252 @@ Sari-Sari CRM provides a B2B CRM platform designed to help manage businesses. Pr
   );
 };
 
+// --- SLA Modal ---  
+
+const SlaModal = ({ isOpen, onClose }) => {
+  if (!isOpen) return null;
+
+  const slaContent = [
+    {
+      number: "1",
+      title: "Purpose",
+      content: [
+        "This Service Level Agreement (\"SLA\") defines the service standards, availability commitments, support expectations, and responsibilities associated with the use of Sari-Sari CRM, a business-to-business customer relationship management platform."
+      ]
+      },
+    {
+      number: "2",
+      title: "Service Availability",
+      content: [
+        "We work to keep the CRM available 99.5% of the time each month so your team can manage work without interruption.",
+        "Planned maintenance is announced in advance whenever possible. Emergency maintenance may happen if needed to keep the system secure and stable.",
+        "Downtime caused by scheduled maintenance, internet or third-party issues, user device problems, or events outside our control is not included in availability targets."
+      ]
+    },
+    {
+      number: "3",
+      title: "Performance Standards",
+      content: [
+        "The CRM platform is designed to:",
+        "• Provide consistent access to business records and sales workflows\n• Support role-based system operations",
+        "Performance may vary depending on user device, internet connection, and data volume."
+      ]
+    },
+    {
+      number: "4",
+      title: "Data Protection & Confidentiality",
+      content: [
+        "We prioritize business data security:",
+        "• Access to CRM data is restricted to authorized organizational users\n• Developers and internal staff do not access business transaction data\n• Security safeguards are implemented to protect confidentiality and integrity"
+      ]
+    },
+    {
+      number: "5",
+      title: "Incident Management",
+      content: [
+        "If a service disruption occurs:",
+        "• Issues are logged and prioritized based on severity\n• Mitigation steps are started as quickly as possible\n• Users are informed of significant incidents when appropriate"
+      ]
+    },
+    {
+      number: "6",
+      title: "Customer Responsibilities",
+      content: [
+        "Organizations using the CRM agree to:",
+        "• Maintain secure login credentials\n• Use the system in accordance with assigned roles\n• Report issues promptly\n• Ensure stable internet and device compatibility"
+      ]
+    },
+    {
+      number: "7",
+      title: "Maintenance & Updates",
+      content: [
+        "We may perform:",
+        "• Routine maintenance\n• Security updates\n• Feature improvements",
+        "Maintenance may temporarily affect availability."
+      ]
+    },
+    {
+      number: "8",
+      title: "Limitations",
+      content: [
+        "Service commitments do not apply to disruptions caused by:",
+        "• User misuse or unauthorized modifications\n• Third-party service failures\n• Network or infrastructure outside our control"
+      ]
+    },
+    {
+      number: "9",
+      title: "Review & Modification",
+      content: [
+        "This SLA may be updated to reflect service improvements or operational changes. Continued use of the CRM indicates acceptance of updates."
+      ]
+    }
+  ];
+
+  return (
+    <div className="fixed inset-0 bg-black/40 bg-opacity-40 z-50 flex items-center justify-center p-4" onClick={onClose}>
+      <div className="bg-white rounded-lg max-w-5xl w-full max-h-[90vh] overflow-hidden" onClick={(e) => e.stopPropagation()}>
+        <div className="sticky top-0 bg-secondary text-white px-8 py-6 flex items-center justify-between border-b border-accent">
+          <div>
+            <h2 className="text-3xl font-bold">Service Level Agreement</h2>
+          </div>
+          <button 
+            onClick={onClose}
+            className="text-white hover:text-accent transition-colors text-4xl leading-none"
+          >
+            ×
+          </button>
+        </div>
+        
+        <div className="overflow-y-auto max-h-[calc(90vh-120px)] px-8 py-6 scrollbar-hide">
+          <p className="text-gray-700 mb-6 leading-relaxed">
+            This Service Level Agreement defines the service standards, availability commitments, support expectations, and responsibilities associated with the use of Sari-Sari CRM.
+          </p>
+
+          <div className="space-y-6">
+            {slaContent.map((section, index) => (
+              <div key={index} className="border-l-4 border-accent pl-6 py-2">
+                <h3 className="text-xl font-semibold text-secondary mb-2">
+                  {section.number}. {section.title}
+                </h3>
+                {section.content.map((paragraph, pIndex) => (
+                  <p 
+                    key={pIndex} 
+                    className="text-gray-700 mb-2 leading-relaxed whitespace-pre-line text-sm"
+                  >
+                    {paragraph}
+                  </p>
+                ))}
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-8 pt-6 mb-10 border-t border-gray-200">
+            <p className="text-gray-600 text-xs leading-relaxed text-center">
+              This SLA may be updated to reflect service improvements or operational changes. Continued use of the CRM indicates acceptance of updates.
+            </p>
+          </div>
+        </div>
+
+        <div className="sticky bottom-0 bg-gray-50 px-8 py-4 border-t border-gray-200">
+          <button 
+            onClick={onClose}
+            className="w-full bg-accent text-white px-6 py-3 rounded-lg font-semibold hover:bg-secondary transition-colors"
+          >
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// --- Compliance Modal ---  
+
+const ComplianceModal = ({ isOpen, onClose }) => {
+  if (!isOpen) return null;
+
+  const complianceContent = [
+    {
+      number: "1",
+      title: "Data Privacy Compliance",
+      content: [
+        "Our platform is built to align with applicable data protection regulations, including:",
+        "• Philippine Data Privacy Act (RA 10173)\n• Applicable international privacy standards where required",
+        "We support lawful collection, processing, and storage of business and personal information handled within the CRM."
+      ]
+    },
+    {
+      number: "2",
+      title: "Access & Confidentiality Controls",
+      content: [
+        "We enforce role-based access controls to ensure that only authorized users within an organization can view or manage business data such as leads, contacts, accounts, deals, and quotes.",
+        "Developer and internal access is restricted to system maintenance and operational support under controlled conditions."
+      ]
+    },
+    {
+      number: "3",
+      title: "Security Practices",
+      content: [
+        "We implement reasonable administrative, technical, and organizational safeguards designed to:",
+        "• Protect data confidentiality\n• Prevent unauthorized access\n• Maintain system integrity\n• Support operational reliability",
+        "Security measures are reviewed and improved as part of ongoing system maintenance."
+      ]
+    },
+    {
+      number: "4",
+      title: "Operational Compliance",
+      content: [
+        "The CRM follows structured operational processes to support:",
+        "• System availability and maintenance standards\n• Incident management and issue resolution\n• Data handling accountability\n• Responsible service delivery"
+      ]
+    },
+    {
+      number: "5",
+      title: "Continuous Improvement",
+      content: [
+        "Compliance and security practices are regularly evaluated to adapt to evolving regulatory expectations and technology standards."
+      ]
+    }
+  ];
+
+  return (
+    <div className="fixed inset-0 bg-black/40 bg-opacity-40 z-50 flex items-center justify-center p-4" onClick={onClose}>
+      <div className="bg-white rounded-lg max-w-5xl w-full max-h-[90vh] overflow-hidden" onClick={(e) => e.stopPropagation()}>
+        <div className="sticky top-0 bg-secondary text-white px-8 py-6 flex items-center justify-between border-b border-accent">
+          <div>
+            <h2 className="text-3xl font-bold">Compliance Standards & Commitments</h2>
+          </div>
+          <button 
+            onClick={onClose}
+            className="text-white hover:text-accent transition-colors text-4xl leading-none"
+          >
+            ×
+          </button>
+        </div>
+        
+        <div className="overflow-y-auto max-h-[calc(90vh-120px)] px-8 py-6 scrollbar-hide">
+          <p className="text-gray-700 mb-6 leading-relaxed">
+            Sari-Sari CRM is designed to support responsible business data management while aligning with recognized privacy, security, and operational best practices. We are committed to maintaining safeguards that protect customer and organizational information.
+          </p>
+
+          <div className="space-y-6">
+            {complianceContent.map((section, index) => (
+              <div key={index} className="border-l-4 border-accent pl-6 py-2">
+                <h3 className="text-xl font-semibold text-secondary mb-2">
+                  {section.number}. {section.title}
+                </h3>
+                {section.content.map((paragraph, pIndex) => (
+                  <p 
+                    key={pIndex} 
+                    className="text-gray-700 mb-2 leading-relaxed whitespace-pre-line text-sm"
+                  >
+                    {paragraph}
+                  </p>
+                ))}
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-8 pt-6 mb-10 border-t border-gray-200">
+            <p className="text-gray-600 text-xs leading-relaxed text-center">
+              Compliance and security practices are regularly evaluated to adapt to evolving regulatory expectations and technology standards.
+            </p>
+          </div>
+        </div>
+
+        <div className="sticky bottom-0 bg-gray-50 px-8 py-4 border-t border-gray-200">
+          <button 
+            onClick={onClose}
+            className="w-full bg-accent text-white px-6 py-3 rounded-lg font-semibold hover:bg-secondary transition-colors"
+          >
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 // --- Legal Header ---
 const LegalHeader = () => (
   <header className="bg-secondary text-white py-4 border-b border-accent">
@@ -352,6 +599,9 @@ const LegalHeader = () => (
 const Legal = () => {
   const [isTermsOpen, setIsTermsOpen] = useState(false);
   const [isPrivacyOpen, setIsPrivacyOpen] = useState(false);
+  const [isSlaOpen, setIsSlaOpen] = useState(false);
+  const [isComplianceOpen, setIsComplianceOpen] = useState(false);
+  
 
   useEffect(() => {
     document.title = "Legal - Sari-Sari CRM";
@@ -369,22 +619,24 @@ const Legal = () => {
       action: () => setIsPrivacyOpen(true),
     },
     {
-      title: "SLA",
+      title: "Service Level Agreement (SLA)",
       description: "Service level agreements and guarantees.",
-      link: "#",
+      action: () => setIsSlaOpen(true),
     },
     {
       title: "Compliance",
-      description: "Our compliance standards and certifications.",
-      link: "#",
+      description: "Our compliance standards.",
+      action: () => setIsComplianceOpen(true),
     },
   ];
 
   return (
-    <div className="font-inter">
+    <div className="font-manrope">
       <LegalHeader />
       <TermsModal isOpen={isTermsOpen} onClose={() => setIsTermsOpen(false)} />
       <PrivacyModal isOpen={isPrivacyOpen} onClose={() => setIsPrivacyOpen(false)} />
+      <SlaModal isOpen={isSlaOpen} onClose={() => setIsSlaOpen(false)} />
+      <ComplianceModal isOpen={isComplianceOpen} onClose={() => setIsComplianceOpen(false)} />
       <main className="bg-paper-white min-h-screen py-16">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <h1 className="text-5xl font-bold text-secondary mb-4">Legal</h1>

@@ -66,5 +66,6 @@ class User(Base):
     quotes_created = relationship("Quote", back_populates="creator", foreign_keys="[Quote.created_by]", cascade="all, delete-orphan")
 
     targets = relationship("Target", back_populates="user", foreign_keys="[Target.user_id]", cascade="all, delete-orphan")
+    created_targets = relationship("Target", back_populates="target_creator", foreign_keys="[Target.created_by]", cascade="all, delete-orphan")
     comments_created = relationship("Comment", back_populates="comment_creator", foreign_keys="[Comment.comment_by]", cascade="all, delete-orphan")
 

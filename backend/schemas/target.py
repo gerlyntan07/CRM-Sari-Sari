@@ -96,6 +96,8 @@ class TargetResponse(TargetBase):
     created_at: datetime
     updated_at: Optional[datetime] = None
     achieved_amount: Optional[Decimal] = None
+    created_by: Optional[int] = None
+    status: Optional[str] = None
 
     class Config:
         orm_mode = True

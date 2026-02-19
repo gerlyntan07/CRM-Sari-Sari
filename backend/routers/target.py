@@ -15,7 +15,7 @@ from schemas.target import (
 )
 from .auth_utils import get_current_user
 from models.auth import User
-from models.target import Target
+from models.target import Target, TargetStatus
 from models.territory import Territory
 from models.deal import Deal, DealStage
 from models.company import Company
@@ -105,6 +105,8 @@ def target_to_response(target: Target, db: Session = None) -> dict:
         "period_number": target.period_number,
         "created_at": target.created_at,
         "updated_at": target.updated_at,
+        "created_by": target.created_by,
+        "status": target.status,
         "achieved_amount": achieved_amount,
         "user": {
             "id": target.user.id,
@@ -264,14 +266,18 @@ def admin_get_targets(
             db.query(Target)
             .join(User, Target.user_id == User.id)
             .filter(User.related_to_company == current_user.related_to_company)
+            .order_by(Target.created_at.desc())
             .all()
         )
     elif current_user.role.upper() == "GROUP MANAGER":
+        # GROUP MANAGER sees all targets except archived ones (Inactive status)
         targets = (
             db.query(Target)
             .join(User, Target.user_id == User.id)
             .filter(User.related_to_company == current_user.related_to_company)
             .filter(~User.role.in_(["CEO", "Admin"]))
+            .filter((Target.status != TargetStatus.INACTIVE.value) | (Target.status.is_(None)))
+            .order_by(Target.created_at.desc())
             .all()
         )
     elif current_user.role.upper() == "MANAGER":
@@ -292,12 +298,15 @@ def admin_get_targets(
                     User.id.in_(managed_sales_user_ids) if managed_sales_user_ids else False,
                 ),
             )
+            .order_by(Target.created_at.desc())
             .all()
         )
     else:
         targets = (
             db.query(Target)
-            .filter(Target.user_id == current_user.id).all()
+            .filter(Target.user_id == current_user.id)
+            .order_by(Target.created_at.desc())
+            .all()
         )
 
     return [target_to_response(t, db) for t in targets]
@@ -457,6 +466,7 @@ def admin_create_target(
         period_type=data.period_type.value if data.period_type else "CUSTOM",
         period_year=data.period_year or data.start_date.year,
         period_number=data.period_number,
+        created_by=current_user.id,
     )
 
     db.add(new_target)
@@ -572,21 +582,46 @@ def admin_delete_target(
     if target.user.related_to_company != current_user.related_to_company:
         raise HTTPException(status_code=403, detail="Not authorized")
 
-    old_data = serialize_instance(target)
     user_name = f"{target.user.first_name} {target.user.last_name}"
+    target_user_id = target.user_id
+    
+    # GROUP MANAGER can only archive targets they created
+    if current_user.role.upper() == "GROUP MANAGER":
+        if target.created_by != current_user.id:
+            raise HTTPException(status_code=403, detail="You can only archive targets you created")
+        
+        # Soft delete (mark as INACTIVE)
+        old_status = target.status
+        target.status = TargetStatus.INACTIVE.value
+        db.commit()
 
-    db.delete(target)
-    db.commit()
+        create_audit_log(
+            db=db,
+            current_user=current_user,
+            instance=target,
+            action="UPDATE",
+            request=request,
+            old_data={"status": old_status},
+            new_data={"status": target.status},
+            target_user_id=target_user_id,
+            custom_message=f"archived target for {user_name}"
+        )
+    else:
+        # ADMIN/CEO perform hard delete
+        old_data = serialize_instance(target)
+        db.delete(target)
+        db.commit()
 
-    create_audit_log(
-        db=db,
-        current_user=current_user,
-        instance=target,
-        action="DELETE",
-        request=request,
-        old_data=old_data,
-        custom_message=f"deleted target for {user_name}"
-    )
+        create_audit_log(
+            db=db,
+            current_user=current_user,
+            instance=target,
+            action="DELETE",
+            request=request,
+            old_data=old_data,
+            target_user_id=target_user_id,
+            custom_message=f"deleted target for {user_name}"
+        )
 
     return None
 
@@ -619,24 +654,48 @@ def admin_bulk_delete_targets(
     if not targets_to_delete:
         raise HTTPException(status_code=404, detail="No matching targets found for deletion.")
 
+    # GROUP MANAGER can only archive targets they created
+    if current_user.role.upper() == "GROUP MANAGER":
+        for target in targets_to_delete:
+            if target.created_by != current_user.id:
+                raise HTTPException(status_code=403, detail="You can only archive targets you created")
+
     deleted_count = 0
     for target in targets_to_delete:
-        deleted_data = serialize_instance(target)
         target_name = f"target for user {target.user_id}"
         target_user_id = target.user_id
-
-        db.delete(target)
         
-        create_audit_log(
-            db=db,
-            current_user=current_user,
-            instance=target,
-            action="DELETE",
-            request=request,
-            old_data=deleted_data,
-            target_user_id=target_user_id,
-            custom_message=f"bulk delete target for user {target.user_id} via admin panel"
-        )
+        if current_user.role.upper() == "GROUP MANAGER":
+            # Soft delete (mark as INACTIVE)
+            old_status = target.status
+            target.status = TargetStatus.INACTIVE.value
+            
+            create_audit_log(
+                db=db,
+                current_user=current_user,
+                instance=target,
+                action="UPDATE",
+                request=request,
+                old_data={"status": old_status},
+                new_data={"status": target.status},
+                target_user_id=target_user_id,
+                custom_message=f"bulk archive target for user {target.user_id} via group manager panel"
+            )
+        else:
+            # ADMIN/CEO perform hard delete
+            deleted_data = serialize_instance(target)
+            db.delete(target)
+            
+            create_audit_log(
+                db=db,
+                current_user=current_user,
+                instance=target,
+                action="DELETE",
+                request=request,
+                old_data=deleted_data,
+                target_user_id=target_user_id,
+                custom_message=f"bulk delete target for user {target.user_id} via admin panel"
+            )
         deleted_count += 1
 
     db.commit()
@@ -1030,6 +1089,7 @@ def create_period_targets(
             period_type=period_type,
             period_year=year,
             period_number=period_number,
+            created_by=current_user.id,
         )
 
         db.add(new_target)
@@ -1059,7 +1119,8 @@ def create_period_targets_from_annual(
     period_number: int,
     fiscal_start_month: int,
     prorate_first_period: bool,
-    db: Session
+    db: Session,
+    created_by: int = None,
 ) -> List[dict]:
     """
     Generate target records for a user starting from generation_date.
@@ -1155,6 +1216,7 @@ def create_period_targets_from_annual(
             period_type=period_type,
             period_year=period_year,
             period_number=pn,
+            created_by=created_by,
         )
         db.add(new_target)
 
@@ -1241,7 +1303,8 @@ def create_annual_targets(
         period_number=selected_period_number,
         fiscal_start_month=fiscal_start_month,
         prorate_first_period=data.prorate_first_period,
-        db=db
+        db=db,
+        created_by=current_user.id,
     )
     
     if not targets_created:

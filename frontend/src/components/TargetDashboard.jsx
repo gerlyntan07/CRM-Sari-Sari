@@ -17,6 +17,7 @@ import {
   FiSearch,
   FiEdit,
   FiTrash2,
+  FiArchive,
   FiPlus,
   FiTarget,
   FiDollarSign, 
@@ -153,6 +154,7 @@ function SearchableSelect({ name, items = [], value = "", onChange, getLabel, pl
 export default function TargetDashboard({ currentUserRole, currentUserId }) {
   // 1. Get Global User Context AND Mutate function
   const { user, mutate } = useFetchUser();
+  const currentUserId_FromHook = user?.id;
   
   // 2. Determine Currency Symbol & Icon
   // Optional chaining is critical here in case company is null during loading
@@ -543,25 +545,34 @@ export default function TargetDashboard({ currentUserRole, currentUserId }) {
     setSelectedTarget(null);
   };
 
-  const handleDelete = (target) => {
+  const handleArchive = (target) => {
     const userName = target.user
       ? `${target.user.first_name} ${target.user.last_name}`
       : "Unknown";
+    
+    const isGroupManager = currentUserRole?.toUpperCase() === "GROUP MANAGER";
+    const isAdmin = ["CEO", "ADMIN"].includes(currentUserRole?.toUpperCase());
+    
+    // For GROUP MANAGER, only allow archiving targets they created
+    if (isGroupManager && Number(target.created_by) !== Number(currentUserId_FromHook)) {
+      toast.error("You can only archive targets you created");
+      return;
+    }
 
     setConfirmModalData({
-      title: "Delete Target",
+      title: isAdmin ? "Delete Target" : "Archive Target",
       message: (
         <span>
-          Are you sure you want to delete the target for{" "}
+          Are you sure you want to {isAdmin ? "delete" : "archive"} the target for{" "}
           <span className="font-semibold">{userName}</span>?
         </span>
       ),
-      confirmLabel: "Delete",
+      confirmLabel: isAdmin ? "Delete" : "Archive",
       cancelLabel: "Cancel",
-      variant: "danger",
+      variant: isAdmin ? "danger" : "archive",
       action: async () => {
         await api.delete(`/targets/admin/${target.id}`);
-        toast.success("Target deleted successfully.");
+        toast.success(`Target ${isAdmin ? "deleted" : "archived"} successfully.`);
         fetchTargets();
         setSelectedTarget(null);
       },
@@ -569,40 +580,76 @@ export default function TargetDashboard({ currentUserRole, currentUserId }) {
   };
 
   const handleSelectAll = () => {
-    if (paginatedTargets.every((t) => selectedIds.includes(t.id))) {
-      setSelectedIds(selectedIds.filter((id) => !paginatedTargets.map((t) => t.id).includes(id)));
+    // For GROUP MANAGER, only allow selecting targets they created
+    // For ADMIN/CEO, allow selecting all targets
+    const isGroupManager = currentUserRole?.toUpperCase() === "GROUP MANAGER";
+    const selectableTargets = isGroupManager 
+      ? paginatedTargets.filter((t) => Number(t.created_by) === Number(currentUserId_FromHook))
+      : paginatedTargets; // ADMIN can select all
+    
+    // Check if all selectable targets are already selected
+    const allSelectableSelected = selectableTargets.length > 0 && 
+      selectableTargets.every((t) => selectedIds.includes(t.id));
+    
+    if (allSelectableSelected) {
+      // Deselect all selectable targets
+      const selectableIds = selectableTargets.map((t) => t.id);
+      setSelectedIds(selectedIds.filter((id) => !selectableIds.includes(id)));
     } else {
-      const newIds = paginatedTargets.map((t) => t.id);
+      // Select all selectable targets
+      const newIds = selectableTargets.map((t) => t.id);
       setSelectedIds([...new Set([...selectedIds, ...newIds])]);
     }
   };
 
   const handleCheckboxChange = (id) => {
+    // For GROUP MANAGER, only allow selecting targets they created
+    const target = targets.find(t => t.id === id);
+    const isGroupManager = currentUserRole?.toUpperCase() === "GROUP MANAGER";
+    if (isGroupManager && target && Number(target.created_by) !== Number(currentUserId_FromHook)) {
+      return;
+    }
+    
     setSelectedIds((prev) =>
       prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
     );
   };
 
-  const handleBulkDelete = async () => {
+  const handleBulkArchive = async () => {
     if (selectedIds.length === 0) return;
+    
+    const isGroupManager = currentUserRole?.toUpperCase() === "GROUP MANAGER";
+    const isAdmin = ["CEO", "ADMIN"].includes(currentUserRole?.toUpperCase());
+    
+    // For GROUP MANAGER, verify all selected targets are theirs
+    if (isGroupManager) {
+      const allOwned = selectedIds.every(id => {
+        const target = targets.find(t => t.id === id);
+        return target && Number(target.created_by) === Number(currentUserId_FromHook);
+      });
+      if (!allOwned) {
+        toast.error("You can only archive targets you created");
+        return;
+      }
+    }
 
     setConfirmModalData({
-      title: "Delete Targets",
+      title: isAdmin ? "Delete Targets" : "Archive Targets",
       message: (
         <span>
-          Are you sure you want to delete{" "}
+          Are you sure you want to {isAdmin ? "delete" : "archive"}{" "}
           <span className="font-semibold">{selectedIds.length}</span> selected
-          targets? This action cannot be undone.
+          targets?
         </span>
       ),
-      confirmLabel: `Delete ${selectedIds.length} Target(s)`,
+      confirmLabel: `${isAdmin ? "Delete" : "Archive"} ${selectedIds.length} Target(s)`,
       cancelLabel: "Cancel",
-      variant: "danger",
+      variant: isAdmin ? "danger" : "archive",
       action: async () => {
         await api.post("/targets/admin/bulk-delete", {
           target_ids: selectedIds,
         });
-        toast.success(`Successfully deleted ${selectedIds.length} targets`);
+        toast.success(`Successfully ${isAdmin ? "deleted" : "archived"} ${selectedIds.length} targets`);
         setSelectedIds([]);
         fetchTargets();
       },
@@ -1092,8 +1139,14 @@ export default function TargetDashboard({ currentUserRole, currentUserId }) {
                       type="checkbox"
                       className="w-4 h-4 accent-blue-600"
                       checked={
-                        paginatedTargets.length > 0 &&
-                        paginatedTargets.every((t) => selectedIds.includes(t.id))
+                        paginatedTargets.length > 0 && (
+                          currentUserRole?.toUpperCase() === "GROUP MANAGER"
+                            ? paginatedTargets
+                                .filter((t) => Number(t.created_by) === Number(currentUserId_FromHook))
+                                .every((t) => selectedIds.includes(t.id)) &&
+                              paginatedTargets.filter((t) => Number(t.created_by) === Number(currentUserId_FromHook)).length > 0
+                            : paginatedTargets.every((t) => selectedIds.includes(t.id))
+                        )
                       }
                       onChange={handleSelectAll}
                     />
@@ -1105,15 +1158,18 @@ export default function TargetDashboard({ currentUserRole, currentUserId }) {
                 <th className="py-3 px-4 text-left">Achievement %</th>
                 <th className="py-3 px-4 text-left">Start Date</th>
                 <th className="py-3 px-4 text-left">End Date</th>
+                {["ADMIN", "CEO"].includes(currentUserRole?.toUpperCase()) && (
+                  <th className="py-3 px-4 text-left">Status</th>
+                )}
                 {canDeleteTarget && (
                   <th className="py-3 px-4 text-center w-24">
                     {selectedIds.length > 0 ? (
                       <button
-                        onClick={handleBulkDelete}
-                        className="text-red-600 hover:text-red-800 transition p-1 rounded-full hover:bg-red-50"
-                        title={`Delete ${selectedIds.length} selected targets`}
+                        onClick={handleBulkArchive}
+                        className={currentUserRole?.toUpperCase() === "GROUP MANAGER" ? "text-orange-500 hover:text-orange-700 transition p-1 rounded-full hover:bg-orange-50" : "text-red-500 hover:text-red-700 transition p-1 rounded-full hover:bg-red-50"}
+                        title={currentUserRole?.toUpperCase() === "GROUP MANAGER" ? `Archive ${selectedIds.length} selected targets` : `Delete ${selectedIds.length} selected targets`}
                       >
-                        <FiTrash2 size={18} />
+                        {currentUserRole?.toUpperCase() === "GROUP MANAGER" ? <FiArchive size={18} /> : <FiTrash2 size={18} />}
                       </button>
                     ) : (
                       ""
@@ -1129,6 +1185,11 @@ export default function TargetDashboard({ currentUserRole, currentUserId }) {
                     Number(t.target_amount) > 0
                       ? ((Number(t.achieved_amount) / Number(t.target_amount)) * 100).toFixed(1)
                       : 0;
+                  
+                  // For GROUP MANAGER, only show checkbox if they created this target
+                  const isGroupManager = currentUserRole?.toUpperCase() === "GROUP MANAGER";
+                  const canSelectCheckbox = !isGroupManager || Number(t.created_by) === Number(currentUserId_FromHook);
+                  
                   return (
                     <tr
                       key={t.id}
@@ -1136,12 +1197,14 @@ export default function TargetDashboard({ currentUserRole, currentUserId }) {
                     >
                       {canDeleteTarget && (
                         <td className="py-3 px-4" onClick={(e) => e.stopPropagation()}>
-                          <input
-                            type="checkbox"
-                            className="w-4 h-4 accent-blue-600"
-                            checked={selectedIds.includes(t.id)}
-                            onChange={() => handleCheckboxChange(t.id)}
-                          />
+                          {canSelectCheckbox && (
+                            <input
+                              type="checkbox"
+                              className="w-4 h-4 accent-blue-600"
+                              checked={selectedIds.includes(t.id)}
+                              onChange={() => handleCheckboxChange(t.id)}
+                            />
+                          )}
                         </td>
                       )}
                       <td className="py-3 px-4 text-left font-medium" onClick={() => setSelectedTarget(t)}>
@@ -1169,13 +1232,22 @@ export default function TargetDashboard({ currentUserRole, currentUserId }) {
                       </td>
                       <td className="py-3 px-4 text-left" onClick={() => setSelectedTarget(t)}>{t.start_date}</td>
                       <td className="py-3 px-4 text-left" onClick={() => setSelectedTarget(t)}>{t.end_date}</td>
+                      {["ADMIN", "CEO"].includes(currentUserRole?.toUpperCase()) && (
+                        <td className="py-3 px-4 text-left" onClick={() => setSelectedTarget(t)}>
+                          <span className={`px-2 py-1 rounded text-white text-xs font-semibold ${
+                            t.status && t.status.toUpperCase() === "INACTIVE" ? "bg-red-500" : "bg-green-500"
+                          }`}>
+                            {t.status && t.status.toUpperCase() === "INACTIVE" ? "Inactive" : "Active"}
+                          </span>
+                        </td>
+                      )}
                       <td></td>
                     </tr>
                   );
                 })
               ) : (
                 <tr>
-                  <td colSpan="8" className="py-4 px-4 text-center text-gray-500">
+                  <td colSpan={["ADMIN", "CEO"].includes(currentUserRole?.toUpperCase()) ? "9" : "8"} className="py-4 px-4 text-center text-gray-500">
                     No targets found
                   </td>
                 </tr>
@@ -1603,9 +1675,11 @@ export default function TargetDashboard({ currentUserRole, currentUserId }) {
           currencySymbol={currencySymbol} // PASS SYMBOL TO MODAL
           onClose={() => setSelectedTarget(null)}
           onEdit={() => handleEditClick(selectedTarget)}
-          onDelete={() => handleDelete(selectedTarget)}
-          canEdit={canCreateTarget}
-          canDelete={canDeleteTarget}
+          onArchive={() => handleArchive(selectedTarget)}
+          canEdit={currentUserRole?.toUpperCase() === "GROUP MANAGER" ? (selectedTarget.created_by === null || Number(selectedTarget.created_by) === Number(currentUserId_FromHook)) : canCreateTarget}
+          canArchive={currentUserRole?.toUpperCase() === "GROUP MANAGER" ? (selectedTarget.created_by === null || Number(selectedTarget.created_by) === Number(currentUserId_FromHook)) : canDeleteTarget}
+          currentUserRole={currentUserRole}
+          currentUserId={currentUserId_FromHook}
         />
       )}
 
@@ -1665,7 +1739,7 @@ function MetricCard({ title, value, icon, color = "blue" }) {
 /* ======================================================
    DETAIL MODAL
 ====================================================== */
-function DetailModal({ target, onClose, onEdit, onDelete, canEdit, canDelete, currencySymbol }) {
+function DetailModal({ target, onClose, onEdit, onArchive, canEdit, canArchive, currencySymbol, currentUserRole, currentUserId }) {
   const achievementPercent =
     Number(target.target_amount) > 0
       ? ((Number(target.achieved_amount) / Number(target.target_amount)) * 100).toFixed(1)
@@ -1692,7 +1766,7 @@ function DetailModal({ target, onClose, onEdit, onDelete, canEdit, canDelete, cu
           </button>
         </div>
 
-        {canEdit && (
+        {(canEdit || canArchive) && (
           <div className="p-6 lg:p-4">
             <div className="flex flex-col md:flex-row md:justify-between lg:flex-row lg:items-center lg:justify-between mt-3 gap-2 px-2 md:items-center lg:gap-4 md:mx-7 lg:mx-7">
               <div className="flex flex-wrap items-center gap-2 sm:gap-3">
@@ -1702,20 +1776,35 @@ function DetailModal({ target, onClose, onEdit, onDelete, canEdit, canDelete, cu
               </div>
 
               <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-                <button
-                  className="inline-flex items-center justify-center w-full sm:w-auto bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 transition text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 cursor-pointer"
-                  onClick={onEdit}
-                >
-                  <FiEdit className="mr-2" />
-                  Edit
-                </button>
-                {canDelete && (
+                {canEdit && (
                   <button
-                    className="inline-flex items-center justify-center w-full sm:w-auto px-4 py-2 rounded-md text-sm bg-red-500 text-white hover:bg-red-600 transition focus:outline-none focus:ring-2 focus:ring-red-400 cursor-pointer"
-                    onClick={onDelete}
+                    className="inline-flex items-center justify-center w-full sm:w-auto bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 transition text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 cursor-pointer"
+                    onClick={onEdit}
                   >
-                    <FiTrash2 className="mr-2" />
-                    Delete
+                    <FiEdit className="mr-2" />
+                    Edit
+                  </button>
+                )}
+                {canArchive && (
+                  <button
+                    className={`inline-flex items-center justify-center w-full sm:w-auto px-4 py-2 rounded-md text-sm text-white transition focus:outline-none cursor-pointer ${
+                      currentUserRole?.toUpperCase() === "GROUP MANAGER"
+                        ? "bg-orange-500 hover:bg-orange-600 focus:ring-2 focus:ring-orange-400"
+                        : "bg-red-500 hover:bg-red-600 focus:ring-2 focus:ring-red-400"
+                    }`}
+                    onClick={onArchive}
+                  >
+                    {currentUserRole?.toUpperCase() === "GROUP MANAGER" ? (
+                      <>
+                        <FiArchive className="mr-2" />
+                        Archive
+                      </>
+                    ) : (
+                      <>
+                        <FiTrash2 className="mr-2" />
+                        Delete
+                      </>
+                    )}
                   </button>
                 )}
               </div>
@@ -2307,10 +2396,13 @@ function ConfirmationModal({
           <button
             onClick={onConfirm}
             disabled={loading}
-            className={`w-full sm:w-auto px-4 py-2 rounded-md text-white transition disabled:opacity-70 ${variant === "danger"
+            className={`w-full sm:w-auto px-4 py-2 rounded-md text-white transition disabled:opacity-70 ${
+              variant === "archive"
+                ? "bg-orange-500 hover:bg-orange-600 border border-orange-400"
+                : variant === "danger"
                 ? "bg-red-500 hover:bg-red-600 border border-red-400"
                 : "bg-tertiary hover:bg-tertiary/90 border border-tertiary"
-              }`}
+            }`}
           >
             {loading ? "Processing..." : confirmLabel}
           </button>

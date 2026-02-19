@@ -20,6 +20,7 @@ import {
   FiSmartphone,
   FiCheckSquare,
   FiFileText,
+  FiRefreshCw,
   FiChevronDown,
   FiChevronRight,
 } from "react-icons/fi";
@@ -198,6 +199,14 @@ export default function AdminContacts() {
     }
   }, []);
 
+  const handleAddAccountFromContactModal = useCallback(() => {
+    window.open(
+      "/sales/accounts?openModal=1",
+      "_blank",
+      "noopener,noreferrer",
+    );
+  }, []);
+
   const fetchUsers = useCallback(async () => {
     try {
       const res = await api.get(`/users/all`);
@@ -371,7 +380,6 @@ export default function AdminContacts() {
     setIsEditing(false);
     setCurrentContactId(null);
     setShowModal(true);
-
     if (currentUser?.role === "Sales") {
       setFormData((prev) => ({
         ...prev,
@@ -379,6 +387,29 @@ export default function AdminContacts() {
       }));
     }
   };
+
+  useEffect(() => {
+    const searchParams = new URLSearchParams(location.search || "");
+    const shouldOpen =
+      Boolean(location.state?.openContactModal) ||
+      searchParams.get("openModal") === "1";
+    if (!shouldOpen) return;
+
+    setFormData(INITIAL_FORM_STATE);
+    setIsEditing(false);
+    setCurrentContactId(null);
+    setShowModal(true);
+    setIsSubmitted(false);
+
+    if (currentUser?.role === "Sales") {
+      setFormData((prev) => ({
+        ...prev,
+        assigned_to: currentUser.id,
+      }));
+    }
+
+    navigate(location.pathname, { replace: true, state: {} });
+  }, [location.state, location.pathname, location.search, navigate, currentUser]);
 
   const handleEditClick = async (contact) => {
     if (!contact) return;
@@ -1804,6 +1835,28 @@ export default function AdminContacts() {
             items={isEditing ? accountsForForm : accounts || []}
             getLabel={(item) => item?.name ?? ""}
             placeholder="Search account..."
+            actions={
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleAddAccountFromContactModal}
+                  disabled={isSubmitting}
+                  title="Add account"
+                  className="inline-flex items-center justify-center w-8 h-8 rounded-md border border-gray-300 text-gray-600 hover:bg-gray-50 transition disabled:opacity-60"
+                >
+                  <FiPlus size={16} />
+                </button>
+                <button
+                  type="button"
+                  onClick={fetchAccounts}
+                  disabled={isSubmitting}
+                  title="Refresh accounts"
+                  className="inline-flex items-center justify-center w-8 h-8 rounded-md border border-gray-300 text-gray-600 hover:bg-gray-50 transition disabled:opacity-60"
+                >
+                  <FiRefreshCw size={16} />
+                </button>
+              </div>
+            }
             disabled={
               isSubmitting ||
               (isEditing ? accountsForForm.length === 0 : accounts.length === 0)
@@ -2033,14 +2086,18 @@ function SearchableSelectField({
   className = "",
   required = false,
   isSubmitted = false,
+  actions = null,
 }) {
   const hasError = isSubmitted && required && !value;
 
   return (
     <div className={className}>
-      <label className="block text-gray-700 font-medium mb-1 text-sm">
-        {label} {required && <span className="text-red-500">*</span>}
-      </label>
+      <div className="flex items-center justify-between gap-2">
+        <label className="block text-gray-700 font-medium mb-1 text-sm">
+          {label} {required && <span className="text-red-500">*</span>}
+        </label>
+        {actions ? <div className="flex items-center">{actions}</div> : null}
+      </div>
       <SearchableSelect
         items={items}
         value={value ?? ""}

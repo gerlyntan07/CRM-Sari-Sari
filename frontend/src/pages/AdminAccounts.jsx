@@ -23,7 +23,7 @@ import api from "../api.js";
 import { toast } from "react-toastify";
 import PaginationControls from "../components/PaginationControls.jsx";
 import LoadingSpinner from "../components/LoadingSpinner.jsx";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import CommentSection from "../components/CommentSection.jsx";
 import { useComments } from "../hooks/useComments.js";
 
@@ -99,6 +99,7 @@ const getTableBadgeClass = (status) => {
 
 export default function AdminAccounts() {
   const navigate = useNavigate();
+  const location = useLocation();
 
   useEffect(() => {
     document.title = "Accounts | Sari-Sari CRM";
@@ -484,6 +485,22 @@ export default function AdminAccounts() {
     setCurrentAccountId(null);
     setShowModal(true);
   };
+
+  useEffect(() => {
+    const searchParams = new URLSearchParams(location.search || "");
+    const shouldOpen =
+      Boolean(location.state?.openAccountModal) ||
+      searchParams.get("openModal") === "1";
+    if (!shouldOpen) return;
+
+    setFormData(INITIAL_FORM_STATE);
+    setIsEditing(false);
+    setCurrentAccountId(null);
+    setShowModal(true);
+    setIsSubmitted(false);
+
+    navigate(location.pathname, { replace: true, state: {} });
+  }, [location.state, location.pathname, location.search, navigate]);
 
   const handleEditClick = (account) => {
     // Close the account details modal

@@ -8,7 +8,8 @@ import {
     FiXCircle,
     FiArchive,
     FiX,
-    FiPlus
+    FiPlus,
+    FiRefreshCw
 } from "react-icons/fi";
 import { LuUserSearch } from "react-icons/lu";
 import api from '../api'
@@ -91,6 +92,84 @@ export default function SalesDeals() {
     });
     const [currentAccount, setCurrentAccount] = useState(null);
     const [currentContact, setCurrentContact] = useState(null);
+
+    const DEAL_DRAFT_KEY = "dealDraft:sales/deals";
+    const DEAL_DRAFT_TTL_MS = 60 * 60 * 1000;
+    const didRestoreDraftRef = useRef(false);
+
+    useEffect(() => {
+        if (didRestoreDraftRef.current) return;
+        didRestoreDraftRef.current = true;
+
+        try {
+            const raw = sessionStorage.getItem(DEAL_DRAFT_KEY);
+            if (!raw) return;
+
+            const draft = JSON.parse(raw);
+            const expired =
+                typeof draft?.ts === "number" &&
+                Date.now() - draft.ts > DEAL_DRAFT_TTL_MS;
+
+            if (expired) {
+                sessionStorage.removeItem(DEAL_DRAFT_KEY);
+                return;
+            }
+
+            if (draft?.returnTo && draft.returnTo !== location.pathname) {
+                return;
+            }
+
+            if (draft?.dealForm && typeof draft.dealForm === "object") {
+                setDealForm(draft.dealForm);
+            }
+            if (typeof draft?.isEditing === "boolean") {
+                setIsEditing(draft.isEditing);
+            }
+            if (draft?.currentDealId !== undefined) {
+                setCurrentDealId(draft.currentDealId);
+            }
+
+            setShowDealModal(true);
+            sessionStorage.removeItem(DEAL_DRAFT_KEY);
+        } catch {
+            sessionStorage.removeItem(DEAL_DRAFT_KEY);
+        }
+    }, [location.pathname]);
+
+    const persistDealDraft = useCallback(() => {
+        try {
+            sessionStorage.setItem(
+                DEAL_DRAFT_KEY,
+                JSON.stringify({
+                    ts: Date.now(),
+                    returnTo: location.pathname,
+                    dealForm,
+                    isEditing,
+                    currentDealId,
+                })
+            );
+        } catch {
+            // ignore
+        }
+    }, [DEAL_DRAFT_KEY, location.pathname, dealForm, isEditing, currentDealId]);
+
+    const handleAddAccountFromDealModal = useCallback(() => {
+        persistDealDraft();
+        window.open(
+            "/sales/accounts?openModal=1",
+            "_blank",
+            "noopener,noreferrer"
+        );
+    }, [persistDealDraft]);
+
+    const handleAddContactFromDealModal = useCallback(() => {
+        persistDealDraft();
+        window.open(
+            "/sales/contacts?openModal=1",
+            "_blank",
+            "noopener,noreferrer"
+        );
+    }, [persistDealDraft]);
 
 
     // Filtered deals
@@ -910,6 +989,10 @@ export default function SalesDeals() {
                     users={users}
                     currentAccount={currentAccount}
                     currentContact={currentContact}
+                    onAddAccount={handleAddAccountFromDealModal}
+                    onAddContact={handleAddContactFromDealModal}
+                    onRefreshAccounts={fetchAccounts}
+                    onRefreshContacts={fetchContacts}
                 />
             )}
 
@@ -1044,6 +1127,10 @@ function CreateDealModal({
     users = [],
     currentAccount = null,
     currentContact = null,
+    onAddAccount,
+    onAddContact,
+    onRefreshAccounts,
+    onRefreshContacts,
 }) {
     const { user } = useFetchUser();
     const isSales = user?.role === 'Sales';
@@ -1183,6 +1270,28 @@ const [isSubmitted, setIsSubmitted] = useState(false);
                         placeholder="Search account..."
                         disabled={isSubmitting}
                         currentItem={currentAccount}
+                        actions={
+                            <div className="flex items-center gap-2">
+                                <button
+                                    type="button"
+                                    onClick={onAddAccount}
+                                    disabled={isSubmitting}
+                                    title="Add account"
+                                    className="inline-flex items-center justify-center w-8 h-8 rounded-md border border-gray-300 text-gray-600 hover:bg-gray-50 transition disabled:opacity-60"
+                                >
+                                    <FiPlus size={16} />
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={onRefreshAccounts}
+                                    disabled={isSubmitting}
+                                    title="Refresh accounts"
+                                    className="inline-flex items-center justify-center w-8 h-8 rounded-md border border-gray-300 text-gray-600 hover:bg-gray-50 transition disabled:opacity-60"
+                                >
+                                    <FiRefreshCw size={16} />
+                                </button>
+                            </div>
+                        }
                          required={true}               // <-- use required directly
                         isSubmitted={isSubmitted}     
                     />
@@ -1203,6 +1312,28 @@ const [isSubmitted, setIsSubmitted] = useState(false);
                         placeholder="Search contact..."
                         disabled={isSubmitting}
                         currentItem={currentContact}
+                        actions={
+                            <div className="flex items-center gap-2">
+                                <button
+                                    type="button"
+                                    onClick={onAddContact}
+                                    disabled={isSubmitting}
+                                    title="Add contact"
+                                    className="inline-flex items-center justify-center w-8 h-8 rounded-md border border-gray-300 text-gray-600 hover:bg-gray-50 transition disabled:opacity-60"
+                                >
+                                    <FiPlus size={16} />
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={onRefreshContacts}
+                                    disabled={isSubmitting}
+                                    title="Refresh contacts"
+                                    className="inline-flex items-center justify-center w-8 h-8 rounded-md border border-gray-300 text-gray-600 hover:bg-gray-50 transition disabled:opacity-60"
+                                >
+                                    <FiRefreshCw size={16} />
+                                </button>
+                            </div>
+                        }
                         required={true}
                         isSubmitted={isSubmitted}
                     />
@@ -1392,16 +1523,20 @@ function SearchableSelectField({
     disabled = false,
     className = "",
     currentItem = null,
-  required = false,
-  isSubmitted = false,
+    required = false,
+    isSubmitted = false,
+    actions = null,
 }) {
   const hasError = isSubmitted && required && !value;
 
     return (
         <div className={className}>
-            <label className="block text-gray-700 font-medium mb-1 text-sm">
-        {label} {required && <span className="text-red-500">*</span>}
-            </label>
+            <div className="flex items-center justify-between gap-2">
+                <label className="block text-gray-700 font-medium mb-1 text-sm">
+                    {label} {required && <span className="text-red-500">*</span>}
+                </label>
+                {actions ? <div className="flex items-center">{actions}</div> : null}
+            </div>
             <SearchableSelect
                 items={items}
                 value={value ?? ""}

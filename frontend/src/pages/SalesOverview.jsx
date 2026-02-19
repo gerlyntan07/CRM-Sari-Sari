@@ -1113,6 +1113,424 @@ const MyActivitiesChart = ({ activityData, loading }) => {
   );
 };
 
+// Comparison Chart Component - Compare Deals, Accounts, Contacts, and Leads
+const ComparisonChart = ({ comparisonData, loading }) => {
+  const [showDeals, setShowDeals] = useState(true);
+  const [showAccounts, setShowAccounts] = useState(true);
+  const [showContacts, setShowContacts] = useState(true);
+  const [showLeads, setShowLeads] = useState(true);
+  const [showLastYear, setShowLastYear] = useState(true);
+  const [viewType, setViewType] = useState('monthly'); // 'monthly', 'quarterly', 'yearly'
+
+  const monthNames = [
+    "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+    "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
+  ];
+
+  const quarterNames = ["Q1", "Q2", "Q3", "Q4"];
+
+  // Helper function to aggregate monthly data into quarters
+  const aggregateToQuarters = (monthlyData) => {
+    const quarters = [0, 0, 0, 0];
+    for (let i = 0; i < 12; i++) {
+      const quarterIndex = Math.floor(i / 3);
+      quarters[quarterIndex] += monthlyData[i];
+    }
+    return quarters;
+  };
+
+  // Helper function to aggregate monthly data into yearly total
+  const aggregateToYearly = (monthlyData) => {
+    return [monthlyData.reduce((sum, val) => sum + val, 0)];
+  };
+
+  // Prepare data for the chart
+  const chartData = useMemo(() => {
+    if (!comparisonData) {
+      const emptyMonthly = new Array(12).fill(0);
+      const emptyQuarterly = new Array(4).fill(0);
+      const emptyYearly = new Array(1).fill(0);
+      
+      return {
+        labels: viewType === 'monthly' ? monthNames : (viewType === 'quarterly' ? quarterNames : [new Date().getFullYear().toString()]),
+        dealsCurrentYear: viewType === 'monthly' ? emptyMonthly : (viewType === 'quarterly' ? emptyQuarterly : emptyYearly),
+        dealsLastYear: viewType === 'monthly' ? emptyMonthly : (viewType === 'quarterly' ? emptyQuarterly : emptyYearly),
+        accountsCurrentYear: viewType === 'monthly' ? emptyMonthly : (viewType === 'quarterly' ? emptyQuarterly : emptyYearly),
+        accountsLastYear: viewType === 'monthly' ? emptyMonthly : (viewType === 'quarterly' ? emptyQuarterly : emptyYearly),
+        contactsCurrentYear: viewType === 'monthly' ? emptyMonthly : (viewType === 'quarterly' ? emptyQuarterly : emptyYearly),
+        contactsLastYear: viewType === 'monthly' ? emptyMonthly : (viewType === 'quarterly' ? emptyQuarterly : emptyYearly),
+        leadsCurrentYear: viewType === 'monthly' ? emptyMonthly : (viewType === 'quarterly' ? emptyQuarterly : emptyYearly),
+        leadsLastYear: viewType === 'monthly' ? emptyMonthly : (viewType === 'quarterly' ? emptyQuarterly : emptyYearly),
+      };
+    }
+
+    // Get monthly data
+    const dealsCurrentYearMonthly = comparisonData.deals?.currentYear || new Array(12).fill(0);
+    const dealsLastYearMonthly = comparisonData.deals?.lastYear || new Array(12).fill(0);
+    const accountsCurrentYearMonthly = comparisonData.accounts?.currentYear || new Array(12).fill(0);
+    const accountsLastYearMonthly = comparisonData.accounts?.lastYear || new Array(12).fill(0);
+    const contactsCurrentYearMonthly = comparisonData.contacts?.currentYear || new Array(12).fill(0);
+    const contactsLastYearMonthly = comparisonData.contacts?.lastYear || new Array(12).fill(0);
+    const leadsCurrentYearMonthly = comparisonData.leads?.currentYear || new Array(12).fill(0);
+    const leadsLastYearMonthly = comparisonData.leads?.lastYear || new Array(12).fill(0);
+
+    // Aggregate based on view type
+    let labels, dealsCurrentYear, dealsLastYear, accountsCurrentYear, accountsLastYear, contactsCurrentYear, contactsLastYear, leadsCurrentYear, leadsLastYear;
+
+    if (viewType === 'monthly') {
+      labels = monthNames;
+      dealsCurrentYear = dealsCurrentYearMonthly;
+      dealsLastYear = dealsLastYearMonthly;
+      accountsCurrentYear = accountsCurrentYearMonthly;
+      accountsLastYear = accountsLastYearMonthly;
+      contactsCurrentYear = contactsCurrentYearMonthly;
+      contactsLastYear = contactsLastYearMonthly;
+      leadsCurrentYear = leadsCurrentYearMonthly;
+      leadsLastYear = leadsLastYearMonthly;
+    } else if (viewType === 'quarterly') {
+      labels = quarterNames;
+      dealsCurrentYear = aggregateToQuarters(dealsCurrentYearMonthly);
+      dealsLastYear = aggregateToQuarters(dealsLastYearMonthly);
+      accountsCurrentYear = aggregateToQuarters(accountsCurrentYearMonthly);
+      accountsLastYear = aggregateToQuarters(accountsLastYearMonthly);
+      contactsCurrentYear = aggregateToQuarters(contactsCurrentYearMonthly);
+      contactsLastYear = aggregateToQuarters(contactsLastYearMonthly);
+      leadsCurrentYear = aggregateToQuarters(leadsCurrentYearMonthly);
+      leadsLastYear = aggregateToQuarters(leadsLastYearMonthly);
+    } else { // yearly
+      const currentYear = new Date().getFullYear();
+      labels = [currentYear.toString()];
+      dealsCurrentYear = aggregateToYearly(dealsCurrentYearMonthly);
+      dealsLastYear = aggregateToYearly(dealsLastYearMonthly);
+      accountsCurrentYear = aggregateToYearly(accountsCurrentYearMonthly);
+      accountsLastYear = aggregateToYearly(accountsLastYearMonthly);
+      contactsCurrentYear = aggregateToYearly(contactsCurrentYearMonthly);
+      contactsLastYear = aggregateToYearly(contactsLastYearMonthly);
+      leadsCurrentYear = aggregateToYearly(leadsCurrentYearMonthly);
+      leadsLastYear = aggregateToYearly(leadsLastYearMonthly);
+    }
+
+    return {
+      labels,
+      dealsCurrentYear,
+      dealsLastYear,
+      accountsCurrentYear,
+      accountsLastYear,
+      contactsCurrentYear,
+      contactsLastYear,
+      leadsCurrentYear,
+      leadsLastYear,
+    };
+  }, [comparisonData, viewType]);
+
+  const hasData = 
+    chartData.dealsCurrentYear.some(val => val > 0) || 
+    chartData.dealsLastYear.some(val => val > 0) ||
+    chartData.accountsCurrentYear.some(val => val > 0) || 
+    chartData.accountsLastYear.some(val => val > 0) ||
+    chartData.contactsCurrentYear.some(val => val > 0) || 
+    chartData.contactsLastYear.some(val => val > 0) ||
+    chartData.leadsCurrentYear.some(val => val > 0) || 
+    chartData.leadsLastYear.some(val => val > 0);
+
+  // Calculate totals for current year
+  const currentYearDeals = chartData.dealsCurrentYear.reduce((sum, val) => sum + val, 0);
+  const currentYearAccounts = chartData.accountsCurrentYear.reduce((sum, val) => sum + val, 0);
+  const currentYearContacts = chartData.contactsCurrentYear.reduce((sum, val) => sum + val, 0);
+  const currentYearLeads = chartData.leadsCurrentYear.reduce((sum, val) => sum + val, 0);
+  const currentYearTotal = currentYearDeals + currentYearAccounts + currentYearContacts + currentYearLeads;
+
+  // Calculate totals for last year
+  const lastYearDeals = chartData.dealsLastYear.reduce((sum, val) => sum + val, 0);
+  const lastYearAccounts = chartData.accountsLastYear.reduce((sum, val) => sum + val, 0);
+  const lastYearContacts = chartData.contactsLastYear.reduce((sum, val) => sum + val, 0);
+  const lastYearLeads = chartData.leadsLastYear.reduce((sum, val) => sum + val, 0);
+  const lastYearTotal = lastYearDeals + lastYearAccounts + lastYearContacts + lastYearLeads;
+
+  const percentageChange = lastYearTotal > 0 
+    ? ((currentYearTotal - lastYearTotal) / lastYearTotal * 100).toFixed(1)
+    : 0;
+
+  // Calculate individual percentage changes
+  const dealsChange = lastYearDeals > 0 
+    ? ((currentYearDeals - lastYearDeals) / lastYearDeals * 100).toFixed(0)
+    : currentYearDeals > 0 ? 100 : 0;
+  const accountsChange = lastYearAccounts > 0 
+    ? ((currentYearAccounts - lastYearAccounts) / lastYearAccounts * 100).toFixed(0)
+    : currentYearAccounts > 0 ? 100 : 0;
+  const contactsChange = lastYearContacts > 0 
+    ? ((currentYearContacts - lastYearContacts) / lastYearContacts * 100).toFixed(0)
+    : currentYearContacts > 0 ? 100 : 0;
+  const leadsChange = lastYearLeads > 0 
+    ? ((currentYearLeads - lastYearLeads) / lastYearLeads * 100).toFixed(0)
+    : currentYearLeads > 0 ? 100 : 0;
+
+  // Build series array based on toggles
+  const series = [];
+  if (showDeals) {
+    series.push({
+      data: chartData.dealsCurrentYear,
+      label: `Deals ${new Date().getFullYear()}`,
+      color: '#f59e0b',
+      showMark: true,
+      curve: 'catmullRom',
+    });
+    if (showLastYear) {
+      series.push({
+        data: chartData.dealsLastYear,
+        label: `Deals ${new Date().getFullYear() - 1}`,
+        color: '#fcd34d',
+        showMark: false,
+        curve: 'linear',
+      });
+    }
+  }
+  if (showAccounts) {
+    series.push({
+      data: chartData.accountsCurrentYear,
+      label: `Accounts ${new Date().getFullYear()}`,
+      color: '#3b82f6',
+      showMark: true,
+      curve: 'catmullRom',
+    });
+    if (showLastYear) {
+      series.push({
+        data: chartData.accountsLastYear,
+        label: `Accounts ${new Date().getFullYear() - 1}`,
+        color: '#93c5fd',
+        showMark: false,
+        curve: 'linear',
+      });
+    }
+  }
+  if (showContacts) {
+    series.push({
+      data: chartData.contactsCurrentYear,
+      label: `Contacts ${new Date().getFullYear()}`,
+      color: '#8b5cf6',
+      showMark: true,
+      curve: 'catmullRom',
+    });
+    if (showLastYear) {
+      series.push({
+        data: chartData.contactsLastYear,
+        label: `Contacts ${new Date().getFullYear() - 1}`,
+        color: '#c4b5fd',
+        showMark: false,
+        curve: 'linear',
+      });
+    }
+  }
+  if (showLeads) {
+    series.push({
+      data: chartData.leadsCurrentYear,
+      label: `Leads ${new Date().getFullYear()}`,
+      color: '#10b981',
+      showMark: true,
+      curve: 'catmullRom',
+    });
+    if (showLastYear) {
+      series.push({
+        data: chartData.leadsLastYear,
+        label: `Leads ${new Date().getFullYear() - 1}`,
+        color: '#6ee7b7',
+        showMark: false,
+        curve: 'linear',
+      });
+    }
+  }
+
+  return (
+    <div className="bg-white p-6 rounded-xl shadow-lg border border-gray-100 flex flex-col h-full">
+      {/* Header */}
+      <div className="flex items-center justify-between mb-4">
+        <div>
+          <h3 className="text-lg font-semibold text-gray-800 flex items-center">
+            Growth Comparison
+            <span className="ml-2 text-xs font-normal text-gray-500">
+              ({viewType.charAt(0).toUpperCase() + viewType.slice(1)})
+            </span>
+          </h3>
+          <p className="text-xs text-gray-500 mt-1">
+            Compare deals, accounts, contacts, and leads creation
+          </p>
+        </div>
+        {hasData && lastYearTotal > 0 && (
+          <div className={`text-sm font-semibold ${percentageChange >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+            {percentageChange >= 0 ? <IconTrendUp className="inline mr-1" size={16} /> : <IconTrendDown className="inline mr-1" size={16} />}
+            {percentageChange >= 0 ? '+' : ''}{percentageChange}%
+          </div>
+        )}
+      </div>
+
+      {/* View Type Selector */}
+      <div className="flex items-center space-x-2 mb-4">
+        <button
+          onClick={() => setViewType('monthly')}
+          className={`text-xs px-3 py-1.5 rounded-full font-medium transition-all ${
+            viewType === 'monthly'
+              ? 'bg-blue-500 text-white'
+              : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+          }`}
+        >
+          Monthly
+        </button>
+        <button
+          onClick={() => setViewType('quarterly')}
+          className={`text-xs px-3 py-1.5 rounded-full font-medium transition-all ${
+            viewType === 'quarterly'
+              ? 'bg-blue-500 text-white'
+              : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+          }`}
+        >
+          Quarterly
+        </button>
+        <button
+          onClick={() => setViewType('yearly')}
+          className={`text-xs px-3 py-1.5 rounded-full font-medium transition-all ${
+            viewType === 'yearly'
+              ? 'bg-blue-500 text-white'
+              : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+          }`}
+        >
+          Yearly
+        </button>
+      </div>
+
+      {/* Filters */}
+      <div className="flex flex-wrap items-center gap-2 mb-4">
+        <button
+          onClick={() => setShowDeals(!showDeals)}
+          className={`text-xs px-3 py-1.5 rounded-full font-medium transition-all flex items-center ${
+            showDeals
+              ? 'bg-amber-100 text-amber-700 border-2 border-amber-300'
+              : 'bg-gray-100 text-gray-500 border-2 border-gray-200'
+          }`}
+        >
+          <span className="mr-1.5">Deals</span>
+          <span className="font-bold">{currentYearDeals}</span>
+          {lastYearDeals > 0 && (
+            <span className={`ml-1.5 text-[10px] ${dealsChange >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+              ({dealsChange >= 0 ? '+' : ''}{dealsChange}%)
+            </span>
+          )}
+        </button>
+        <button
+          onClick={() => setShowAccounts(!showAccounts)}
+          className={`text-xs px-3 py-1.5 rounded-full font-medium transition-all flex items-center ${
+            showAccounts
+              ? 'bg-blue-100 text-blue-700 border-2 border-blue-300'
+              : 'bg-gray-100 text-gray-500 border-2 border-gray-200'
+          }`}
+        >
+          <span className="mr-1.5">Accounts</span>
+          <span className="font-bold">{currentYearAccounts}</span>
+          {lastYearAccounts > 0 && (
+            <span className={`ml-1.5 text-[10px] ${accountsChange >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+              ({accountsChange >= 0 ? '+' : ''}{accountsChange}%)
+            </span>
+          )}
+        </button>
+        <button
+          onClick={() => setShowContacts(!showContacts)}
+          className={`text-xs px-3 py-1.5 rounded-full font-medium transition-all flex items-center ${
+            showContacts
+              ? 'bg-purple-100 text-purple-700 border-2 border-purple-300'
+              : 'bg-gray-100 text-gray-500 border-2 border-gray-200'
+          }`}
+        >
+          <span className="mr-1.5">Contacts</span>
+          <span className="font-bold">{currentYearContacts}</span>
+          {lastYearContacts > 0 && (
+            <span className={`ml-1.5 text-[10px] ${contactsChange >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+              ({contactsChange >= 0 ? '+' : ''}{contactsChange}%)
+            </span>
+          )}
+        </button>
+        <button
+          onClick={() => setShowLeads(!showLeads)}
+          className={`text-xs px-3 py-1.5 rounded-full font-medium transition-all flex items-center ${
+            showLeads
+              ? 'bg-green-100 text-green-700 border-2 border-green-300'
+              : 'bg-gray-100 text-gray-500 border-2 border-gray-200'
+          }`}
+        >
+          <span className="mr-1.5">Leads</span>
+          <span className="font-bold">{currentYearLeads}</span>
+          {lastYearLeads > 0 && (
+            <span className={`ml-1.5 text-[10px] ${leadsChange >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+              ({leadsChange >= 0 ? '+' : ''}{leadsChange}%)
+            </span>
+          )}
+        </button>
+        {lastYearTotal > 0 && (
+          <button
+            onClick={() => setShowLastYear(!showLastYear)}
+            className={`text-xs px-3 py-1.5 rounded-full font-medium transition-all ml-auto ${
+              showLastYear
+                ? 'bg-gray-200 text-gray-700 border-2 border-gray-300'
+                : 'bg-gray-100 text-gray-500 border-2 border-gray-200'
+            }`}
+          >
+            Compare vs {new Date().getFullYear() - 1}
+          </button>
+        )}
+      </div>
+
+      {/* Chart */}
+      <div className="flex-grow min-h-[320px]">
+        {loading ? (
+          <div className="flex items-center justify-center h-full">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+          </div>
+        ) : hasData && series.length > 0 ? (
+          <LineChart
+            xAxis={[
+              {
+                scaleType: 'point',
+                data: chartData.labels,
+              },
+            ]}
+            series={series}
+            height={320}
+            width={undefined}
+            grid={{ vertical: false, horizontal: true }}
+            margin={{ top: 10, right: 10, bottom: 40, left: 50 }}
+            sx={{
+              width: '100%',
+              maxWidth: '100%',
+              '& .MuiLineElement-root': {
+                strokeWidth: 2.5,
+              },
+              '& .MuiMarkElement-root': {
+                scale: '0.8',
+              },
+            }}
+          />
+        ) : hasData && series.length === 0 ? (
+          <div className="text-center text-gray-500 flex items-center justify-center h-full">
+            <div>
+              <FiCheckCircle size={48} className="mx-auto mb-3 text-gray-300" />
+              <p className="text-sm font-medium">Select at least one entity type</p>
+              <p className="text-xs mt-2">Toggle the filters above to view data</p>
+            </div>
+          </div>
+        ) : (
+          <div className="text-center text-gray-500 flex items-center justify-center h-full">
+            <div>
+              <FiCheckCircle size={48} className="mx-auto mb-3 text-gray-300" />
+              <p className="text-sm font-medium">No data yet</p>
+              <p className="text-xs mt-2 text-gray-400">
+                Start creating deals, accounts, contacts, and leads to track growth
+              </p>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
 const SalesPipeline = ({ pipelineData, loading }) => {
   const navigate = useNavigate();
 
@@ -1622,6 +2040,15 @@ const SalesOverview= () => {
   const [allLeads, setAllLeads] = useState([]);
   const [allDeals, setAllDeals] = useState([]);
   const [allAccounts, setAllAccounts] = useState([]);
+  const [allContacts, setAllContacts] = useState([]);
+
+  // Comparison data for the comparison chart
+  const [comparisonData, setComparisonData] = useState({
+    deals: { currentYear: new Array(12).fill(0), lastYear: new Array(12).fill(0) },
+    accounts: { currentYear: new Array(12).fill(0), lastYear: new Array(12).fill(0) },
+    contacts: { currentYear: new Array(12).fill(0), lastYear: new Array(12).fill(0) },
+    leads: { currentYear: new Array(12).fill(0), lastYear: new Array(12).fill(0) },
+  });
 
   const [allTargets, setAllTargets] = useState([]);
   const [totalTarget, setTotalTarget] = useState(0);
@@ -1716,12 +2143,39 @@ const SalesOverview= () => {
         });
       }
 
+      // Search in contacts
+      if (Array.isArray(allContacts)) {
+        allContacts.forEach((contact) => {
+          const firstName = (contact.first_name || "").toLowerCase();
+          const lastName = (contact.last_name || "").toLowerCase();
+          const name = `${firstName} ${lastName}`.trim();
+          const email = (contact.email || "").toLowerCase();
+          const phone = (contact.phone || "").toLowerCase();
+
+          if (
+            name.includes(query) ||
+            firstName.includes(query) ||
+            lastName.includes(query) ||
+            email.includes(query) ||
+            phone.includes(query)
+          ) {
+            results.push({
+              id: contact.id,
+              name: name || "Unnamed Contact",
+              type: "Contact",
+              details: contact.email || contact.phone || "No contact info",
+              route: `/sales/contacts`,
+            });
+          }
+        });
+      }
+
       return results.slice(0, 10); // Limit to 10 results
     } catch (error) {
       console.error("Error in search:", error);
       return [];
     }
-  }, [searchQuery, allLeads, allDeals, allAccounts]);
+  }, [searchQuery, allLeads, allDeals, allAccounts, allContacts]);
 
   // Handle search result click
   const handleSearchResultClick = (result) => {
@@ -1740,6 +2194,7 @@ const SalesOverview= () => {
         leadsRes,
         dealsRes,
         accountsRes,
+        contactsRes,
         tasksRes,
         meetingsRes,
         callsRes,
@@ -1756,6 +2211,10 @@ const SalesOverview= () => {
         }),
         api.get("/accounts/admin/fetch-all").catch((err) => {
           console.error("Error fetching accounts:", err);
+          return { data: [] };
+        }),
+        api.get("/contacts/admin/fetch-all").catch((err) => {
+          console.error("Error fetching contacts:", err);
           return { data: [] };
         }),
         api.get("/tasks/all").catch((err) => {
@@ -1783,6 +2242,7 @@ const SalesOverview= () => {
       const leads = Array.isArray(leadsRes.data) ? leadsRes.data : [];
       const deals = Array.isArray(dealsRes.data) ? dealsRes.data : [];
       const accounts = Array.isArray(accountsRes.data) ? accountsRes.data : [];
+      const contacts = Array.isArray(contactsRes.data) ? contactsRes.data : [];
       const tasks = Array.isArray(tasksRes.data) ? tasksRes.data : [];
       const meetings = Array.isArray(meetingsRes.data) ? meetingsRes.data : [];
       const calls = Array.isArray(callsRes.data) ? callsRes.data : [];
@@ -1804,6 +2264,7 @@ const SalesOverview= () => {
       setAllLeads(leads);
       setAllDeals(deals);
       setAllAccounts(accounts);
+      setAllContacts(contacts);
 
       setAllTargets(targets);
 
@@ -2122,6 +2583,141 @@ const SalesOverview= () => {
 
       setTaskCompletionData(calculateActivityCompletion());
 
+      // Calculate comparison data for deals, accounts, contacts, and leads
+      const calculateComparisonData = () => {
+        const currentYear = new Date().getFullYear();
+        const lastYear = currentYear - 1;
+        
+        const dealsCurrentYear = new Array(12).fill(0);
+        const dealsLastYear = new Array(12).fill(0);
+        const accountsCurrentYear = new Array(12).fill(0);
+        const accountsLastYear = new Array(12).fill(0);
+        const contactsCurrentYear = new Array(12).fill(0);
+        const contactsLastYear = new Array(12).fill(0);
+        const leadsCurrentYear = new Array(12).fill(0);
+        const leadsLastYear = new Array(12).fill(0);
+
+        // Process deals
+        deals.forEach((deal) => {
+          const createdDate = deal.created_at || deal.createdAt;
+          if (!createdDate) return;
+
+          try {
+            const date = new Date(createdDate);
+            if (isNaN(date.getTime())) return;
+
+            const year = date.getFullYear();
+            const month = date.getMonth();
+
+            if (year === currentYear) {
+              dealsCurrentYear[month]++;
+            } else if (year === lastYear) {
+              dealsLastYear[month]++;
+            }
+          } catch (error) {
+            console.error('Error parsing deal date:', error);
+          }
+        });
+
+        // Process accounts
+        accounts.forEach((account) => {
+          const createdDate = account.created_at || account.createdAt;
+          if (!createdDate) return;
+
+          try {
+            const date = new Date(createdDate);
+            if (isNaN(date.getTime())) return;
+
+            const year = date.getFullYear();
+            const month = date.getMonth();
+
+            if (year === currentYear) {
+              accountsCurrentYear[month]++;
+            } else if (year === lastYear) {
+              accountsLastYear[month]++;
+            }
+          } catch (error) {
+            console.error('Error parsing account date:', error);
+          }
+        });
+
+        // Process contacts
+        contacts.forEach((contact) => {
+          const createdDate = contact.created_at || contact.createdAt;
+          if (!createdDate) return;
+
+          try {
+            const date = new Date(createdDate);
+            if (isNaN(date.getTime())) return;
+
+            const year = date.getFullYear();
+            const month = date.getMonth();
+
+            if (year === currentYear) {
+              contactsCurrentYear[month]++;
+            } else if (year === lastYear) {
+              contactsLastYear[month]++;
+            }
+          } catch (error) {
+            console.error('Error parsing contact date:', error);
+          }
+        });
+
+        // Process leads
+        leads.forEach((lead) => {
+          const createdDate = lead.created_at || lead.createdAt;
+          if (!createdDate) return;
+
+          try {
+            const date = new Date(createdDate);
+            if (isNaN(date.getTime())) return;
+
+            const year = date.getFullYear();
+            const month = date.getMonth();
+
+            if (year === currentYear) {
+              leadsCurrentYear[month]++;
+            } else if (year === lastYear) {
+              leadsLastYear[month]++;
+            }
+          } catch (error) {
+            console.error('Error parsing lead date:', error);
+          }
+        });
+
+        console.log('Comparison data summary:', {
+          dealsCurrentYear,
+          dealsLastYear,
+          accountsCurrentYear,
+          accountsLastYear,
+          contactsCurrentYear,
+          contactsLastYear,
+          leadsCurrentYear,
+          leadsLastYear,
+        });
+
+        return {
+          deals: {
+            currentYear: dealsCurrentYear,
+            lastYear: dealsLastYear,
+          },
+          accounts: {
+            currentYear: accountsCurrentYear,
+            lastYear: accountsLastYear,
+          },
+          contacts: {
+            currentYear: contactsCurrentYear,
+            lastYear: contactsLastYear,
+          },
+          leads: {
+            currentYear: leadsCurrentYear,
+            lastYear: leadsLastYear,
+          },
+        };
+      };
+
+      setComparisonData(calculateComparisonData());
+
       // Log deals data for debugging
       console.log("=== ALL DEALS DATA ===");
       console.log("Total deals:", deals.length);
@@ -2435,7 +3031,12 @@ const SalesOverview= () => {
           <RevenueChart revenueData={revenueData} loading={loading} />
         </div>
 
-        {/* ROW 6: Detailed Lists */}
+        {/* ROW 6: Comparison Chart - Growth Comparison */}
+        <div className="grid grid-cols-1 mb-8">
+          <ComparisonChart comparisonData={comparisonData} loading={loading} />
+        </div>
+
+        {/* ROW 7: Detailed Lists */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <ListCard title="Latest Leads">
             {latestLeads.length > 0 ? (

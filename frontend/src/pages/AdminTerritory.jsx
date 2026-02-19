@@ -11,6 +11,7 @@ import {
   FiCheck,
   FiChevronDown,
   FiCheckSquare,
+  FiArchive,
 } from "react-icons/fi";
 import { LuMapPin } from "react-icons/lu";
 import { useNavigate, useParams } from "react-router-dom";
@@ -191,7 +192,9 @@ export default function AdminTerritory() {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const [selectedIds, setSelectedIds] = useState([]);
+  const [currentUser, setCurrentUser] = useState(null);
   const justUpdatedRef = useRef(false);
+  const createSubmittedRef = useRef(false);  // Prevent duplicate create submissions
   const {userRole} = useAuth();
 
   // Grouping territories logic
@@ -210,12 +213,16 @@ export default function AdminTerritory() {
             // We use the first entry's ID as the main ID for routing/editing logic initially
             groupedMap.set(key, {
                 ...t, 
+                // Track all territory IDs in this group for bulk operations
+                territory_ids: [t.id],
                 // We create an array 'assigned_users_list' to hold all users from the split rows
                 assigned_users_list: t.assigned_to ? [t.assigned_to] : [] 
             });
         } else {
             // If entry exists, just push the user to the array if they exist
             const existing = groupedMap.get(key);
+            // Track all territory IDs
+            existing.territory_ids.push(t.id);
             if (t.assigned_to) {
                 // Avoid duplicates if data is somehow messy
                 if (!existing.assigned_users_list.some(u => u.id === t.assigned_to.id)) {
@@ -338,10 +345,35 @@ export default function AdminTerritory() {
     }
   };
 
+  const fetchCurrentUser = async () => {
+    try {
+      const response = await api.get("/auth/me");
+      setCurrentUser(response.data);
+    } catch (error) {
+      console.error("Error fetching current user:", error);
+    }
+  };
+
   useEffect(() => {
     fetchUsers();
     fetchTerritories();
+    fetchCurrentUser();
   }, []);
+
+  // Helper function to check if current user can delete/select a territory
+  const canDeleteTerritory = (territory) => {
+    if (userRole.toLowerCase() === 'ceo' || userRole.toLowerCase() === 'admin') {
+      return true; // CEO/Admin can delete any territory
+    }
+    if (userRole.toLowerCase() === 'group_manager' || userRole.toLowerCase() === 'group manager') {
+      return currentUser && territory.territory_creator?.id === currentUser.id; // Group Manager can only delete their own
+    }
+    return false; // Other roles cannot delete
+  };
+
+  const isGroupManagerArchiving = () => {
+    return userRole.toLowerCase() === 'group_manager' || userRole.toLowerCase() === 'group manager';
+  };
 
   const handleTerritoryChange = (e) => {
     const { name, value } = e.target;
@@ -401,6 +433,12 @@ export default function AdminTerritory() {
 const [isSubmitted, setIsSubmitted] = useState(false);
   const handleSubmit = (e) => {
     e.preventDefault();
+    
+    // Prevent form submission if already processing
+    if (isSubmitting || confirmModalData) {
+      return;
+    }
+    
     setIsSubmitted(true);  
 
     const trimmedName = territoryData.name.trim();
@@ -429,11 +467,14 @@ const [isSubmitted, setIsSubmitted] = useState(false);
         }
     }
 
+    // Deduplicate user_ids to prevent creating duplicate territories
+    const uniqueUserIds = [...new Set(territoryData.user_ids.map(id => Number(id)))];
+
     const payload = {
       name: trimmedName,
       description: territoryData.description?.trim() || "",
       manager_id: territoryData.manager_id ? Number(territoryData.manager_id) : null,
-      user_ids: territoryData.user_ids.map(id => Number(id)), // Send Array
+      user_ids: uniqueUserIds, // Send deduplicated Array
       company_id: finalCompanyId
     };
 
@@ -455,40 +496,51 @@ const [isSubmitted, setIsSubmitted] = useState(false);
 
   const handleDelete = (territoryGroup) => {
     if (!territoryGroup) return;
-    // Warning: This deletes the representative row. 
-    // Backend should ideally handle deleting ALL rows with this name/company combo 
-    // OR we loop delete here. For now, assuming standard delete.
+    
+    const isGroupManager = userRole.toLowerCase() === 'group_manager' || userRole.toLowerCase() === 'group manager';
+    const actionLabel = isGroupManager ? 'Archive' : 'Delete';
+    const actionMessage = isGroupManager 
+      ? `Are you sure you want to archive <span class="font-semibold">${territoryGroup.name}</span>? 
+          <br/><span class="text-xs text-orange-500">This will archive assignments for all ${territoryGroup.assigned_users_list.length} users in this group.</span>`
+      : `Are you sure you want to delete <span class="font-semibold">${territoryGroup.name}</span>? 
+          <br/><span class="text-xs text-red-500">This will remove assignments for all ${territoryGroup.assigned_users_list.length} users in this group.</span>`;
+    
+    // Both GROUP MANAGER and ADMIN/CEO use bulk-delete to handle entire groups
+    const actionConfig = { 
+      type: "bulk-delete", 
+      territory_ids: territoryGroup.territory_ids, 
+      name: territoryGroup.name 
+    };
     
     setConfirmModalData({
-      title: "Delete Territory Group",
+      title: `${actionLabel} Territory Group`,
       message: (
-        <span>
-          Are you sure you want to delete <span className="font-semibold">{territoryGroup.name}</span>? 
-          <br/><span className="text-xs text-red-500">This will remove assignments for all {territoryGroup.assigned_users_list.length} users in this group.</span>
-        </span>
+        <span dangerouslySetInnerHTML={{ __html: actionMessage }} />
       ),
-      confirmLabel: "Delete",
+      confirmLabel: actionLabel,
       cancelLabel: "Cancel",
-      variant: "danger",
-      action: { type: "delete", targetId: territoryGroup.id, name: territoryGroup.name },
+      variant: isGroupManager ? "warning" : "danger",
+      action: actionConfig,
     });
   };
 
   const handleBulkDelete = async () => {
     if (selectedIds.length === 0) return;
 
+    const isGroupManager = userRole.toLowerCase() === 'group_manager' || userRole.toLowerCase() === 'group manager';
+    const actionLabel = isGroupManager ? 'Archive' : 'Delete';
+    const actionMessage = isGroupManager
+      ? `Are you sure you want to archive <span class="font-semibold">${selectedIds.length}</span> selected territories? This action cannot be undone.`
+      : `Are you sure you want to delete <span class="font-semibold">${selectedIds.length}</span> selected territories? This action cannot be undone.`;
+
     setConfirmModalData({
-      title: "Delete Territories",
+      title: `${actionLabel} Territories`,
       message: (
-        <span>
-          Are you sure you want to delete{" "}
-          <span className="font-semibold">{selectedIds.length}</span> selected
-          territories? This action cannot be undone.
-        </span>
+        <span dangerouslySetInnerHTML={{ __html: actionMessage }} />
       ),
-      confirmLabel: `Delete ${selectedIds.length} Territory(ies)`,
+      confirmLabel: `${actionLabel} ${selectedIds.length} Territory(ies)`,
       cancelLabel: "Cancel",
-      variant: "danger",
+      variant: isGroupManager ? "warning" : "danger",
       action: {
         type: "bulk-delete",
         territory_ids: selectedIds,
@@ -498,19 +550,42 @@ const [isSubmitted, setIsSubmitted] = useState(false);
 
   const handleSelectAll = (e) => {
     if (e.target.checked) {
-      const allIds = paginatedTerritories.map((t) => t.id);
-      setSelectedIds(allIds);
+      const selectableIds = paginatedTerritories
+        .filter((t) => canDeleteTerritory(t))
+        .flatMap((t) => {
+          // Expand all territory IDs in each group for both GROUP MANAGER and ADMIN/CEO
+          return t.territory_ids ? t.territory_ids : [t.id];
+        });
+      setSelectedIds(selectableIds);
     } else {
       setSelectedIds([]);
     }
   };
 
-  const handleCheckboxChange = (id) => {
+  const handleCheckboxChange = (territoryOrId) => {
+    // Handle both single ID and territory object with territory_ids array
+    let idsToToggle = [];
+    if (typeof territoryOrId === 'object' && territoryOrId.territory_ids) {
+      // It's a grouped territory - select all IDs in the group for both GROUP MANAGER and ADMIN/CEO
+      idsToToggle = territoryOrId.territory_ids;
+    } else if (typeof territoryOrId === 'object' && territoryOrId.id) {
+      // It's a territory object - extract its ID
+      idsToToggle = [territoryOrId.id];
+    } else {
+      // It's a single ID
+      idsToToggle = [territoryOrId];
+    }
+    
     setSelectedIds((prev) => {
-      if (prev.includes(id)) {
-        return prev.filter((prevId) => prevId !== id);
+      // Check if all IDs are already selected
+      const allSelected = idsToToggle.every((id) => prev.includes(id));
+      
+      if (allSelected) {
+        // Remove all these IDs
+        return prev.filter((id) => !idsToToggle.includes(id));
       } else {
-        return [...prev, id];
+        // Add all these IDs
+        return [...prev, ...idsToToggle.filter((id) => !prev.includes(id))];
       }
     });
   };
@@ -519,6 +594,14 @@ const [isSubmitted, setIsSubmitted] = useState(false);
     if (!confirmModalData?.action) { setConfirmModalData(null); return; }
     const { action } = confirmModalData;
     const { type, payload, targetId, name } = action;
+
+    // Prevent duplicate create submissions
+    if (type === "create" && createSubmittedRef.current) {
+      return;
+    }
+    if (type === "create") {
+      createSubmittedRef.current = true;
+    }
 
     setConfirmProcessing(true);
 
@@ -552,16 +635,27 @@ const [isSubmitted, setIsSubmitted] = useState(false);
         setDeletingId(targetId);
         await api.delete(`/territories/${targetId}`); 
         
-        toast.success(`Territory "${name}" deleted.`);
+        const actionLabel = isGroupManagerArchiving() ? 'archived' : 'deleted';
+        toast.success(`Territory "${name}" ${actionLabel}.`);
         await fetchTerritories();
         if (selectedTerritory?.id === targetId) setSelectedTerritory(null);
+        // Close all modals after successful delete
+        setShowFormModal(false);
       } else if (type === "bulk-delete") {
         await api.delete("/territories/admin/bulk-delete", {
           data: { territory_ids: action.territory_ids },
         });
-        toast.success(`Successfully deleted ${action.territory_ids.length} territories`);
+        const actionLabel = isGroupManagerArchiving() ? 'archived' : 'deleted';
+        // If name is provided (from handleDelete), show territory name; otherwise show count
+        const message = name 
+          ? `Territory "${name}" ${actionLabel} (${action.territory_ids.length} user(s)).`
+          : `Successfully ${actionLabel} ${action.territory_ids.length} territories`;
+        toast.success(message);
         setSelectedIds([]);
         await fetchTerritories();
+        // Close all modals after successful bulk delete
+        setSelectedTerritory(null);
+        setShowFormModal(false);
       }
     } catch (error) {
        console.error(error);
@@ -572,6 +666,9 @@ const [isSubmitted, setIsSubmitted] = useState(false);
        setDeletingId(null);
        setConfirmProcessing(false);
        setConfirmModalData(null);
+       if (type === "create") {
+         createSubmittedRef.current = false;  // Reset for next create
+       }
     }
   };
 
@@ -670,8 +767,19 @@ const [isSubmitted, setIsSubmitted] = useState(false);
                   }
 
                   navigate(`/${role}/territory/${t.id}`); }} 
-                      className="bg-white p-4 shadow border border-gray-200 flex flex-col relative cursor-pointer hover:shadow-md transition">
-                    <div className="absolute top-0 left-0 w-full h-5 bg-secondary rounded-t-md" />
+                      className={`relative flex flex-col cursor-pointer transition p-4 border shadow ${
+                        t.status === 'Inactive'
+                          ? 'bg-gray-50 border-gray-300'
+                          : 'bg-white border-gray-200 hover:shadow-md'
+                      }`}>
+                    <div className={`absolute top-0 left-0 w-full h-5 rounded-t-md ${
+                      t.status === 'Inactive' ? 'bg-gray-400' : 'bg-secondary'
+                    }`} />
+                    {t.status === 'Inactive' && (
+                      <span className="absolute top-2 right-2 bg-red-100 text-red-700 text-xs font-semibold px-2 py-1 rounded">
+                        Inactive
+                      </span>
+                    )}
                     <h3 className="font-medium text-gray-900 mb-2 pt-7">{t.name}</h3>
                     {t.description && <p className="text-xs text-gray-600 mb-2 line-clamp-2">{t.description}</p>}
                     
@@ -698,10 +806,15 @@ const [isSubmitted, setIsSubmitted] = useState(false);
                         <input
                           type="checkbox"
                           className="w-4 h-4 accent-blue-600"
-                          checked={
-                            paginatedTerritories.length > 0 &&
-                            paginatedTerritories.every((t) => selectedIds.includes(t.id))
-                          }
+                          checked={(() => {
+                            const selectableTerritory = paginatedTerritories.filter((t) => canDeleteTerritory(t));
+                            if (selectableTerritory.length === 0) return false;
+                            
+                            // For both GROUP MANAGER and ADMIN/CEO, check if all territory_ids in all groups are selected
+                            return selectableTerritory.every((t) =>
+                              t.territory_ids && t.territory_ids.every((id) => selectedIds.includes(id))
+                            );
+                          })()}
                           onChange={handleSelectAll}
                         />
                       </th>
@@ -714,10 +827,22 @@ const [isSubmitted, setIsSubmitted] = useState(false);
                         {selectedIds.length > 0 ? (
                           <button
                             onClick={handleBulkDelete}
-                            className="text-red-600 hover:text-red-800 transition p-1 rounded-full hover:bg-red-50"
-                            title={`Delete ${selectedIds.length} selected territories`}
+                            className={`${ 
+                              userRole.toLowerCase() === 'group_manager' || userRole.toLowerCase() === 'group manager'
+                                ? 'text-orange-600 hover:text-orange-800 hover:bg-orange-50'
+                                : 'text-red-600 hover:text-red-800 hover:bg-red-50'
+                            } transition p-1 rounded-full`}
+                            title={`${
+                              userRole.toLowerCase() === 'group_manager' || userRole.toLowerCase() === 'group manager'
+                                ? 'Archive'
+                                : 'Delete'
+                            } ${selectedIds.length} selected territories`}
                           >
-                            <FiTrash2 size={18} />
+                            {userRole.toLowerCase() === 'group_manager' || userRole.toLowerCase() === 'group manager' ? (
+                              <FiArchive size={18} />
+                            ) : (
+                              <FiTrash2 size={18} />
+                            )}
                           </button>
                         ) : (
                           ""
@@ -731,12 +856,19 @@ const [isSubmitted, setIsSubmitted] = useState(false);
                     <tr key={t.id} className="hover:bg-gray-50 cursor-pointer">
                       {!['sales', 'manager'].includes(userRole.toLowerCase()) && (
                         <td className="py-3 px-4" onClick={(e) => e.stopPropagation()}>
-                          <input
-                            type="checkbox"
-                            className="w-4 h-4 accent-blue-600"
-                            checked={selectedIds.includes(t.id)}
-                            onChange={() => handleCheckboxChange(t.id)}
-                          />
+                          {canDeleteTerritory(t) ? (
+                            <input
+                              type="checkbox"
+                              className="w-4 h-4 accent-blue-600"
+                              checked={
+                                // For both GROUP MANAGER and ADMIN/CEO, check if ANY territory ID in group is selected
+                                t.territory_ids && t.territory_ids.some((id) => selectedIds.includes(id))
+                              }
+                              onChange={() => handleCheckboxChange(t)}
+                            />
+                          ) : (
+                            <div className="w-4 h-4"></div>
+                          )}
                         </td>
                       )}
                       <td className="py-3 px-4 font-medium" onClick={() => { 
@@ -754,7 +886,16 @@ const [isSubmitted, setIsSubmitted] = useState(false);
                       role = 'sales';
                     }
                         navigate(`/${role}/territory/${t.id}`); 
-                      }}>{t.name}</td>
+                      }}>
+                        <div className="flex items-center gap-2">
+                          {t.name}
+                          {t.status === 'Inactive' && (
+                            <span className="bg-red-100 text-red-700 text-xs font-semibold px-2 py-1 rounded">
+                              Inactive
+                            </span>
+                          )}
+                        </div>
+                      </td>
                       <td className="py-3 px-4">{renderAssignedUsers(t.assigned_users_list)}</td>
                       <td className="py-3 px-4">{t.managed_by ? `${t.managed_by.first_name}` : "—"}</td>
                       <td></td>
@@ -786,7 +927,14 @@ const [isSubmitted, setIsSubmitted] = useState(false);
                 navigate(`/${role}/territory`); }}>
                  <FiX size={24} />
                </button>
-               <h2 className="text-3xl font-semibold mb-1">{selectedTerritory.name}</h2>
+               <h2 className="text-3xl font-semibold mb-1">
+                {selectedTerritory.name}
+                {selectedTerritory.status === 'Inactive' && (
+                  <span className="ml-3 inline-block bg-red-100 text-red-700 text-sm font-semibold px-3 py-1 rounded">
+                    Inactive
+                  </span>
+                )}
+               </h2>
                <div className="h-px bg-gray-200 w-full mb-4" />
 
                <p className="text-gray-500 mb-1">Description</p>
@@ -811,10 +959,30 @@ const [isSubmitted, setIsSubmitted] = useState(false);
                  </div>                 
                </div>                             
                
-               {(!['sales', 'manager'].includes(userRole.toLowerCase())) && (
+               {(
+                 (userRole.toLowerCase() === 'ceo' || userRole.toLowerCase() === 'admin') ||
+                 ((userRole.toLowerCase() === 'group_manager' || userRole.toLowerCase() === 'group manager') && currentUser && selectedTerritory?.territory_creator?.id === currentUser.id)
+               ) && (
                 <div className="flex justify-end gap-2">
                  <button onClick={() => handleEditTerritory(selectedTerritory)} className="bg-blue-500 text-white px-4 py-2 rounded flex items-center gap-2"><FiEdit2 /> Edit</button>
-                 <button onClick={() => handleDelete(selectedTerritory)} className="bg-red-500 text-white px-4 py-2 rounded flex items-center gap-2"><FiTrash2 /> Delete</button>
+                 <button 
+                   onClick={() => handleDelete(selectedTerritory)} 
+                   className={`${ 
+                     userRole.toLowerCase() === 'group_manager' || userRole.toLowerCase() === 'group manager'
+                       ? 'bg-orange-500 hover:bg-orange-600'
+                       : 'bg-red-500 hover:bg-red-600'
+                   } text-white px-4 py-2 rounded flex items-center gap-2`}
+                 >
+                   {userRole.toLowerCase() === 'group_manager' || userRole.toLowerCase() === 'group manager' ? (
+                     <>
+                       <FiArchive /> Archive
+                     </>
+                   ) : (
+                     <>
+                       <FiTrash2 /> Delete
+                     </>
+                   )}
+                 </button>
                </div>
                )}               
              </div>
@@ -956,16 +1124,36 @@ function TextareaField({ label, name, value, onChange, placeholder, rows = 3, di
 }
 
 function ConfirmationModal({ open, title, message, confirmLabel, cancelLabel = "Cancel", variant = "primary", loading = false, onConfirm, onCancel }) {
-  if (!open) return null;
-  const confirmClasses = variant === "danger" ? "bg-red-500 hover:bg-red-600 border border-red-400" : "bg-tertiary hover:bg-secondary border border-tertiary";
+  const [isClicked, setIsClicked] = useState(false);
+  
+  if (!open) {
+    setIsClicked(false);  // Reset when modal closes
+    return null;
+  }
+  
+  let confirmClasses;
+  if (variant === "danger") {
+    confirmClasses = "bg-red-500 hover:bg-red-600 border border-red-400";
+  } else if (variant === "warning") {
+    confirmClasses = "bg-orange-500 hover:bg-orange-600 border border-orange-400";
+  } else {
+    confirmClasses = "bg-tertiary hover:bg-secondary border border-tertiary";
+  }
+  
+  const handleConfirmClick = () => {
+    if (isClicked || loading) return;  // Prevent double-click
+    setIsClicked(true);
+    onConfirm();
+  };
+  
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-[60]">
       <div className="bg-white w-full max-w-md rounded-xl shadow-lg p-6 border border-gray-200">
         <h3 className="text-lg font-semibold text-gray-800">{title}</h3>
         <p className="text-sm text-gray-600 mt-2 whitespace-pre-line">{message}</p>
         <div className="mt-6 flex flex-col sm:flex-row sm:justify-end sm:space-x-3 space-y-2 sm:space-y-0">
-          <button type="button" onClick={onCancel} className="w-full sm:w-auto px-4 py-2 rounded-md border border-gray-300 text-gray-700 hover:bg-gray-100 transition disabled:opacity-70" disabled={loading}>{cancelLabel}</button>
-          <button type="button" onClick={onConfirm} className={`w-full sm:w-auto px-4 py-2 rounded-md text-white transition disabled:opacity-70 ${confirmClasses}`} disabled={loading}>{loading ? "Processing..." : confirmLabel}</button>
+          <button type="button" onClick={onCancel} className="w-full sm:w-auto px-4 py-2 rounded-md border border-gray-300 text-gray-700 hover:bg-gray-100 transition disabled:opacity-70" disabled={loading || isClicked}>{cancelLabel}</button>
+          <button type="button" onClick={handleConfirmClick} className={`w-full sm:w-auto px-4 py-2 rounded-md text-white transition disabled:opacity-70 ${confirmClasses}`} disabled={loading || isClicked}>{loading ? "Processing..." : confirmLabel}</button>
         </div>
       </div>
     </div>

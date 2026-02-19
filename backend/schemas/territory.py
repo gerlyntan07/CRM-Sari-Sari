@@ -58,6 +58,7 @@ class TerritoryResponse(TerritoryBase):
     # ✅ FIXED: Renamed to match DB model and made a List
     assigned_to: Optional[UserBase] = None
     managed_by: Optional[UserBase] = None
+    territory_creator: Optional[UserBase] = None
     under_company: Optional[CompanyBase] = None
     
     # ✅ FIXED: Changed from Optional[LeadBase] to List
@@ -66,6 +67,7 @@ class TerritoryResponse(TerritoryBase):
     # ✅ FIXED: Changed from Optional[AccountBase] to List
     accounts: List[AccountBase] = [] 
     
+    status: Optional[str] = None
     created_at: Optional[datetime] = None
 
     class Config:

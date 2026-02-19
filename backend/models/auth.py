@@ -38,6 +38,7 @@ class User(Base):
 
     assigned_territory = relationship("Territory", back_populates="assigned_to", foreign_keys="[Territory.user_id]", cascade="all, delete-orphan")
     managed_territory = relationship("Territory", back_populates="managed_by", foreign_keys="[Territory.manager_id]", cascade="all, delete-orphan")
+    created_territories = relationship("Territory", back_populates="territory_creator", foreign_keys="[Territory.created_by]", cascade="all, delete-orphan")
 
     leads = relationship("Lead", back_populates="assigned_to", foreign_keys="[Lead.lead_owner]", cascade="all, delete-orphan")
     created_leads = relationship("Lead", back_populates="creator", foreign_keys="[Lead.created_by]", cascade="all, delete-orphan")

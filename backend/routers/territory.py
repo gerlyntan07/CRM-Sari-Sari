@@ -38,6 +38,7 @@ def get_territories(
             .join(User, Territory.user_id == User.id)
             .filter(User.related_to_company == current_user.related_to_company)
             .filter(~User.role.in_(["CEO", "Admin"]))
+            .filter((Territory.status != "Inactive") | (Territory.status == None))  # Exclude archived territories for GROUP MANAGER
             .all()
         )
     elif current_user.role.upper() == "MANAGER":
@@ -89,10 +90,13 @@ async def assign_territory(
             raise HTTPException(status_code=404, detail="Assigned manager not found") 
 
     created_territories = []
+    
+    # Deduplicate user_ids to prevent creating duplicate rows
+    unique_user_ids = list(set(data.user_ids)) if data.user_ids else []
 
     # 2. LOOP through the list of User IDs and create a row for each
-    if data.user_ids:
-        for uid in data.user_ids:
+    if unique_user_ids:
+        for uid in unique_user_ids:
             # Check if this specific combo already exists to avoid crashing on UniqueConstraint
             existing = db.query(Territory).filter(
                 Territory.company_id == data.company_id,
@@ -109,6 +113,8 @@ async def assign_territory(
                 manager_id=data.manager_id,
                 user_id=uid, # Set the specific user for this row
                 company_id=data.company_id,
+                created_by=current_user.id,
+                status="Active",  # Explicitly set to Active
             )
             db.add(new_territory)
             created_territories.append(new_territory)
@@ -121,6 +127,8 @@ async def assign_territory(
             manager_id=data.manager_id,
             user_id=None,
             company_id=data.company_id,
+            created_by=current_user.id,
+            status="Active",  # Explicitly set to Active
         )
          db.add(new_territory)
          created_territories.append(new_territory)
@@ -239,6 +247,83 @@ async def update_territory(
 #     return territories
 
 
+@router.delete("/admin/bulk-delete", status_code=status.HTTP_200_OK)
+def admin_bulk_delete_territories(
+    data: TerritoryBulkDelete = Body(...),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    request: Request = None
+):
+    if current_user.role.upper() not in ALLOWED_ADMIN_ROLES:
+        raise HTTPException(status_code=403, detail="Permission denied")
+
+    if not data.territory_ids:
+        return {"detail": "No territories provided for deletion."}
+
+    company_users = (
+        db.query(User.id)
+        .where(User.related_to_company == current_user.related_to_company)
+        .subquery()
+    )
+
+    territories_to_delete = db.query(Territory).filter(
+        Territory.id.in_(data.territory_ids),
+        (Territory.user_id.in_(company_users))
+    ).all()
+
+    if not territories_to_delete:
+        raise HTTPException(status_code=404, detail="No matching territories found for deletion.")
+
+    archived_count = 0
+    deleted_count = 0
+    
+    for territory in territories_to_delete:
+        deleted_data = serialize_instance(territory)
+        territory_name = territory.name
+        target_user_id = territory.user_id
+
+        # GROUP MANAGER: Soft delete (archive)
+        if current_user.role.upper() == "GROUP MANAGER":
+            # Only allow GROUP MANAGER to archive territories they created
+            if territory.created_by == current_user.id:
+                territory.status = "Inactive"
+                archived_count += 1
+                
+                # Create audit log AFTER status is updated
+                create_audit_log(
+                    db=db,
+                    current_user=current_user,
+                    instance=territory,
+                    action="ARCHIVE",
+                    request=request,
+                    old_data=deleted_data,
+                    target_user_id=target_user_id,
+                    custom_message=f"archive territory '{territory_name}' (soft delete)"
+                )
+        else:
+            # ADMIN/CEO: Hard delete
+            db.delete(territory)
+            deleted_count += 1
+            
+            create_audit_log(
+                db=db,
+                current_user=current_user,
+                instance=territory,
+                action="DELETE",
+                request=request,
+                old_data=deleted_data,
+                target_user_id=target_user_id,
+                custom_message=f"bulk delete territory '{territory_name}' via admin panel"
+            )
+
+    db.commit()
+
+    if current_user.role.upper() == "GROUP MANAGER":
+        return {"detail": f"Successfully archived {archived_count} territory(ies)."}
+    else:
+        return {"detail": f"Successfully deleted {deleted_count} territory(ies)."}
+
+
 @router.delete("/{territory_id}")
 def delete_territory(
     territory_id: int,
@@ -256,19 +341,40 @@ def delete_territory(
     entity_id = deleted_data.get("id")
     target_user_id = territory.user_id
     
-    db.delete(territory)
-    db.commit()    
-
-    create_audit_log(
-        db=db,
-        current_user=current_user,
-        instance=territory,
-        action="DELETE",
-        request=request,
-        old_data=deleted_data,
-        target_user_id=target_user_id,
-        custom_message=f"delete territory '{entity_id}' permanently"
-    )
+    # GROUP MANAGER: Soft delete (archive) - mark as Inactive
+    if current_user.role.upper() == "GROUP MANAGER":
+        # Only allow GROUP MANAGER to archive territories they created
+        if territory.created_by != current_user.id:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You can only archive territories you created")
+        
+        territory.status = "Inactive"
+        db.commit()
+        
+        create_audit_log(
+            db=db,
+            current_user=current_user,
+            instance=territory,
+            action="ARCHIVE",
+            request=request,
+            old_data=deleted_data,
+            target_user_id=target_user_id,
+            custom_message=f"archive territory '{entity_id}' (soft delete)"
+        )
+    else:
+        # ADMIN/CEO: Hard delete
+        db.delete(territory)
+        db.commit()
+        
+        create_audit_log(
+            db=db,
+            current_user=current_user,
+            instance=territory,
+            action="DELETE",
+            request=request,
+            old_data=deleted_data,
+            target_user_id=target_user_id,
+            custom_message=f"delete territory '{entity_id}' permanently"
+        )
 
     return deleted_data
 
@@ -344,55 +450,3 @@ def delete_territory(
 #     )
 
 #     return territory
-
-
-@router.delete("/admin/bulk-delete", status_code=status.HTTP_200_OK)
-def admin_bulk_delete_territories(
-    data: TerritoryBulkDelete = Body(...),
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-    request: Request = None
-):
-    if current_user.role.upper() not in ALLOWED_ADMIN_ROLES:
-        raise HTTPException(status_code=403, detail="Permission denied")
-
-    if not data.territory_ids:
-        return {"detail": "No territories provided for deletion."}
-
-    company_users = (
-        db.query(User.id)
-        .where(User.related_to_company == current_user.related_to_company)
-        .subquery()
-    )
-
-    territories_to_delete = db.query(Territory).filter(
-        Territory.id.in_(data.territory_ids),
-        (Territory.user_id.in_(company_users))
-    ).all()
-
-    if not territories_to_delete:
-        raise HTTPException(status_code=404, detail="No matching territories found for deletion.")
-
-    deleted_count = 0
-    for territory in territories_to_delete:
-        deleted_data = serialize_instance(territory)
-        territory_name = territory.name
-        target_user_id = territory.user_id
-
-        db.delete(territory)
-        
-        create_audit_log(
-            db=db,
-            current_user=current_user,
-            instance=territory,
-            action="DELETE",
-            request=request,
-            old_data=deleted_data,
-            target_user_id=target_user_id,
-            custom_message=f"bulk delete territory '{territory_name}' via admin panel"
-        )
-        deleted_count += 1
-
-    db.commit()
-
-    return {"detail": f"Successfully deleted {deleted_count} territory(ies)."}

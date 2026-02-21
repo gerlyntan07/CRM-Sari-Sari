@@ -12,6 +12,7 @@ import json
 
 def serialize_instance(instance):
     """Convert SQLAlchemy model instance into a dictionary safely."""
+    import enum
     data = {}
     for column in instance.__table__.columns:
         value = getattr(instance, column.name)
@@ -19,6 +20,8 @@ def serialize_instance(instance):
             value = value.isoformat()  # Convert datetime/date to string
         elif isinstance(value, Decimal):
             value = float(value)       # Convert decimals to float
+        elif isinstance(value, enum.Enum):
+            value = value.value  # Get the enum value instead of the name
         data[column.name] = value
     return data
 

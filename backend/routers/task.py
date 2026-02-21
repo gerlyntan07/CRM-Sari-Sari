@@ -236,6 +236,7 @@ def get_all_tasks(db: Session = Depends(get_db), current_user: User = Depends(ge
             )
         elif current_user.role.upper() == "GROUP MANAGER":
             # Group managers see tasks for their company's non-admin users
+            # But do NOT see archived (INACTIVE) tasks
             company_users = (
                 db.query(User.id)
                 .where(User.related_to_company == current_user.related_to_company)
@@ -256,6 +257,7 @@ def get_all_tasks(db: Session = Depends(get_db), current_user: User = Depends(ge
                 .filter(
                     (Task.assigned_to.in_(company_users)) | (Task.created_by.in_(company_users))
                 )
+                .filter(Task.status != StatusCategory.INACTIVE)
                 .all()
             )
         elif current_user.role.upper() == "MANAGER":
@@ -302,7 +304,7 @@ def get_all_tasks(db: Session = Depends(get_db), current_user: User = Depends(ge
                 .all()
             )
             # Filter out INACTIVE tasks in Python to avoid SQLAlchemy enum binding issues
-            tasks = [t for t in tasks if (t.status.value if hasattr(t.status, 'value') else t.status) != "Inactive"]
+            tasks = [t for t in tasks if (t.status.value if hasattr(t.status, 'value') else t.status) != "INACTIVE"]
 
         # Convert to dict format - simple and clean
         result = []
@@ -325,6 +327,8 @@ def get_all_tasks(db: Session = Depends(get_db), current_user: User = Depends(ge
                     "status": str(status_val),
                     "due_date": task.due_date.isoformat() if task.due_date else None,
                     "created_at": task.created_at.isoformat() if task.created_at else None,
+                    "created_by": task.created_by,
+                    "assigned_to": task.assigned_to,
                     "task_creator": {
                         "id": task.task_creator.id,
                         "first_name": task.task_creator.first_name,
@@ -380,6 +384,8 @@ def get_all_tasks(db: Session = Depends(get_db), current_user: User = Depends(ge
                     "status": "Not started",
                     "due_date": None,
                     "created_at": None,
+                    "created_by": task.created_by,
+                    "assigned_to": task.assigned_to,
                 })
         
         return result
@@ -467,7 +473,7 @@ def delete_task(
     current_user: User = Depends(get_current_user),
     request: Request = None
 ):
-    """Delete endpoint: SALES users archive, ADMINS hard delete"""
+    """Delete endpoint: SALES and GROUP MANAGER users archive, ADMINS hard delete"""
     try:
         task = db.query(Task).filter(Task.id == task_id).first()
         if not task:
@@ -476,12 +482,12 @@ def delete_task(
         title = task.title
         old_data = serialize_instance(task)
 
-        # SALES users archive (mark as INACTIVE) instead of hard delete
-        if current_user.role.upper() == "SALES":
+        # GROUP MANAGER users archive (mark as INACTIVE) instead of hard delete
+        if current_user.role.upper() == "GROUP MANAGER":
             if task.created_by != current_user.id:
                 raise HTTPException(status_code=403, detail="Permission denied - you can only archive your own tasks")
 
-            task.status = StatusCategory.INACTIVE
+            task.status = "INACTIVE"  # Raw string value
             db.flush()  # Flush changes but don't commit yet
             new_data = serialize_instance(task)
 
@@ -498,7 +504,7 @@ def delete_task(
             db.commit()
             return {"message": "Task archived successfully"}
         else:
-            # Admins can hard delete
+            # Only Admin and other roles can hard delete
             old_data = serialize_instance(task)
             db.delete(task)
             db.flush()
@@ -532,41 +538,33 @@ def bulk_archive_tasks(
     current_user: User = Depends(get_current_user),
     request: Request = None
 ):
-    """Archive multiple tasks (set status to INACTIVE) for SALES users"""
+    """Archive multiple tasks (set status to INACTIVE) for GROUP MANAGER users only"""
     try:
-        if current_user.role.upper() not in ["SALES", "ADMIN", "CEO", "MANAGER", "GROUP MANAGER"]:
-            raise HTTPException(status_code=403, detail="Permission denied")
+        if current_user.role.upper() != "GROUP MANAGER":
+            raise HTTPException(status_code=403, detail="Permission denied - only Group Manager can archive tasks")
 
         if not data.task_ids:
             return {"detail": "No tasks provided for archiving."}
 
-        # For SALES users, only allow archiving their own tasks
-        if current_user.role.upper() == "SALES":
+        # GROUP MANAGER users - only allow archiving their own tasks
+        if current_user.role.upper() == "GROUP MANAGER":
             tasks_to_archive = db.query(Task).filter(
                 Task.id.in_(data.task_ids),
                 Task.created_by == current_user.id
             ).all()
         else:
-            # Admins can archive any task in their company
-            company_users = (
-                db.query(User.id)
-                .where(User.related_to_company == current_user.related_to_company)
-                .subquery()
-            )
-            tasks_to_archive = db.query(Task).filter(
-                Task.id.in_(data.task_ids),
-                ((Task.created_by.in_(company_users)) | (Task.assigned_to.in_(company_users)))
-            ).all()
+            # Should not reach here due to permission check above
+            raise HTTPException(status_code=403, detail="Permission denied - only Group Manager can archive tasks")
 
         if not tasks_to_archive:
-            raise HTTPException(status_code=404, detail="No matching tasks found for archiving.")
+            raise HTTPException(status_code=404, detail="No matching tasks found for archiving. You can only archive tasks you created.")
 
         archived_count = 0
         for task in tasks_to_archive:
             old_data = serialize_instance(task)
             
-            # Mark as INACTIVE using proper enum instead of string
-            task.status = StatusCategory.INACTIVE
+            # Mark as INACTIVE using raw string value
+            task.status = "INACTIVE"
             db.flush()  # Flush changes but don't commit yet
             new_data = serialize_instance(task)
             

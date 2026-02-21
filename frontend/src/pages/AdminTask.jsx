@@ -268,6 +268,7 @@ const mapBackendTaskToFrontend = (task) => {
     description: task.description,
     priority: task.priority || "Normal",
     status: normalizeTaskStatus(task.status),
+    rawStatus: task.status,
     dueDate: dueDate,
     dateAssigned: dateAssigned,
     
@@ -554,6 +555,7 @@ export default function AdminTask() {
         description: task.description || "",
         priority: task.priority || "Normal",
         status: task.status || "Not started",
+        rawStatus: task.rawStatus,
         dueDate: toDateTimeInputValue(task.dueDate),
         assignedTo: task.assignedToId ? String(task.assignedToId) : "",
         assignedToName: task.assignedToName || "",
@@ -736,31 +738,33 @@ export default function AdminTask() {
 
   const METRICS = useMemo(() => {
     const now = new Date();
+    // Filter out INACTIVE tasks for metrics
+    const activeTasks = tasks.filter((t) => t.rawStatus !== "INACTIVE");
     return [
       {
         title: "To Do",
-        value: tasks.filter((t) => t.status === "Not started").length,
+        value: activeTasks.filter((t) => t.status === "Not started").length,
         icon: FiClock,
         color: "text-blue-600",
         bgColor: "bg-blue-100",
       },
       {
         title: "In Progress",
-        value: tasks.filter((t) => t.status === "In progress").length,
+        value: activeTasks.filter((t) => t.status === "In progress").length,
         icon: FiActivity,
         color: "text-purple-600",
         bgColor: "bg-purple-100",
       },
       {
         title: "Completed",
-        value: tasks.filter((t) => t.status === "Completed").length,
+        value: activeTasks.filter((t) => t.status === "Completed").length,
         icon: FiCheckCircle,
         color: "text-green-600",
         bgColor: "bg-green-100",
       },
       {
         title: "Overdue",
-        value: tasks.filter(
+        value: activeTasks.filter(
           (t) => t.dueDate && new Date(t.dueDate) < now && t.status !== "Completed"
         ).length,
         icon: FiAlertCircle,
@@ -769,7 +773,7 @@ export default function AdminTask() {
       },
       {
         title: "High Priority",
-        value: tasks.filter((t) => t.priority === "High").length,
+        value: activeTasks.filter((t) => t.priority === "High").length,
         icon: FiStar,
         color: "text-orange-600",
         bgColor: "bg-orange-100",
@@ -910,6 +914,7 @@ export default function AdminTask() {
                   formatDateDisplay={formatDateDisplay}
                   handleOpenModal={handleOpenModal}
                   handleDeleteTask={handleDeleteTask}
+                  currentUser={currentUser}
                 />
               );
             })}
@@ -984,7 +989,12 @@ export default function AdminTask() {
                     </td>
                     <td className="py-3 px-4 text-gray-700 whitespace-nowrap font-medium" onClick={() => handleOpenModal(task, true)}>{task.title}</td>
                     <td className="py-3 px-4 whitespace-nowrap" onClick={() => handleOpenModal(task, true)}>
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium whitespace-nowrap ${getStatusBadgeClass(task.status || "Not started")}`}>{task.status || "Not started"}</span>
+                      <div className="flex items-center gap-2">
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium whitespace-nowrap ${getStatusBadgeClass(task.status || "Not started")}`}>{task.status || "Not started"}</span>
+                        {task.rawStatus === "INACTIVE" && (currentUser?.role === "ADMIN" || currentUser?.role === "CEO") && (
+                          <span className="px-2 py-1 rounded-full text-xs font-medium whitespace-nowrap bg-red-600 text-white">INACTIVE</span>
+                        )}
+                      </div>
                     </td>
                     <td className="py-3 px-4 whitespace-nowrap" onClick={() => handleOpenModal(task, true)}>
                       <span className={`px-2 py-1 rounded-full text-xs font-medium whitespace-nowrap ${getPriorityBadgeClass(task.priority || "Low")}`}>{task.priority || "Low"}</span>
@@ -1087,7 +1097,7 @@ function ConfirmationModal({ open, title, message, confirmLabel, cancelLabel, va
 }
 
 // --- Droppable Column Component ---
-function DroppableColumn({ column, columnTasks, getTaskCardColor, isTaskOverdue, formatDateDisplay, handleOpenModal, handleDeleteTask }) {
+function DroppableColumn({ column, columnTasks, getTaskCardColor, isTaskOverdue, formatDateDisplay, handleOpenModal, handleDeleteTask, currentUser }) {
   const { isOver, setNodeRef } = useDroppable({
     id: column,
   });
@@ -1117,6 +1127,7 @@ function DroppableColumn({ column, columnTasks, getTaskCardColor, isTaskOverdue,
               formatDateDisplay={formatDateDisplay}
               handleOpenModal={handleOpenModal}
               handleDeleteTask={handleDeleteTask}
+              currentUser={currentUser}
             />
           ))
         ) : (
@@ -1130,7 +1141,7 @@ function DroppableColumn({ column, columnTasks, getTaskCardColor, isTaskOverdue,
 }
 
 // --- Draggable Task Card Component ---
-function DraggableTaskCard({ task, getTaskCardColor, isTaskOverdue, formatDateDisplay, handleOpenModal, handleDeleteTask }) {
+function DraggableTaskCard({ task, getTaskCardColor, isTaskOverdue, formatDateDisplay, handleOpenModal, handleDeleteTask, currentUser }) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: task.id,
   });
@@ -1155,7 +1166,12 @@ function DraggableTaskCard({ task, getTaskCardColor, isTaskOverdue, formatDateDi
         className="text-left flex-1"
         onClick={(e) => { e.stopPropagation(); handleOpenModal(task, true); }}
       >
-        <p className="font-medium text-gray-800 text-sm">{task.title}</p>
+        <div className="flex items-center gap-2 mb-1">
+          <p className="font-medium text-gray-800 text-sm">{task.title}</p>
+          {task.rawStatus === "INACTIVE" && (currentUser?.role === "ADMIN" || currentUser?.role === "CEO") && (
+            <span className="px-2 py-0.5 rounded text-xs font-medium bg-red-600 text-white">INACTIVE</span>
+          )}
+        </div>
         <p className="text-xs text-gray-500 mt-1">Priority: {task.priority}</p>
         <p className="text-xs text-gray-500 mt-1">Assigned To: {task.assignedToName}</p>
         <p className="text-xs mt-1 text-gray-500">

@@ -339,34 +339,38 @@ export default function TaskModal({
                             </div>
                             
                            <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-                              <button
-                                className="inline-flex items-center justify-center w-full sm:w-auto bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 transition text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 cursor-pointer"
-                                onClick={() => {
-                                  if (setFormData) setFormData(formData);
-                                  if (typeof onEdit === "function") onEdit();
-                                }}
-                              >
-                                <FiEdit2 className="mr-2" />
-                                Edit
-                              </button>
-                              {currentUser?.role === "Sales" ? (
+                              {/* Check if user is Group Manager and didn't create the task */}
+                              {!(/group.manager/i.test(currentUser?.role) && String(formData?.createdById) !== String(currentUser?.id)) && (
                                 <button
-                                  className="inline-flex items-center justify-center w-full sm:w-auto px-4 py-2 rounded-md text-sm bg-orange-500 text-white hover:bg-orange-600 transition focus:outline-none focus:ring-2 focus:ring-orange-400 cursor-pointer"
-                                  onClick={() => onDelete(formData)}
+                                  className="inline-flex items-center justify-center w-full sm:w-auto bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 transition text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 cursor-pointer"
+                                  onClick={() => {
+                                    if (setFormData) setFormData(formData);
+                                    if (typeof onEdit === "function") onEdit();
+                                  }}
                                 >
-                                  <FiArchive className="mr-2" />
-                                  Archive
-                                </button>
-                              ) : (
-                                <button
-                                  disabled={String(formData?.createdById) !== String(currentUser?.id)}
-                                  className="inline-flex items-center justify-center w-full sm:w-auto px-4 py-2 rounded-md text-sm bg-red-500 text-white hover:bg-red-600 transition focus:outline-none focus:ring-2 focus:ring-red-400 cursor-pointer"
-                                  onClick={() => onDelete(formData)}
-                                >
-                                  <FiTrash2 className="mr-2" />
-                                  Delete
+                                  <FiEdit2 className="mr-2" />
+                                  Edit
                                 </button>
                               )}
+                              {!(/group.manager/i.test(currentUser?.role) && String(formData?.createdById) !== String(currentUser?.id)) ? (
+                                /group.manager/i.test(currentUser?.role) ? (
+                                  <button
+                                    className="inline-flex items-center justify-center w-full sm:w-auto px-4 py-2 rounded-md text-sm bg-orange-500 text-white hover:bg-orange-600 transition focus:outline-none focus:ring-2 focus:ring-orange-400 cursor-pointer"
+                                    onClick={() => onDelete(formData)}
+                                  >
+                                    <FiArchive className="mr-2" />
+                                    Archive
+                                  </button>
+                                ) : currentUser?.role === "ADMIN" || currentUser?.role === "CEO" ? (
+                                  <button
+                                    className="inline-flex items-center justify-center w-full sm:w-auto px-4 py-2 rounded-md text-sm bg-red-500 text-white hover:bg-red-600 transition focus:outline-none focus:ring-2 focus:ring-red-400 cursor-pointer"
+                                    onClick={() => onDelete(formData)}
+                                  >
+                                    <FiTrash2 className="mr-2" />
+                                    Delete
+                                  </button>
+                                ) : null
+                              ) : null}
                             </div>
                           </div>
                         </div>
@@ -417,7 +421,12 @@ export default function TaskModal({
                               </div>
                               <div>
                                 <p className="font-semibold">Status:</p>
-                                <p>{formData.status || "—"}</p>
+                                <div className="flex items-center gap-2">
+                                  <p>{formData.status || "—"}</p>
+                                  {formData.rawStatus === "INACTIVE" && (currentUser?.role === "ADMIN" || currentUser?.role === "CEO") && (
+                                    <span className="px-2 py-1 rounded-full text-xs font-medium bg-red-600 text-white">INACTIVE</span>
+                                  )}
+                                </div>
                               </div>
                               <div>
                                 <p className="font-semibold">Due Date:</p>

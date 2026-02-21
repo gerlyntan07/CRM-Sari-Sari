@@ -11,6 +11,7 @@ import {
   FiPlus,
   FiTrash2,
   FiCheckSquare,
+  FiArchive,
 } from "react-icons/fi";
 import TaskModal from "../components/TaskModal";
 import PaginationControls from "../components/PaginationControls.jsx";
@@ -275,7 +276,8 @@ const mapBackendTaskToFrontend = (task) => {
     assignedToName: assignedToName,
     
     createdAt: task.created_at || null,
-    createdById: task.created_by ?? null,
+    // Support both flat ID and nested object for created_by
+    createdById: task.created_by?.id || task.created_by || null,
     createdBy: createdByName,
     notes: task.notes || "",
     isPersonal: Boolean(task.is_personal),
@@ -457,7 +459,15 @@ export default function AdminTask() {
       setLoading(true);
       const res = await api.get("/tasks/all");      
       const rawTasks = Array.isArray(res.data) ? res.data : [];
+      
+      // Debug: Log raw tasks to see what API returns
+      console.log("Raw tasks from API:", rawTasks.slice(0, 3).map(t => ({ id: t.id, title: t.title, created_by: t.created_by, task_creator: t.task_creator })));
+      
       const formattedTasks = rawTasks.map(mapBackendTaskToFrontend);
+
+      // Debug: Log tasks with createdById
+      console.log("Formatted tasks:", formattedTasks.map(t => ({ id: t.id, title: t.title, createdById: t.createdById })));
+      console.log("Current user ID:", currentUser?.id);
 
       formattedTasks.sort((a, b) => {
         const aDate = a.createdAt ? new Date(a.createdAt) : 0;
@@ -515,6 +525,7 @@ export default function AdminTask() {
         assignedTo: task.assignedToId ? String(task.assignedToId) : "",
         assignedToName: task.assignedToName || "",
         createdBy: task.createdBy || "",
+        createdById: task.createdById || null,
         notes: task.notes || "",
         
         relatedType1Text: task.relatedType1Text || "",
@@ -564,50 +575,65 @@ export default function AdminTask() {
   const handleDeleteTask = (task) => {
     if (!task) return;
 
+    // Check if current user is Group Manager - only Group Manager can archive
+    const isArchiveAction = /group.manager/i.test(currentUser?.role);
+
     setConfirmModalData({
-      title: "Delete Task",
+      title: isArchiveAction ? "Archive Task" : "Delete Task",
       message: (
         <>
-          Are you sure you want to delete <span className="font-semibold">{task.title}</span>? 
+          Are you sure you want to {isArchiveAction ? "archive" : "delete"} <span className="font-semibold">{task.title}</span>? 
+          {isArchiveAction ? (
+            <span> This action will mark the task as inactive.</span>
+          ) : (
+            <span> This action cannot be undone.</span>
+          )}
         </>
       ),
-      confirmLabel: "Delete Task",
+      confirmLabel: isArchiveAction ? "Archive Task" : "Delete Task",
       cancelLabel: "Cancel",
-      variant: "danger",
+      variant: isArchiveAction ? "warning" : "danger",
       action: { type: "delete", targetId: task.id },
     });
   };
 
   const handleSelectAll = () => {
-    if (displayTasks.every((t) => selectedIds.includes(t.id))) {
-      setSelectedIds(selectedIds.filter((id) => !displayTasks.map((t) => t.id).includes(id)));
+    // Only work with deletable tasks
+    if (deletableTasks.every((t) => selectedIds.includes(t.id))) {
+      setSelectedIds(selectedIds.filter((id) => !deletableTasks.map((t) => t.id).includes(id)));
     } else {
-      const newIds = displayTasks.map((t) => t.id);
+      const newIds = deletableTasks.map((t) => t.id);
       setSelectedIds([...new Set([...selectedIds, ...newIds])]);
     }
   };
 
   const handleCheckboxChange = (id) => {
-    setSelectedIds((prev) =>
-      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
-    );
+    // Only allow toggling if task is deletable
+    if (isTaskDeletable(displayTasks.find((t) => t.id === id))) {
+      setSelectedIds((prev) =>
+        prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+      );
+    }
   };
 
   const handleBulkDelete = async () => {
     if (selectedIds.length === 0) return;
 
+    // Check if current user is Group Manager - only Group Manager can archive
+    const isArchiveAction = /group.manager/i.test(currentUser?.role);
+
     setConfirmModalData({
-      title: "Delete Tasks",
+      title: isArchiveAction ? "Archive Tasks" : "Delete Tasks",
       message: (
         <span>
-          Are you sure you want to delete{" "}
+          Are you sure you want to {isArchiveAction ? "archive" : "delete"}{" "}
           <span className="font-semibold">{selectedIds.length}</span> selected
-          tasks? This action cannot be undone.
+          tasks? {isArchiveAction ? "This action will mark the tasks as inactive." : "This action cannot be undone."}
         </span>
       ),
-      confirmLabel: `Delete ${selectedIds.length} Task(s)`,
+      confirmLabel: isArchiveAction ? `Archive ${selectedIds.length} Task(s)` : `Delete ${selectedIds.length} Task(s)`,
       cancelLabel: "Cancel",
-      variant: "danger",
+      variant: isArchiveAction ? "warning" : "danger",
       action: {
         type: "bulk-delete",
         task_ids: selectedIds,
@@ -623,22 +649,34 @@ export default function AdminTask() {
     const { action } = confirmModalData;
     setConfirmProcessing(true);
 
+    // Check if current user is Group Manager - only Group Manager can archive
+    const isArchiveAction = /group.manager/i.test(currentUser?.role);
+
     try {
       if (action.type === "delete") {
         await api.delete(`/tasks/${action.targetId}`);
-        toast.success("Task deleted successfully.");
+        toast.success(isArchiveAction ? "Task archived successfully." : "Task deleted successfully.");
         await fetchTasks();
       } else if (action.type === "bulk-delete") {
-        await api.delete("/tasks/admin/bulk-delete", {
-          data: { task_ids: action.task_ids },
-        });
-        toast.success(`Successfully deleted ${action.task_ids.length} tasks`);
+        if (isArchiveAction) {
+          // For Group Manager and Sales, use bulk-archive endpoint
+          await api.post("/tasks/bulk-archive", {
+            task_ids: action.task_ids,
+          });
+          toast.success(`Successfully archived ${action.task_ids.length} tasks`);
+        } else {
+          // For Admin, use bulk-delete endpoint
+          await api.delete("/tasks/admin/bulk-delete", {
+            data: { task_ids: action.task_ids },
+          });
+          toast.success(`Successfully deleted ${action.task_ids.length} tasks`);
+        }
         setSelectedIds([]);
         await fetchTasks();
       } 
     } catch (error) {
       console.error("Task action failed:", error);
-      toast.error("Failed to delete task.");
+      toast.error(isArchiveAction ? "Failed to archive task." : "Failed to delete task.");
     } finally {
       setConfirmProcessing(false);
       setConfirmModalData(null);
@@ -690,6 +728,19 @@ export default function AdminTask() {
     const startIndex = (currentPage - 1) * itemsPerPage;
     return filteredTasks.slice(startIndex, startIndex + itemsPerPage);
   }, [filteredTasks, currentPage, view, itemsPerPage]);
+
+  // Helper function to check if a task can be deleted by current user
+  const isTaskDeletable = (task) => {
+    // If not a Group Manager, task is deletable
+    if (!/group.manager/i.test(currentUser?.role)) {
+      return true;
+    }
+    // If Group Manager, only deletable if they created it
+    return String(task?.createdById) === String(currentUser?.id);
+  };
+
+  // Get only deletable tasks for the current user
+  const deletableTasks = useMemo(() => displayTasks.filter(isTaskDeletable), [displayTasks, currentUser?.role, currentUser?.id]);
 
   const METRICS = useMemo(() => {
     const now = new Date();
@@ -867,6 +918,7 @@ export default function AdminTask() {
                   formatDateDisplay={formatDateDisplay}
                   handleOpenModal={handleOpenModal}
                   handleDeleteTask={handleDeleteTask}
+                  currentUser={currentUser}
                 />
               );
             })}
@@ -894,17 +946,21 @@ export default function AdminTask() {
             <table className="min-w-full text-sm">
               <thead className="bg-gray-100 text-gray-600 text-left">
                 <tr>
-                  <th className="py-3 px-4 w-10">
-                    <input
-                      type="checkbox"
-                      className="w-4 h-4 accent-blue-600"
-                      checked={
-                        displayTasks.length > 0 &&
-                        displayTasks.every((t) => selectedIds.includes(t.id))
-                      }
-                      onChange={handleSelectAll}
-                    />
-                  </th>
+                  {/group.manager/i.test(currentUser?.role) ? (
+                    <th className="py-3 px-4 w-10">
+                      <input
+                        type="checkbox"
+                        className="w-4 h-4 accent-blue-600"
+                        checked={
+                          deletableTasks.length > 0 &&
+                          deletableTasks.every((t) => selectedIds.includes(t.id))
+                        }
+                        onChange={handleSelectAll}
+                      />
+                    </th>
+                  ) : (
+                    <th className="py-3 px-4 w-10"></th>
+                  )}
                   <th className="py-3 px-4 font-medium">Task</th>
                   <th className="py-3 px-4 font-medium">Status</th>
                   <th className="py-3 px-4 font-medium">Priority</th>
@@ -914,10 +970,14 @@ export default function AdminTask() {
                     {selectedIds.length > 0 ? (
                       <button
                         onClick={handleBulkDelete}
-                        className="text-red-600 hover:text-red-800 transition p-1 rounded-full hover:bg-red-50"
-                        title={`Delete ${selectedIds.length} selected tasks`}
+                        className={`transition p-1 rounded-full ${
+                          /group.manager/i.test(currentUser?.role)
+                            ? "text-orange-600 hover:text-orange-800 hover:bg-orange-50"
+                            : "text-red-600 hover:text-red-800 hover:bg-red-50"
+                        }`}
+                        title={`${/group.manager/i.test(currentUser?.role) ? "Archive" : "Delete"} ${selectedIds.length} selected tasks`}
                       >
-                        <FiTrash2 size={18} />
+                        {/group.manager/i.test(currentUser?.role) ? <FiArchive size={18} /> : <FiTrash2 size={18} />}
                       </button>
                     ) : (
                       ""
@@ -931,14 +991,20 @@ export default function AdminTask() {
                     key={task.id}
                     className="hover:bg-gray-50 transition-colors text-sm cursor-pointer"
                   >
-                    <td className="py-3 px-4" onClick={(e) => e.stopPropagation()}>
-                      <input
-                        type="checkbox"
-                        className="w-4 h-4 accent-blue-600"
-                        checked={selectedIds.includes(task.id)}
-                        onChange={() => handleCheckboxChange(task.id)}
-                      />
-                    </td>
+                    {/group.manager/i.test(currentUser?.role) ? (
+                      <td className="py-3 px-4" onClick={(e) => e.stopPropagation()}>
+                        {isTaskDeletable(task) && (
+                          <input
+                            type="checkbox"
+                            className="w-4 h-4 accent-blue-600"
+                            checked={selectedIds.includes(task.id)}
+                            onChange={() => handleCheckboxChange(task.id)}
+                          />
+                        )}
+                      </td>
+                    ) : (
+                      <td className="py-3 px-4"></td>
+                    )}
                     <td className="py-3 px-4 text-gray-700 whitespace-nowrap font-medium" onClick={() => handleOpenModal(task, true)}>{task.title}</td>
                     <td className="py-3 px-4 whitespace-nowrap" onClick={() => handleOpenModal(task, true)}>
                       <span className={`px-2 py-1 rounded-full text-xs font-medium whitespace-nowrap ${getStatusBadgeClass(task.status || "Not started")}`}>{task.status || "Not started"}</span>
@@ -1027,7 +1093,12 @@ function MetricCard({ icon: Icon, title, value, color, bgColor, onClick }) {
 
 function ConfirmationModal({ open, title, message, confirmLabel, cancelLabel, variant, loading, onConfirm, onCancel }) {
   if (!open) return null;
-  const confirmClasses = variant === "danger" ? "bg-red-500 hover:bg-red-600 border border-red-400" : "bg-tertiary hover:bg-secondary border border-tertiary";
+  const confirmClasses = 
+    variant === "danger" 
+      ? "bg-red-500 hover:bg-red-600 border border-red-400" 
+      : variant === "warning"
+      ? "bg-orange-500 hover:bg-orange-600 border border-orange-400"
+      : "bg-tertiary hover:bg-secondary border border-tertiary";
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-[60]">
@@ -1044,7 +1115,7 @@ function ConfirmationModal({ open, title, message, confirmLabel, cancelLabel, va
 }
 
 // --- Droppable Column Component for Manager ---
-function ManagerDroppableColumn({ column, columnTasks, getTaskCardColor, isTaskOverdue, formatDateDisplay, handleOpenModal, handleDeleteTask }) {
+function ManagerDroppableColumn({ column, columnTasks, getTaskCardColor, isTaskOverdue, formatDateDisplay, handleOpenModal, handleDeleteTask, currentUser }) {
   const { isOver, setNodeRef } = useDroppable({
     id: column,
   });
@@ -1074,6 +1145,7 @@ function ManagerDroppableColumn({ column, columnTasks, getTaskCardColor, isTaskO
               formatDateDisplay={formatDateDisplay}
               handleOpenModal={handleOpenModal}
               handleDeleteTask={handleDeleteTask}
+              currentUser={currentUser}
             />
           ))
         ) : (
@@ -1087,10 +1159,13 @@ function ManagerDroppableColumn({ column, columnTasks, getTaskCardColor, isTaskO
 }
 
 // --- Draggable Task Card Component for Manager ---
-function ManagerDraggableTaskCard({ task, getTaskCardColor, isTaskOverdue, formatDateDisplay, handleOpenModal, handleDeleteTask }) {
+function ManagerDraggableTaskCard({ task, getTaskCardColor, isTaskOverdue, formatDateDisplay, handleOpenModal, handleDeleteTask, currentUser }) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: task.id,
   });
+  
+  // Check if user can edit/delete: not a Group Manager who didn't create the task
+  const canEditDelete = !(/group.manager/i.test(currentUser?.role) && String(task?.createdById) !== String(currentUser?.id));
 
   const style = transform
     ? {
@@ -1121,22 +1196,28 @@ function ManagerDraggableTaskCard({ task, getTaskCardColor, isTaskOverdue, forma
           </span>
         </p>
       </div>
-      <div className="flex items-center gap-2 ml-3" onClick={(e) => e.stopPropagation()}>
-        <button
-          type="button"
-          onClick={(e) => { e.stopPropagation(); handleOpenModal(task); }}
-          className="text-blue-500 hover:text-blue-700"
-        >
-          <FiEdit2 />
-        </button>
-        <button
-          type="button"
-          onClick={(e) => { e.stopPropagation(); handleDeleteTask(task); }}
-          className="text-red-500 hover:text-red-700"
-        >
-          <FiTrash2 />
-        </button>
-      </div>
+      {canEditDelete && (
+        <div className="flex items-center gap-2 ml-3" onClick={(e) => e.stopPropagation()}>
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); handleOpenModal(task); }}
+            className="text-blue-500 hover:text-blue-700"
+          >
+            <FiEdit2 />
+          </button>
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); handleDeleteTask(task); }}
+            className={`${
+              /group.manager/i.test(currentUser?.role)
+                ? "text-orange-500 hover:text-orange-700"
+                : "text-red-500 hover:text-red-700"
+            }`}
+          >
+            {/group.manager/i.test(currentUser?.role) ? <FiArchive /> : <FiTrash2 />}
+          </button>
+        </div>
+      )}
     </div>
   );
 }

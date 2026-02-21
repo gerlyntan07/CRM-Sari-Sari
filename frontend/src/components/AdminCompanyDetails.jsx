@@ -156,7 +156,7 @@ export default function AdminCompanyDetails() {
         {!canEdit && (
           <div className="flex items-center gap-2 p-3 bg-amber-50 text-amber-700 rounded-lg text-sm border border-amber-200">
             <FiAlertCircle />
-            <span>You only have view-access. Changes can only be made by an Admin or CEO.</span>
+            <span>You only have view-access. Changes can only be made by an Admin.</span>
           </div>
         )}
 

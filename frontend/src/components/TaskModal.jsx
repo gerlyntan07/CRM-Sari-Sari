@@ -338,44 +338,38 @@ export default function TaskModal({
                               </h1>
                             </div>
                             
-                            <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-                              {String(formData?.createdById) === String(currentUser?.id) && (
+                           <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+                              <button
+                                className="inline-flex items-center justify-center w-full sm:w-auto bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 transition text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 cursor-pointer"
+                                onClick={() => {
+                                  if (setFormData) setFormData(formData);
+                                  if (typeof onEdit === "function") onEdit();
+                                }}
+                              >
+                                <FiEdit2 className="mr-2" />
+                                Edit
+                              </button>
+                              {currentUser?.role === "Sales" ? (
                                 <button
-                                  className="inline-flex items-center justify-center w-full sm:w-auto bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 transition text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 cursor-pointer"
-                                  onClick={() => {
-                                    if (setFormData) setFormData(formData);
-                                    if (typeof onEdit === "function") onEdit();
-                                  }}
+                                  className="inline-flex items-center justify-center w-full sm:w-auto px-4 py-2 rounded-md text-sm bg-orange-500 text-white hover:bg-orange-600 transition focus:outline-none focus:ring-2 focus:ring-orange-400 cursor-pointer"
+                                  onClick={() => onDelete(formData)}
                                 >
-                                  <FiEdit2 className="mr-2" />
-                                  Edit
+                                  <FiArchive className="mr-2" />
+                                  Archive
                                 </button>
-                              )}
-                              {String(formData?.createdById) === String(currentUser?.id) && (
-                                <>
-                                  {currentUser?.role === "Sales" ? (
-                                    <button
-                                      className="inline-flex items-center justify-center w-full sm:w-auto px-4 py-2 rounded-md text-sm bg-orange-500 text-white hover:bg-orange-600 transition focus:outline-none focus:ring-2 focus:ring-orange-400 cursor-pointer"
-                                      onClick={() => onDelete(formData)}
-                                    >
-                                      <FiArchive className="mr-2" />
-                                      Archive
-                                    </button>
-                                  ) : (
-                                    <button
-                                      className="inline-flex items-center justify-center w-full sm:w-auto px-4 py-2 rounded-md text-sm bg-red-500 text-white hover:bg-red-600 transition focus:outline-none focus:ring-2 focus:ring-red-400 cursor-pointer"
-                                      onClick={() => onDelete(formData)}
-                                    >
-                                      <FiTrash2 className="mr-2" />
-                                      Delete
-                                    </button>
-                                  )}
-                                </>
+                              ) : (
+                                <button
+                                  disabled={String(formData?.createdById) !== String(currentUser?.id)}
+                                  className="inline-flex items-center justify-center w-full sm:w-auto px-4 py-2 rounded-md text-sm bg-red-500 text-white hover:bg-red-600 transition focus:outline-none focus:ring-2 focus:ring-red-400 cursor-pointer"
+                                  onClick={() => onDelete(formData)}
+                                >
+                                  <FiTrash2 className="mr-2" />
+                                  Delete
+                                </button>
                               )}
                             </div>
                           </div>
                         </div>
-
                         <div className="border-b border-gray-200 my-5"></div>
 
                         {/* Overview Content */}

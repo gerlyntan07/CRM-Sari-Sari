@@ -42,6 +42,10 @@ import AdminMeeting from "./pages/AdminMeeting";
 import AdminCompanyDetails from "./components/AdminCompanyDetails";
 import AdminHelp from "./pages/AdminHelp";
 
+// 🔹 Super Admin layout + pages
+import SuperAdminPanel from "./components/SuperAdminPanel";
+import SuperAdminDashboard from "./pages/SuperAdminDashboard";
+
 // 🔹 Sales layout + pages
 import SalesPanel from "./components/SalesPanel";
 import SalesOverview from "./pages/SalesOverview";
@@ -178,6 +182,12 @@ function App() {
             </PrivateRoute>
           }
         />
+
+        {/* ================= Super Admin Layout ================= */}
+        <Route path="/super-admin" element={<PrivateRoute requiredRole="admin"><SuperAdminPanel /></PrivateRoute>}>
+          <Route index element={<Navigate to="dashboard" replace />} />
+          <Route path="dashboard" element={<SuperAdminDashboard />} />
+        </Route>
 
         {/* ================= Admin Layout ================= */}
         <Route path="/admin" element={<PrivateRoute requiredRole="ceo"><AdminPanel /></PrivateRoute>}>

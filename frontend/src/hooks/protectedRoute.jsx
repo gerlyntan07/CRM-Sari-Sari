@@ -11,7 +11,9 @@ const PrivateRoute = ({ children, requiredRole }) => {
     }
 
     if (!requiredRole) {
-        if (userRole.toUpperCase() === 'ADMIN' || userRole.toUpperCase() === 'CEO') {
+        if (userRole.toUpperCase() === 'ADMIN') {
+            return <Navigate to={`/super-admin/dashboard`} replace />;
+        } else if (userRole.toUpperCase() === 'CEO') {
             return <Navigate to={`/admin/dashboard`} replace />;
         } else if (userRole === 'GROUP MANAGER') {
             return <Navigate to="/group-manager/dashboard" replace />;

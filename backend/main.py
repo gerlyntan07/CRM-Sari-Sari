@@ -48,6 +48,7 @@ import routers.ws_notification as ws_notification
 import routers.activities as activities_router
 import routers.comments as comments_router
 import routers.backup as backup_router
+import routers.admin as admin_router
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -62,6 +63,7 @@ app = FastAPI(lifespan=lifespan)
 
 # === Routers ===
 app.include_router(auth_router.router, prefix='/api')
+app.include_router(admin_router.router, prefix='/api')
 app.include_router(company_router.router, prefix='/api')
 app.include_router(users_router.router, prefix='/api')
 app.include_router(subscription_router.router, prefix='/api')

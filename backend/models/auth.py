@@ -5,8 +5,8 @@ from database import Base
 from enum import Enum
 
 class UserRole(str, Enum):
-    CEO = "CEO"
     ADMIN = "Admin"
+    CEO = "CEO"
     GROUP_MANAGER = "Group Manager"
     MANAGER = "Manager"
     MARKETING = "Marketing"

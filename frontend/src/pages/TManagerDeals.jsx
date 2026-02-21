@@ -54,6 +54,30 @@ export default function AdminDeals() {
     const [selectedDealIds, setSelectedDealIds] = useState(new Set());
     const [bulkDeleting, setBulkDeleting] = useState(false);
 
+    const formatDealId = (dealId) => {
+  if (!dealId) return "";
+  // Convert D25-1-00001 to D25-00001 (remove middle company ID)
+  const parts = String(dealId).split("-");
+  if (parts.length === 3) {
+    return `${parts[0]}-${parts[2]}`;
+  }
+  return String(dealId);
+};
+
+const formattedDateTime = (datetime) => {
+  if (!datetime) return "";
+  return new Date(datetime)
+    .toLocaleString("en-US", {
+      month: "short",
+      day: "2-digit",
+      year: "numeric",
+      hour: "numeric",
+      minute: "numeric",
+      hour12: true,
+    })
+    .replace(",", "");
+};
+
   useEffect(() => {
     const state = location.state;
     const dealIdFromState = state?.dealID;
@@ -888,7 +912,7 @@ export default function AdminDeals() {
                                         )}
                                     </td>
                                     <td className="py-3 px-4 text-gray-800 font-medium text-sm">
-                                        {deal.deal_id ? deal.deal_id.replace(/D(\d+)-\d+-/, "D$1-") : "--"}
+                                        {formatDealId(deal.deal_id)}
                                     </td>
 
                                     <td className="py-3 px-4">
@@ -918,7 +942,7 @@ export default function AdminDeals() {
                                         ₱ {deal.amount?.toLocaleString() || "0"}
                                     </td>
                                     <td className="py-3 px-4 text-gray-800 font-medium text-sm">
-                                        {deal.close_date || "--"}
+                                        {formattedDateTime(deal.close_date) || "--"}
                                     </td>
                                     <td className="py-3 px-4 text-gray-800 font-medium text-sm">
                                         {deal.assigned_deals?.first_name && deal.assigned_deals?.last_name

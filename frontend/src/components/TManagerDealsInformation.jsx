@@ -64,6 +64,30 @@ export default function AdminDealsInformation({
     return "guest";
   })();
 
+const formatDealId = (dealId) => {
+  if (!dealId) return "";
+  // Convert D25-1-00001 to D25-00001 (remove middle company ID)
+  const parts = String(dealId).split("-");
+  if (parts.length === 3) {
+    return `${parts[0]}-${parts[2]}`;
+  }
+  return String(dealId);
+};
+
+const formattedDateTime = (datetime) => {
+  if (!datetime) return "";
+  return new Date(datetime)
+    .toLocaleString("en-US", {
+      month: "short",
+      day: "2-digit",
+      year: "numeric",
+      hour: "numeric",
+      minute: "numeric",
+      hour12: true,
+    })
+    .replace(",", "");
+};
+
   // Fetch deal if accessed via route with query param
   useEffect(() => {
     const fetchDealFromRoute = async () => {
@@ -114,19 +138,6 @@ export default function AdminDealsInformation({
     return stageColors[stage] || "bg-gray-100 text-gray-700";
   };
 
-  function formattedDateTime(datetime) {
-    if (!datetime) return "";
-    return new Date(datetime).toLocaleString("en-US", {
-      month: "2-digit",
-      day: "2-digit",
-      year: "numeric",
-      hour: "numeric",
-      minute: "numeric",
-      hour12: true,
-    })
-      .replace(",", "")
-  }
-
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[9999] font-inter p-2 sm:p-4 overflow-x-hidden">
   <div className="bg-white rounded-xl shadow-lg w-full max-w-full sm:max-w-6xl max-h-[90vh] overflow-y-auto hide-scrollbar relative box-border">
@@ -158,7 +169,7 @@ export default function AdminDealsInformation({
     <div className="flex flex-col gap-1">
       <div className="flex flex-col sm:flex-row sm:items-center gap-3 lg:gap-1">
         <h2 className="text-xl lg:text-xl font-semibold text-gray-800 break-words">
-          {selectedDeal.name}
+          {formatDealId(selectedDeal.deal_id)} - {selectedDeal.name}
         </h2>
 
         <span className={`text-xs sm:text-sm inline-block font-medium px-1.5 py-0.5 sm:px-3 sm:py-1 rounded-full break-words ${getStageBadgeClasses(selectedDeal.stage)}`}>
@@ -261,7 +272,7 @@ export default function AdminDealsInformation({
                   </p>
                   <div className="h-px bg-gray-200 w-full" />
                   <p className="text-sm sm:text-sm text-gray-700 mb-2 py-5 break-words">
-                    <strong>Expected Close Date:</strong> {selectedDeal.close_date}
+                    <strong>Expected Close Date:</strong> {formattedDateTime(selectedDeal.close_date) || "--"}
                   </p>
                   <div className="h-px bg-gray-200 w-full" />
 

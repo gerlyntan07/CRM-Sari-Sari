@@ -217,6 +217,16 @@ export default function AdminDeals() {
       }
     }, []);
 
+    const formatDealId = (dealId) => {
+  if (!dealId) return "";
+  // Convert D25-1-00001 to D25-00001 (remove middle company ID)
+  const parts = String(dealId).split("-");
+  if (parts.length === 3) {
+    return `${parts[0]}-${parts[2]}`;
+  }
+  return String(dealId);
+};
+
     const filteredDeals = useMemo(() => {
         const normalizedQuery = searchQuery.trim().toLowerCase();
         const normalizedStageFilter = stageFilter.trim();
@@ -659,6 +669,20 @@ export default function AdminDeals() {
         if (e.target.id === "modalBackdrop") closeModal();
     };
 
+    const formattedDateTime = (datetime) => {
+  if (!datetime) return "";
+  return new Date(datetime)
+    .toLocaleString("en-US", {
+      month: "short",
+      day: "2-digit",
+      year: "numeric",
+      hour: "numeric",
+      minute: "numeric",
+      hour12: true,
+    })
+    .replace(",", "");
+};
+
     const prospecting = (deals ?? []).filter((d) => d.stage === "PROSPECTING" && d.status !== "Inactive").length;
     const qualification = (deals ?? []).filter((d) => d.stage === "QUALIFICATION" && d.status !== "Inactive").length;
     const proposal = (deals ?? []).filter((d) => d.stage === "PROPOSAL" && d.status !== "Inactive").length;
@@ -849,7 +873,7 @@ export default function AdminDeals() {
                                         />
                                     </td>
                                     <td className="py-3 px-4 text-gray-800 font-medium text-sm">
-                                        {deal.deal_id ? deal.deal_id.replace(/D(\d+)-\d+-/, "D$1-") : "--"}
+                                        {formatDealId(deal.deal_id)}
                                     </td>
 
                                     <td className="py-3 px-4">
@@ -884,8 +908,8 @@ export default function AdminDeals() {
                                     <td className="py-3 px-4 text-gray-800 font-medium text-sm">
                                         ₱ {deal.amount?.toLocaleString() || "0"}
                                     </td>
-                                    <td className="py-3 px-4 text-gray-800 font-medium text-sm">
-                                        {deal.close_date || "--"}
+                                    <td className="py-3 px-4 text-gray-800 font-medium text-sm">                                        
+                                        {formattedDateTime(deal.close_date) || "--"}
                                     </td>
                                     <td className="py-3 px-4 text-gray-800 font-medium text-sm">
                                         {deal.assigned_deals?.first_name && deal.assigned_deals?.last_name

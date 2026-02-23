@@ -236,11 +236,17 @@ const isSalesActive = salesRoutes.includes(location.pathname);
                       {activityOpen && (
                         <div className="ml-6 mt-2 space-y-1">
                           <NavLink
+                            to="/sales/calendar"
+                            className={({ isActive }) => (isActive ? activeLink : normalLink)}
+                          >
+                            <FiCalendar /> Calendar
+                          </NavLink>
+                          <NavLink
                             to="/sales/tasks"
                             className={({ isActive }) => (isActive ? activeLink : normalLink)}
                           >
                             <FiCheckSquare /> Tasks
-                          </NavLink>
+                          </NavLink>                          
                           <NavLink
                             to="/sales/meetings"
                             className={({ isActive }) => (isActive ? activeLink : normalLink)}

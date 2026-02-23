@@ -41,6 +41,7 @@ import AdminCalls from "./pages/AdminCalls";
 import AdminMeeting from "./pages/AdminMeeting";
 import AdminCompanyDetails from "./components/AdminCompanyDetails";
 import AdminHelp from "./pages/AdminHelp";
+import AdminCalendar from "./pages/AdminCalendar";
 
 // 🔹 Super Admin layout + pages
 import SuperAdminPanel from "./components/SuperAdminPanel";
@@ -68,6 +69,7 @@ import SalesAudit from "./pages/SalesAudit";
 import SalesTask from "./pages/SalesTask";
 import SalesMeetings from "./pages/SalesMeetings";
 import SalesCalls from "./pages/SalesCalls";
+import SalesCalendar from "./pages/SalesCalendar";
 
 
 // 🔹 Manager layout + pages
@@ -88,6 +90,7 @@ import ManagerCalls from "./pages/ManagerCalls";
 import ManagerTask from "./pages/ManagerTask";
 import ManagerMeetings from "./pages/ManagerMeetings";
 import ManagerUser from "./pages/ManagerUser";
+import ManagerCalendar from "./pages/ManagerCalendar";
 
 // 🔹 Marketing layout + pages
 import MarketingPanel from "./components/MarketingPanel";
@@ -122,6 +125,7 @@ import TManagerMeetings from "./pages/TManagerMeetings";
 import TManagerCalls from "./pages/TManagerCalls";
 import TManagerAudit from "./pages/TManagerAudit";
 import TManagerUser from "./pages/TManagerUser";
+import TManagerCalendar from "./pages/TManagerCalendar";
 
 function App() {
   return (
@@ -215,6 +219,7 @@ function App() {
           <Route path="calls/info" element={<AdminCalls />} />
           <Route path="meetings" element={<AdminMeeting />} />
           <Route path="meetings/info" element={<AdminMeeting />} />
+          <Route path="calendar" element={<AdminCalendar />} />
           <Route path="help" element={<AdminHelp />} />
         </Route>
 
@@ -242,6 +247,7 @@ function App() {
             <Route path="meetings" element={<SalesMeetings />} />
           <Route path="calls" element={<SalesCalls />} />
           <Route path="tasks" element={<SalesTask />} />
+          <Route path="calendar" element={<SalesCalendar />} />
 
         {/* <Route path="hub/*" element={<SalesHub />}>
             <Route index element={<Navigate to="mytasks" replace />} />
@@ -273,6 +279,7 @@ function App() {
           <Route path="audit" element={<ManagerAudit />} />
           <Route path="calls" element={<ManagerCalls />} />
           <Route path="tasks" element={<ManagerTask />} />
+          <Route path="calendar" element={<ManagerCalendar />} />
           <Route path="/manager/territory">
             <Route index element={<AdminTerritory />} />
             <Route path=":id" element={<AdminTerritory />} />
@@ -322,6 +329,7 @@ function App() {
           </Route>
           <Route path="meetings" element={<TManagerMeetings />} />
           <Route path="calls" element={<TManagerCalls />} />
+          <Route path="calendar" element={<TManagerCalendar />} />
           <Route path="audit" element={<TManagerAudit />} />
           <Route path="users" element={<TManagerUser />} />
           <Route path="manage-account" element={<PublicManageAccount />} />

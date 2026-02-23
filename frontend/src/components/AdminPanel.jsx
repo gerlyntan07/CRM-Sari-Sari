@@ -182,13 +182,21 @@ export default function AdminPanel() {
             {activityOpen && (
               <div className="ml-6 mt-2 space-y-1">
                 <NavLink
+                  to="/admin/calendar"
+                  className={({ isActive }) =>
+                    isActive ? activeLink : normalLink
+                  }
+                >
+                  <FiCalendar /> Calendar
+                </NavLink>
+                <NavLink
                   to="/admin/tasks"
                   className={({ isActive }) =>
                     isActive ? activeLink : normalLink
                   }
                 >
                   <FiCheckSquare /> Tasks
-                </NavLink>
+                </NavLink>                
                 <NavLink
                   to="/admin/meetings"
                   className={({ isActive }) =>

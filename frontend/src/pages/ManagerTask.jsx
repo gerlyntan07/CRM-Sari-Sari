@@ -1000,7 +1000,7 @@ export default function AdminTask() {
                     </td>
                     <td className="py-3 px-4 text-gray-700 whitespace-nowrap" onClick={() => handleOpenModal(task, true)}>{task.assignedToName || "Unassigned"}</td>
                     <td className={`py-3 px-4 text-gray-700 whitespace-nowrap ${isTaskOverdue(task) ? "text-red-600 font-medium" : ""}`} onClick={() => handleOpenModal(task, true)}>
-                      {task.dateAssigned ? formatDateDisplay(task.dateAssigned) : "—"}
+                      {task.dueDate ? formatDateDisplay(task.dueDate) : "—"}
                     </td>
                   </tr>
                 )) : <tr><td colSpan={6} className="text-center py-4 text-gray-500">No tasks found.</td></tr>}
@@ -1178,7 +1178,7 @@ function ManagerDraggableTaskCard({ task, getTaskCardColor, isTaskOverdue, forma
         <p className="text-xs text-gray-500 mt-1">Assigned To: {task.assignedToName}</p>
         <p className="text-xs mt-1 text-gray-500">
           Date: <span className={isTaskOverdue(task) ? "text-red-600" : "text-gray-600"}>
-            {task.dateAssigned ? formatDateDisplay(task.dateAssigned) : "—"}
+            {task.dueDate ? formatDateDisplay(task.dueDate) : "—"}
           </span>
         </p>
       </div>
@@ -1221,7 +1221,7 @@ function ManagerTaskCardOverlay({ task, getTaskCardColor, isTaskOverdue, formatD
         <p className="text-xs text-gray-500 mt-1">Assigned To: {task.assignedToName}</p>
         <p className="text-xs mt-1 text-gray-500">
           Date: <span className={isTaskOverdue(task) ? "text-red-600" : "text-gray-600"}>
-            {task.dateAssigned ? formatDateDisplay(task.dateAssigned) : "—"}
+            {task.dueDate ? formatDateDisplay(task.dueDate) : "—"}
           </span>
         </p>
       </div>

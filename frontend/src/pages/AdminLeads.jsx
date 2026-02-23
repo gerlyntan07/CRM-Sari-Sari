@@ -535,38 +535,38 @@ export default function AdminLeads() {
       toast.error("Last name is required.");
       return;
     }
-    if (!leadData.company_name?.trim()) {
-      toast.error("Company is required.");
-      return;
-    }
-    if (!leadData.title?.trim()) {
-      toast.error("Job title is required.");
-      return;
-    }
+    // if (!leadData.company_name?.trim()) {
+    //   toast.error("Company is required.");
+    //   return;
+    // }
+    // if (!leadData.title?.trim()) {
+    //   toast.error("Job title is required.");
+    //   return;
+    // }
     
-     if (!leadData.email?.trim()) {
+    if (!leadData.email?.trim()) {
          toast.error("Email is required.");
          return;
        }
-      
-       if (!leadData.email.includes("@")) {
+        if (!leadData.email.includes("@")) {
          toast.error("Email must contain '@'.");
          return;
        }
-   
-       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-       if (!emailRegex.test(leadData.email)) {
-         toast.error("Please enter a valid email address with a dot in the domain.");
-         return;
-       }  
 
         if (!leadData.lead_owner) {
           toast.error("Please assign a lead owner.");
           return;
         };
+   
+      //  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      //  if (!emailRegex.test(leadData.email)) {
+      //    toast.error("Please enter a valid email address with a dot in the domain.");
+      //    return;
+      //  }  
 
     const finalForm = {
       ...leadData,
+      // email: leadData.email?.trim() ? leadData.email : null,
       territory_id: leadData.territory_id ? parseInt(leadData.territory_id) : null,
       lead_owner: parseInt(leadData.lead_owner),
       work_phone: `${leadData.work_ccode} ${leadData.work_phone}`,
@@ -1017,38 +1017,42 @@ export default function AdminLeads() {
               {/* Company */}
               <div className="flex flex-col">
                 <label className="block text-gray-700 font-medium mb-1 text-sm">
-                  Company <span className="text-red-500">*</span></label>
+                  {/* Company <span className="text-red-500">*</span></label> */}
+                  Company</label>
                 <input
                   type="text"
                   placeholder="ABC Company"
                   name="company_name"
                   value={leadData.company_name}
                   onChange={handleLeadChange}
-                  required
-              className={`w-full rounded-md px-2 py-1.5 text-sm outline-none border
-                       ${isSubmitted && !leadData.company_name?.trim()
-                       ? "border-red-400 focus:ring-red-400"
-                    : "border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-400 outline-none"}
-                  focus:ring-2`}/>
+                  // required
+              // className={`w-full rounded-md px-2 py-1.5 text-sm outline-none border
+              //          ${isSubmitted && !leadData.company_name?.trim()
+              //          ? "border-red-400 focus:ring-red-400"
+              //       : "border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-400 outline-none"}
+              //     focus:ring-2`}/>
+                    className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-400 outline-none"/>
               </div>
 
               {/* Title */}
               <div className="flex flex-col">
                 <label className="block text-gray-700 font-medium mb-1 text-sm">
-                  Job Title<span className="text-red-500">*</span></label>
+                  {/* Job Title<span className="text-red-500">*</span></label> */}
+                   Job Title</label>
                 <input
                   type="text"
                   placeholder="ABC Agenda"
                   name="title"
                   value={leadData.title}
                   onChange={handleLeadChange}
-                  required
-                    className={`w-full rounded-md px-2 py-1.5 text-sm outline-none border
-                       ${isSubmitted && !leadData.title?.trim()
-                       ? "border-red-400 focus:ring-red-400"
-                      : "border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-400 outline-none"}
-                      focus:ring-2`}
-                  />
+                  // required
+                  //   className={`w-full rounded-md px-2 py-1.5 text-sm outline-none border
+                  //      ${isSubmitted && !leadData.title?.trim()
+                  //      ? "border-red-400 focus:ring-red-400"
+                  //     : "border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-400 outline-none"}
+                  //     focus:ring-2`}
+                  // />
+                  className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-400 outline-none"/>
                  </div>
 
               {/* Department */}
@@ -1068,8 +1072,9 @@ export default function AdminLeads() {
 
               {/* Email */}
               <div className="flex flex-col">
-                <label className="block text-gray-700 font-medium mb-1 text-sm"
-                >Email<span className="text-red-500">*</span></label>
+                <label className="block text-gray-700 font-medium mb-1 text-sm">
+                  Email<span className="text-red-500">*</span></label>
+                  {/* Email</label> */}
                 <input
                   type="email"
                   placeholder="abc@gmail.com"
@@ -1083,6 +1088,7 @@ export default function AdminLeads() {
                       : "border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-400 outline-none"}
                       focus:ring-2`}
                   />
+                    {/* //  className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-400 outline-none"/> */}
               </div>
 
               {/* Work Phone */}

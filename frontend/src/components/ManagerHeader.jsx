@@ -165,12 +165,12 @@ export default function ManagerHeader({ toggleSidebar }) {
               </div>
 
               <div className="mt-6 space-y-1 px-2">
-                <button 
+                {/* <button 
                   onClick={() => { navigate("/manager/users"); setOpen(false); }}
                   className="block w-full text-sm text-gray-700 hover:bg-gray-50 p-2 rounded text-left transition"
                 >
                   Invite Your Team
-                </button>
+                </button> */}
                 <button 
                   onClick={() => { navigate("/manager/manage-account"); setOpen(false); }}
                   className="block w-full text-sm text-gray-700 hover:bg-gray-50 p-2 rounded text-left transition"

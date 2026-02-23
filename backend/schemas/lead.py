@@ -10,6 +10,7 @@ class LeadBase(BaseModel):
     title: str
     department: str
     email: EmailStr
+    # email: Optional[EmailStr] = None
     work_phone: str
     mobile_phone_1: Optional[str]
     mobile_phone_2: Optional[str]

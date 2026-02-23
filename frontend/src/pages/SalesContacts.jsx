@@ -538,10 +538,9 @@ export default function AdminContacts() {
     e.preventDefault();
     setIsSubmitted(true);
 
-    const trimmedFirstName = formData.first_name.trim();
-    const trimmedLastName = formData.last_name.trim();
-    if (!trimmedFirstName || !trimmedLastName) {
-      toast.error("First name and last name are required.");
+  const trimmedLastName = formData.last_name.trim();
+    if (!trimmedLastName) {
+      toast.error("Last name is required.");
       return;
     }
 
@@ -573,6 +572,8 @@ export default function AdminContacts() {
       toast.error("Please enter a valid email address.");
       return;
     }
+
+    const trimmedFirstName = formData.first_name?.trim() || "";
 
     const payload = {
       first_name: trimmedFirstName,
@@ -1609,16 +1610,16 @@ export default function AdminContacts() {
                     value: contact.work_phone,
                     key: "work_phone",
                   },
-                  {
-                    Icon: FiSmartphone,
-                    value: contact.mobile_phone_1,
-                    key: "mobile_phone_1",
-                  },
-                  {
-                    Icon: FiSmartphone,
-                    value: contact.mobile_phone_2,
-                    key: "mobile_phone_2",
-                  },
+                  // {
+                  //   Icon: FiSmartphone,
+                  //   value: contact.mobile_phone_1,
+                  //   key: "mobile_phone_1",
+                  // },
+                  // {
+                  //   Icon: FiSmartphone,
+                  //   value: contact.mobile_phone_2,
+                  //   key: "mobile_phone_2",
+                  // },
                 ].filter((item) => Boolean(item.value));
 
                 return (
@@ -1811,8 +1812,7 @@ export default function AdminContacts() {
             value={formData.first_name}
             onChange={handleInputChange}
             placeholder="First name"
-            required
-            isSubmitted={isSubmitted}
+            disabled={isSubmitting}
           />
           <InputField
             label="Last Name"
@@ -1823,69 +1823,71 @@ export default function AdminContacts() {
             required
             isSubmitted={isSubmitted}
           />
-          <SearchableSelectField
-            label="Account"
-            value={formData.account_id}
-            onChange={(newId) =>
-              setFormData((prev) => ({
-                ...prev,
-                account_id: newId,
-              }))
-            }
-            items={isEditing ? accountsForForm : accounts || []}
-            getLabel={(item) => item?.name ?? ""}
-            placeholder="Search account..."
-            actions={
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={handleAddAccountFromContactModal}
-                  disabled={isSubmitting}
-                  title="Add account"
-                  className="inline-flex items-center justify-center w-8 h-8 rounded-md border border-gray-300 text-gray-600 hover:bg-gray-50 transition disabled:opacity-60"
-                >
-                  <FiPlus size={16} />
-                </button>
-                <button
-                  type="button"
-                  onClick={fetchAccounts}
-                  disabled={isSubmitting}
-                  title="Refresh accounts"
-                  className="inline-flex items-center justify-center w-8 h-8 rounded-md border border-gray-300 text-gray-600 hover:bg-gray-50 transition disabled:opacity-60"
-                >
-                  <FiRefreshCw size={16} />
-                </button>
-              </div>
-            }
-            disabled={
-              isSubmitting ||
-              (isEditing ? accountsForForm.length === 0 : accounts.length === 0)
-            }
-            required={true} // <-- use required directly
-            isSubmitted={isSubmitted}
-          />
-          <SearchableSelectField
-            label="Assigned To"
-            value={formData.assigned_to}
-            onChange={(newId) =>
-              setFormData((prev) => ({
-                ...prev,
-                assigned_to: newId,
-              }))
-            }
-            items={users || []}
-            getLabel={(item) =>
-              `${item?.first_name ?? ""} ${item?.last_name ?? ""} (${item?.role ?? ""})`.trim()
-            }
-            placeholder="Search assignee..."
-            required={true} // <-- use required directly
-            isSubmitted={isSubmitted}
-            disabled={
-              isSubmitting ||
-              users.length === 0 ||
-              currentUser?.role === "Sales"
-            }
-          />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:col-span-2">
+            <SearchableSelectField
+              label="Account"
+              value={formData.account_id}
+              onChange={(newId) =>
+                setFormData((prev) => ({
+                  ...prev,
+                  account_id: newId,
+                }))
+              }
+              items={isEditing ? accountsForForm : accounts || []}
+              getLabel={(item) => item?.name ?? ""}
+              placeholder="Search account..."
+              actions={
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={handleAddAccountFromContactModal}
+                    disabled={isSubmitting}
+                    title="Add account"
+                    className="inline-flex items-center justify-center w-4 h-4 rounded-sm border border-gray-300 text-gray-600 hover:bg-gray-50 transition disabled:opacity-60"
+                  >
+                    <FiPlus size={16} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={fetchAccounts}
+                    disabled={isSubmitting}
+                    title="Refresh accounts"
+                    className="inline-flex items-center justify-center w-4 h-3 text-gray-600 hover:bg-gray-50 transition disabled:opacity-60"
+                  >
+                    <FiRefreshCw size={16} />
+                  </button>
+                </div>
+              }
+              disabled={
+                isSubmitting ||
+                (isEditing ? accountsForForm.length === 0 : accounts.length === 0)
+              }
+              required={true}
+              isSubmitted={isSubmitted}
+            />
+            <SearchableSelectField
+              label="Assigned To"
+              value={formData.assigned_to}
+              onChange={(newId) =>
+                setFormData((prev) => ({
+                  ...prev,
+                  assigned_to: newId,
+                }))
+              }
+              items={users || []}
+              getLabel={(item) =>
+                `${item?.first_name ?? ""} ${item?.last_name ?? ""} (${item?.role ?? ""})`.trim()
+              }
+              placeholder="Search assignee..."
+              required={true}
+              isSubmitted={isSubmitted}
+              disabled={
+                isSubmitting ||
+                users.length === 0 ||
+                currentUser?.role === "Sales"
+              }
+            />
+          </div>
           <InputField
             label="Title"
             name="title"

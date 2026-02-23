@@ -564,9 +564,9 @@ export default function AdminUser() {
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 sm:mb-6 space-y-2 sm:space-y-0">
         <h1 className="flex items-center text-xl sm:text-2xl font-semibold text-gray-800">
           <FiShield className="mr-2 text-blue-600" />
-          User Management
+          User Management  
         </h1>
-        <div className="flex justify-center lg:justify-end w-full sm:w-auto">
+        {/* <div className="flex justify-center lg:justify-end w-full sm:w-auto">
         <button
           type="button"
           onClick={handleOpenCreate}
@@ -574,7 +574,7 @@ export default function AdminUser() {
         >
           <FiUserPlus className="mr-2" /> Add User
         </button>
-      </div>
+      </div> */}
       </div>
 
       <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm mb-6 flex flex-col lg:flex-row items-center justify-between gap-3 w-full">
@@ -759,7 +759,7 @@ export default function AdminUser() {
               <FiEdit2 className="mr-2" />
               Edit
             </button>
-            <button
+            {/* <button
               type="button"
               className="inline-flex items-center justify-center w-full sm:w-auto px-4 py-2 rounded-md text-sm bg-red-500 text-white hover:bg-red-600 transition focus:outline-none focus:ring-2 focus:ring-red-400"
               onClick={() => handleDeleteClick(selectedUser)}
@@ -767,7 +767,7 @@ export default function AdminUser() {
             >
               <FiTrash2 className="mr-2" />
               Delete
-            </button>
+            </button> */}
           </div>
           )}          
         </div>

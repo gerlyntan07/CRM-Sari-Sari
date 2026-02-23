@@ -68,8 +68,11 @@ const isSalesActive = salesRoutes.includes(location.pathname);
           </span>
         </p>
           {user && user.company && (
-            <p className="text-[12px] text-gray-600 font-medium w-full truncate">
-              {user.company.company_name}
+            <p
+              className="text-[12px] text-gray-600 font-medium w-full truncate"
+              title={user.company.company_name}
+            >
+              {user.company.slug || user.company.company_name}
             </p>
           )}
         </div>

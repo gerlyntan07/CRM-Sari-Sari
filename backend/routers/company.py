@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, Response, Request
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from typing import Dict
+import re
 
 # Import your database connection
 from database import get_db
@@ -19,6 +20,13 @@ from .auth_utils import get_current_user
 from .logs_utils import serialize_instance, create_audit_log
 
 router = APIRouter(prefix="/company", tags=["Company"])
+
+
+def _slugify(value: str) -> str:
+    value = (value or "").strip().lower()
+    value = re.sub(r"[^a-z0-9]+", "-", value)
+    value = re.sub(r"-+", "-", value).strip("-")
+    return value[:48]
 
 
 @router.get("/invoice-info", response_model=CompanyInvoiceInfo)
@@ -93,6 +101,17 @@ def update_company_details(
     
     company.company_name = payload.company_name.strip()
 
+    # ✅ Update Slug (if provided); otherwise initialize if missing
+    if payload.slug is not None:
+        cleaned = _slugify(payload.slug)
+        company.slug = cleaned or None
+        if not company.slug:
+            cleaned = _slugify(company.company_name)
+            company.slug = cleaned or None
+    elif not company.slug:
+        cleaned = _slugify(company.company_name)
+        company.slug = cleaned or None
+
     # ✅ Update Currency (if provided)
     if payload.currency:
         company.currency = payload.currency
@@ -136,6 +155,7 @@ def create_company(
     """Creates a new company record."""
     new_company = Company(
         company_name=company_in.company_name,
+        slug=_slugify(company_in.company_name) or None,
         company_number=company_in.company_number,
         company_website=str(company_in.company_website) if company_in.company_website else None,
         # Default values for new companies

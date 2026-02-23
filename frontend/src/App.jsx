@@ -9,6 +9,7 @@ import {
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import PrivateRoute from "./hooks/protectedRoute.jsx";
+import { UserProvider } from "./context/UserContext.jsx";
 
 // 🔹 Public pages
 import Landing from "./pages/Landing";
@@ -143,7 +144,8 @@ function App() {
         theme="colored"
         className="z-[9999]"
       />
-      <Routes>
+      <UserProvider>
+        <Routes>
         {/* ================= Public Routes ================= */}
         <Route path="/" element={<Landing />} />
         <Route path="/header" element={<Header />} />
@@ -334,7 +336,8 @@ function App() {
           <Route path="users" element={<TManagerUser />} />
           <Route path="manage-account" element={<PublicManageAccount />} />
         </Route>
-      </Routes>
+        </Routes>
+      </UserProvider>
     </Router>
   );
 }

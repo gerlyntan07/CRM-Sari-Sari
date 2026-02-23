@@ -8,6 +8,7 @@ class Company(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     company_name = Column(String, nullable=False)
+    slug = Column(String, nullable=True)
     company_number = Column(String, nullable=False)
     company_website = Column(String, nullable=True)
     company_logo = Column(String, nullable=True) 

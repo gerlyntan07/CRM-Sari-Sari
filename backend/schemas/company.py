@@ -5,6 +5,7 @@ from datetime import datetime
 
 class CompanyBase(BaseModel):    
     company_name: str
+    slug: Optional[str] = None
     company_number: str
     company_website: Optional[HttpUrl] = None
     company_logo: Optional[str] = None
@@ -16,6 +17,7 @@ class CompanyCreate(CompanyBase):
 # ✅ NEW: Add this class to handle the update request from AdminCompanyDetails
 class CompanyUpdate(BaseModel):
     company_name: str
+    slug: Optional[str] = None
     currency: Optional[str] = "₱"       # e.g., "₱" or "$"
     quota_period: Optional[str] = "January" # e.g., "April"
     tax_rate: Optional[float] = 0       # Default tax rate percentage

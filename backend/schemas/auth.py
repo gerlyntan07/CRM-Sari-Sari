@@ -56,6 +56,7 @@ class EmailCheckResponse(BaseModel):
 class CompanyBase(BaseModel):
     id: int
     company_name: str
+    slug: Optional[str] = None
     company_number: str
     company_website: Optional[str] = None
     company_logo: Optional[str] = None

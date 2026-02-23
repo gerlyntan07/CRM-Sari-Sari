@@ -271,6 +271,49 @@ const AdminMeeting = () => {
     });
   }, [visibleMeetings, searchTerm, statusFilter]);
 
+  // Metrics - count meetings by status
+  const totalMeetings = visibleMeetings.length;
+  const plannedMeetings = visibleMeetings.filter(
+    (m) => toAdminStatus(m.status) === "PLANNED",
+  ).length;
+  const heldMeetings = visibleMeetings.filter(
+    (m) => toAdminStatus(m.status) === "HELD",
+  ).length;
+  const notHeldMeetings = visibleMeetings.filter(
+    (m) => toAdminStatus(m.status) === "NOT_HELD",
+  ).length;
+
+  const metricCards = [
+    {
+      title: "Total",
+      value: totalMeetings,
+      icon: FiCalendar,
+      color: "text-slate-600",
+      bgColor: "bg-slate-100",
+    },
+    {
+      title: "Planned",
+      value: plannedMeetings,
+      icon: FiClock,
+      color: "text-indigo-600",
+      bgColor: "bg-indigo-100",
+    },
+    {
+      title: "Held",
+      value: heldMeetings,
+      icon: FiCheckCircle,
+      color: "text-green-600",
+      bgColor: "bg-green-100",
+    },
+    {
+      title: "Not Held",
+      value: notHeldMeetings,
+      icon: FiXCircle,
+      color: "text-gray-600",
+      bgColor: "bg-gray-100",
+    },
+  ];
+
   const paginatedMeetings = useMemo(() => {
     const startIndex = (currentPage - 1) * itemsPerPage;
     return filteredMeetings.slice(startIndex, startIndex + itemsPerPage);
@@ -622,6 +665,12 @@ const AdminMeeting = () => {
         </div>
       </div>
 
+         {/* METRIC CARDS */}
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 mb-6 w-full break-words overflow-hidden lg:overflow-visible">
+        {metricCards.map((m) => (
+          <MetricCard key={m.title} {...m} />
+        ))}
+      </div>
       {/* METRICS & FILTERS (Keep existing markup structure) */}
       <div className="bg-white rounded-xl p-4 shadow-sm mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <div className="flex items-center border border-gray-300 rounded-lg px-4 h-11 w-full sm:w-auto lg:w-4/4 md:w-3/4">

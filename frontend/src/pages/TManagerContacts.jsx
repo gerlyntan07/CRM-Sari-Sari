@@ -506,17 +506,16 @@ export default function AdminContacts() {
     e.preventDefault();
     setIsSubmitted(true);
 
-    const trimmedFirstName = formData.first_name.trim();
     const trimmedLastName = formData.last_name.trim();
-    if (!trimmedFirstName || !trimmedLastName) {
-      toast.error("First name and last name are required.");
-      return;
-    }
+    if (!trimmedLastName) {
+      toast.error("Last name is required.");
+        return;
+      }
 
     if (!formData.account_id) {
       toast.error("Account is required.");
-      return;
-    }
+        return;
+      }
 
     const assignedTo = formData.assigned_to;
     if (!assignedTo) {
@@ -541,6 +540,8 @@ export default function AdminContacts() {
       toast.error("Please enter a valid email address.");
       return;
     }
+
+    const trimmedFirstName = formData.first_name?.trim() || "";
 
     const payload = {
       first_name: trimmedFirstName,
@@ -1519,16 +1520,16 @@ export default function AdminContacts() {
                     value: contact.work_phone,
                     key: "work_phone",
                   },
-                  {
-                    Icon: FiSmartphone,
-                    value: contact.mobile_phone_1,
-                    key: "mobile_phone_1",
-                  },
-                  {
-                    Icon: FiSmartphone,
-                    value: contact.mobile_phone_2,
-                    key: "mobile_phone_2",
-                  },
+                  // {
+                  //   Icon: FiSmartphone,
+                  //   value: contact.mobile_phone_1,
+                  //   key: "mobile_phone_1",
+                  // },
+                  // {
+                  //   Icon: FiSmartphone,
+                  //   value: contact.mobile_phone_2,
+                  //   key: "mobile_phone_2",
+                  // },
                 ].filter((item) => Boolean(item.value));
 
                 return (
@@ -1709,8 +1710,7 @@ export default function AdminContacts() {
             value={formData.first_name}
             onChange={handleInputChange}
             placeholder="First name"
-            required
-            isSubmitted={isSubmitted}
+            disabled={isSubmitting}
           />
 
           <InputField
@@ -1723,6 +1723,7 @@ export default function AdminContacts() {
             isSubmitted={isSubmitted}
           />
 
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:col-span-2">
           <SearchableSelectField
             label="Account"
             value={formData.account_id}
@@ -1742,7 +1743,7 @@ export default function AdminContacts() {
                   onClick={handleAddAccountFromContactModal}
                   disabled={isSubmitting}
                   title="Add account"
-                  className="inline-flex items-center justify-center w-8 h-8 rounded-md border border-gray-300 text-gray-600 hover:bg-gray-50 transition disabled:opacity-60"
+                  className="inline-flex items-center justify-center w-4 h-4 rounded-sm border border-gray-300 text-gray-600 hover:bg-gray-50 transition disabled:opacity-60"
                 >
                   <FiPlus size={16} />
                 </button>
@@ -1751,7 +1752,7 @@ export default function AdminContacts() {
                   onClick={fetchAccounts}
                   disabled={isSubmitting}
                   title="Refresh accounts"
-                  className="inline-flex items-center justify-center w-8 h-8 rounded-md border border-gray-300 text-gray-600 hover:bg-gray-50 transition disabled:opacity-60"
+                  className="inline-flex items-center justify-center w-4 h-3 text-gray-600 hover:bg-gray-50 transition disabled:opacity-60"
                 >
                   <FiRefreshCw size={16} />
                 </button>
@@ -1783,6 +1784,7 @@ export default function AdminContacts() {
             isSubmitted={isSubmitted}
             disabled={isSubmitting || users.length === 0}
           />
+          </div>
 
           <InputField
             label="Title"

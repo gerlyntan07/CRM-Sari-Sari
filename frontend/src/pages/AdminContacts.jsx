@@ -1457,16 +1457,16 @@ export default function AdminContacts() {
                     value: contact.work_phone,
                     key: "work_phone",
                   },
-                  {
-                    Icon: FiSmartphone,
-                    value: contact.mobile_phone_1,
-                    key: "mobile_phone_1",
-                  },
-                  {
-                    Icon: FiSmartphone,
-                    value: contact.mobile_phone_2,
-                    key: "mobile_phone_2",
-                  },
+                  // {
+                  //   Icon: FiSmartphone,
+                  //   value: contact.mobile_phone_1,
+                  //   key: "mobile_phone_1",
+                  // },
+                  // {
+                  //   Icon: FiSmartphone,
+                  //   value: contact.mobile_phone_2,
+                  //   key: "mobile_phone_2",
+                  // },
                 ].filter((item) => Boolean(item.value));
 
                 return (
@@ -1650,6 +1650,7 @@ export default function AdminContacts() {
             isSubmitted={isSubmitted}
           />
 
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:col-span-2">
           <SearchableSelectField
             label="Account"
             value={formData.account_id}
@@ -1669,7 +1670,7 @@ export default function AdminContacts() {
                   onClick={handleAddAccountFromContactModal}
                   disabled={isSubmitting}
                   title="Add account"
-                  className="inline-flex items-center justify-center w-8 h-8 rounded-md border border-gray-300 text-gray-600 hover:bg-gray-50 transition disabled:opacity-60"
+                  className="inline-flex items-center justify-center w-4 h-4 rounded-sm border border-gray-300 text-gray-600 hover:bg-gray-50 transition disabled:opacity-60"
                 >
                   <FiPlus size={16} />
                 </button>
@@ -1678,7 +1679,7 @@ export default function AdminContacts() {
                   onClick={fetchAccounts}
                   disabled={isSubmitting}
                   title="Refresh accounts"
-                  className="inline-flex items-center justify-center w-8 h-8 rounded-md border border-gray-300 text-gray-600 hover:bg-gray-50 transition disabled:opacity-60"
+                  className="inline-flex items-center justify-center w-4 h-3 text-gray-600 hover:bg-gray-50 transition disabled:opacity-60"
                 >
                   <FiRefreshCw size={16} />
                 </button>
@@ -1706,7 +1707,8 @@ export default function AdminContacts() {
             required={true}
             isSubmitted={isSubmitted}
             disabled={isSubmitting || users.length === 0}
-          />
+          />      
+          </div>
 
           <InputField
             label="Title"

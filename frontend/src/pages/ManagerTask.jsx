@@ -11,6 +11,7 @@ import {
   FiPlus,
   FiTrash2,
   FiCheckSquare,
+  FiArchive,
 } from "react-icons/fi";
 import TaskModal from "../components/TaskModal";
 import PaginationControls from "../components/PaginationControls.jsx";
@@ -515,6 +516,7 @@ export default function AdminTask() {
         assignedTo: task.assignedToId ? String(task.assignedToId) : "",
         assignedToName: task.assignedToName || "",
         createdBy: task.createdBy || "",
+        createdById: task.createdById || null,
         notes: task.notes || "",
         
         relatedType1Text: task.relatedType1Text || "",
@@ -564,50 +566,65 @@ export default function AdminTask() {
   const handleDeleteTask = (task) => {
     if (!task) return;
 
+    // Check if current user is Manager - only Manager can archive
+    const isArchiveAction = /manager/i.test(currentUser?.role);
+
     setConfirmModalData({
-      title: "Delete Task",
+      title: isArchiveAction ? "Archive Task" : "Delete Task",
       message: (
         <>
-          Are you sure you want to delete <span className="font-semibold">{task.title}</span>? 
+          Are you sure you want to {isArchiveAction ? "archive" : "delete"} <span className="font-semibold">{task.title}</span>? 
+          {isArchiveAction ? (
+            <span> This action will mark the task as inactive.</span>
+          ) : (
+            <span> This action cannot be undone.</span>
+          )}
         </>
       ),
-      confirmLabel: "Delete Task",
+      confirmLabel: isArchiveAction ? "Archive Task" : "Delete Task",
       cancelLabel: "Cancel",
-      variant: "danger",
+      variant: isArchiveAction ? "warning" : "danger",
       action: { type: "delete", targetId: task.id },
     });
   };
 
   const handleSelectAll = () => {
-    if (displayTasks.every((t) => selectedIds.includes(t.id))) {
-      setSelectedIds(selectedIds.filter((id) => !displayTasks.map((t) => t.id).includes(id)));
+    // Only work with deletable tasks
+    if (deletableTasks.every((t) => selectedIds.includes(t.id))) {
+      setSelectedIds(selectedIds.filter((id) => !deletableTasks.map((t) => t.id).includes(id)));
     } else {
-      const newIds = displayTasks.map((t) => t.id);
+      const newIds = deletableTasks.map((t) => t.id);
       setSelectedIds([...new Set([...selectedIds, ...newIds])]);
     }
   };
 
   const handleCheckboxChange = (id) => {
-    setSelectedIds((prev) =>
-      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
-    );
+    // Only allow toggling if task is deletable
+    if (isTaskDeletable(displayTasks.find((t) => t.id === id))) {
+      setSelectedIds((prev) =>
+        prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+      );
+    }
   };
 
   const handleBulkDelete = async () => {
     if (selectedIds.length === 0) return;
 
+    // Check if current user is Manager - only Manager can archive
+    const isArchiveAction = /manager/i.test(currentUser?.role);
+
     setConfirmModalData({
-      title: "Delete Tasks",
+      title: isArchiveAction ? "Archive Tasks" : "Delete Tasks",
       message: (
         <span>
-          Are you sure you want to delete{" "}
+          Are you sure you want to {isArchiveAction ? "archive" : "delete"}{" "}
           <span className="font-semibold">{selectedIds.length}</span> selected
-          tasks? This action cannot be undone.
+          tasks? {isArchiveAction ? "This action will mark the tasks as inactive." : "This action cannot be undone."}
         </span>
       ),
-      confirmLabel: `Delete ${selectedIds.length} Task(s)`,
+      confirmLabel: isArchiveAction ? `Archive ${selectedIds.length} Task(s)` : `Delete ${selectedIds.length} Task(s)`,
       cancelLabel: "Cancel",
-      variant: "danger",
+      variant: isArchiveAction ? "warning" : "danger",
       action: {
         type: "bulk-delete",
         task_ids: selectedIds,
@@ -623,22 +640,34 @@ export default function AdminTask() {
     const { action } = confirmModalData;
     setConfirmProcessing(true);
 
+    // Check if current user is Manager - only Manager can archive
+    const isArchiveAction = /manager/i.test(currentUser?.role);
+
     try {
       if (action.type === "delete") {
         await api.delete(`/tasks/${action.targetId}`);
-        toast.success("Task deleted successfully.");
+        toast.success(isArchiveAction ? "Task archived successfully." : "Task deleted successfully.");
         await fetchTasks();
       } else if (action.type === "bulk-delete") {
-        await api.delete("/tasks/admin/bulk-delete", {
-          data: { task_ids: action.task_ids },
-        });
-        toast.success(`Successfully deleted ${action.task_ids.length} tasks`);
+        if (isArchiveAction) {
+          // For Manager, use bulk-archive endpoint
+          await api.post("/tasks/bulk-archive", {
+            task_ids: action.task_ids,
+          });
+          toast.success(`Successfully archived ${action.task_ids.length} tasks`);
+        } else {
+          // For Admin, use bulk-delete endpoint
+          await api.delete("/tasks/admin/bulk-delete", {
+            data: { task_ids: action.task_ids },
+          });
+          toast.success(`Successfully deleted ${action.task_ids.length} tasks`);
+        }
         setSelectedIds([]);
         await fetchTasks();
       } 
     } catch (error) {
       console.error("Task action failed:", error);
-      toast.error("Failed to delete task.");
+      toast.error(isArchiveAction ? "Failed to archive task." : "Failed to delete task.");
     } finally {
       setConfirmProcessing(false);
       setConfirmModalData(null);
@@ -690,6 +719,19 @@ export default function AdminTask() {
     const startIndex = (currentPage - 1) * itemsPerPage;
     return filteredTasks.slice(startIndex, startIndex + itemsPerPage);
   }, [filteredTasks, currentPage, view, itemsPerPage]);
+
+  // Helper function to check if a task can be archived by current user
+  const isTaskDeletable = (task) => {
+    // If not a Manager, task is deletable
+    if (!/manager/i.test(currentUser?.role)) {
+      return true;
+    }
+    // If Manager, only deletable if they created it
+    return String(task?.createdById) === String(currentUser?.id);
+  };
+
+  // Get only deletable tasks for the current user
+  const deletableTasks = useMemo(() => displayTasks.filter(isTaskDeletable), [displayTasks, currentUser?.role, currentUser?.id]);
 
   const METRICS = useMemo(() => {
     const now = new Date();
@@ -867,6 +909,8 @@ export default function AdminTask() {
                   formatDateDisplay={formatDateDisplay}
                   handleOpenModal={handleOpenModal}
                   handleDeleteTask={handleDeleteTask}
+                  currentUser={currentUser}
+                  isTaskDeletable={isTaskDeletable}
                 />
               );
             })}
@@ -894,34 +938,40 @@ export default function AdminTask() {
             <table className="min-w-full text-sm">
               <thead className="bg-gray-100 text-gray-600 text-left">
                 <tr>
-                  <th className="py-3 px-4 w-10">
-                    <input
-                      type="checkbox"
-                      className="w-4 h-4 accent-blue-600"
-                      checked={
-                        displayTasks.length > 0 &&
-                        displayTasks.every((t) => selectedIds.includes(t.id))
-                      }
-                      onChange={handleSelectAll}
-                    />
-                  </th>
+                  {/manager/i.test(currentUser?.role) ? (
+                    <th className="py-3 px-4 w-10">
+                      <input
+                        type="checkbox"
+                        className="w-4 h-4 accent-blue-600"
+                        checked={
+                          deletableTasks.length > 0 &&
+                          deletableTasks.every((t) => selectedIds.includes(t.id))
+                        }
+                        onChange={handleSelectAll}
+                      />
+                    </th>
+                  ) : (
+                    <th className="py-3 px-4 w-10"></th>
+                  )}
                   <th className="py-3 px-4 font-medium">Task</th>
                   <th className="py-3 px-4 font-medium">Status</th>
                   <th className="py-3 px-4 font-medium">Priority</th>
                   <th className="py-3 px-4 font-medium">Assigned To</th>
-                  <th className="py-3 px-4 font-medium">Date Assigned</th>
-                  <th className="py-3 px-4 font-medium text-center w-24">
-                    {selectedIds.length > 0 ? (
-                      <button
-                        onClick={handleBulkDelete}
-                        className="text-red-600 hover:text-red-800 transition p-1 rounded-full hover:bg-red-50"
-                        title={`Delete ${selectedIds.length} selected tasks`}
-                      >
-                        <FiTrash2 size={18} />
-                      </button>
-                    ) : (
-                      ""
-                    )}
+                  <th className="py-3 px-4 font-medium">
+                    <div className="flex items-center justify-between gap-2">
+                      <span>Date Assigned</span>
+                      <div className="w-8 h-8 flex items-center justify-center">
+                        {selectedIds.length > 0 && /manager/i.test(currentUser?.role) && (
+                          <button
+                            onClick={handleBulkDelete}
+                            className="text-orange-600 hover:text-orange-800 transition p-1 rounded-full hover:bg-orange-50"
+                            title={`Archive ${selectedIds.length} selected tasks`}
+                          >
+                            <FiArchive size={18} />
+                          </button>
+                        )}
+                      </div>
+                    </div>
                   </th>
                 </tr>
               </thead>
@@ -932,12 +982,14 @@ export default function AdminTask() {
                     className="hover:bg-gray-50 transition-colors text-sm cursor-pointer"
                   >
                     <td className="py-3 px-4" onClick={(e) => e.stopPropagation()}>
-                      <input
-                        type="checkbox"
-                        className="w-4 h-4 accent-blue-600"
-                        checked={selectedIds.includes(task.id)}
-                        onChange={() => handleCheckboxChange(task.id)}
-                      />
+                      {isTaskDeletable(task) && (
+                        <input
+                          type="checkbox"
+                          className="w-4 h-4 accent-blue-600"
+                          checked={selectedIds.includes(task.id)}
+                          onChange={() => handleCheckboxChange(task.id)}
+                        />
+                      )}
                     </td>
                     <td className="py-3 px-4 text-gray-700 whitespace-nowrap font-medium" onClick={() => handleOpenModal(task, true)}>{task.title}</td>
                     <td className="py-3 px-4 whitespace-nowrap" onClick={() => handleOpenModal(task, true)}>
@@ -950,9 +1002,8 @@ export default function AdminTask() {
                     <td className={`py-3 px-4 text-gray-700 whitespace-nowrap ${isTaskOverdue(task) ? "text-red-600 font-medium" : ""}`} onClick={() => handleOpenModal(task, true)}>
                       {task.dateAssigned ? formatDateDisplay(task.dateAssigned) : "—"}
                     </td>
-                    <td></td>
                   </tr>
-                )) : <tr><td colSpan={7} className="text-center py-4 text-gray-500">No tasks found.</td></tr>}
+                )) : <tr><td colSpan={6} className="text-center py-4 text-gray-500">No tasks found.</td></tr>}
               </tbody>
             </table>
           </div>
@@ -1027,7 +1078,12 @@ function MetricCard({ icon: Icon, title, value, color, bgColor, onClick }) {
 
 function ConfirmationModal({ open, title, message, confirmLabel, cancelLabel, variant, loading, onConfirm, onCancel }) {
   if (!open) return null;
-  const confirmClasses = variant === "danger" ? "bg-red-500 hover:bg-red-600 border border-red-400" : "bg-tertiary hover:bg-secondary border border-tertiary";
+  const confirmClasses = 
+    variant === "danger" 
+      ? "bg-red-500 hover:bg-red-600 border border-red-400" 
+      : variant === "warning"
+      ? "bg-orange-500 hover:bg-orange-600 border border-orange-400"
+      : "bg-tertiary hover:bg-secondary border border-tertiary";
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-[60]">
@@ -1044,7 +1100,7 @@ function ConfirmationModal({ open, title, message, confirmLabel, cancelLabel, va
 }
 
 // --- Droppable Column Component for Manager ---
-function ManagerDroppableColumn({ column, columnTasks, getTaskCardColor, isTaskOverdue, formatDateDisplay, handleOpenModal, handleDeleteTask }) {
+function ManagerDroppableColumn({ column, columnTasks, getTaskCardColor, isTaskOverdue, formatDateDisplay, handleOpenModal, handleDeleteTask, currentUser, isTaskDeletable }) {
   const { isOver, setNodeRef } = useDroppable({
     id: column,
   });
@@ -1074,6 +1130,8 @@ function ManagerDroppableColumn({ column, columnTasks, getTaskCardColor, isTaskO
               formatDateDisplay={formatDateDisplay}
               handleOpenModal={handleOpenModal}
               handleDeleteTask={handleDeleteTask}
+              currentUser={currentUser}
+              isTaskDeletable={isTaskDeletable}
             />
           ))
         ) : (
@@ -1087,10 +1145,13 @@ function ManagerDroppableColumn({ column, columnTasks, getTaskCardColor, isTaskO
 }
 
 // --- Draggable Task Card Component for Manager ---
-function ManagerDraggableTaskCard({ task, getTaskCardColor, isTaskOverdue, formatDateDisplay, handleOpenModal, handleDeleteTask }) {
+function ManagerDraggableTaskCard({ task, getTaskCardColor, isTaskOverdue, formatDateDisplay, handleOpenModal, handleDeleteTask, currentUser, isTaskDeletable }) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: task.id,
   });
+  
+  // Check if user can edit/delete: not a Manager who didn't create the task
+  const canEditDelete = !(/manager/i.test(currentUser?.role) && String(task?.createdById) !== String(currentUser?.id));
 
   const style = transform
     ? {
@@ -1121,22 +1182,28 @@ function ManagerDraggableTaskCard({ task, getTaskCardColor, isTaskOverdue, forma
           </span>
         </p>
       </div>
-      <div className="flex items-center gap-2 ml-3" onClick={(e) => e.stopPropagation()}>
-        <button
-          type="button"
-          onClick={(e) => { e.stopPropagation(); handleOpenModal(task); }}
-          className="text-blue-500 hover:text-blue-700"
-        >
-          <FiEdit2 />
-        </button>
-        <button
-          type="button"
-          onClick={(e) => { e.stopPropagation(); handleDeleteTask(task); }}
-          className="text-red-500 hover:text-red-700"
-        >
-          <FiTrash2 />
-        </button>
-      </div>
+      {canEditDelete && (
+        <div className="flex items-center gap-2 ml-3" onClick={(e) => e.stopPropagation()}>
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); handleOpenModal(task); }}
+            className="text-blue-500 hover:text-blue-700"
+          >
+            <FiEdit2 />
+          </button>
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); handleDeleteTask(task); }}
+            className={`${
+              /manager/i.test(currentUser?.role)
+                ? "text-orange-500 hover:text-orange-700"
+                : "text-red-500 hover:text-red-700"
+            }`}
+          >
+            {/manager/i.test(currentUser?.role) ? <FiArchive /> : <FiTrash2 />}
+          </button>
+        </div>
+      )}
     </div>
   );
 }

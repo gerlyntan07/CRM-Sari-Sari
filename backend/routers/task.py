@@ -262,6 +262,7 @@ def get_all_tasks(db: Session = Depends(get_db), current_user: User = Depends(ge
             )
         elif current_user.role.upper() == "MANAGER":
             # Managers see tasks assigned to their territory users + their own tasks
+            # But do NOT see archived (INACTIVE) tasks
             subquery_user_ids = (
                 db.query(Territory.user_id)
                 .filter(Territory.manager_id == current_user.id)
@@ -283,7 +284,9 @@ def get_all_tasks(db: Session = Depends(get_db), current_user: User = Depends(ge
                     (Task.assigned_to.in_(subquery_user_ids)) | 
                     (Task.assigned_to == current_user.id) |
                     (Task.created_by == current_user.id)
-                ).all()
+                )
+                .filter(Task.status != StatusCategory.INACTIVE)
+                .all()
             )
         else:
             # SALES users - see only their own tasks (created or assigned)
@@ -473,7 +476,7 @@ def delete_task(
     current_user: User = Depends(get_current_user),
     request: Request = None
 ):
-    """Delete endpoint: SALES and GROUP MANAGER users archive, ADMINS hard delete"""
+    """Delete endpoint: SALES, GROUP MANAGER, and MANAGER users archive, ADMINS hard delete"""
     try:
         task = db.query(Task).filter(Task.id == task_id).first()
         if not task:
@@ -482,8 +485,8 @@ def delete_task(
         title = task.title
         old_data = serialize_instance(task)
 
-        # GROUP MANAGER users archive (mark as INACTIVE) instead of hard delete
-        if current_user.role.upper() == "GROUP MANAGER":
+        # GROUP MANAGER, MANAGER, and SALES users archive (mark as INACTIVE) instead of hard delete
+        if current_user.role.upper() in ["GROUP MANAGER", "MANAGER", "SALES"]:
             if task.created_by != current_user.id:
                 raise HTTPException(status_code=403, detail="Permission denied - you can only archive your own tasks")
 
@@ -538,23 +541,23 @@ def bulk_archive_tasks(
     current_user: User = Depends(get_current_user),
     request: Request = None
 ):
-    """Archive multiple tasks (set status to INACTIVE) for GROUP MANAGER users only"""
+    """Archive multiple tasks (set status to INACTIVE) for GROUP MANAGER, MANAGER, and SALES users"""
     try:
-        if current_user.role.upper() != "GROUP MANAGER":
-            raise HTTPException(status_code=403, detail="Permission denied - only Group Manager can archive tasks")
+        if current_user.role.upper() not in ["GROUP MANAGER", "MANAGER", "SALES"]:
+            raise HTTPException(status_code=403, detail="Permission denied - only Group Manager, Manager, and Sales can archive tasks")
 
         if not data.task_ids:
             return {"detail": "No tasks provided for archiving."}
 
-        # GROUP MANAGER users - only allow archiving their own tasks
-        if current_user.role.upper() == "GROUP MANAGER":
+        # GROUP MANAGER, MANAGER, and SALES users - only allow archiving their own tasks
+        if current_user.role.upper() in ["GROUP MANAGER", "MANAGER", "SALES"]:
             tasks_to_archive = db.query(Task).filter(
                 Task.id.in_(data.task_ids),
                 Task.created_by == current_user.id
             ).all()
         else:
             # Should not reach here due to permission check above
-            raise HTTPException(status_code=403, detail="Permission denied - only Group Manager can archive tasks")
+            raise HTTPException(status_code=403, detail="Permission denied")
 
         if not tasks_to_archive:
             raise HTTPException(status_code=404, detail="No matching tasks found for archiving. You can only archive tasks you created.")

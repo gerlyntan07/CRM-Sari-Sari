@@ -339,8 +339,8 @@ export default function TaskModal({
                             </div>
                             
                            <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-                              {/* Check if user is Group Manager and didn't create the task */}
-                              {!(/group.manager/i.test(currentUser?.role) && String(formData?.createdById) !== String(currentUser?.id)) && (
+                              {/* Check if user is Group Manager, Manager, or Sales and didn't create the task */}
+                              {!((/group.manager/i.test(currentUser?.role) || /manager/i.test(currentUser?.role) || /sales/i.test(currentUser?.role)) && String(formData?.createdById) !== String(currentUser?.id)) && (
                                 <button
                                   className="inline-flex items-center justify-center w-full sm:w-auto bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 transition text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 cursor-pointer"
                                   onClick={() => {
@@ -352,8 +352,8 @@ export default function TaskModal({
                                   Edit
                                 </button>
                               )}
-                              {!(/group.manager/i.test(currentUser?.role) && String(formData?.createdById) !== String(currentUser?.id)) ? (
-                                /group.manager/i.test(currentUser?.role) ? (
+                              {!((/group.manager/i.test(currentUser?.role) || /manager/i.test(currentUser?.role) || /sales/i.test(currentUser?.role)) && String(formData?.createdById) !== String(currentUser?.id)) ? (
+                                (/group.manager/i.test(currentUser?.role) || /manager/i.test(currentUser?.role) || /sales/i.test(currentUser?.role)) ? (
                                   <button
                                     className="inline-flex items-center justify-center w-full sm:w-auto px-4 py-2 rounded-md text-sm bg-orange-500 text-white hover:bg-orange-600 transition focus:outline-none focus:ring-2 focus:ring-orange-400 cursor-pointer"
                                     onClick={() => onDelete(formData)}

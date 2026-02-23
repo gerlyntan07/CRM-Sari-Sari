@@ -10,6 +10,7 @@ import {
   FiSearch,
   FiPlus,
   FiArchive,
+  FiTrash2,
   FiCheckSquare,
 } from "react-icons/fi";
 import TaskModal from "../components/TaskModal";
@@ -624,9 +625,19 @@ export default function AdminTask() {
     });
   };
 
+  // Helper function to check if a task can be archived by current user
+  const isTaskDeletable = (task) => {
+    // If not a Sales user, task is deletable (admin/others can delete)
+    if (!/sales/i.test(currentUser?.role)) {
+      return true;
+    }
+    // If Sales user, only deletable if they created it
+    return String(task?.createdById) === String(currentUser?.id);
+  };
+
   // Helper: Get tasks that can be selected (only tasks created by current user)
   const getSelectableTasks = () => {
-    return displayTasks.filter((t) => String(t.createdById) === String(currentUser?.id));
+    return displayTasks.filter((t) => isTaskDeletable(t));
   };
 
   const handleSelectAll = () => {
@@ -642,9 +653,9 @@ export default function AdminTask() {
   };
 
   const handleCheckboxChange = (id) => {
-    // Only allow selecting tasks created by the current user (defensive check)
+    // Only allow selecting tasks that are deletable by current user
     const task = displayTasks.find((t) => t.id === id);
-    if (String(task?.createdById) !== String(currentUser?.id)) return;
+    if (!isTaskDeletable(task)) return;
     
     setSelectedIds((prev) =>
       prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
@@ -969,19 +980,21 @@ export default function AdminTask() {
                   <th className="py-3 px-4 font-medium">Status</th>
                   <th className="py-3 px-4 font-medium">Priority</th>
                   <th className="py-3 px-4 font-medium">Assigned To</th>
-                  <th className="py-3 px-4 font-medium">Date Assigned</th>
-                  <th className="py-3 px-4 font-medium text-center w-24">
-                    {selectedIds.length > 0 ? (
-                      <button
-                        onClick={handleBulkArchive}
-                        className="text-orange-600 hover:text-orange-800 transition p-1 rounded-full hover:bg-orange-50"
-                        title={`Archive ${selectedIds.length} selected tasks`}
-                      >
-                        <FiArchive size={18} />
-                      </button>
-                    ) : (
-                      ""
-                    )}
+                  <th className="py-3 px-4 font-medium">
+                    <div className="flex items-center justify-between gap-2">
+                      <span>Date Assigned</span>
+                      <div className="w-8 h-8 flex items-center justify-center">
+                        {selectedIds.length > 0 && /sales/i.test(currentUser?.role) && (
+                          <button
+                            onClick={handleBulkArchive}
+                            className="text-orange-600 hover:text-orange-800 transition p-1 rounded-full hover:bg-orange-50"
+                            title={`Archive ${selectedIds.length} selected tasks`}
+                          >
+                            <FiArchive size={18} />
+                          </button>
+                        )}
+                      </div>
+                    </div>
                   </th>
                 </tr>
               </thead>
@@ -992,14 +1005,14 @@ export default function AdminTask() {
                     className="hover:bg-gray-50 transition-colors text-sm cursor-pointer"
                   >
                     <td className="py-3 px-4" onClick={(e) => e.stopPropagation()}>
-                      {String(task.createdById) === String(currentUser?.id) ? (
+                      {isTaskDeletable(task) && (
                         <input
                           type="checkbox"
                           className="w-4 h-4 accent-blue-600"
                           checked={selectedIds.includes(task.id)}
                           onChange={() => handleCheckboxChange(task.id)}
                         />
-                      ) : null}
+                      )}
                     </td>
                     <td className="py-3 px-4 text-gray-700 whitespace-nowrap font-medium" onClick={() => handleOpenModal(task, true)}>{task.title}</td>
                     <td className="py-3 px-4 whitespace-nowrap" onClick={() => handleOpenModal(task, true)}>
@@ -1012,9 +1025,8 @@ export default function AdminTask() {
                     <td className={`py-3 px-4 text-gray-700 whitespace-nowrap ${isTaskOverdue(task) ? "text-red-600 font-medium" : ""}`} onClick={() => handleOpenModal(task, true)}>
                       {task.dateAssigned ? formatDateDisplay(task.dateAssigned) : "—"}
                     </td>
-                    <td></td>
                   </tr>
-                )) : <tr><td colSpan={7} className="text-center py-4 text-gray-500">No tasks found.</td></tr>}
+                )) : <tr><td colSpan={6} className="text-center py-4 text-gray-500">No tasks found.</td></tr>}
               </tbody>
             </table>
           </div>
@@ -1185,7 +1197,7 @@ function SalesDraggableTaskCard({ task, getTaskCardColor, isTaskOverdue, formatD
         </p>
       </div>
       <div className="flex items-center gap-2 ml-3" onClick={(e) => e.stopPropagation()}>
-        {(String(task.createdById) === String(currentUser?.id) || currentUser?.role !== "Sales") && (
+        {(String(task.createdById) === String(currentUser?.id) || !/sales/i.test(currentUser?.role)) && (
           <>
             <button
               type="button"

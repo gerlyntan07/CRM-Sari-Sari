@@ -249,19 +249,27 @@ const AdminMeeting = () => {
     const normalizedStatusFilter = statusFilter.trim().toUpperCase();
 
     return visibleMeetings.filter((meeting) => {
-      const searchFields = [
-        meeting?.activity,
-        meeting?.description,
-        meeting?.relatedTo,
-        meeting?.assignedTo,
-      ];
+      // Build searchable text from all relevant meeting fields
+      const searchText = [
+        meeting?.subject,
+        meeting?.location,
+        meeting?.notes,
+        meeting?.lead?.title,
+        meeting?.account?.name,
+        meeting?.contact?.first_name,
+        meeting?.contact?.last_name,
+        meeting?.deal?.name,
+        meeting?.quote?.quote_id,
+        meeting?.meet_assign_to?.first_name,
+        meeting?.meet_assign_to?.last_name,
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
 
       const matchesSearch =
         normalizedQuery === "" ||
-        searchFields.some(
-          (field) =>
-            field && field.toString().toLowerCase().includes(normalizedQuery),
-        );
+        searchText.includes(normalizedQuery);
 
       const matchesStatus =
         normalizedStatusFilter === "FILTER BY STATUS" ||

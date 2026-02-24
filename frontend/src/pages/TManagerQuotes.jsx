@@ -649,6 +649,8 @@ export default function AdminQuotes() {
 
       const searchFields = [
         row.quote_id,
+        formatQuoteId(row.quote_id), // Add formatted quote ID (e.g., Q26-00004)
+        row.id?.toString(), // Fallback to quote ID if quote_id is null
         dealLabel,
         accountLabel,
         contactLabel,

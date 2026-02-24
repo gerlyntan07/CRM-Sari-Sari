@@ -52,10 +52,20 @@ def admin_get_quotes(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    # Common joinedload options for all quote queries
+    common_options = [
+        joinedload(Quote.items),
+        joinedload(Quote.deal),
+        joinedload(Quote.account),
+        joinedload(Quote.contact),
+        joinedload(Quote.assigned_user),
+        joinedload(Quote.creator),
+    ]
+    
     if current_user.role.upper() in ["CEO", "ADMIN"]:
         deals = (
             db.query(Quote)
-            .options(joinedload(Quote.items))
+            .options(*common_options)
             .join(User, Quote.assigned_to == User.id)
             .filter(User.related_to_company == current_user.related_to_company)
             .all()
@@ -63,7 +73,7 @@ def admin_get_quotes(
     elif current_user.role.upper() == "GROUP MANAGER":
         deals = (
             db.query(Quote)
-            .options(joinedload(Quote.items))
+            .options(*common_options)
             .join(User, Quote.assigned_to == User.id)
             .filter(User.related_to_company == current_user.related_to_company)
             .filter(~User.role.in_(["CEO", "Admin"]))
@@ -79,7 +89,7 @@ def admin_get_quotes(
 
         deals = (
             db.query(Quote)
-            .options(joinedload(Quote.items))
+            .options(*common_options)
             .join(User, Quote.assigned_to == User.id)
             .filter(User.related_to_company == current_user.related_to_company)
             .filter(
@@ -93,7 +103,7 @@ def admin_get_quotes(
     else:
         deals = (
             db.query(Quote)
-            .options(joinedload(Quote.items))
+            .options(*common_options)
             .filter(
                 (Quote.assigned_to == current_user.id) | 
                 (Quote.created_by == current_user.id)

@@ -267,21 +267,56 @@ export default function AdminCalls() {
     fetchCalls();
   }, []);
 
-  // Filter & Pagination placeholders (keep your existing logic if you already have one)
-  const users = [];
-
-  const [searchQuery, setSearchQuery] = useState("");
+  // Filter & Pagination Logic
+  const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("Filter by Status");
   const [userFilter, setUserFilter] = useState("Filter by Users");
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
 
+  const users = Array.isArray(team)
+    ? team.map((u) => ({ id: u.id, name: `${u.first_name} ${u.last_name}` }))
+    : [];
+
   // Filter out INACTIVE calls for non-admin roles (archived calls)
   // Admins (CEO, ADMIN) can see all calls including archived
   const nonAdminRoles = ["GROUP MANAGER", "MANAGER", "SALES"];
-  const filteredCalls = nonAdminRoles.includes(currentUser?.role?.toUpperCase())
+  const baseFilteredCalls = nonAdminRoles.includes(currentUser?.role?.toUpperCase())
     ? calls.filter((c) => c.status !== "INACTIVE")
     : calls;
+
+  const filteredCalls = useMemo(() => {
+    return baseFilteredCalls.filter((call) => {
+      const matchesSearch =
+        !searchTerm ||
+        [
+          call.subject,
+          call.notes,
+          call.lead?.title,
+          call.account?.name,
+          call.contact?.first_name,
+          call.contact?.last_name,
+          call.deal?.name,
+        ].some(
+          (field) =>
+            field &&
+            String(field).toLowerCase().includes(searchTerm.toLowerCase()),
+        );
+
+      const matchesStatus =
+        statusFilter === "Filter by Status" ||
+        toAdminCallStatus(call.status) === statusFilter;
+
+      const assignedName = call.call_assign_to
+        ? `${call.call_assign_to.first_name} ${call.call_assign_to.last_name}`
+        : "";
+      const matchesUser =
+        userFilter === "Filter by Users" || assignedName === userFilter;
+
+      return matchesSearch && matchesStatus && matchesUser;
+    });
+  }, [baseFilteredCalls, searchTerm, statusFilter, userFilter]);
+
   const totalPages = Math.max(
     1,
     Math.ceil(filteredCalls.length / itemsPerPage) || 1,
@@ -289,7 +324,7 @@ export default function AdminCalls() {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchQuery, statusFilter, itemsPerPage]);
+  }, [searchTerm, statusFilter, userFilter, itemsPerPage]);
 
   useEffect(() => {
     setCurrentPage((prev) => {
@@ -311,14 +346,14 @@ export default function AdminCalls() {
     setCurrentPage((prev) => Math.min(prev + 1, totalPages));
 
   // Metrics
-  const totalCalls = calls.length;
-  const plannedCalls = calls.filter(
+  const totalCalls = baseFilteredCalls.length;
+  const plannedCalls = baseFilteredCalls.filter(
     (c) => toAdminCallStatus(c.status) === "PLANNED",
   ).length;
-  const heldCalls = calls.filter(
+  const heldCalls = baseFilteredCalls.filter(
     (c) => toAdminCallStatus(c.status) === "HELD",
   ).length;
-  const notHeldCalls = calls.filter(
+  const notHeldCalls = baseFilteredCalls.filter(
     (c) => toAdminCallStatus(c.status) === "NOT_HELD",
   ).length;
 
@@ -1288,12 +1323,14 @@ export default function AdminCalls() {
               type="text"
               placeholder="Search calls"
               className="focus:outline-none text-base w-full"
-              defaultValue={searchQuery}
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
           <div className="flex flex-col sm:flex-row w-full lg:w-1/2 gap-2">
             <select
-              defaultValue={statusFilter}
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
               className="border border-gray-300 rounded-lg px-3 h-11 text-sm bg-white w-full"
             >
               <option value="Filter by Status">Filter by Status</option>
@@ -1305,7 +1342,8 @@ export default function AdminCalls() {
             </select>
 
             <select
-              defaultValue={userFilter}
+              value={userFilter}
+              onChange={(e) => setUserFilter(e.target.value)}
               className="border border-gray-300 rounded-lg px-3 h-11 text-sm bg-white w-full"
             >
               <option value="Filter by Users">Filter by Users</option>

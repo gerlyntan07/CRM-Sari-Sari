@@ -292,29 +292,66 @@ export default function AdminCalls() {
     fetchCalls();
   }, []);
 
-  // Filter & Pagination placeholders (keep your existing logic if you already have one)
-  const users = [];
+  // Filter & Pagination Logic
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("Filter by Status");
+  const [userFilter, setUserFilter] = useState("Filter by Users");
 
-  const searchQuery = "";
-  const statusFilter = "Filter by Status";
-  const userFilter = "Filter by Users";
-  const priorityFilter = "Filter by Priority";
+  // Reset page when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, statusFilter, userFilter, itemsPerPage]);
 
-  const filteredCalls = calls;
+  const filteredCalls = useMemo(() => {
+    return calls.filter((call) => {
+      const matchesSearch =
+        !searchTerm ||
+        [
+          call.subject,
+          call.notes,
+          call.lead?.title,
+          call.account?.name,
+          call.contact?.first_name,
+          call.contact?.last_name,
+          call.deal?.name,
+        ].some(
+          (field) =>
+            field &&
+            String(field).toLowerCase().includes(searchTerm.toLowerCase()),
+        );
+
+      const matchesStatus =
+        statusFilter === "Filter by Status" ||
+        toAdminCallStatus(call.status) === statusFilter;
+
+      const assignedName = call.call_assign_to
+        ? `${call.call_assign_to.first_name} ${call.call_assign_to.last_name}`
+        : "";
+      const matchesUser =
+        userFilter === "Filter by Users" || assignedName === userFilter;
+
+      return matchesSearch && matchesStatus && matchesUser;
+    });
+  }, [calls, searchTerm, statusFilter, userFilter]);
+
+  const users = Array.isArray(team)
+    ? team.map((u) => ({ id: u.id, name: `${u.first_name} ${u.last_name}` }))
+    : [];
+
   const paginatedCalls = useMemo(() => {
     const startIndex = (currentPage - 1) * itemsPerPage;
     return filteredCalls.slice(startIndex, startIndex + itemsPerPage);
   }, [filteredCalls, currentPage, itemsPerPage]);
 
   // Metrics
-  const totalCalls = calls.length;
-  const plannedCalls = calls.filter(
+  const totalCalls = filteredCalls.length;
+  const plannedCalls = filteredCalls.filter(
     (c) => toAdminCallStatus(c.status) === "PLANNED",
   ).length;
-  const heldCalls = calls.filter(
+  const heldCalls = filteredCalls.filter(
     (c) => toAdminCallStatus(c.status) === "HELD",
   ).length;
-  const notHeldCalls = calls.filter(
+  const notHeldCalls = filteredCalls.filter(
     (c) => toAdminCallStatus(c.status) === "NOT_HELD",
   ).length;
 
@@ -1238,12 +1275,14 @@ export default function AdminCalls() {
               type="text"
               placeholder="Search calls"
               className="focus:outline-none text-base w-full"
-              defaultValue={searchQuery}
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
           <div className="flex flex-col sm:flex-row w-full lg:w-1/2 gap-2">
             <select
-              defaultValue={statusFilter}
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
               className="border border-gray-300 rounded-lg px-3 h-11 text-sm bg-white w-full"
             >
               <option value="Filter by Status">Filter by Status</option>
@@ -1255,7 +1294,8 @@ export default function AdminCalls() {
             </select>
 
             <select
-              defaultValue={userFilter}
+              value={userFilter}
+              onChange={(e) => setUserFilter(e.target.value)}
               className="border border-gray-300 rounded-lg px-3 h-11 text-sm bg-white w-full"
             >
               <option value="Filter by Users">Filter by Users</option>

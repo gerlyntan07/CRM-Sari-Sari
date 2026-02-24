@@ -203,8 +203,8 @@ const formattedDateTime = (datetime) => {
               <h2 className="text-xl sm:text-2xl font-bold text-gray-600 break-words">
                 ₱{" "}
                 {selectedDeal.amount
-                  ? selectedDeal.amount.toLocaleString()
-                  : "0"}
+                  ? selectedDeal.amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+                  : "0.00"}
               </h2>
               <div className="w-full sm:w-40 bg-gray-200 rounded-full h-2">
                 <div

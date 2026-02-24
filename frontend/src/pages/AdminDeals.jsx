@@ -234,12 +234,19 @@ export default function AdminDeals() {
 
         return (deals ?? []).filter((deal) => {
             const searchFields = [
-                deal?.name,
+                deal?.deal_id,
+                formatDealId(deal?.deal_id), // Deal ID (formatted)
+                deal?.id?.toString(), // Numeric ID
+                deal?.name, // Deal Name
                 deal?.description,
-                deal?.account?.name,
-                deal?.contact?.first_name,
+                deal?.account?.name, // Account
+                deal?.contact?.first_name, // Contact
                 deal?.contact?.last_name,
-                deal?.assigned_deals?.first_name,
+                formatStageName(deal?.stage), // Stage (formatted for search)
+                deal?.stage, // Stage (raw)
+                deal?.amount?.toString(), // Value/Amount
+                deal?.close_date, // Close Date
+                deal?.assigned_deals?.first_name, // Owner
                 deal?.assigned_deals?.last_name,
             ];
 
@@ -833,8 +840,8 @@ export default function AdminDeals() {
                             <th className="py-3 px-4 truncate">Deal Name</th>
                             <th className="py-3 px-4">Account</th>
                             <th className="py-3 px-4">Contact</th>
-                            <th className="py-3 px-4">Stage/Status</th>
-                            <th className="py-3 px-4">Value</th>
+                            <th className="py-3 px-4 w-48">Stage/Status</th>
+                            <th className="py-3 px-4 w-48">Value</th>
                             <th className="py-3 px-4">Close Date</th>
                             <th className="py-3 px-4">Owner</th>
                             <th className="py-3 px-4 text-center w-24">
@@ -894,7 +901,7 @@ export default function AdminDeals() {
                                             ? `${deal.contact.first_name} ${deal.contact.last_name}`
                                             : deal.contact?.first_name || deal.contact?.last_name || "--"}
                                     </td>
-                                    <td className="py-3 px-4">
+                                    <td className="py-3 px-4 w-48">
                                         {deal.status === "Inactive" ? (
                                             <span className="px-2 py-1 rounded-full text-xs font-medium bg-gray-300 text-gray-800">
                                                 Inactive
@@ -905,8 +912,8 @@ export default function AdminDeals() {
                                             </span>
                                         )}
                                     </td>
-                                    <td className="py-3 px-4 text-gray-800 font-medium text-sm">
-                                        ₱ {deal.amount?.toLocaleString() || "0"}
+                                    <td className="py-3 px-4 w-48 text-gray-800 font-medium text-sm">
+                                        ₱ {deal.amount?.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || "0.00"}
                                     </td>
                                     <td className="py-3 px-4 text-gray-800 font-medium text-sm">                                        
                                         {formattedDateTime(deal.close_date) || "--"}
@@ -1320,11 +1327,22 @@ const [isSubmitted, setIsSubmitted] = useState(false);
                     <InputField
                         label="Amount"
                         name="amount"
-                        type="number"
-                        step="0.01"
+                        type="text"
+                        inputMode="decimal"
                         value={externalFormData.amount}
-                        onChange={(e) => setExternalFormData({ ...externalFormData, amount: e.target.value })}
-                        placeholder="₱0"
+                        onChange={(e) => {
+                            let value = e.target.value;
+                            // Allow decimal values starting with . like .44
+                            if (value.startsWith('.')) {
+                                value = '0' + value;
+                            }
+                            // Only allow numbers and one decimal point
+                            if (value && !/^\d*\.?\d*$/.test(value)) {
+                                return;
+                            }
+                            setExternalFormData({ ...externalFormData, amount: value });
+                        }}
+                        placeholder="₱0.00"
                         required
                         isSubmitted={isSubmitted}
                     />

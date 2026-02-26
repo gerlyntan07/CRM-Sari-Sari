@@ -74,7 +74,13 @@ function buildMonthGrid(monthDate) {
   return cells;
 }
 
-export default function ActivityCalendar({ basePath = "", tasks = [], meetings = [], calls = [] }) {
+export default function ActivityCalendar({
+  basePath = "",
+  tasks = [],
+  meetings = [],
+  calls = [],
+  currentUserId,
+}) {
   const navigate = useNavigate();
   const [monthDate, setMonthDate] = useState(() => startOfMonth(new Date()));
   const [selectedDateKey, setSelectedDateKey] = useState(() => toDateKey(new Date()));
@@ -171,7 +177,10 @@ export default function ActivityCalendar({ basePath = "", tasks = [], meetings =
     const dateKey = getSelectedDateKey();
     navTo("/tasks", {
       openTaskModal: true,
-      initialTaskData: dateKey ? { dueDate: dateKey } : undefined,
+      initialTaskData: {
+        ...(dateKey ? { dueDate: dateKey } : null),
+        ...(currentUserId ? { assignedTo: String(currentUserId) } : null),
+      },
     });
   };
 

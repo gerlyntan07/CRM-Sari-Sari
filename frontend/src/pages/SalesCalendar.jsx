@@ -46,7 +46,7 @@ export default function SalesCalendar() {
   return (
     <div className="min-h-screen">
       {(loading || userLoading) && <LoadingSpinner message="Loading calendar..." />}
-      <ActivityCalendar basePath="/sales" {...calendarData} />
+      <ActivityCalendar basePath="/sales" currentUserId={user?.id} {...calendarData} />
     </div>
   );
 }

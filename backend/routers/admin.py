@@ -74,6 +74,7 @@ def get_all_tenants(
             "currency": company.currency,
             "quota_period": company.quota_period,
             "tax_rate": float(company.tax_rate) if company.tax_rate else 0,
+            "is_subscription_active": company.is_subscription_active,
             "created_at": company.created_at,
             "updated_at": company.updated_at,
             "total_users": total_users,
@@ -426,4 +427,60 @@ def get_system_activity(
         "recent_logins_7d": recent_logins,
         "active_subscriptions": active_subscriptions,
         "timestamp": now
+    }
+
+# Suspend company subscription
+@router.post("/companies/{company_id}/suspend")
+def suspend_company_subscription(
+    company_id: int,
+    current_admin: User = Depends(get_current_super_admin),
+    db: Session = Depends(get_db)
+):
+    company = db.query(Company).filter(Company.id == company_id).first()
+    if not company:
+        raise HTTPException(status_code=404, detail="Company not found")
+    
+    if not company.is_subscription_active:
+        raise HTTPException(status_code=400, detail="Company subscription is already suspended")
+    
+    company.is_subscription_active = False
+    db.commit()
+    
+    return {"message": f"Company '{company.company_name}' subscription has been suspended. All users will be unable to login."}
+
+# Reactivate company subscription
+@router.post("/companies/{company_id}/reactivate")
+def reactivate_company_subscription(
+    company_id: int,
+    current_admin: User = Depends(get_current_super_admin),
+    db: Session = Depends(get_db)
+):
+    company = db.query(Company).filter(Company.id == company_id).first()
+    if not company:
+        raise HTTPException(status_code=404, detail="Company not found")
+    
+    if company.is_subscription_active:
+        raise HTTPException(status_code=400, detail="Company subscription is already active")
+    
+    company.is_subscription_active = True
+    db.commit()
+    
+    return {"message": f"Company '{company.company_name}' subscription has been reactivated. Users can now login."}
+
+# Get company subscription status
+@router.get("/companies/{company_id}/subscription-status")
+def get_company_subscription_status(
+    company_id: int,
+    current_admin: User = Depends(get_current_super_admin),
+    db: Session = Depends(get_db)
+):
+    company = db.query(Company).filter(Company.id == company_id).first()
+    if not company:
+        raise HTTPException(status_code=404, detail="Company not found")
+    
+    return {
+        "company_id": company.id,
+        "company_name": company.company_name,
+        "is_subscription_active": company.is_subscription_active,
+        "status": "Active" if company.is_subscription_active else "Suspended"
     }

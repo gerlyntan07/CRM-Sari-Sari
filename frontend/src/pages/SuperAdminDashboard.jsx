@@ -116,6 +116,36 @@ const SuperAdminDashboard = () => {
     }
   };
 
+  const suspendCompany = async (companyId, companyName) => {
+    if (!window.confirm(`Are you sure you want to suspend ${companyName}? All users from this company will be unable to login.`)) {
+      return;
+    }
+
+    try {
+      const response = await api.post(`/admin/companies/${companyId}/suspend`);
+      toast.success(response.data.message);
+      fetchTenants();
+    } catch (error) {
+      console.error('Error suspending company:', error);
+      toast.error(error.response?.data?.detail || 'Failed to suspend company');
+    }
+  };
+
+  const reactivateCompany = async (companyId, companyName) => {
+    if (!window.confirm(`Are you sure you want to reactivate ${companyName}? Users will be able to login again.`)) {
+      return;
+    }
+
+    try {
+      const response = await api.post(`/admin/companies/${companyId}/reactivate`);
+      toast.success(response.data.message);
+      fetchTenants();
+    } catch (error) {
+      console.error('Error reactivating company:', error);
+      toast.error(error.response?.data?.detail || 'Failed to reactivate company');
+    }
+  };
+
   const refreshAll = () => {
     fetchStats();
     fetchTenants();
@@ -129,6 +159,7 @@ const SuperAdminDashboard = () => {
       tenant.company_number.toLowerCase().includes(searchTerm.toLowerCase());
     
     if (filterStatus === 'all') return matchesSearch;
+    if (filterStatus === 'suspended') return matchesSearch && !tenant.is_subscription_active;
     
     if (!tenant.subscription) return filterStatus === 'expired' ? matchesSearch : false;
     
@@ -137,9 +168,9 @@ const SuperAdminDashboard = () => {
     const daysUntilExpiry = Math.ceil((endDate - now) / (1000 * 60 * 60 * 24));
     
     if (filterStatus === 'active') {
-      return matchesSearch && tenant.subscription.status === 'Active' && daysUntilExpiry > 7;
+      return matchesSearch && tenant.subscription.status === 'Active' && daysUntilExpiry > 7 && tenant.is_subscription_active;
     } else if (filterStatus === 'expiring') {
-      return matchesSearch && tenant.subscription.status === 'Active' && daysUntilExpiry <= 7 && daysUntilExpiry > 0;
+      return matchesSearch && tenant.subscription.status === 'Active' && daysUntilExpiry <= 7 && daysUntilExpiry > 0 && tenant.is_subscription_active;
     } else if (filterStatus === 'expired') {
       return matchesSearch && (tenant.subscription.status === 'Expired' || daysUntilExpiry <= 0);
     }
@@ -293,6 +324,16 @@ const SuperAdminDashboard = () => {
               >
                 Expired
               </button>
+              <button
+                onClick={() => setFilterStatus('suspended')}
+                className={`px-3 py-1 rounded-lg text-sm font-medium transition ${
+                  filterStatus === 'suspended'
+                    ? 'bg-gray-600 text-white'
+                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                }`}
+              >
+                Suspended
+              </button>
             </div>
 
             {/* Search Box */}
@@ -375,13 +416,24 @@ const SuperAdminDashboard = () => {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     {tenant.subscription ? (
-                      <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                        tenant.subscription.status === 'Active' 
-                          ? 'bg-green-100 text-green-800' 
-                          : 'bg-red-100 text-red-800'
-                      }`}>
-                        {tenant.subscription.plan_name}
-                      </span>
+                      <div>
+                        <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                          tenant.subscription.status === 'Active' 
+                            ? 'bg-green-100 text-green-800' 
+                            : 'bg-red-100 text-red-800'
+                        }`}>
+                          {tenant.subscription.plan_name}
+                        </span>
+                        <div className="mt-1">
+                          <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                            tenant.is_subscription_active 
+                              ? 'bg-blue-100 text-blue-800' 
+                              : 'bg-gray-100 text-gray-800'
+                          }`}>
+                            {tenant.is_subscription_active ? 'Active Access' : 'Suspended'}
+                          </span>
+                        </div>
+                      </div>
                     ) : (
                       <span className="text-sm text-gray-500">No plan</span>
                     )}
@@ -390,12 +442,29 @@ const SuperAdminDashboard = () => {
                     {new Date(tenant.created_at).toLocaleDateString()}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                    <button
-                      onClick={() => viewTenantDetails(tenant.id)}
-                      className="text-blue-600 hover:text-blue-900 flex items-center gap-1"
-                    >
-                      <FiEye /> View
-                    </button>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => viewTenantDetails(tenant.id)}
+                        className="text-blue-600 hover:text-blue-900 flex items-center gap-1"
+                      >
+                        <FiEye /> View
+                      </button>
+                      {tenant.is_subscription_active ? (
+                        <button
+                          onClick={() => suspendCompany(tenant.id, tenant.company_name)}
+                          className="text-red-600 hover:text-red-900 flex items-center gap-1 ml-2"
+                        >
+                          <FiToggleLeft /> Suspend
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => reactivateCompany(tenant.id, tenant.company_name)}
+                          className="text-green-600 hover:text-green-900 flex items-center gap-1 ml-2"
+                        >
+                          <FiToggleRight /> Reactivate
+                        </button>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}

@@ -37,13 +37,17 @@ def get_me(request: Request, db: Session = Depends(get_db)):
     except JWTError:
         raise HTTPException(status_code=401, detail="Invalid token")
     
-    user = db.query(User).filter(User.id == user_id).first()
+    user = db.query(User).options(joinedload(User.company)).filter(User.id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     
     # Check if user is active
     if not user.is_active:
         raise HTTPException(status_code=403, detail="Your account has been deactivated. Please contact your administrator.")
+    
+    # Check if company subscription is active
+    if user.company and not user.company.is_subscription_active:
+        raise HTTPException(status_code=403, detail="Company subscription has been suspended. Please contact support or your administrator.")
     
     return user
 
@@ -103,7 +107,7 @@ def signup(user: UserCreate, response: Response, db: Session = Depends(get_db)):
 # Manual login
 @router.post("/login", response_model=UserResponse)
 def login(user: UserLogin, response: Response, db: Session = Depends(get_db)):
-    db_user = db.query(User).filter(User.email == user.email).first()
+    db_user = db.query(User).options(joinedload(User.company)).filter(User.email == user.email).first()
     if not db_user or not db_user.hashed_password:
         raise HTTPException(status_code=400, detail="Invalid credentials")
     if not verify_password(user.password, db_user.hashed_password):
@@ -112,6 +116,10 @@ def login(user: UserLogin, response: Response, db: Session = Depends(get_db)):
     # Check if user is active
     if not db_user.is_active:
         raise HTTPException(status_code=403, detail="Your account has been deactivated. Please contact your administrator.")
+    
+    # Check if company subscription is active
+    if db_user.company and not db_user.company.is_subscription_active:
+        raise HTTPException(status_code=403, detail="Company subscription has been suspended. Please contact support or your administrator.")
     
     db_user.last_login = datetime.now(timezone.utc)
     db.commit()
@@ -153,11 +161,11 @@ def google_login(token: dict, response: Response, db: Session = Depends(get_db))
     last_name = user_info.get("family_name", "")
     picture = user_info.get("picture")  # 👈 fetch Google profile picture
 
-    db_user = db.query(User).filter(User.email == email).first()
+    db_user = db.query(User).options(joinedload(User.company)).filter(User.email == email).first()
     if not db_user:
         raise HTTPException(status_code=400, detail="No account found. Please sign up first.")
 
-    db_user = db.query(User).filter(User.email == email).first()
+    db_user = db.query(User).options(joinedload(User.company)).filter(User.email == email).first()
     if not db_user:
         db_user = User(
             first_name=first_name,
@@ -175,6 +183,10 @@ def google_login(token: dict, response: Response, db: Session = Depends(get_db))
     # Check if user is active
     if not db_user.is_active:
         raise HTTPException(status_code=403, detail="Your account has been deactivated. Please contact your administrator.")
+
+    # Check if company subscription is active
+    if db_user.company and not db_user.company.is_subscription_active:
+        raise HTTPException(status_code=403, detail="Company subscription has been suspended. Please contact support or your administrator.")
 
     token = create_access_token({"sub": str(db_user.id)})
 

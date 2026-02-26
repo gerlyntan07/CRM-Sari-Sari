@@ -16,6 +16,7 @@ class Company(Base):
     currency = Column(String, default="₱", nullable=True)  
     quota_period = Column(String, default="January", nullable=True)
     tax_rate = Column(Numeric(5, 2), default=0, nullable=True)  # Default tax rate percentage
+    is_subscription_active = Column(Boolean, default=True, nullable=False)  # New field for subscription status
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 

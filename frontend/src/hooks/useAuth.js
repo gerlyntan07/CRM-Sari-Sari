@@ -1,5 +1,5 @@
 // hooks/useAuth.js
-import { use, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api.js'
 
@@ -31,7 +31,9 @@ export const useAuth = () => {
   };
 
   const clearAuthData = () => {
-    localStorage.clear();
+    localStorage.removeItem(USER_ROLE);
+    localStorage.removeItem(IS_LOGGED_IN);
+    localStorage.removeItem('user_id');
 
     setIsLoggedIn(false);    
     setUserRole('');

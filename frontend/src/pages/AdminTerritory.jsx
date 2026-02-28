@@ -197,6 +197,19 @@ export default function AdminTerritory() {
   const createSubmittedRef = useRef(false);  // Prevent duplicate create submissions
   const {userRole} = useAuth();
 
+  // Helper function to determine role for navigation
+  const getRoleForNavigation = () => {
+    if (userRole.toLowerCase() === 'ceo' || userRole.toLowerCase() === 'admin') {
+      return 'admin';
+    } else if (userRole.toLowerCase() === 'group manager' || userRole.toLowerCase() === 'group_manager') {
+      return 'group-manager';
+    } else if (userRole.toLowerCase() === 'manager') {
+      return 'manager';
+    } else {
+      return 'sales';
+    }
+  };
+
   // Grouping territories logic
   const groupedTerritories = useMemo(() => {
     // 1. Group by Name + Manager + Description
@@ -753,19 +766,7 @@ const [isSubmitted, setIsSubmitted] = useState(false);
               {hasResults ? paginatedTerritories.map(t => (
                  <div key={t.id} onClick={() => { 
                   setSelectedTerritory(t);
-                  
-                  let role;
-
-                  if (userRole.toLowerCase() === 'ceo' || userRole.toLowerCase() === 'admin') {
-                    role = 'admin';
-                  } else if(userRole.toLowerCase() === 'group manager' || userRole.toLowerCase() === 'group_manager') {
-                    role = 'group-manager';
-                  } else if(userRole.toLowerCase() === 'manager') {
-                    role = 'manager';
-                  } else {
-                    role = 'sales';
-                  }
-
+                  const role = getRoleForNavigation();
                   navigate(`/${role}/territory/${t.id}`); }} 
                       className={`relative flex flex-col cursor-pointer transition p-4 border shadow ${
                         t.status === 'Inactive'
@@ -853,7 +854,11 @@ const [isSubmitted, setIsSubmitted] = useState(false);
                 </thead>
                 <tbody>
                   {hasResults ? paginatedTerritories.map(t => (
-                    <tr key={t.id} className="hover:bg-gray-50 cursor-pointer">
+                    <tr key={t.id} className="hover:bg-gray-50 cursor-pointer" onClick={() => { 
+                      setSelectedTerritory(t);
+                      const role = getRoleForNavigation();
+                      navigate(`/${role}/territory/${t.id}`); 
+                    }}>
                       {!['sales', 'manager'].includes(userRole.toLowerCase()) && (
                         <td className="py-3 px-4" onClick={(e) => e.stopPropagation()}>
                           {canDeleteTerritory(t) ? (
@@ -871,22 +876,7 @@ const [isSubmitted, setIsSubmitted] = useState(false);
                           )}
                         </td>
                       )}
-                      <td className="py-3 px-4 font-medium" onClick={() => { 
-                        setSelectedTerritory(t);
-
-                        let role;
-
-                    if (userRole.toLowerCase() === 'ceo' || userRole.toLowerCase() === 'admin') {
-                      role = 'admin';
-                    } else if(userRole.toLowerCase() === 'group manager' || userRole.toLowerCase() === 'group_manager') {
-                      role = 'group-manager';
-                    } else if(userRole.toLowerCase() === 'manager') {
-                      role = 'manager';
-                    } else {
-                      role = 'sales';
-                    }
-                        navigate(`/${role}/territory/${t.id}`); 
-                      }}>
+                      <td className="py-3 px-4 font-medium">
                         <div className="flex items-center gap-2">
                           {t.name}
                           {t.status === 'Inactive' && (
@@ -911,19 +901,7 @@ const [isSubmitted, setIsSubmitted] = useState(false);
              <div className="bg-white rounded-lg shadow-lg w-full max-w-xl p-8 relative">
                <button className="absolute top-2 right-4 text-gray-500 hover:text-black" onClick={() => { 
                 setSelectedTerritory(null); 
-
-                let role;
-
-                  if (userRole.toLowerCase() === 'ceo' || userRole.toLowerCase() === 'admin') {
-                    role = 'admin';
-                  } else if(userRole.toLowerCase() === 'group manager' || userRole.toLowerCase() === 'group_manager') {
-                    role = 'group-manager';
-                  } else if(userRole.toLowerCase() === 'manager') {
-                    role = 'manager';
-                  } else {
-                    role = 'sales';
-                  }
-                
+                const role = getRoleForNavigation();
                 navigate(`/${role}/territory`); }}>
                  <FiX size={24} />
                </button>

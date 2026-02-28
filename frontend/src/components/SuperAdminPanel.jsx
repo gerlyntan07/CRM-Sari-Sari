@@ -1,32 +1,16 @@
 import { useEffect } from "react";
 import { Outlet } from "react-router-dom";
 import SuperAdminSidebar from "./SuperAdminSidebar";
-import api from "../api";
-import { useNavigate } from "react-router-dom";
-import { toast } from "react-toastify";
 
 export default function SuperAdminPanel() {
-  const navigate = useNavigate();
-
   useEffect(() => {
     document.title = `Super Admin | Sari-Sari CRM`;
   }, []);
 
-  const handleLogout = async () => {
-    try {
-      await api.post("/auth/logout");
-      toast.success("Logged out successfully");
-      navigate("/login");
-    } catch (error) {
-      console.error("Logout error:", error);
-      toast.error("Error logging out");
-    }
-  };
-
   return (
     <div className="flex h-screen bg-gray-100 overflow-hidden">
       {/* Use the SuperAdminSidebar component */}
-      <SuperAdminSidebar onLogout={handleLogout} />
+      <SuperAdminSidebar />
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col overflow-hidden">

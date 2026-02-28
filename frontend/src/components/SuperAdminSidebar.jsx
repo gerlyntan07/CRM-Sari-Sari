@@ -1,14 +1,16 @@
 import { NavLink } from "react-router-dom";
 import { FiHome, FiLogOut, FiSettings, FiChevronDown, FiUsers, FiUserPlus } from "react-icons/fi";
 import { useState } from "react";
+import useAuth from '../hooks/useAuth.js';
 
 const activeLink =
   "flex items-center gap-3 px-3 py-2 rounded-lg bg-white text-[#1e293b] font-semibold shadow-sm";
 const normalLink =
   "flex items-center gap-3 px-3 py-2 rounded-lg text-gray-300 hover:bg-[#334155] hover:text-white transition";
 
-export default function SuperAdminSidebar({ onLogout }) {
+export default function SuperAdminSidebar() {
   const [userMgmtOpen, setUserMgmtOpen] = useState(false);
+  const { logout } = useAuth();
 
   return (
     <div className="w-64 bg-[#1e293b] text-white flex flex-col shadow-lg">
@@ -66,7 +68,7 @@ export default function SuperAdminSidebar({ onLogout }) {
       {/* Logout Button */}
       <div className="p-4 border-t border-gray-700">
         <button
-          onClick={onLogout}
+          onClick={logout}
           className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-gray-300 hover:bg-red-600 hover:text-white transition"
         >
           <FiLogOut className="text-lg" />

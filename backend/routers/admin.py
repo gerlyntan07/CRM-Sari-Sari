@@ -8,7 +8,7 @@ from models.company import Company
 from models.subscription import Subscription, StatusList
 from jose import jwt, JWTError
 from typing import List
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import os
 
 router = APIRouter(prefix="/admin", tags=["Admin"])
@@ -253,7 +253,7 @@ def get_subscription_alerts(
     db: Session = Depends(get_db)
 ):
     """Get subscriptions that are expiring soon or expired"""
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     warning_date = now + timedelta(days=7)  # 7 days warning
     
     # Expiring soon (within 7 days)

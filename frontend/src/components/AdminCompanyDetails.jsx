@@ -3,6 +3,9 @@ import { FiSave, FiBriefcase, FiAlertCircle, FiDollarSign, FiCalendar, FiPercent
 import { toast } from "react-toastify";
 import api from "../api";
 import useFetchUser from "../hooks/useFetchUser";
+import currencies from "../data/currencies.json";
+import { getFlagEmoji } from "../utils/flagEmoji";
+import CurrencyDropdown from "./CurrencyDropdown";
 
 export default function AdminCompanyDetails() {
   const { user, mutate } = useFetchUser();
@@ -11,7 +14,7 @@ export default function AdminCompanyDetails() {
   // Form States
   const [companyName, setCompanyName] = useState("");
   const [companySlug, setCompanySlug] = useState("");
-  const [currency, setCurrency] = useState("₱");
+  const [currency, setCurrency] = useState("PHP");
   const [quotaPeriod, setQuotaPeriod] = useState("January");
   const [taxRate, setTaxRate] = useState(0);
   const [vatRegistrationNumber, setVatRegistrationNumber] = useState("");
@@ -182,14 +185,73 @@ export default function AdminCompanyDetails() {
             Company Information
           </h2>
 
-          {/* Two Column Layout - Company Info Left, Logo Right */}
+          {/* Two Column Layout - Logo Top (Mobile), Company Info Left, Logo Right (Desktop) */}
           <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 mb-8">
+            {/* Right Column - Company Logo (appears first on mobile, second on desktop) */}
+            <div className="lg:col-span-1 order-first lg:order-last">
+              <div className="flex flex-col items-center justify-start mb-6 lg:mb-0">
+                <label className="block text-gray-700 font-medium mb-3 text-sm text-center w-full">
+                  <FiImage className="inline text-blue-600 mr-1" /> Company Logo
+                </label>
+                <div className="w-40 flex flex-col items-center">
+                  <div className="mb-3 w-full flex justify-center">
+                    {(newLogo || companyLogo) ? (
+                      <img
+                        src={newLogo || companyLogo}
+                        alt="Company Logo"
+                        className="w-40 h-auto object-contain border border-gray-200 rounded-md bg-gray-50"
+                      />
+                    ) : (
+                      <div className="w-40 h-40 border-2 border-dashed border-gray-300 rounded-md flex items-center justify-center bg-gray-50">
+                        <FiImage className="text-gray-400 text-4xl" />
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Upload Controls */}
+                  {canEdit && (
+                    <div className="w-full flex flex-col items-center gap-2">
+                      <input
+                        type="file"
+                        ref={fileInputRef}
+                        accept="image/*"
+                        onChange={handleLogoChange}
+                        className="hidden"
+                        id="company-logo-upload"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => fileInputRef.current?.click()}
+                        disabled={loading}
+                        className="flex items-center justify-center gap-2 px-3 py-2 text-sm border border-gray-300 rounded-md hover:bg-gray-50 transition disabled:opacity-50 w-full"
+                      >
+                        <FiUpload className="text-gray-500" />
+                        {(newLogo || companyLogo) ? "Change Logo" : "Upload Logo"}
+                      </button>
+                      {(newLogo || companyLogo) && (
+                        <button
+                          type="button"
+                          onClick={handleRemoveLogo}
+                          disabled={loading}
+                          className="text-sm text-red-600 hover:text-red-700 transition"
+                        >
+                          Remove Logo
+                        </button>
+                      )}
+                      <p className="text-xs text-gray-500 text-center">Max 2MB, PNG or JPG</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
             {/* Left Column - Company Information */}
             <div className="lg:col-span-3 space-y-4">
+
               {/* Company Name */}
               <div>
-                <label className="block text-gray-700 font-medium mb-2 text-sm">
-                  Company Name
+                <label className="flex items-center gap-2 text-gray-700 font-medium mb-2 text-sm">
+                  <FiBriefcase className="text-blue-600" /> Company Name
                 </label>
                 <input
                   type="text"
@@ -204,8 +266,8 @@ export default function AdminCompanyDetails() {
 
               {/* Company Slug */}
               <div>
-                <label className="block text-gray-700 font-medium mb-2 text-sm">
-                  Company Slug (short name)
+                <label className="flex items-center gap-2 text-gray-700 font-medium mb-2 text-sm">
+                  <FiBriefcase className="text-blue-600" /> Company Slug (short name)
                 </label>
                 <input
                   type="text"
@@ -235,62 +297,6 @@ export default function AdminCompanyDetails() {
                 />
               </div>
             </div>
-
-            {/* Right Column - Company Logo */}
-            <div className="flex flex-col items-center justify-start">
-              <label className="block text-gray-700 font-medium mb-3 text-sm text-center w-full">
-                <FiImage className="inline text-blue-600 mr-1" /> Company Logo
-              </label>
-              <div className="w-40 flex flex-col items-center">
-                <div className="mb-3 w-full flex justify-center">
-                  {(newLogo || companyLogo) ? (
-                    <img
-                      src={newLogo || companyLogo}
-                      alt="Company Logo"
-                      className="w-40 h-auto object-contain border border-gray-200 rounded-md bg-gray-50"
-                    />
-                  ) : (
-                    <div className="w-40 h-40 border-2 border-dashed border-gray-300 rounded-md flex items-center justify-center bg-gray-50">
-                      <FiImage className="text-gray-400 text-4xl" />
-                    </div>
-                  )}
-                </div>
-
-                {/* Upload Controls */}
-                {canEdit && (
-                  <div className="w-full flex flex-col items-center gap-2">
-                    <input
-                      type="file"
-                      ref={fileInputRef}
-                      accept="image/*"
-                      onChange={handleLogoChange}
-                      className="hidden"
-                      id="company-logo-upload"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => fileInputRef.current?.click()}
-                      disabled={loading}
-                      className="flex items-center justify-center gap-2 px-3 py-2 text-sm border border-gray-300 rounded-md hover:bg-gray-50 transition disabled:opacity-50 w-full"
-                    >
-                      <FiUpload className="text-gray-500" />
-                      {(newLogo || companyLogo) ? "Change Logo" : "Upload Logo"}
-                    </button>
-                    {(newLogo || companyLogo) && (
-                      <button
-                        type="button"
-                        onClick={handleRemoveLogo}
-                        disabled={loading}
-                        className="text-sm text-red-600 hover:text-red-700 transition"
-                      >
-                        Remove Logo
-                      </button>
-                    )}
-                    <p className="text-xs text-gray-500 text-center">Max 2MB, PNG or JPG</p>
-                  </div>
-                )}
-              </div>
-            </div>
           </div>
 
           {/* Divider */}
@@ -303,52 +309,54 @@ export default function AdminCompanyDetails() {
           </h2>
 
           <div className="space-y-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {/* Fiscal Year Start */}
-                <div>
-                  <label className="flex items-center gap-2 text-gray-700 font-medium mb-2 text-sm">
-                    <FiCalendar className="text-blue-600" /> Fiscal Year Start
-                  </label>
-                  <div className="relative">
-                    <select
-                      value={quotaPeriod}
-                      onChange={(e) => setQuotaPeriod(e.target.value)}
-                      disabled={!canEdit || loading}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none appearance-none bg-white disabled:bg-gray-50 cursor-pointer"
-                    >
-                      {months.map((month) => (
-                        <option key={month} value={month}>{month}</option>
-                      ))}
-                    </select>
-                    <div className="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none text-gray-500">
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
-                    </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Fiscal Year Start */}
+              <div>
+                <label className="flex items-center gap-2 text-gray-700 font-medium mb-2 text-sm">
+                  <FiCalendar className="text-blue-600" /> Fiscal Year Start
+                </label>
+                <div className="relative">
+                  <select
+                    value={quotaPeriod}
+                    onChange={(e) => setQuotaPeriod(e.target.value)}
+                    disabled={!canEdit || loading}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none appearance-none bg-white disabled:bg-gray-50 cursor-pointer"
+                  >
+                    {months.map((month) => (
+                      <option key={month} value={month}>{month}</option>
+                    ))}
+                  </select>
+                  <div className="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none text-gray-500">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
                   </div>
                 </div>
-
-                {/* Tax Rate */}
-                <div>
-                  <label className="flex items-center gap-2 text-gray-700 font-medium mb-2 text-sm">
-                    <FiPercent className="text-blue-600" /> Default Tax Rate
-                  </label>
-                  <div className="relative">
-                    <input
-                      type="number"
-                      step="0.01"
-                      value={taxRate}
-                      onChange={(e) => setTaxRate(e.target.value)}
-                      disabled={!canEdit || loading}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition disabled:bg-gray-50"
-                      placeholder="0.00"
-                    />
-                    <div className="absolute inset-y-0 right-0 flex items-center pr-4 pointer-events-none text-gray-400 font-medium">
-                      %
-                    </div>
-                  </div>
               </div>
 
-              {/* VAT Registration Number */}
+              {/* Tax Rate */}
               <div>
+                <label className="flex items-center gap-2 text-gray-700 font-medium mb-2 text-sm">
+                  <FiPercent className="text-blue-600" /> Default Tax Rate
+                </label>
+                <div className="relative">
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={taxRate}
+                    onChange={(e) => setTaxRate(e.target.value)}
+                    disabled={!canEdit || loading}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition disabled:bg-gray-50"
+                    placeholder="0.00"
+                  />
+                  <div className="absolute inset-y-0 right-0 flex items-center pr-4 pointer-events-none text-gray-400 font-medium">
+                    %
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* VAT Registration Number, Tax ID Number, and Currency in one row, equal width */}
+            <div className="flex flex-col gap-4 mt-4 md:flex-row">
+              <div className="flex-1">
                 <label className="block text-gray-700 font-medium mb-2 text-sm">
                   VAT Registration Number
                 </label>
@@ -361,11 +369,9 @@ export default function AdminCompanyDetails() {
                   placeholder="Enter VAT registration number"
                 />
               </div>
-
-              {/* TIN / Tax ID Number */}
-              <div>
+              <div className="flex-1">
                 <label className="block text-gray-700 font-medium mb-2 text-sm">
-                  {currency === "₱" ? "TIN ID Number" : "Tax ID Number"}
+                  {currency === "PHP" ? "TIN ID Number" : "Tax ID Number"}
                 </label>
                 <input
                   type="text"
@@ -373,58 +379,29 @@ export default function AdminCompanyDetails() {
                   onChange={(e) => setTaxIdNumber(e.target.value)}
                   disabled={!canEdit || loading}
                   className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition disabled:bg-gray-50"
-                  placeholder={currency === "₱" ? "Enter TIN ID number" : "Enter tax ID number"}
+                  placeholder={currency === "PHP" ? "Enter TIN ID number" : "Enter tax ID number"}
                 />
               </div>
-
-              {/* Currency */}
-              <div>
-                <label className="flex items-center gap-2 text-gray-700 font-medium mb-3 text-sm">
+              <div className="flex-1">
+                <label className="flex items-center gap-2 text-gray-700 font-medium mb-2 text-sm">
                   <FiDollarSign className="text-blue-600" /> Currency
                 </label>
-                <div className="flex gap-3">
-                  <label
-                    className={`flex-1 flex items-center justify-center gap-2 p-3 border rounded-lg cursor-pointer transition-all ${currency === "₱"
-                        ? "bg-blue-50 border-blue-600 text-blue-900 font-medium ring-1 ring-blue-600"
-                        : "border-gray-200 hover:bg-gray-50 text-gray-600"
-                      } ${(!canEdit || loading) ? "opacity-50 cursor-not-allowed" : ""}`}
-                  >
-                    <input
-                      type="radio"
-                      name="currency"
-                      value="₱"
-                      checked={currency === "₱"}
-                      onChange={() => setCurrency("₱")}
-                      disabled={!canEdit || loading}
-                      className="hidden"
-                    />
-                    <span className="text-lg font-bold">₱</span> PHP
-                  </label>
-
-                  <label
-                    className={`flex-1 flex items-center justify-center gap-2 p-3 border rounded-lg cursor-pointer transition-all ${currency === "$"
-                        ? "bg-blue-50 border-blue-600 text-blue-900 font-medium ring-1 ring-blue-600"
-                        : "border-gray-200 hover:bg-gray-50 text-gray-600"
-                      } ${(!canEdit || loading) ? "opacity-50 cursor-not-allowed" : ""}`}
-                  >
-                    <input
-                      type="radio"
-                      name="currency"
-                      value="$"
-                      checked={currency === "$"}
-                      onChange={() => setCurrency("$")}
-                      disabled={!canEdit || loading}
-                      className="hidden"
-                    />
-                    <span className="text-lg font-bold">$</span> USD
-                  </label>
-                </div>
+                <CurrencyDropdown
+                  currencies={currencies}
+                  value={currency}
+                  onChange={(code) => setCurrency(code)}
+                  disabled={!canEdit || loading}
+                  loading={loading}
+                />
               </div>
+            </div>
             </div>
 
             {/* Action Buttons */}
             {canEdit && (
-              <div className="border-t border-gray-200 pt-6 flex flex-col sm:flex-row justify-end gap-3">
+              <>
+                <hr className="my-8 border-gray-200" />
+                <div className="flex flex-col sm:flex-row justify-end gap-3">
                 <button
                   type="button"
                   onClick={handleDownloadBackup}
@@ -444,9 +421,9 @@ export default function AdminCompanyDetails() {
                   {loading ? "Updating..." : "Save Settings"}
                 </button>
               </div>
+              </>
             )}
           </div>
-        </div>
       </form>
     </div>
   );

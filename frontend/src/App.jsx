@@ -48,6 +48,7 @@ import AdminSoas from "./pages/AdminSoas";
 // 🔹 Super Admin layout + pages
 import SuperAdminPanel from "./components/SuperAdminPanel";
 import SuperAdminDashboard from "./pages/SuperAdminDashboard";
+import SuperAdminUsers from "./pages/SuperAdminUsers";
 
 // 🔹 Sales layout + pages
 import SalesPanel from "./components/SalesPanel";
@@ -197,6 +198,7 @@ function App() {
         <Route path="/super-admin" element={<PrivateRoute requiredRole="admin"><SuperAdminPanel /></PrivateRoute>}>
           <Route index element={<Navigate to="dashboard" replace />} />
           <Route path="dashboard" element={<SuperAdminDashboard />} />
+          <Route path="users" element={<SuperAdminUsers />} />
         </Route>
 
         {/* ================= Admin Layout ================= */}

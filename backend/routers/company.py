@@ -60,6 +60,8 @@ def get_company_invoice_info(
         "company_number": company.company_number,
         "company_logo": (company.company_logo if company.company_logo else None),
         "company_website": (company.company_website if company.company_website else None),
+        "vat_registration_number": (company.vat_registration_number if company.vat_registration_number else None),
+        "tax_id_number": (company.tax_id_number if company.tax_id_number else None),
         "address": (company.address if company.address else None),
         "ceo_name": (ceo.first_name if ceo else None),
         "ceo_email": (ceo.email if ceo else None),
@@ -124,6 +126,16 @@ def update_company_details(
     if payload.tax_rate is not None:
         company.tax_rate = payload.tax_rate
 
+    # ✅ Update VAT Registration Number (if provided or explicitly cleared)
+    if payload.vat_registration_number is not None:
+        company.vat_registration_number = (
+            payload.vat_registration_number.strip() if payload.vat_registration_number.strip() else None
+        )
+
+    # ✅ Update Tax ID Number (if provided or explicitly cleared)
+    if payload.tax_id_number is not None:
+        company.tax_id_number = payload.tax_id_number.strip() if payload.tax_id_number.strip() else None
+
     # ✅ Update Company Logo (if provided or explicitly set to empty/null to remove)
     if payload.company_logo is not None:
         company.company_logo = payload.company_logo if payload.company_logo else None
@@ -142,7 +154,7 @@ def update_company_details(
         request=request,
         old_data=old_data,
         new_data=serialize_instance(company),
-        custom_message="updated company global settings (name/currency/period)" # Updated message
+        custom_message="updated company global settings" # Updated message
     )
 
     return {"message": "Success", "company": company}

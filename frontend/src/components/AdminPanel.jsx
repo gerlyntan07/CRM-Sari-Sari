@@ -43,6 +43,7 @@ export default function AdminPanel() {
     "/admin/leads",
     "/admin/deals",
     "/admin/quotes",
+    "/admin/soas",
     "/admin/targets",
   ];
   const isSalesActive = salesRoutes.includes(location.pathname);
@@ -153,6 +154,15 @@ export default function AdminPanel() {
                   }
                 >
                   <FiFileText /> Quotes
+                </NavLink>
+
+                <NavLink
+                  to="/admin/soas"
+                  className={({ isActive }) =>
+                    isActive ? activeLink : normalLink
+                  }
+                >
+                  <FiFileText /> Statements of Account
                 </NavLink>
                 <NavLink
                   to="/admin/targets"

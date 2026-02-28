@@ -22,6 +22,7 @@ import models.deal
 import models.lead
 import models.meeting
 import models.quote
+import models.soa
 import models.subscription
 import models.target
 import models.task
@@ -43,6 +44,7 @@ import routers.deal as deal_router
 import routers.call as call_router
 import routers.meeting as meeting_router
 import routers.quote as quote_router
+import routers.soa as soa_router
 import routers.target as target_router
 import routers.ws_notification as ws_notification
 import routers.activities as activities_router
@@ -77,6 +79,7 @@ app.include_router(deal_router.router, prefix='/api')
 app.include_router(call_router.router, prefix='/api')
 app.include_router(meeting_router.router, prefix='/api')
 app.include_router(quote_router.router, prefix='/api')
+app.include_router(soa_router.router, prefix='/api')
 app.include_router(target_router.router, prefix='/api')
 app.include_router(ws_notification.router)
 app.include_router(activities_router.router, prefix='/api')

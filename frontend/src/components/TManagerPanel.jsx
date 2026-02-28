@@ -52,6 +52,7 @@ export default function TManagerPanel() {
     "/group-manager/leads",
     "/group-manager/deals",
     "/group-manager/quotes",
+    "/group-manager/soas",
     "/group-manager/targets",
     "/group-manager/meetings",
   ];
@@ -138,6 +139,13 @@ export default function TManagerPanel() {
                   className={({ isActive }) => (isActive ? activeLink : normalLink)}
                 >
                   <FiFileText /> Quotes
+                </NavLink>
+
+                <NavLink
+                  to="/group-manager/soas"
+                  className={({ isActive }) => (isActive ? activeLink : normalLink)}
+                >
+                  <FiFileText /> Statements of Account
                 </NavLink>
                 <NavLink
                   to="/group-manager/targets"

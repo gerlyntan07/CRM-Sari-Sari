@@ -43,6 +43,7 @@ import AdminMeeting from "./pages/AdminMeeting";
 import AdminCompanyDetails from "./components/AdminCompanyDetails";
 import AdminHelp from "./pages/AdminHelp";
 import AdminCalendar from "./pages/AdminCalendar";
+import AdminSoas from "./pages/AdminSoas";
 
 // 🔹 Super Admin layout + pages
 import SuperAdminPanel from "./components/SuperAdminPanel";
@@ -71,6 +72,7 @@ import SalesTask from "./pages/SalesTask";
 import SalesMeetings from "./pages/SalesMeetings";
 import SalesCalls from "./pages/SalesCalls";
 import SalesCalendar from "./pages/SalesCalendar";
+import SalesSoas from "./pages/SalesSoas";
 
 
 // 🔹 Manager layout + pages
@@ -92,6 +94,7 @@ import ManagerTask from "./pages/ManagerTask";
 import ManagerMeetings from "./pages/ManagerMeetings";
 import ManagerUser from "./pages/ManagerUser";
 import ManagerCalendar from "./pages/ManagerCalendar";
+import ManagerSoas from "./pages/ManagerSoas";
 
 // 🔹 Marketing layout + pages
 import MarketingPanel from "./components/MarketingPanel";
@@ -127,6 +130,7 @@ import TManagerCalls from "./pages/TManagerCalls";
 import TManagerAudit from "./pages/TManagerAudit";
 import TManagerUser from "./pages/TManagerUser";
 import TManagerCalendar from "./pages/TManagerCalendar";
+import TManagerSoas from "./pages/TManagerSoas";
 
 function App() {
   return (
@@ -206,6 +210,7 @@ function App() {
           <Route path="audit" element={<AdminAudit />} />
           <Route path="targets" element={<AdminTargets />} />
           <Route path="quotes" element={<AdminQuotes />} />
+          <Route path="soas" element={<AdminSoas />} />
           <Route path="users" element={<AdminUser />} />
           <Route path="manage-account" element={<AdminManageAccount />} />
           <Route path="company-details" element={<AdminCompanyDetails/>}/>
@@ -238,6 +243,7 @@ function App() {
           <Route path="deals/info" element={<SalesDealsInformation />} />
           <Route path="deals/quickaction" element={<SalesDealsQuickAction />} />
           <Route path="quotes" element={<SalesQuotes />} />
+          <Route path="soas" element={<SalesSoas />} />
           <Route path="targets" element={<SalesTargets />} />
           <Route path="audit" element={<SalesAudit />} />
           <Route path="manage-account" element={<PublicManageAccount />} />
@@ -276,6 +282,7 @@ function App() {
             element={<ManagerDealsQuickAction />}
           />
           <Route path="quotes" element={<ManagerQuotes />} />
+          <Route path="soas" element={<ManagerSoas />} />
           <Route path="targets" element={<ManagerTargets />} />
           <Route path="meetings" element={<ManagerMeetings />} />
           <Route path="audit" element={<ManagerAudit />} />
@@ -323,6 +330,7 @@ function App() {
             element={<TManagerDealsQuickAction />}
           />
           <Route path="quotes" element={<TManagerQuotes />} />
+          <Route path="soas" element={<TManagerSoas />} />
           <Route path="targets" element={<TManagerTargets />} />
           <Route path="tasks" element={<TManagerTask />} />
           <Route path="/group-manager/territory">

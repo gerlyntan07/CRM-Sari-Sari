@@ -63,6 +63,8 @@ class CompanyBase(BaseModel):
     currency: Optional[str] = "₱"
     quota_period: Optional[str] = "January"
     tax_rate: Optional[float] = 0
+    vat_registration_number: Optional[str] = None
+    tax_id_number: Optional[str] = None
     address: Optional[str] = None
 
     class Config:

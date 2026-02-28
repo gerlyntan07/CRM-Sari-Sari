@@ -1,7 +1,7 @@
 # backend/schemas/activities.py
 from pydantic import BaseModel, HttpUrl, EmailStr
 from typing import Optional
-from datetime import datetime
+from datetime import datetime, date
 from .auth import UserBase
 
 class TaskBase(BaseModel):

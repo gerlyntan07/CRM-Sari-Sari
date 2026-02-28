@@ -8,6 +8,8 @@ from .deal import Deal
 from .lead import Lead
 from .meeting import Meeting
 from .quote import Quote, QuoteItem
+from .invoice import Invoice, InvoiceItem
+from .payment import Payment
 from .subscription import Subscription
 from .target import Target
 from .task import Task
@@ -17,6 +19,7 @@ from .comment import Comment
 __all__ = [
     "Account", "Auditlog", "User", "Call", "Company",
     "Contact", "Deal", "Lead", "Meeting", "Quote", "QuoteItem",
+    "Invoice", "InvoiceItem", "Payment",
     "Subscription", "Target", "Task", "Territory", 
     "Comment"
 ]

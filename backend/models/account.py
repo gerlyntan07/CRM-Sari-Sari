@@ -52,4 +52,7 @@ class Account(Base):
     calls = relationship("Call", back_populates="account", cascade="all, delete-orphan")
 
     quotes = relationship("Quote", back_populates="account", cascade="all, delete-orphan")
+    invoices = relationship("Invoice", back_populates="account", cascade="all, delete-orphan")
+    payments = relationship("Payment", back_populates="account", cascade="all, delete-orphan")
+    soas = relationship("StatementOfAccount", back_populates="account", cascade="all, delete-orphan")
     comments = relationship("Comment", back_populates="account", cascade="all, delete-orphan")

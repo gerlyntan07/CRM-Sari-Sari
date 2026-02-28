@@ -41,6 +41,7 @@ export default function SalesPanel() {
   "/sales/leads",
   "/sales/deals",
   "/sales/quotes",
+    "/sales/soas",
   "/sales/targets",
 ];
 
@@ -209,6 +210,13 @@ const isSalesActive = salesRoutes.includes(location.pathname);
           className={({ isActive }) => (isActive ? activeLink : normalLink)}
         >
           <FiFileText /> Quotes
+        </NavLink>
+
+        <NavLink
+          to="/sales/soas"
+          className={({ isActive }) => (isActive ? activeLink : normalLink)}
+        >
+          <FiFileText /> Statements of Account
         </NavLink>
 
         <NavLink

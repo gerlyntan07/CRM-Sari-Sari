@@ -14,6 +14,8 @@ export default function AdminCompanyDetails() {
   const [currency, setCurrency] = useState("₱");
   const [quotaPeriod, setQuotaPeriod] = useState("January");
   const [taxRate, setTaxRate] = useState(0);
+  const [vatRegistrationNumber, setVatRegistrationNumber] = useState("");
+  const [taxIdNumber, setTaxIdNumber] = useState("");
   const [companyLogo, setCompanyLogo] = useState(null); // Current logo from DB
   const [newLogo, setNewLogo] = useState(null); // New uploaded logo (base64)
   const [address, setAddress] = useState("");
@@ -35,6 +37,12 @@ export default function AdminCompanyDetails() {
       if (user.company.currency) setCurrency(user.company.currency);
       if (user.company.quota_period) setQuotaPeriod(user.company.quota_period);
       if (user.company.tax_rate !== undefined) setTaxRate(user.company.tax_rate);
+      if (user.company.vat_registration_number !== undefined && user.company.vat_registration_number !== null) {
+        setVatRegistrationNumber(user.company.vat_registration_number);
+      }
+      if (user.company.tax_id_number !== undefined && user.company.tax_id_number !== null) {
+        setTaxIdNumber(user.company.tax_id_number);
+      }
       if (user.company.company_logo) setCompanyLogo(user.company.company_logo);
       if (user.company.address) setAddress(user.company.address);
     }
@@ -80,6 +88,8 @@ export default function AdminCompanyDetails() {
         currency: currency,
         quota_period: quotaPeriod,
         tax_rate: parseFloat(taxRate),
+        vat_registration_number: vatRegistrationNumber,
+        tax_id_number: taxIdNumber,
         address: address,
       };
 
@@ -335,6 +345,36 @@ export default function AdminCompanyDetails() {
                       %
                     </div>
                   </div>
+              </div>
+
+              {/* VAT Registration Number */}
+              <div>
+                <label className="block text-gray-700 font-medium mb-2 text-sm">
+                  VAT Registration Number
+                </label>
+                <input
+                  type="text"
+                  value={vatRegistrationNumber}
+                  onChange={(e) => setVatRegistrationNumber(e.target.value)}
+                  disabled={!canEdit || loading}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition disabled:bg-gray-50"
+                  placeholder="Enter VAT registration number"
+                />
+              </div>
+
+              {/* TIN / Tax ID Number */}
+              <div>
+                <label className="block text-gray-700 font-medium mb-2 text-sm">
+                  {currency === "₱" ? "TIN ID Number" : "Tax ID Number"}
+                </label>
+                <input
+                  type="text"
+                  value={taxIdNumber}
+                  onChange={(e) => setTaxIdNumber(e.target.value)}
+                  disabled={!canEdit || loading}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition disabled:bg-gray-50"
+                  placeholder={currency === "₱" ? "Enter TIN ID number" : "Enter tax ID number"}
+                />
               </div>
 
               {/* Currency */}

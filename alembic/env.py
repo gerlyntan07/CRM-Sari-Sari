@@ -20,6 +20,8 @@ import models.deal
 import models.lead
 import models.meeting
 import models.quote
+import models.invoice
+import models.payment
 import models.subscription
 import models.target
 import models.task

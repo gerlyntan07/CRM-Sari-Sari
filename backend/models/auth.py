@@ -66,6 +66,23 @@ class User(Base):
     quotes_assigned = relationship("Quote", back_populates="assigned_user", foreign_keys="[Quote.assigned_to]", cascade="all, delete-orphan")
     quotes_created = relationship("Quote", back_populates="creator", foreign_keys="[Quote.created_by]", cascade="all, delete-orphan")
 
+    invoices_assigned = relationship("Invoice", foreign_keys="[Invoice.assigned_to]", cascade="all, delete-orphan")
+    invoices_created = relationship("Invoice", foreign_keys="[Invoice.created_by]", cascade="all, delete-orphan")
+    payments_created = relationship("Payment", foreign_keys="[Payment.created_by]", cascade="all, delete-orphan")
+
+    soas_assigned = relationship(
+        "StatementOfAccount",
+        back_populates="assigned_user",
+        foreign_keys="[StatementOfAccount.assigned_to]",
+        cascade="all, delete-orphan",
+    )
+    soas_created = relationship(
+        "StatementOfAccount",
+        back_populates="creator",
+        foreign_keys="[StatementOfAccount.created_by]",
+        cascade="all, delete-orphan",
+    )
+
     targets = relationship("Target", back_populates="user", foreign_keys="[Target.user_id]", cascade="all, delete-orphan")
     created_targets = relationship("Target", back_populates="target_creator", foreign_keys="[Target.created_by]", cascade="all, delete-orphan")
     comments_created = relationship("Comment", back_populates="comment_creator", foreign_keys="[Comment.comment_by]", cascade="all, delete-orphan")

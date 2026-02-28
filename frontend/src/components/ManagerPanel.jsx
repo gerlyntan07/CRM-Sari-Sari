@@ -48,6 +48,7 @@ export default function ManagerPanel() {
     "/manager/leads",
     "/manager/deals",
     "/manager/quotes",
+    "/manager/soas",
     "/manager/targets",
     "/manager/meetings",
     "/manager/manage-account",
@@ -135,6 +136,13 @@ export default function ManagerPanel() {
                   className={({ isActive }) => (isActive ? activeLink : normalLink)}
                 >
                   <FiFileText /> Quotes
+                </NavLink>
+
+                <NavLink
+                  to="/manager/soas"
+                  className={({ isActive }) => (isActive ? activeLink : normalLink)}
+                >
+                  <FiFileText /> Statements of Account
                 </NavLink>
                 <NavLink
                   to="/manager/targets"

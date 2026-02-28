@@ -21,6 +21,8 @@ class CompanyUpdate(BaseModel):
     currency: Optional[str] = "₱"       # e.g., "₱" or "$"
     quota_period: Optional[str] = "January" # e.g., "April"
     tax_rate: Optional[float] = 0       # Default tax rate percentage
+    vat_registration_number: Optional[str] = None
+    tax_id_number: Optional[str] = None
     company_logo: Optional[str] = None  # Base64 encoded logo image
     address: Optional[str] = None
 
@@ -33,6 +35,8 @@ class CompanyResponse(CompanyBase):
     currency: Optional[str] = "₱"
     quota_period: Optional[str] = "January"
     tax_rate: Optional[float] = 0
+    vat_registration_number: Optional[str] = None
+    tax_id_number: Optional[str] = None
     
     created_at: Optional[datetime]
     updated_at: Optional[datetime]
@@ -48,6 +52,9 @@ class CompanyInvoiceInfo(BaseModel):
     company_number: str
     company_logo: Optional[str] = None
     company_website: Optional[str] = None
+    vat_registration_number: Optional[str] = None
+    tax_id_number: Optional[str] = None
+    ceo_name: Optional[str] = None
     ceo_email: Optional[str] = None
     address: Optional[str] = None
 

@@ -40,7 +40,7 @@ class UserBase(BaseModel):
     id: int
     first_name: str
     last_name: str
-    email: EmailStr
+    email: Optional[EmailStr] = None
     role: str
     profile_picture: Optional[str] = None
 

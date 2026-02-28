@@ -21,7 +21,7 @@ class UserBase(BaseModel):
     id: int
     first_name: str
     last_name: str
-    email: EmailStr
+    email: Optional[EmailStr] = None
     profile_picture: Optional[str] = None
     
     class Config:

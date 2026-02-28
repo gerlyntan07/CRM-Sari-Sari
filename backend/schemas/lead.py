@@ -9,8 +9,7 @@ class LeadBase(BaseModel):
     company_name: str
     title: str
     department: str
-    email: EmailStr
-    # email: Optional[EmailStr] = None
+    email: Optional[EmailStr] = None
     work_phone: str
     mobile_phone_1: Optional[str]
     mobile_phone_2: Optional[str]
@@ -62,7 +61,7 @@ class UserWithTerritories(BaseModel):
     id: int
     first_name: str
     last_name: str
-    email: EmailStr
+    email: Optional[EmailStr] = None
     related_to_company: int
     role: str
     profile_picture: Optional[str] = None
@@ -75,7 +74,7 @@ class UserBase(BaseModel):
     id: int
     first_name: str
     last_name: str
-    email: EmailStr
+    email: Optional[EmailStr] = None
     role: str
     phone_number: Optional[str] = None
 

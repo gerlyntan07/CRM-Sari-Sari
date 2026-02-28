@@ -26,7 +26,7 @@ class AssignToBase(BaseModel):
     id: int
     first_name: str
     last_name: str
-    email: EmailStr
+    email: Optional[EmailStr] = None
     class Config:
         from_attributes = True
 
@@ -34,7 +34,7 @@ class ContactBase(BaseModel):
     id: int
     first_name: str
     last_name: str
-    email: EmailStr
+    email: Optional[EmailStr] = None
     class Config:
         from_attributes = True        
 

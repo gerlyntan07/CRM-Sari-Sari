@@ -22,7 +22,7 @@ class UserBase(BaseModel):
     id: int
     first_name: str
     last_name: str
-    email: EmailStr
+    email: Optional[EmailStr] = None
     role: str
     profile_picture: Optional[str] = None
 
@@ -42,7 +42,7 @@ class ContactBase(BaseModel):
     id: int
     first_name: str
     last_name: str
-    email: EmailStr
+    email: Optional[EmailStr] = None
     work_phone: Optional[str] = None
 
     class Config:

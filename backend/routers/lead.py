@@ -142,7 +142,7 @@ def create_lead(
         company_name=data.company_name,
         title=data.title,
         department=data.department,
-        email=data.email,
+        email=data.email.lower() if data.email else None,
         work_phone=data.work_phone,
         mobile_phone_1=data.mobile_phone_1,
         mobile_phone_2=data.mobile_phone_2,
@@ -261,7 +261,7 @@ def update_lead(
     if data.department is not None:
         lead.department = data.department
     if data.email is not None:
-        lead.email = data.email
+        lead.email = data.email.lower() if data.email else None
     if data.work_phone is not None:
         lead.work_phone = data.work_phone
     if data.mobile_phone_1 is not None:

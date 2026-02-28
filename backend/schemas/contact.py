@@ -10,7 +10,7 @@ class ContactBase(BaseModel):
     account_id: int
     title: Optional[str] = None
     department: Optional[str] = None
-    email: EmailStr
+    email: Optional[EmailStr] = None
     work_phone: Optional[str] = None
     mobile_phone_1: Optional[str] = None
     mobile_phone_2: Optional[str] = None
@@ -45,7 +45,7 @@ class UserBase(BaseModel):
     id: int
     first_name: str
     last_name: str
-    email: EmailStr
+    email: Optional[EmailStr] = None
     role: str
     profile_picture: Optional[str] = None
 

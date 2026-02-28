@@ -65,7 +65,7 @@ class UserBase(BaseModel):
     id: int
     first_name: str
     last_name: str
-    email: EmailStr
+    email: Optional[EmailStr] = None
     profile_picture: str
     role: str
     
@@ -83,7 +83,7 @@ class ContactBase(BaseModel):
     id: int
     first_name: str
     last_name: str
-    email: str
+    email: Optional[str] = None
     
     class Config:
         from_attributes = True

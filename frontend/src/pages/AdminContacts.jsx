@@ -478,20 +478,18 @@ export default function AdminContacts() {
 
     const email = formData.email?.trim();
 
-    if (!email) {
-      toast.error("Email is required.");
-      return;
-    }
-
-    if (!email.includes("@")) {
+    // Optional email validation - only validate format if provided
+    if (email && !email.includes("@")) {
       toast.error("Email must contain '@'.");
       return;
     }
 
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      toast.error("Please enter a valid email address.");
-      return;
+    if (email) {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email)) {
+        toast.error("Please enter a valid email address.");
+        return;
+      }
     }
 
     const trimmedFirstName = formData.first_name?.trim() || "";
@@ -1733,8 +1731,7 @@ export default function AdminContacts() {
             value={formData.email}
             onChange={handleInputChange}
             placeholder="example@email.com"
-            required
-            isSubmitted={isSubmitted}
+            disabled={isSubmitting}
           />
 
           <InputField

@@ -17,7 +17,7 @@ class Contact(Base):
     account_id = Column(Integer, ForeignKey("accounts.id", ondelete="CASCADE"), nullable=False)
     title = Column(String, nullable=True)
     department = Column(String, nullable=True)
-    email = Column(String, nullable=False)    
+    email = Column(String, nullable=True)    
     work_phone = Column(String(20), nullable=True)
     mobile_phone_1 = Column(String(20), nullable=True)
     mobile_phone_2 = Column(String(20), nullable=True)

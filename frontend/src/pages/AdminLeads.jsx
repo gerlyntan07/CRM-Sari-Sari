@@ -544,11 +544,8 @@ export default function AdminLeads() {
     //   return;
     // }
     
-    if (!leadData.email?.trim()) {
-         toast.error("Email is required.");
-         return;
-       }
-        if (!leadData.email.includes("@")) {
+    // Optional email validation - only validate format if provided
+    if (leadData.email?.trim() && !leadData.email.includes("@")) {
          toast.error("Email must contain '@'.");
          return;
        }
@@ -566,7 +563,7 @@ export default function AdminLeads() {
 
     const finalForm = {
       ...leadData,
-      // email: leadData.email?.trim() ? leadData.email : null,
+      email: leadData.email?.trim() ? leadData.email : null,
       territory_id: leadData.territory_id ? parseInt(leadData.territory_id) : null,
       lead_owner: parseInt(leadData.lead_owner),
       work_phone: `${leadData.work_ccode} ${leadData.work_phone}`,
@@ -1073,22 +1070,15 @@ export default function AdminLeads() {
               {/* Email */}
               <div className="flex flex-col">
                 <label className="block text-gray-700 font-medium mb-1 text-sm">
-                  Email<span className="text-red-500">*</span></label>
-                  {/* Email</label> */}
+                  Email</label>
                 <input
                   type="email"
                   placeholder="abc@gmail.com"
                   name="email"
                   value={leadData.email}
                   onChange={handleLeadChange}
-                  required
-                    className={`w-full rounded-md px-2 py-1.5 text-sm outline-none border
-                       ${isSubmitted && !leadData.email?.trim()
-                       ? "border-red-400 focus:ring-red-400"
-                      : "border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-400 outline-none"}
-                      focus:ring-2`}
-                  />
-                    {/* //  className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-400 outline-none"/> */}
+                  className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-400 outline-none"
+                />
               </div>
 
               {/* Work Phone */}

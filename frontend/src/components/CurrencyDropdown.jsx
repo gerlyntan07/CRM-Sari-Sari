@@ -25,22 +25,25 @@ export default function CurrencyDropdown({ currencies, value, onChange, disabled
     setIsOpen(false);
   };
 
+  // Accept inputHeight prop for strict height alignment
+  const inputHeight = typeof arguments[0]?.inputHeight === 'number' ? arguments[0].inputHeight : 40;
   return (
-    <div className="relative" ref={dropdownRef}>
+    <div className="relative w-full" ref={dropdownRef}>
       {/* Main Button */}
       <button
         type="button"
         onClick={() => !disabled && setIsOpen(!isOpen)}
         disabled={disabled || loading}
-        className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition disabled:bg-gray-50 disabled:cursor-not-allowed text-left flex items-center justify-between bg-white"
+        className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition disabled:bg-gray-50 disabled:cursor-not-allowed text-left flex items-center justify-between bg-white font-normal text-base"
+        style={{ minHeight: `${inputHeight}px`, height: `${inputHeight}px` }}
       >
-        <span className="flex items-center gap-2">
+        <span className="flex items-center gap-2 overflow-hidden whitespace-nowrap text-ellipsis">
           {selectedCurrency ? (
             <>
-              <span className="text-2xl">{selectedCurrency.symbol}</span>
+              <span className="text-xl">{selectedCurrency.symbol}</span>
               <span className="font-semibold">{selectedCurrency.code}</span>
               <span className="mx-1">-</span>
-              <span>{selectedCurrency.country}</span>
+              <span className="truncate">{selectedCurrency.country}</span>
             </>
           ) : (
             <span className="text-gray-400">Select Currency</span>

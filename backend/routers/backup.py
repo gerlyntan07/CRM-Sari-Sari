@@ -127,8 +127,13 @@ def download_backup_csv_zip(
                 zf.writestr(f"{table_name}.csv", csv_bytes)
                 tables_exported += 1
             except Exception as exc:
-                # Fail safe: include an error file for that table but keep the rest.
-                zf.writestr(f"{table_name}.ERROR.txt", str(exc))
+                import traceback
+                error_details = f"Exception: {exc}\n\nTraceback:\n{traceback.format_exc()}"
+                zf.writestr(f"{table_name}.ERROR.txt", error_details)
+                try:
+                    db.rollback()
+                except Exception:
+                    pass
 
     buffer.seek(0)
 

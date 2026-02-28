@@ -355,8 +355,8 @@ export default function AdminCompanyDetails() {
             </div>
 
             {/* VAT Registration Number, Tax ID Number, and Currency in one row, equal width */}
-            <div className="flex flex-col gap-4 mt-4 md:flex-row">
-              <div className="flex-1">
+            <div className="flex flex-col gap-4 mt-4 md:flex-row items-stretch">
+              <div className="flex-1 flex flex-col justify-end">
                 <label className="block text-gray-700 font-medium mb-2 text-sm">
                   VAT Registration Number
                 </label>
@@ -365,11 +365,11 @@ export default function AdminCompanyDetails() {
                   value={vatRegistrationNumber}
                   onChange={(e) => setVatRegistrationNumber(e.target.value)}
                   disabled={!canEdit || loading}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition disabled:bg-gray-50"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition disabled:bg-gray-50 h-[40px] text-base"
                   placeholder="Enter VAT registration number"
                 />
               </div>
-              <div className="flex-1">
+              <div className="flex-1 flex flex-col justify-end">
                 <label className="block text-gray-700 font-medium mb-2 text-sm">
                   {currency === "PHP" ? "TIN ID Number" : "Tax ID Number"}
                 </label>
@@ -378,11 +378,11 @@ export default function AdminCompanyDetails() {
                   value={taxIdNumber}
                   onChange={(e) => setTaxIdNumber(e.target.value)}
                   disabled={!canEdit || loading}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition disabled:bg-gray-50"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition disabled:bg-gray-50 h-[40px] text-base"
                   placeholder={currency === "PHP" ? "Enter TIN ID number" : "Enter tax ID number"}
                 />
               </div>
-              <div className="flex-1">
+              <div className="flex-1 flex flex-col justify-end">
                 <label className="flex items-center gap-2 text-gray-700 font-medium mb-2 text-sm">
                   <FiDollarSign className="text-blue-600" /> Currency
                 </label>
@@ -392,6 +392,7 @@ export default function AdminCompanyDetails() {
                   onChange={(code) => setCurrency(code)}
                   disabled={!canEdit || loading}
                   loading={loading}
+                  inputHeight={40}
                 />
               </div>
             </div>

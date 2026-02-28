@@ -57,24 +57,7 @@ export default function SuperAdminSidebar({ onLogout }) {
                 <FiUsers className="text-lg" />
                 <span>Manage Users</span>
               </NavLink>
-              <NavLink
-                to="/super-admin/admin-support"
-                className={({ isActive }) =>
-                  isActive ? activeLink : normalLink
-                }
-              >
-                <FiUserPlus className="text-lg" />
-                <span>AdminSupport Role</span>
-              </NavLink>
-              <NavLink
-                to="/super-admin/manage-account"
-                className={({ isActive }) =>
-                  isActive ? activeLink : normalLink
-                }
-              >
-                <FiSettings className="text-lg" />
-                <span>Account Settings</span>
-              </NavLink>
+
             </div>
           )}
         </div>

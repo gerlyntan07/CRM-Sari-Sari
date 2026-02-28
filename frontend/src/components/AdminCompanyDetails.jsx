@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { FiSave, FiBriefcase, FiAlertCircle, FiDollarSign, FiCalendar, FiPercent, FiImage, FiUpload, FiMapPin, FiDownload } from "react-icons/fi";
+import { toast } from "react-toastify";
 import api from "../api";
 import useFetchUser from "../hooks/useFetchUser";
 
@@ -20,7 +21,6 @@ export default function AdminCompanyDetails() {
   // UI States
   const [loading, setLoading] = useState(false);
   const [downloadingBackup, setDownloadingBackup] = useState(false);
-  const [message, setMessage] = useState({ type: "", text: "" });
 
   const months = [
     "January", "February", "March", "April", "May", "June",
@@ -46,12 +46,12 @@ export default function AdminCompanyDetails() {
     if (!file) return;
 
     if (!file.type.startsWith("image/")) {
-      setMessage({ type: "error", text: "Please select an image file" });
+      toast.error("Please select an image file");
       return;
     }
 
     if (file.size > 2 * 1024 * 1024) {
-      setMessage({ type: "error", text: "Image size should be less than 2MB" });
+      toast.error("Image size should be less than 2MB");
       return;
     }
 
@@ -71,7 +71,6 @@ export default function AdminCompanyDetails() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-    setMessage({ type: "", text: "" });
 
     try {
       // Build payload
@@ -100,11 +99,11 @@ export default function AdminCompanyDetails() {
       // Reset newLogo state after successful save
       setNewLogo(null);
 
-      setMessage({ type: "success", text: "Company settings updated successfully!" });
+      toast.success("Company settings updated successfully!");
     } catch (error) {
       console.error("Update error:", error);
       const errorDetail = error.response?.data?.detail || "Failed to update settings.";
-      setMessage({ type: "error", text: errorDetail });
+      toast.error(errorDetail);
     } finally {
       setLoading(false);
     }
@@ -112,7 +111,6 @@ export default function AdminCompanyDetails() {
 
   const handleDownloadBackup = async () => {
     setDownloadingBackup(true);
-    setMessage({ type: "", text: "" });
 
     try {
       const res = await api.get("/admin/backup/csv", {
@@ -132,12 +130,14 @@ export default function AdminCompanyDetails() {
       link.click();
       link.remove();
       window.URL.revokeObjectURL(blobUrl);
+
+      toast.success("Backup downloaded successfully!");
     } catch (error) {
       console.error("Backup download error:", error);
       const errorDetail =
         error?.response?.data?.detail ||
         "Failed to download backup. Please try again.";
-      setMessage({ type: "error", text: errorDetail });
+      toast.error(errorDetail);
     } finally {
       setDownloadingBackup(false);
     }
@@ -146,250 +146,266 @@ export default function AdminCompanyDetails() {
   const canEdit = ["CEO", "ADMIN"].includes(user?.role?.toUpperCase());
 
   return (
-    <div className="max-w-2xl mx-auto mt-10 bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+    <div className="p-4 lg:p-8 font-inter">
       {/* Header */}
-      <div className="bg-[#fbbf24] px-6 py-4">
-        <h2 className="text-gray-900 font-bold text-xl flex items-center gap-2">
-          <FiBriefcase /> Company Details
-        </h2>
-        <p className="text-gray-700 text-sm">Manage your organization's identity and fiscal settings</p>
+      <div className="mb-6">
+        <h1 className="text-2xl sm:text-3xl font-semibold text-gray-800 mb-1">
+          Organization Settings
+        </h1>
+        <p className="text-gray-600 text-sm">
+          Manage your organization's information and fiscal settings
+        </p>
       </div>
 
-      <form onSubmit={handleSubmit} className="p-6 space-y-6">
-        {!canEdit && (
-          <div className="flex items-center gap-2 p-3 bg-amber-50 text-amber-700 rounded-lg text-sm border border-amber-200">
-            <FiAlertCircle />
-            <span>You only have view-access. Changes can only be made by an Admin.</span>
-          </div>
-        )}
-
-        {/* 1. Company Name */}
-        <div>
-          <label className="block text-sm font-semibold text-gray-700 mb-2">
-            Company Name
-          </label>
-          <input
-            type="text"
-            value={companyName}
-            onChange={(e) => setCompanyName(e.target.value)}
-            disabled={!canEdit || loading}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#fbbf24] focus:border-transparent outline-none transition disabled:bg-gray-50 disabled:cursor-not-allowed"
-            placeholder="Enter company name"
-            required
-          />
+      {!canEdit && (
+        <div className="flex items-center gap-2 p-3 bg-amber-50 text-amber-700 rounded-lg text-sm border border-amber-200 mb-6">
+          <FiAlertCircle />
+          <span>You only have view-access. Changes can only be made by an Admin.</span>
         </div>
+      )}
 
-        {/* 1b. Company Slug */}
-        <div>
-          <label className="block text-sm font-semibold text-gray-700 mb-2">
-            Company Slug (short name)
-          </label>
-          <input
-            type="text"
-            value={companySlug}
-            onChange={(e) => setCompanySlug(e.target.value)}
-            disabled={!canEdit || loading}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#fbbf24] focus:border-transparent outline-none transition disabled:bg-gray-50 disabled:cursor-not-allowed"
-            placeholder="e.g. sari-sari"
-          />
-          <p className="text-xs text-gray-500 mt-1">
-            Shown in the sidebar header; leave blank to auto-generate.
-          </p>
-        </div>
-        <div>
-          <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-2">
-            <FiMapPin className="text-gray-500" /> Company Address
-          </label>
-          <textarea
-            value={address}
-            onChange={(e) => setAddress(e.target.value)}
-            disabled={!canEdit || loading}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#fbbf24] focus:border-transparent outline-none transition disabled:bg-gray-50 disabled:cursor-not-allowed resize-none"
-            placeholder="Enter company address"
-            rows={3}
-          />
-        </div>
+      <form onSubmit={handleSubmit} className="space-y-6">
+        {/* Organization Settings Card */}
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+          <h2 className="text-xl font-semibold text-gray-800 flex items-center gap-2 mb-6">
+            <FiBriefcase className="text-blue-600" />
+            Company Information
+          </h2>
 
-        {/* 2. Company Logo */}
-        <div>
-          <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-2">
-            <FiImage className="text-gray-500" /> Company Logo
-          </label>
-          <div className="flex items-center gap-4">
-            {/* Logo Preview */}
-            <div className="flex-shrink-0">
-              {(newLogo || companyLogo) ? (
-                <img
-                  src={newLogo || companyLogo}
-                  alt="Company Logo"
-                  className="w-16 h-16 object-contain border border-gray-200 rounded-lg bg-gray-50"
+          {/* Two Column Layout - Company Info Left, Logo Right */}
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 mb-8">
+            {/* Left Column - Company Information */}
+            <div className="lg:col-span-3 space-y-4">
+              {/* Company Name */}
+              <div>
+                <label className="block text-gray-700 font-medium mb-2 text-sm">
+                  Company Name
+                </label>
+                <input
+                  type="text"
+                  value={companyName}
+                  onChange={(e) => setCompanyName(e.target.value)}
+                  disabled={!canEdit || loading}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition disabled:bg-gray-50 disabled:cursor-not-allowed"
+                  placeholder="Enter company name"
+                  required
                 />
-              ) : (
-                <div className="w-16 h-16 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center bg-gray-50">
-                  <FiImage className="text-gray-400 text-xl" />
-                </div>
-              )}
+              </div>
+
+              {/* Company Slug */}
+              <div>
+                <label className="block text-gray-700 font-medium mb-2 text-sm">
+                  Company Slug (short name)
+                </label>
+                <input
+                  type="text"
+                  value={companySlug}
+                  onChange={(e) => setCompanySlug(e.target.value)}
+                  disabled={!canEdit || loading}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition disabled:bg-gray-50 disabled:cursor-not-allowed"
+                  placeholder="e.g. sari-sari"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Shown in the sidebar header; leave blank to auto-generate.
+                </p>
+              </div>
+
+              {/* Company Address */}
+              <div>
+                <label className="flex items-center gap-2 text-gray-700 font-medium mb-2 text-sm">
+                  <FiMapPin className="text-blue-600" /> Company Address
+                </label>
+                <textarea
+                  value={address}
+                  onChange={(e) => setAddress(e.target.value)}
+                  disabled={!canEdit || loading}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition disabled:bg-gray-50 disabled:cursor-not-allowed resize-none"
+                  placeholder="Enter company address"
+                  rows={3}
+                />
+              </div>
             </div>
 
-            {/* Upload Controls */}
+            {/* Right Column - Company Logo */}
+            <div className="flex flex-col items-center justify-start">
+              <label className="block text-gray-700 font-medium mb-3 text-sm text-center w-full">
+                <FiImage className="inline text-blue-600 mr-1" /> Company Logo
+              </label>
+              <div className="w-40 flex flex-col items-center">
+                <div className="mb-3 w-full flex justify-center">
+                  {(newLogo || companyLogo) ? (
+                    <img
+                      src={newLogo || companyLogo}
+                      alt="Company Logo"
+                      className="w-40 h-auto object-contain border border-gray-200 rounded-md bg-gray-50"
+                    />
+                  ) : (
+                    <div className="w-40 h-40 border-2 border-dashed border-gray-300 rounded-md flex items-center justify-center bg-gray-50">
+                      <FiImage className="text-gray-400 text-4xl" />
+                    </div>
+                  )}
+                </div>
+
+                {/* Upload Controls */}
+                {canEdit && (
+                  <div className="w-full flex flex-col items-center gap-2">
+                    <input
+                      type="file"
+                      ref={fileInputRef}
+                      accept="image/*"
+                      onChange={handleLogoChange}
+                      className="hidden"
+                      id="company-logo-upload"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={loading}
+                      className="flex items-center justify-center gap-2 px-3 py-2 text-sm border border-gray-300 rounded-md hover:bg-gray-50 transition disabled:opacity-50 w-full"
+                    >
+                      <FiUpload className="text-gray-500" />
+                      {(newLogo || companyLogo) ? "Change Logo" : "Upload Logo"}
+                    </button>
+                    {(newLogo || companyLogo) && (
+                      <button
+                        type="button"
+                        onClick={handleRemoveLogo}
+                        disabled={loading}
+                        className="text-sm text-red-600 hover:text-red-700 transition"
+                      >
+                        Remove Logo
+                      </button>
+                    )}
+                    <p className="text-xs text-gray-500 text-center">Max 2MB, PNG or JPG</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Divider */}
+          <hr className="my-8 border-gray-200" />
+
+          {/* Fiscal Settings Section */}
+          <h2 className="text-xl font-semibold text-gray-800 flex items-center gap-2 mb-6">
+            <FiDollarSign className="text-blue-600" />
+            Fiscal Settings
+          </h2>
+
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {/* Fiscal Year Start */}
+                <div>
+                  <label className="flex items-center gap-2 text-gray-700 font-medium mb-2 text-sm">
+                    <FiCalendar className="text-blue-600" /> Fiscal Year Start
+                  </label>
+                  <div className="relative">
+                    <select
+                      value={quotaPeriod}
+                      onChange={(e) => setQuotaPeriod(e.target.value)}
+                      disabled={!canEdit || loading}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none appearance-none bg-white disabled:bg-gray-50 cursor-pointer"
+                    >
+                      {months.map((month) => (
+                        <option key={month} value={month}>{month}</option>
+                      ))}
+                    </select>
+                    <div className="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none text-gray-500">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Tax Rate */}
+                <div>
+                  <label className="flex items-center gap-2 text-gray-700 font-medium mb-2 text-sm">
+                    <FiPercent className="text-blue-600" /> Default Tax Rate
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={taxRate}
+                      onChange={(e) => setTaxRate(e.target.value)}
+                      disabled={!canEdit || loading}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition disabled:bg-gray-50"
+                      placeholder="0.00"
+                    />
+                    <div className="absolute inset-y-0 right-0 flex items-center pr-4 pointer-events-none text-gray-400 font-medium">
+                      %
+                    </div>
+                  </div>
+              </div>
+
+              {/* Currency */}
+              <div>
+                <label className="flex items-center gap-2 text-gray-700 font-medium mb-3 text-sm">
+                  <FiDollarSign className="text-blue-600" /> Currency
+                </label>
+                <div className="flex gap-3">
+                  <label
+                    className={`flex-1 flex items-center justify-center gap-2 p-3 border rounded-lg cursor-pointer transition-all ${currency === "₱"
+                        ? "bg-blue-50 border-blue-600 text-blue-900 font-medium ring-1 ring-blue-600"
+                        : "border-gray-200 hover:bg-gray-50 text-gray-600"
+                      } ${(!canEdit || loading) ? "opacity-50 cursor-not-allowed" : ""}`}
+                  >
+                    <input
+                      type="radio"
+                      name="currency"
+                      value="₱"
+                      checked={currency === "₱"}
+                      onChange={() => setCurrency("₱")}
+                      disabled={!canEdit || loading}
+                      className="hidden"
+                    />
+                    <span className="text-lg font-bold">₱</span> PHP
+                  </label>
+
+                  <label
+                    className={`flex-1 flex items-center justify-center gap-2 p-3 border rounded-lg cursor-pointer transition-all ${currency === "$"
+                        ? "bg-blue-50 border-blue-600 text-blue-900 font-medium ring-1 ring-blue-600"
+                        : "border-gray-200 hover:bg-gray-50 text-gray-600"
+                      } ${(!canEdit || loading) ? "opacity-50 cursor-not-allowed" : ""}`}
+                  >
+                    <input
+                      type="radio"
+                      name="currency"
+                      value="$"
+                      checked={currency === "$"}
+                      onChange={() => setCurrency("$")}
+                      disabled={!canEdit || loading}
+                      className="hidden"
+                    />
+                    <span className="text-lg font-bold">$</span> USD
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
             {canEdit && (
-              <div className="flex flex-col gap-2">
-                <input
-                  type="file"
-                  ref={fileInputRef}
-                  accept="image/*"
-                  onChange={handleLogoChange}
-                  className="hidden"
-                  id="company-logo-upload"
-                />
+              <div className="border-t border-gray-200 pt-6 flex flex-col sm:flex-row justify-end gap-3">
                 <button
                   type="button"
-                  onClick={() => fileInputRef.current?.click()}
-                  disabled={loading}
-                  className="flex items-center gap-2 px-3 py-1.5 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 transition disabled:opacity-50"
+                  onClick={handleDownloadBackup}
+                  disabled={loading || downloadingBackup}
+                  className="flex items-center justify-center gap-2 border border-gray-300 bg-white text-gray-700 px-4 py-2 rounded-md font-medium hover:bg-gray-50 disabled:opacity-50 transition"
                 >
-                  <FiUpload className="text-gray-500" />
-                  {(newLogo || companyLogo) ? "Change Logo" : "Upload Logo"}
+                  <FiDownload />
+                  Download Backup (CSV)
                 </button>
-                {(newLogo || companyLogo) && (
-                  <button
-                    type="button"
-                    onClick={handleRemoveLogo}
-                    disabled={loading}
-                    className="text-xs text-red-600 hover:text-red-700 transition"
-                  >
-                    Remove Logo
-                  </button>
-                )}
-                <p className="text-xs text-gray-500">Max 2MB, PNG or JPG</p>
+
+                <button
+                  type="submit"
+                  disabled={loading || downloadingBackup}
+                  className="flex items-center justify-center gap-2 bg-gray-900 text-white px-6 py-2 rounded-md font-medium hover:bg-gray-800 disabled:opacity-50 transition"
+                >
+                  <FiSave />
+                  {loading ? "Updating..." : "Save Settings"}
+                </button>
               </div>
             )}
           </div>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* 2. Fiscal Year Start */}
-          <div>
-            <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-2">
-              <FiCalendar className="text-gray-500" /> Fiscal Year Start
-            </label>
-            <div className="relative">
-              <select
-                value={quotaPeriod}
-                onChange={(e) => setQuotaPeriod(e.target.value)}
-                disabled={!canEdit || loading}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#fbbf24] focus:border-transparent outline-none appearance-none bg-white disabled:bg-gray-50 cursor-pointer"
-              >
-                {months.map((month) => (
-                  <option key={month} value={month}>{month}</option>
-                ))}
-              </select>
-              <div className="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none text-gray-500">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
-              </div>
-            </div>
-          </div>
-
-          {/* 3. Tax Rate */}
-          <div>
-            <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-2">
-              <FiPercent className="text-gray-500" /> Default Tax Rate
-            </label>
-            <div className="relative">
-              <input
-                type="number"
-                step="0.01"
-                value={taxRate}
-                onChange={(e) => setTaxRate(e.target.value)}
-                disabled={!canEdit || loading}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#fbbf24] focus:border-transparent outline-none transition disabled:bg-gray-50"
-                placeholder="0.00"
-              />
-              <div className="absolute inset-y-0 right-0 flex items-center pr-8 pointer-events-none text-gray-400 font-medium">
-                %
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* 4. Currency Selection */}
-        <div>
-          <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-2">
-            <FiDollarSign className="text-gray-500" /> Currency
-          </label>
-          <div className="flex gap-3 max-w-xs">
-            <label
-              className={`flex-1 flex items-center justify-center gap-1 p-2 border rounded-lg cursor-pointer transition-all ${currency === "₱"
-                  ? "bg-amber-50 border-[#fbbf24] text-amber-900 font-medium ring-1 ring-[#fbbf24]"
-                  : "border-gray-200 hover:bg-gray-50 text-gray-600"
-                } ${(!canEdit || loading) ? "opacity-50 cursor-not-allowed" : ""}`}
-            >
-              <input
-                type="radio"
-                name="currency"
-                value="₱"
-                checked={currency === "₱"}
-                onChange={() => setCurrency("₱")}
-                disabled={!canEdit || loading}
-                className="hidden"
-              />
-              <span className="text-lg font-bold">₱</span> PHP
-            </label>
-
-            <label
-              className={`flex-1 flex items-center justify-center gap-1 p-2 border rounded-lg cursor-pointer transition-all ${currency === "$"
-                  ? "bg-amber-50 border-[#fbbf24] text-amber-900 font-medium ring-1 ring-[#fbbf24]"
-                  : "border-gray-200 hover:bg-gray-50 text-gray-600"
-                } ${(!canEdit || loading) ? "opacity-50 cursor-not-allowed" : ""}`}
-            >
-              <input
-                type="radio"
-                name="currency"
-                value="$"
-                checked={currency === "$"}
-                onChange={() => setCurrency("$")}
-                disabled={!canEdit || loading}
-                className="hidden"
-              />
-              <span className="text-lg font-bold">$</span> USD
-            </label>
-          </div>
-        </div>
-
-        {/* Status Message */}
-        {message.text && (
-          <div className={`p-3 rounded-lg text-sm border transition-all ${message.type === "success"
-              ? "bg-green-50 text-green-700 border-green-200"
-              : "bg-red-50 text-red-700 border-red-200"
-            }`}>
-            {message.text}
-          </div>
-        )}
-
-        {/* Footer Actions */}
-        <div className="flex justify-end pt-4 border-t border-gray-100">
-          {canEdit && (
-            <div className="flex flex-wrap gap-3">
-              <button
-                type="button"
-                onClick={handleDownloadBackup}
-                disabled={loading || downloadingBackup}
-                className="flex items-center gap-2 border border-gray-300 bg-white text-gray-700 px-4 py-2 rounded-lg font-medium hover:bg-gray-50 disabled:opacity-50 transition active:scale-95"
-              >
-                <FiDownload />
-                {downloadingBackup ? "Preparing..." : "Download Backup (CSV)"}
-              </button>
-
-              <button
-                type="submit"
-                disabled={loading || downloadingBackup}
-                className="flex items-center gap-2 bg-[#1e293b] text-white px-6 py-2 rounded-lg font-medium hover:bg-[#334155] disabled:opacity-50 transition shadow-md active:scale-95"
-              >
-                <FiSave />
-                {loading ? "Updating..." : "Save Settings"}
-              </button>
-            </div>
-          )}
         </div>
       </form>
     </div>

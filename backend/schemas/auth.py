@@ -66,6 +66,7 @@ class CompanyBase(BaseModel):
     vat_registration_number: Optional[str] = None
     tax_id_number: Optional[str] = None
     address: Optional[str] = None
+    calendar_start_day: Optional[str] = None
 
     class Config:
         orm_mode = True

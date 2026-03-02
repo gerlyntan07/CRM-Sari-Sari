@@ -80,10 +80,19 @@ export default function ActivityCalendar({
   meetings = [],
   calls = [],
   currentUserId,
+  calendarStartDay = "Sunday",
 }) {
   const navigate = useNavigate();
   const [monthDate, setMonthDate] = useState(() => startOfMonth(new Date()));
   const [selectedDateKey, setSelectedDateKey] = useState(() => toDateKey(new Date()));
+
+  // Compute weekdays order based on calendarStartDay
+  const WEEKDAYS_ORDERED = useMemo(() => {
+    if (calendarStartDay === "Monday") {
+      return ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+    }
+    return ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+  }, [calendarStartDay]);
 
   const todayKey = useMemo(() => toDateKey(new Date()), []);
 
@@ -253,7 +262,7 @@ export default function ActivityCalendar({
         <div className="lg:col-span-2">
           <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
             <div className="grid grid-cols-7 bg-gray-50 border-b border-gray-200">
-              {WEEKDAYS.map((d) => (
+              {WEEKDAYS_ORDERED.map((d) => (
                 <div
                   key={d}
                   className="px-3 py-2 text-xs font-semibold text-gray-600"

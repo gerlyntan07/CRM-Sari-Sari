@@ -147,6 +147,9 @@ def update_company_details(
         
     if payload.address is not None:
         company.address = payload.address if payload.address else None
+    # ✅ Update Calendar Start Day (if provided)
+    if hasattr(payload, 'calendar_start_day') and payload.calendar_start_day is not None:
+        company.calendar_start_day = payload.calendar_start_day
     db.commit()
     db.refresh(company)
 
@@ -162,7 +165,8 @@ def update_company_details(
         custom_message="updated company global settings" # Updated message
     )
 
-    return {"message": "Success", "company": company}
+    # Ensure calendar_start_day is present in the response
+    return {"message": "Success", "company": serialize_instance(company)}
 
 @router.post("/create", response_model=CompanyResponse)
 def create_company(

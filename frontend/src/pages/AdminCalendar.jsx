@@ -40,12 +40,13 @@ export default function AdminCalendar() {
     if (!userLoading && user) fetchAll();
   }, [userLoading, user]);
 
+  const calendarStartDay = user?.company?.calendar_start_day || "Sunday";
   const calendarData = useMemo(() => ({ tasks, meetings, calls }), [tasks, meetings, calls]);
 
   return (
     <div className="min-h-screen">
       {(loading || userLoading) && <LoadingSpinner message="Loading calendar..." />}
-      <ActivityCalendar basePath="/admin" {...calendarData} />
+      <ActivityCalendar basePath="/admin" {...calendarData} calendarStartDay={calendarStartDay} />
     </div>
   );
 }

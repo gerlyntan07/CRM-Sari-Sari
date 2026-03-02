@@ -25,6 +25,7 @@ class CompanyUpdate(BaseModel):
     tax_id_number: Optional[str] = None
     company_logo: Optional[str] = None  # Base64 encoded logo image
     address: Optional[str] = None
+    calendar_start_day: Optional[str] = None  # NEW: Calendar start day (e.g. 'Monday')
 
     class Config:
         orm_mode = True
@@ -37,7 +38,7 @@ class CompanyResponse(CompanyBase):
     tax_rate: Optional[float] = 0
     vat_registration_number: Optional[str] = None
     tax_id_number: Optional[str] = None
-    
+    calendar_start_day: Optional[str] = None  # NEW: Calendar start day
     created_at: Optional[datetime]
     updated_at: Optional[datetime]
 

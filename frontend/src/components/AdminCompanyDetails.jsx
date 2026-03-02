@@ -108,6 +108,7 @@ export default function AdminCompanyDetails() {
       await api.put("/company/update-name", payload);
 
       // Refresh global user data
+      await mutate();
       if (mutate) {
         await mutate();
       }

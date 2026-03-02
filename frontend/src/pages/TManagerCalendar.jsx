@@ -66,12 +66,13 @@ export default function TManagerCalendar() {
     if (!userLoading && user) fetchAll();
   }, [userLoading, user, fetchAll]);
 
+  const calendarStartDay = user?.company?.calendar_start_day || "Sunday";
   const calendarData = useMemo(() => ({ tasks, meetings, calls }), [tasks, meetings, calls]);
 
   return (
     <div className="min-h-screen">
       {(loading || userLoading) && <LoadingSpinner message="Loading calendar..." />}
-      <ActivityCalendar basePath="/group-manager" {...calendarData} />
+      <ActivityCalendar basePath="/group-manager" {...calendarData} calendarStartDay={calendarStartDay} />
     </div>
   );
 }

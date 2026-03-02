@@ -41,12 +41,13 @@ export default function SalesCalendar() {
     if (!userLoading && user) fetchAll();
   }, [userLoading, user]);
 
+  const calendarStartDay = user?.company?.calendar_start_day || "Sunday";
   const calendarData = useMemo(() => ({ tasks, meetings, calls }), [tasks, meetings, calls]);
 
   return (
     <div className="min-h-screen">
       {(loading || userLoading) && <LoadingSpinner message="Loading calendar..." />}
-      <ActivityCalendar basePath="/sales" currentUserId={user?.id} {...calendarData} />
+      <ActivityCalendar basePath="/sales" currentUserId={user?.id} {...calendarData} calendarStartDay={calendarStartDay} />
     </div>
   );
 }

@@ -16,7 +16,8 @@ import LoadingSpinner from "../components/LoadingSpinner.jsx";
 
 const ROLE_OPTIONS = [
   { value: "Admin", label: "Admin" },
-  { value: "Super Admin", label: "Super Admin" },
+  { value: "Technical Support", label: "Technical Support" },
+  { value: "Marketing Admin", label: "Marketing Admin" },
 ];
 
 const INITIAL_FORM_STATE = {
@@ -30,6 +31,8 @@ const INITIAL_FORM_STATE = {
 const ROLE_BADGE_CLASS = {
   ADMIN: "bg-purple-100 text-purple-700",
   SUPER_ADMIN: "bg-indigo-100 text-indigo-700",
+  TECHNICAL_SUPPORT: "bg-blue-100 text-blue-700",
+  MARKETING_ADMIN: "bg-green-100 text-green-700",
 };
 
 const normalizeRoleValue = (role) => {
@@ -159,7 +162,7 @@ export default function SuperAdminUsers() {
       const data = Array.isArray(res.data) ? res.data : [];
       const filteredByRole = data.filter((user) => {
         const role = normalizeRoleValue(user.role);
-        return role === "ADMIN" || role === "SUPER_ADMIN";
+        return role === "ADMIN" || role === "SUPER_ADMIN" || role === "TECHNICAL_SUPPORT" || role === "MARKETING_ADMIN";
       });
       const sorted = sortUsers(filteredByRole);
       setUsers(sorted);

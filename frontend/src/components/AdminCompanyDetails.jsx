@@ -1,5 +1,10 @@
 import React, { useState, useEffect, useRef } from "react";
 import { FiSave, FiBriefcase, FiAlertCircle, FiDollarSign, FiCalendar, FiPercent, FiImage, FiUpload, FiMapPin, FiDownload } from "react-icons/fi";
+import { FaRegBuilding } from "react-icons/fa";
+import { HiOutlineIdentification } from "react-icons/hi";
+import { FaRegCalendarAlt } from "react-icons/fa";
+import { MdOutlineReceiptLong, MdOutlineSettings } from "react-icons/md";
+import { FaRegIdCard } from "react-icons/fa";
 import { toast } from "react-toastify";
 import api from "../api";
 import useFetchUser from "../hooks/useFetchUser";
@@ -185,8 +190,7 @@ export default function AdminCompanyDetails() {
         {/* Organization Settings Card */}
         <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
           <h2 className="text-xl font-semibold text-gray-800 flex items-center gap-2 mb-6">
-            <FiBriefcase className="text-blue-600" />
-            Company Information
+            <FaRegBuilding className="text-blue-600" /> Company Information
           </h2>
 
           {/* Two Column Layout - Logo Top (Mobile), Company Info Left, Logo Right (Desktop) */}
@@ -271,7 +275,7 @@ export default function AdminCompanyDetails() {
               {/* Company Short Name */}
               <div>
                 <label className="flex items-center gap-2 text-gray-700 font-medium mb-2 text-sm">
-                  <FiBriefcase className="text-blue-600" /> Short Name
+                  <HiOutlineIdentification className="text-blue-600" /> Short Name
                 </label>
                 <input
                   type="text"
@@ -308,8 +312,7 @@ export default function AdminCompanyDetails() {
 
           {/* Fiscal Settings Section */}
           <h2 className="text-xl font-semibold text-gray-800 flex items-center gap-2 mb-6">
-            <FiDollarSign className="text-blue-600" />
-            Fiscal Settings
+            <MdOutlineSettings className="text-blue-600" /> Fiscal Settings
           </h2>
 
           <div className="space-y-4">
@@ -337,7 +340,7 @@ export default function AdminCompanyDetails() {
               </div>
               <div className="flex-1 flex flex-col justify-end">
                 <label className="flex items-center gap-2 text-gray-700 font-medium mb-2 text-sm">
-                  Calendar Start Day
+                  <FaRegCalendarAlt className="text-blue-600" /> Calendar Start Day
                 </label>
                 <div className="relative">
                   <select
@@ -379,7 +382,7 @@ export default function AdminCompanyDetails() {
             <div className="flex flex-col gap-4 mt-4 md:flex-row items-stretch">
               <div className="flex-1 flex flex-col justify-end">
                 <label className="block text-gray-700 font-medium mb-2 text-sm">
-                  VAT Registration Number
+                  <MdOutlineReceiptLong className="text-blue-600" /> VAT Registration Number
                 </label>
                 <input
                   type="text"
@@ -392,7 +395,7 @@ export default function AdminCompanyDetails() {
               </div>
               <div className="flex-1 flex flex-col justify-end">
                 <label className="block text-gray-700 font-medium mb-2 text-sm">
-                  {currency === "PHP" ? "TIN ID Number" : "Tax ID Number"}
+                  <FaRegIdCard className="text-blue-600" /> {currency === "PHP" ? "TIN ID Number" : "Tax ID Number"}
                 </label>
                 <input
                   type="text"

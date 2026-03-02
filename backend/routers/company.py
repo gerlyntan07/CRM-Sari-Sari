@@ -30,7 +30,8 @@ def _short_name_from_company(value: str) -> str:
 
 
 def _clean_short_name(value: str) -> str:
-    cleaned = re.sub(r"[^A-Za-z0-9]+", "", (value or "").strip())
+    cleaned = re.sub(r"[^A-Za-z0-9 ]+", " ", (value or "").strip())
+    cleaned = re.sub(r"\s+", " ", cleaned).strip()
     return cleaned.upper()[:12]
 
 

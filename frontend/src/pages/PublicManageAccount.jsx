@@ -475,14 +475,16 @@ export default function AdminManageAccount() {
             </div>
 
              <div className="pt-4 border-t border-gray-200 flex justify-center lg:justify-start">
-              <button
-                type="submit"
-                className="flex items-center justify-center gap-2 px-4 py-2 bg-gray-900 text-white rounded-md hover:bg-gray-800 transition disabled:opacity-70"
-                disabled={changingPassword}
-              >
-                <FiLock />
-                {changingPassword ? "Changing Password..." : "Change Password"}
-              </button>
+              <div className="w-full flex justify-center lg:justify-end">
+                <button
+                  type="submit"
+                  className="flex items-center justify-center gap-2 px-4 py-2 bg-gray-900 text-white rounded-md hover:bg-gray-800 transition disabled:opacity-70"
+                  disabled={changingPassword}
+                >
+                  <FiLock />
+                  {changingPassword ? "Changing Password..." : "Change Password"}
+                </button>
+              </div>
             </div>
           </form>
         </div>

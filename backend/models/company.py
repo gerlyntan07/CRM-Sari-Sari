@@ -1,7 +1,13 @@
 # backend/models/company.py
+from enum import Enum
+
 from sqlalchemy import Column, Integer, String, Boolean, DateTime, func, ForeignKey, Numeric
 from sqlalchemy.orm import relationship
 from database import Base
+
+class CalendarStartCategory(str, Enum):
+    MONDAY = "Monday"
+    SUNDAY = "Sunday"
 
 class Company(Base):
     __tablename__ = "companies"
@@ -19,6 +25,8 @@ class Company(Base):
     vat_registration_number = Column(String, nullable=True)
     tax_id_number = Column(String, nullable=True)
     is_subscription_active = Column(Boolean, default=True, nullable=False)  # New field for subscription status
+    calendar_start_day = Column(String, default=CalendarStartCategory.MONDAY.value, nullable=True)
+
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 

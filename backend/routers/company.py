@@ -22,11 +22,16 @@ from .logs_utils import serialize_instance, create_audit_log
 router = APIRouter(prefix="/company", tags=["Company"])
 
 
-def _slugify(value: str) -> str:
-    value = (value or "").strip().lower()
-    value = re.sub(r"[^a-z0-9]+", "-", value)
-    value = re.sub(r"-+", "-", value).strip("-")
-    return value[:48]
+def _short_name_from_company(value: str) -> str:
+    words = re.sub(r"[^\w\s]+", " ", (value or ""), flags=re.UNICODE)
+    words = re.split(r"\s+", words.strip())
+    acronym = "".join([w[0] for w in words if w])
+    return acronym.upper()[:12]
+
+
+def _clean_short_name(value: str) -> str:
+    cleaned = re.sub(r"[^A-Za-z0-9]+", "", (value or "").strip())
+    return cleaned.upper()[:12]
 
 
 @router.get("/invoice-info", response_model=CompanyInvoiceInfo)
@@ -103,15 +108,15 @@ def update_company_details(
     
     company.company_name = payload.company_name.strip()
 
-    # ✅ Update Slug (if provided); otherwise initialize if missing
+    # ✅ Update Short Name (slug) if provided; otherwise initialize if missing
     if payload.slug is not None:
-        cleaned = _slugify(payload.slug)
+        cleaned = _clean_short_name(payload.slug)
         company.slug = cleaned or None
         if not company.slug:
-            cleaned = _slugify(company.company_name)
+            cleaned = _short_name_from_company(company.company_name)
             company.slug = cleaned or None
     elif not company.slug:
-        cleaned = _slugify(company.company_name)
+        cleaned = _short_name_from_company(company.company_name)
         company.slug = cleaned or None
 
     # ✅ Update Currency (if provided)
@@ -167,7 +172,7 @@ def create_company(
     """Creates a new company record."""
     new_company = Company(
         company_name=company_in.company_name,
-        slug=_slugify(company_in.company_name) or None,
+        slug=_short_name_from_company(company_in.company_name) or None,
         company_number=company_in.company_number,
         company_website=str(company_in.company_website) if company_in.company_website else None,
         # Default values for new companies

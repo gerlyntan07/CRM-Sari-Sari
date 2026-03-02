@@ -228,7 +228,10 @@ const Signup = () => {
     role: 'CEO'
   });
   const [companyData, setCompanyData] = React.useState({
-    company_name: '', company_number: '', company_website: '', countryCode: "+63",
+    company_name: '',
+    company_number: '',
+    company_website: '',
+    countryCode: "+63",
   })
   const [isPassVisible, setIsPassVisible] = React.useState({});
   const [termsAccepted, setTermsAccepted] = React.useState(false);

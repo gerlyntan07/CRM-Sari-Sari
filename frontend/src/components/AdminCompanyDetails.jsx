@@ -267,10 +267,10 @@ export default function AdminCompanyDetails() {
                 />
               </div>
 
-              {/* Company Slug */}
+              {/* Company Short Name */}
               <div>
                 <label className="flex items-center gap-2 text-gray-700 font-medium mb-2 text-sm">
-                  <FiBriefcase className="text-blue-600" /> Company Slug (short name)
+                  <FiBriefcase className="text-blue-600" /> Short Name
                 </label>
                 <input
                   type="text"
@@ -278,7 +278,7 @@ export default function AdminCompanyDetails() {
                   onChange={(e) => setCompanySlug(e.target.value)}
                   disabled={!canEdit || loading}
                   className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition disabled:bg-gray-50 disabled:cursor-not-allowed"
-                  placeholder="e.g. sari-sari"
+                  placeholder="e.g. SSI"
                 />
                 <p className="text-xs text-gray-500 mt-1">
                   Shown in the sidebar header; leave blank to auto-generate.

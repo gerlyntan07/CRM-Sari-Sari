@@ -17,6 +17,7 @@ export default function AdminCompanyDetails() {
   const [currency, setCurrency] = useState("PHP");
   const [quotaPeriod, setQuotaPeriod] = useState("January");
   const [taxRate, setTaxRate] = useState(0);
+  const [calendarStartDay, setCalendarStartDay] = useState("Sunday");
   const [vatRegistrationNumber, setVatRegistrationNumber] = useState("");
   const [taxIdNumber, setTaxIdNumber] = useState("");
   const [companyLogo, setCompanyLogo] = useState(null); // Current logo from DB
@@ -48,6 +49,7 @@ export default function AdminCompanyDetails() {
       }
       if (user.company.company_logo) setCompanyLogo(user.company.company_logo);
       if (user.company.address) setAddress(user.company.address);
+      if (user.company.calendar_start_day) setCalendarStartDay(user.company.calendar_start_day);
     }
   }, [user]);
 
@@ -94,6 +96,7 @@ export default function AdminCompanyDetails() {
         vat_registration_number: vatRegistrationNumber,
         tax_id_number: taxIdNumber,
         address: address,
+        calendar_start_day: calendarStartDay,
       };
 
       // Include logo if changed (newLogo is non-null means user made a change)
@@ -309,9 +312,9 @@ export default function AdminCompanyDetails() {
           </h2>
 
           <div className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Fiscal Year Start */}
-              <div>
+
+            <div className="flex flex-col gap-4 mt-4 md:flex-row items-stretch">
+              <div className="flex-1 flex flex-col justify-end">
                 <label className="flex items-center gap-2 text-gray-700 font-medium mb-2 text-sm">
                   <FiCalendar className="text-blue-600" /> Fiscal Year Start
                 </label>
@@ -331,9 +334,26 @@ export default function AdminCompanyDetails() {
                   </div>
                 </div>
               </div>
-
-              {/* Tax Rate */}
-              <div>
+              <div className="flex-1 flex flex-col justify-end">
+                <label className="flex items-center gap-2 text-gray-700 font-medium mb-2 text-sm">
+                  Calendar Start Day
+                </label>
+                <div className="relative">
+                  <select
+                    value={calendarStartDay}
+                    onChange={(e) => setCalendarStartDay(e.target.value)}
+                    disabled={!canEdit || loading}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none appearance-none bg-white disabled:bg-gray-50 cursor-pointer"
+                  >
+                    <option value="Sunday">Sunday</option>
+                    <option value="Monday">Monday</option>
+                  </select>
+                  <div className="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none text-gray-500">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
+                  </div>
+                </div>
+              </div>
+              <div className="flex-1 flex flex-col justify-end">
                 <label className="flex items-center gap-2 text-gray-700 font-medium mb-2 text-sm">
                   <FiPercent className="text-blue-600" /> Default Tax Rate
                 </label>

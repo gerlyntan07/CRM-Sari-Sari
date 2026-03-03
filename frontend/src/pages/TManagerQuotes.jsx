@@ -1694,7 +1694,16 @@ export default function AdminQuotes() {
                   Loading quotes...
                 </td>
               </tr>
-            ) : filteredQuotes.length > 0 ? (
+            ) : (!itemsPerPage || Number(itemsPerPage) === 0 || paginatedQuotes.length === 0) ? (
+              <tr>
+                <td
+                  className="py-4 px-4 text-center text-sm text-gray-500"
+                  colSpan={10}
+                >
+                  No quotes found.
+                </td>
+              </tr>
+            ) : (
               paginatedQuotes.map((quote) => {
                 const expiry = computeExpiryDate(
                   quote.presented_date,
@@ -1779,15 +1788,6 @@ export default function AdminQuotes() {
                   </tr>
                 );
               })
-            ) : (
-              <tr>
-                <td
-                  className="py-4 px-4 text-center text-sm text-gray-500"
-                  colSpan={10}
-                >
-                  No quotes found.
-                </td>
-              </tr>
             )}
           </tbody>
         </table>

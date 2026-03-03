@@ -874,7 +874,16 @@ export default function AdminLeads() {
             </tr>
           </thead>
           <tbody>
-            {filteredLeads.length > 0 ? (
+            {(!itemsPerPage || Number(itemsPerPage) === 0 || paginatedLeads.length === 0) ? (
+              <tr>
+                <td
+                  className="py-4 px-4 text-center text-sm text-gray-500"
+                  colSpan={8}
+                >
+                  No leads found.
+                </td>
+              </tr>
+            ) : (
               paginatedLeads.map((lead) => (
                 <tr
                   key={lead.id}
@@ -926,15 +935,6 @@ export default function AdminLeads() {
                   <td className="py-3 px-4"></td>
                 </tr>
               ))
-            ) : (
-              <tr>
-                <td
-                  className="py-4 px-4 text-center text-sm text-gray-500"
-                  colSpan={8}
-                >
-                  No leads found.
-                </td>
-              </tr>
             )}
           </tbody>
         </table>

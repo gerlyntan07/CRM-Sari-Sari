@@ -1509,7 +1509,16 @@ export default function AdminContacts() {
                   Loading contacts...
                 </td>
               </tr>
-            ) : filteredContacts.length > 0 ? (
+            ) : (!itemsPerPage || Number(itemsPerPage) === 0 || paginatedContacts.length === 0) ? (
+              <tr>
+                <td
+                  className="py-4 px-4 text-center text-sm text-gray-500"
+                  colSpan={8}
+                >
+                  No contacts found.
+                </td>
+              </tr>
+            ) : (
               paginatedContacts.map((contact) => {
                 const contactInfoItems = [
                   { Icon: FiMail, value: contact.email, key: "email" },
@@ -1646,15 +1655,6 @@ export default function AdminContacts() {
                   </tr>
                 );
               })
-            ) : (
-              <tr>
-                <td
-                  className="py-4 px-4 text-center text-sm text-gray-500"
-                  colSpan={8}
-                >
-                  No contacts found.
-                </td>
-              </tr>
             )}
           </tbody>
         </table>

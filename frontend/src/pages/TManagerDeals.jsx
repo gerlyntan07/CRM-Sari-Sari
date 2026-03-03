@@ -891,7 +891,16 @@ const formattedDateTime = (datetime) => {
                         </tr>
                     </thead>
                     <tbody>
-                        {filteredDeals.length > 0 ? (
+                        {(!itemsPerPage || Number(itemsPerPage) === 0 || paginatedDeals.length === 0) ? (
+                            <tr>
+                                <td
+                                    className="py-4 px-4 text-center text-sm text-gray-500"
+                                    colSpan={10}
+                                >
+                                    No deals found.
+                                </td>
+                            </tr>
+                        ) : (
                             paginatedDeals.map((deal) => (
                                 <tr
                                     key={deal.id}
@@ -958,15 +967,6 @@ const formattedDateTime = (datetime) => {
                                     </td>
                                 </tr>
                             ))
-                        ) : (
-                            <tr>
-                                <td
-                                    className="py-4 px-4 text-center text-sm text-gray-500"
-                                    colSpan={10}
-                                >
-                                    No deals found.
-                                </td>
-                            </tr>
                         )}
                     </tbody>
                 </table>

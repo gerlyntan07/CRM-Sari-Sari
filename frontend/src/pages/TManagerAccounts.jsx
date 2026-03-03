@@ -1744,7 +1744,16 @@ export default function AdminAccounts() {
                   Loading accounts...
                 </td>
               </tr>
-            ) : filteredAccounts.length > 0 ? (
+            ) : (!itemsPerPage || Number(itemsPerPage) === 0 || paginatedAccounts.length === 0) ? (
+              <tr>
+                <td
+                  className="py-4 px-4 text-center text-sm text-gray-500"
+                  colSpan={7}
+                >
+                  No accounts found.
+                </td>
+              </tr>
+            ) : (
               paginatedAccounts.map((acc) => {
                 return (
                   <tr
@@ -1828,15 +1837,6 @@ export default function AdminAccounts() {
                   </tr>
                 );
               })
-            ) : (
-              <tr>
-                <td
-                  className="py-4 px-4 text-center text-sm text-gray-500"
-                  colSpan={7}
-                >
-                  No accounts found.
-                </td>
-              </tr>
             )}
           </tbody>
         </table>

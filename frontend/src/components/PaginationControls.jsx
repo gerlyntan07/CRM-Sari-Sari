@@ -24,6 +24,7 @@ export default function PaginationControls({
   const disabledClasses =
     "bg-gray-200 text-gray-500 cursor-not-allowed focus:ring-transparent";
 
+  // Universal input logic: always enforce integer >= 10, centered, compact, and no spinner, regardless of role or import context
   return (
     <div
       className={`flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 ${className}`}
@@ -34,23 +35,38 @@ export default function PaginationControls({
         {label}
       </div>
 
-      {/* 2. Rows Per Page Selector */}
+      {/* 2. Rows Per Page Input (always works, all roles, all imports) */}
       {onPageSizeChange && (
         <div className="flex items-center justify-center gap-2 w-full sm:w-auto order-3 sm:order-2">
           <span className="text-sm text-gray-600 font-medium">
             Rows per page
           </span>
-          <select
+          <input
+            type="text"
+            inputMode="numeric"
+            pattern="[0-9]*"
             value={pageSize}
-            onChange={(e) => onPageSizeChange(Number(e.target.value))}
-            className="border border-gray-300 rounded-md text-sm py-1 pl-2 pr-6 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-          >
-            {pageSizeOptions.map((size) => (
-              <option key={size} value={size}>
-                {size}
-              </option>
-            ))}
-          </select>
+            onChange={e => {
+              const val = e.target.value;
+              // Only allow integer >= 10
+              if (/^\d+$/.test(val)) {
+                const num = parseInt(val, 10);
+                if (num >= 10) onPageSizeChange(num);
+                else onPageSizeChange(val); // allow typing but not set if < 10
+              } else if (val === "") {
+                // allow clearing for typing
+                onPageSizeChange("");
+              }
+            }}
+            onBlur={e => {
+              // On blur, reset to 10 if invalid
+              let num = parseInt(e.target.value, 10);
+              if (isNaN(num) || num < 10) onPageSizeChange(10);
+            }}
+            className="border border-gray-300 rounded-md text-sm py-1 w-12 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-center appearance-none"
+            style={{ MozAppearance: 'textfield', textAlign: 'center', width: '2.5rem' }}
+            autoComplete="off"
+          />
         </div>
       )}
 

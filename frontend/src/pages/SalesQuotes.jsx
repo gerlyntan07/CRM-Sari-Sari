@@ -685,8 +685,10 @@ export default function AdminQuotes() {
   }, [filteredQuotes.length, itemsPerPage]);
 
   const paginatedQuotes = useMemo(() => {
-    const startIndex = (currentPage - 1) * itemsPerPage;
-    return filteredQuotes.slice(startIndex, startIndex + itemsPerPage);
+    // Always use a valid integer for itemsPerPage
+    const validItemsPerPage = !itemsPerPage || isNaN(Number(itemsPerPage)) || Number(itemsPerPage) < 1 ? 10 : Number(itemsPerPage);
+    const startIndex = (currentPage - 1) * validItemsPerPage;
+    return filteredQuotes.slice(startIndex, startIndex + validItemsPerPage);
   }, [filteredQuotes, currentPage, itemsPerPage]);
 
   const handlePrevPage = () => setCurrentPage((prev) => Math.max(prev - 1, 1));
@@ -1696,7 +1698,16 @@ export default function AdminQuotes() {
                   Loading quotes...
                 </td>
               </tr>
-            ) : filteredQuotes.length > 0 ? (
+            ) : (!itemsPerPage || Number(itemsPerPage) === 0 || !paginatedQuotes || paginatedQuotes.length === 0) ? (
+              <tr>
+                <td
+                  className="py-4 px-4 text-center text-sm text-gray-500"
+                  colSpan={10}
+                >
+                  No quotes found.
+                </td>
+              </tr>
+            ) : (
               paginatedQuotes.map((quote) => {
                 const expiry = computeExpiryDate(
                   quote.presented_date,
@@ -1781,15 +1792,6 @@ export default function AdminQuotes() {
                   </tr>
                 );
               })
-            ) : (
-              <tr>
-                <td
-                  className="py-4 px-4 text-center text-sm text-gray-500"
-                  colSpan={10}
-                >
-                  No quotes found.
-                </td>
-              </tr>
             )}
           </tbody>
         </table>

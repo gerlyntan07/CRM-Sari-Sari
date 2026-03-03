@@ -632,7 +632,7 @@ export default function AdminUser() {
                   className="py-4 px-4 text-center text-sm text-gray-400"
                   colSpan={4}
                 >
-                  No accounts found.
+                  No users found.
                 </td>
               </tr>
             ) : (

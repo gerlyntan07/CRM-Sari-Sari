@@ -313,8 +313,10 @@ const formattedDateTime = (datetime) => {
     }, [filteredDeals.length, itemsPerPage]);
 
     const paginatedDeals = useMemo(() => {
-        const startIndex = (currentPage - 1) * itemsPerPage;
-        return filteredDeals.slice(startIndex, startIndex + itemsPerPage);
+        // Always use a valid integer for itemsPerPage
+        const validItemsPerPage = !itemsPerPage || isNaN(Number(itemsPerPage)) || Number(itemsPerPage) < 1 ? 10 : Number(itemsPerPage);
+        const startIndex = (currentPage - 1) * validItemsPerPage;
+        return filteredDeals.slice(startIndex, startIndex + validItemsPerPage);
     }, [filteredDeals, currentPage, itemsPerPage]);
 
     const handlePrevPage = () => setCurrentPage((prev) => Math.max(prev - 1, 1));
@@ -911,7 +913,16 @@ const formattedDateTime = (datetime) => {
                         </tr>
                     </thead>
                     <tbody>
-                        {filteredDeals.length > 0 ? (
+                        {(!itemsPerPage || Number(itemsPerPage) === 0 || !paginatedDeals || paginatedDeals.length === 0) ? (
+                            <tr>
+                                <td
+                                    className="py-4 px-4 text-center text-sm text-gray-500"
+                                    colSpan={9}
+                                >
+                                    No deals found.
+                                </td>
+                            </tr>
+                        ) : (
                             paginatedDeals.map((deal) => (
                                 <tr
                                     key={deal.id}
@@ -978,15 +989,6 @@ const formattedDateTime = (datetime) => {
                                     </td>
                                 </tr>
                             ))
-                        ) : (
-                            <tr>
-                                <td
-                                    className="py-4 px-4 text-center text-sm text-gray-500"
-                                    colSpan={9}
-                                >
-                                    No deals found.
-                                </td>
-                            </tr>
                         )}
                     </tbody>
                 </table>

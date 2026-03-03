@@ -351,8 +351,10 @@ export default function AdminLeads() {
   }, [filteredLeads.length, itemsPerPage]);
 
   const paginatedLeads = useMemo(() => {
-    const startIndex = (currentPage - 1) * itemsPerPage;
-    return filteredLeads.slice(startIndex, startIndex + itemsPerPage);
+    // Always use a valid integer for itemsPerPage
+    const validItemsPerPage = !itemsPerPage || isNaN(Number(itemsPerPage)) || Number(itemsPerPage) < 1 ? 10 : Number(itemsPerPage);
+    const startIndex = (currentPage - 1) * validItemsPerPage;
+    return filteredLeads.slice(startIndex, startIndex + validItemsPerPage);
   }, [filteredLeads, currentPage, itemsPerPage]);
 
   const handlePrevPage = () => setCurrentPage((prev) => Math.max(prev - 1, 1));
@@ -891,7 +893,16 @@ export default function AdminLeads() {
             </tr>
           </thead>
           <tbody>
-            {filteredLeads.length > 0 ? (
+            {(!itemsPerPage || Number(itemsPerPage) === 0 || !paginatedLeads || paginatedLeads.length === 0) ? (
+              <tr>
+                <td
+                  className="py-4 px-4 text-center text-sm text-gray-500"
+                  colSpan={8}
+                >
+                  No leads found.
+                </td>
+              </tr>
+            ) : (
               paginatedLeads.map((lead) => (
                 <tr
                   key={lead.id}
@@ -944,15 +955,6 @@ export default function AdminLeads() {
                   <td className="py-3 px-4 w-12"></td>
                 </tr>
               ))
-            ) : (
-              <tr>
-                <td
-                  className="py-4 px-4 text-center text-sm text-gray-500"
-                  colSpan={8}
-                >
-                  No leads found.
-                </td>
-              </tr>
             )}
           </tbody>
         </table>

@@ -113,8 +113,10 @@ export default function AdminAudit() {
   }, [filteredLogs.length, itemsPerPage]);
 
   const paginatedLogs = useMemo(() => {
-    const startIndex = (currentPage - 1) * itemsPerPage;
-    return filteredLogs.slice(startIndex, startIndex + itemsPerPage);
+    // Always use a valid integer for itemsPerPage
+    const validItemsPerPage = !itemsPerPage || isNaN(Number(itemsPerPage)) || Number(itemsPerPage) < 1 ? 10 : Number(itemsPerPage);
+    const startIndex = (currentPage - 1) * validItemsPerPage;
+    return filteredLogs.slice(startIndex, startIndex + validItemsPerPage);
   }, [filteredLogs, currentPage, itemsPerPage]);
 
   const pageStart =
@@ -264,7 +266,16 @@ export default function AdminAudit() {
             </tr>
           </thead>
           <tbody>
-            {Array.isArray(filteredLogs) && filteredLogs.length > 0 ? (
+            {(!itemsPerPage || Number(itemsPerPage) === 0 || !paginatedLogs || paginatedLogs.length === 0) ? (
+              <tr>
+                <td
+                  className="py-3 px-4 text-sm text-gray-500 text-center"
+                  colSpan={5}
+                >
+                  No logs found.
+                </td>
+              </tr>
+            ) : (
               paginatedLogs.map((log, i) => (
                 <tr key={i} className="hover:bg-gray-50 text-sm">
                   <td className="py-3 px-4 text-gray-700 whitespace-nowrap">
@@ -295,15 +306,6 @@ export default function AdminAudit() {
                   <td className="py-3 px-4 text-gray-700">{log.description}</td>
                 </tr>
               ))
-            ) : (
-              <tr>
-                <td
-                  className="py-3 px-4 text-sm text-gray-500 text-center"
-                  colSpan={5}
-                >
-                  No activities to show.
-                </td>
-              </tr>
             )}
           </tbody>
         </table>

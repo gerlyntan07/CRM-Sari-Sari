@@ -265,9 +265,11 @@ export default function AdminUser() {
   }, [filteredUsers.length]);
 
   const paginatedUsers = useMemo(() => {
-    const startIndex = (currentPage - 1) * itemsPerPage;
-    return filteredUsers.slice(startIndex, startIndex + itemsPerPage);
-  }, [filteredUsers, currentPage]);
+    // Always use a valid integer for itemsPerPage
+    const validItemsPerPage = !itemsPerPage || isNaN(Number(itemsPerPage)) || Number(itemsPerPage) < 1 ? 10 : Number(itemsPerPage);
+    const startIndex = (currentPage - 1) * validItemsPerPage;
+    return filteredUsers.slice(startIndex, startIndex + validItemsPerPage);
+  }, [filteredUsers, currentPage, itemsPerPage]);
 
   const pageStart =
     filteredUsers.length === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1;
@@ -624,13 +626,13 @@ export default function AdminUser() {
                   Loading users...
                 </td>
               </tr>
-            ) : filteredUsers.length === 0 ? (
+            ) : (!itemsPerPage || Number(itemsPerPage) === 0 || !paginatedUsers || paginatedUsers.length === 0) ? (
               <tr>
                 <td
                   className="py-4 px-4 text-center text-sm text-gray-400"
                   colSpan={4}
                 >
-                  No users found.
+                  No accounts found.
                 </td>
               </tr>
             ) : (

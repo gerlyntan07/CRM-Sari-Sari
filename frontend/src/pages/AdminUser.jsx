@@ -707,7 +707,7 @@ export default function AdminUser() {
                   Loading users...
                 </td>
               </tr>
-            ) : filteredUsers.length === 0 ? (
+            ) : (!itemsPerPage || Number(itemsPerPage) === 0 || paginatedUsers.length === 0) ? (
               <tr>
                 <td
                   className="py-4 px-4 text-center text-sm text-gray-400"

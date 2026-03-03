@@ -1475,71 +1475,73 @@ export default function AdminAccounts() {
                   Loading accounts...
                 </td>
               </tr>
-            ) : filteredAccounts.length > 0 ? (
-              paginatedAccounts.map((acc) => {
-                return (
-                  <tr
-                    key={acc.id}
-                    className="hover:bg-gray-50 text-xs cursor-pointer"
-                    onClick={() => {
-                      handleAccountClick(acc);
-                      fetchRelatedActivities(acc.id);
-                    }}
+            ) :
+              (!itemsPerPage || Number(itemsPerPage) === 0 || paginatedAccounts.length === 0) ? (
+                <tr>
+                  <td
+                    className="py-4 px-4 text-center text-sm text-gray-500"
+                    colSpan={7}
                   >
-                    <td className="py-3 px-4 text-center">
-                      <input
-                        type="checkbox"
-                        checked={selectedIds.includes(acc.id)}
-                        onChange={() => handleCheckboxChange(acc.id)}
-                        onClick={(e) => e.stopPropagation()}
-                        className="form-checkbox h-4 w-4 text-blue-600 rounded focus:ring-blue-500 border-gray-300"
-                      />
-                    </td>
-                    <td className="py-3 px-4">
-                      <div>
-                        <div className="font-medium text-blue-600 hover:underline break-all text-sm">
-                          {acc.name}
+                    No accounts found.
+                  </td>
+                </tr>
+              ) : (
+                paginatedAccounts.map((acc) => {
+                  return (
+                    <tr
+                      key={acc.id}
+                      className="hover:bg-gray-50 text-xs cursor-pointer"
+                      onClick={() => {
+                        handleAccountClick(acc);
+                        fetchRelatedActivities(acc.id);
+                      }}
+                    >
+                      <td className="py-3 px-4 text-center">
+                        <input
+                          type="checkbox"
+                          checked={selectedIds.includes(acc.id)}
+                          onChange={() => handleCheckboxChange(acc.id)}
+                          onClick={(e) => e.stopPropagation()}
+                          className="form-checkbox h-4 w-4 text-blue-600 rounded focus:ring-blue-500 border-gray-300"
+                        />
+                      </td>
+                      <td className="py-3 px-4">
+                        <div>
+                          <div className="font-medium text-blue-600 hover:underline break-all text-sm">
+                            {acc.name}
+                          </div>
+                          <div className="text-gray-500 text-xs break-all">
+                            {acc.website || "--"}
+                          </div>
                         </div>
-                        <div className="text-gray-500 text-xs break-all">
-                          {acc.website || "--"}
+                      </td>
+                      <td className="py-3 px-4">
+                        <span
+                          className={`px-3 py-1 rounded-full text-xs font-medium ${getTableBadgeClass(
+                            acc.status
+                          )}`}
+                        >
+                          {formatStatusLabel(acc.status)}
+                        </span>
+                      </td>
+                      <td className="py-3 px-4 text-sm">
+                        {acc.industry || "--"}
+                      </td>
+                      <td className="py-3 px-4 text-sm">
+                        {acc.territory?.name || "--"}
+                      </td>
+                      <td className="py-3 px-4">
+                        <div className="flex items-center space-x-2 text-sm">
+                          <FiPhone className="text-gray-500" />
+                          <span>{acc.phone_number || "--"}</span>
                         </div>
-                      </div>
-                    </td>
-                    <td className="py-3 px-4">
-                      <span
-                        className={`px-3 py-1 rounded-full text-xs font-medium ${getTableBadgeClass(
-                          acc.status
-                        )}`}
-                      >
-                        {formatStatusLabel(acc.status)}
-                      </span>
-                    </td>
-                    <td className="py-3 px-4 text-sm">
-                      {acc.industry || "--"}
-                    </td>
-                    <td className="py-3 px-4 text-sm">
-                      {acc.territory?.name || "--"}
-                    </td>
-                    <td className="py-3 px-4">
-                      <div className="flex items-center space-x-2 text-sm">
-                        <FiPhone className="text-gray-500" />
-                        <span>{acc.phone_number || "--"}</span>
-                      </div>
-                    </td>
-                    <td className="py-3 px-4 text-center"></td>
-                  </tr>
-                );
-              })
-            ) : (
-              <tr>
-                <td
-                  className="py-4 px-4 text-center text-sm text-gray-500"
-                  colSpan={7}
-                >
-                  No accounts found.
-                </td>
-              </tr>
-            )}
+                      </td>
+                      <td className="py-3 px-4 text-center"></td>
+                    </tr>
+                  );
+                })
+              )
+            }
           </tbody>
         </table>
       </div>

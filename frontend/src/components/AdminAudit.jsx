@@ -263,7 +263,16 @@ import { FiCalendar } from "react-icons/fi";
             </tr>
           </thead>
           <tbody>
-            {Array.isArray(filteredLogs) && filteredLogs.length > 0 ? (
+            {(!itemsPerPage || Number(itemsPerPage) === 0 || paginatedLogs.length === 0) ? (
+              <tr>
+                <td
+                  className="py-3 px-4 text-sm text-gray-500 text-center"
+                  colSpan={5}
+                >
+                  No logs found.
+                </td>
+              </tr>
+            ) : (
               paginatedLogs.map((log, i) => (
                 <tr key={i} className="hover:bg-gray-50 text-sm">
                   <td className="py-3 px-4 text-gray-700 whitespace-nowrap">
@@ -294,15 +303,6 @@ import { FiCalendar } from "react-icons/fi";
                   <td className="py-3 px-4 text-gray-700">{log.description}</td>
                 </tr>
               ))
-            ) : (
-              <tr>
-                <td
-                  className="py-3 px-4 text-sm text-gray-500 text-center"
-                  colSpan={5}
-                >
-                  No activities to show.
-                </td>
-              </tr>
             )}
           </tbody>
         </table>

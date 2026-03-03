@@ -1446,139 +1446,140 @@ export default function AdminContacts() {
                   Loading contacts...
                 </td>
               </tr>
-            ) : filteredContacts.length > 0 ? (
-              paginatedContacts.map((contact) => {
-                const contactInfoItems = [
-                  { Icon: FiMail, value: contact.email, key: "email" },
-                  {
-                    Icon: FiPhone,
-                    value: contact.work_phone,
-                    key: "work_phone",
-                  },
-                  // {
-                  //   Icon: FiSmartphone,
-                  //   value: contact.mobile_phone_1,
-                  //   key: "mobile_phone_1",
-                  // },
-                  // {
-                  //   Icon: FiSmartphone,
-                  //   value: contact.mobile_phone_2,
-                  //   key: "mobile_phone_2",
-                  // },
-                ].filter((item) => Boolean(item.value));
-
-                return (
-                  <tr
-                    key={contact.id}
-                    className="hover:bg-gray-50 text-sm cursor-pointer transition"
-                    onClick={(e) => {
-                      // Prevent row click when clicking checkbox or action buttons
-                      if (
-                        e.target.closest('input[type="checkbox"]') ||
-                        e.target.closest("button")
-                      ) {
-                        return;
-                      }
-                      handleContactClick(contact);
-                      fetchRelatedActivities(contact.id);
-                    }}
+            ) :
+              (!itemsPerPage || Number(itemsPerPage) === 0 || paginatedContacts.length === 0) ? (
+                <tr>
+                  <td
+                    className="py-4 px-4 text-center text-sm text-gray-500"
+                    colSpan={9}
                   >
-                    <td className="py-3 px-4 text-center align-top">
-                      <input
-                        type="checkbox"
-                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
-                        checked={selectedIds.includes(contact.id)}
-                        onChange={() => handleCheckboxChange(contact.id)}
-                      />
-                    </td>
-                    <td className="py-3 px-4 align-top">
-                      <div className="font-medium text-blue-600 hover:underline break-all text-sm">
-                        {getContactFullName(contact) || "--"}
-                      </div>
-                      <div className="text-xs text-gray-500">
-                        {contact.title || "No title"}
-                      </div>
-                    </td>
-                    <td className="py-3 px-4 align-top">
-                      <div className="flex items-center space-x-2 text-sm text-gray-700">
-                        <BsBuilding className="text-gray-500 flex-shrink-0" />
-                        <span className="break-words">
-                          {contact.account?.name || "--"}
-                        </span>
-                      </div>
-                    </td>
-                    <td className="py-3 px-4 align-top">
-                      {contactInfoItems.length > 0 ? (
-                        <div className="space-y-1 text-gray-700">
-                          {contactInfoItems.map(({ Icon, value, key }) => {
-                            const iconNode = React.createElement(Icon, {
-                              className: "text-gray-500 flex-shrink-0",
-                            });
+                    No contacts found.
+                  </td>
+                </tr>
+              ) : (
+                paginatedContacts.map((contact) => {
+                  const contactInfoItems = [
+                    { Icon: FiMail, value: contact.email, key: "email" },
+                    {
+                      Icon: FiPhone,
+                      value: contact.work_phone,
+                      key: "work_phone",
+                    },
+                    // {
+                    //   Icon: FiSmartphone,
+                    //   value: contact.mobile_phone_1,
+                    //   key: "mobile_phone_1",
+                    // },
+                    // {
+                    //   Icon: FiSmartphone,
+                    //   value: contact.mobile_phone_2,
+                    //   key: "mobile_phone_2",
+                    // },
+                  ].filter((item) => Boolean(item.value));
 
-                            return (
-                              <div
-                                key={key}
-                                className="flex items-center space-x-2 break-all text-sm"
-                              >
-                                {iconNode}
-                                <span>{value}</span>
-                              </div>
-                            );
-                          })}
+                  return (
+                    <tr
+                      key={contact.id}
+                      className="hover:bg-gray-50 text-sm cursor-pointer transition"
+                      onClick={(e) => {
+                        // Prevent row click when clicking checkbox or action buttons
+                        if (
+                          e.target.closest('input[type="checkbox"]') ||
+                          e.target.closest("button")
+                        ) {
+                          return;
+                        }
+                        handleContactClick(contact);
+                        fetchRelatedActivities(contact.id);
+                      }}
+                    >
+                      <td className="py-3 px-4 text-center align-top">
+                        <input
+                          type="checkbox"
+                          className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                          checked={selectedIds.includes(contact.id)}
+                          onChange={() => handleCheckboxChange(contact.id)}
+                        />
+                      </td>
+                      <td className="py-3 px-4 align-top">
+                        <div className="font-medium text-blue-600 hover:underline break-all text-sm">
+                          {getContactFullName(contact) || "--"}
                         </div>
-                      ) : (
-                        <span className="text-gray-400 text-sm">--</span>
-                      )}
-                    </td>
-                    <td className="py-3 px-4 align-top">
-                      <div className="flex items-center space-x-2 text-gray-700 text-sm">
-                        <FiBriefcase className="text-gray-500 flex-shrink-0" />
-                        <span>{contact.department || "--"}</span>
-                      </div>
-                    </td>
-                    <td className="py-3 px-4 align-top">
-                      <div className="flex items-center space-x-2 text-sm">
-                        <FiUser className="text-gray-500 flex-shrink-0" />
-                        <span>
-                          {contact.assigned_contact
-                            ? `${contact.assigned_contact.first_name} ${contact.assigned_contact.last_name}`
-                            : "Unassigned"}
+                        <div className="text-xs text-gray-500">
+                          {contact.title || "No title"}
+                        </div>
+                      </td>
+                      <td className="py-3 px-4 align-top">
+                        <div className="flex items-center space-x-2 text-sm text-gray-700">
+                          <BsBuilding className="text-gray-500 flex-shrink-0" />
+                          <span className="break-words">
+                            {contact.account?.name || "--"}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="py-3 px-4 align-top">
+                        {contactInfoItems.length > 0 ? (
+                          <div className="space-y-1 text-gray-700">
+                            {contactInfoItems.map(({ Icon, value, key }) => {
+                              const iconNode = React.createElement(Icon, {
+                                className: "text-gray-500 flex-shrink-0",
+                              });
+
+                              return (
+                                <div
+                                  key={key}
+                                  className="flex items-center space-x-2 break-all text-sm"
+                                >
+                                  {iconNode}
+                                  <span>{value}</span>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        ) : (
+                          <span className="text-gray-400 text-sm">--</span>
+                        )}
+                      </td>
+                      <td className="py-3 px-4 align-top">
+                        <div className="flex items-center space-x-2 text-gray-700 text-sm">
+                          <FiBriefcase className="text-gray-500 flex-shrink-0" />
+                          <span>{contact.department || "--"}</span>
+                        </div>
+                      </td>
+                      <td className="py-3 px-4 align-top">
+                        <div className="flex items-center space-x-2 text-sm">
+                          <FiUser className="text-gray-500 flex-shrink-0" />
+                          <span>
+                            {contact.assigned_contact
+                              ? `${contact.assigned_contact.first_name} ${contact.assigned_contact.last_name}`
+                              : "Unassigned"}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="py-3 px-4 align-top">
+                        <div className="flex items-center space-x-2 text-gray-500">
+                          <FiCalendar className="text-gray-500 flex-shrink-0" />
+                          <span className="text-xs">
+                            {formattedDateTime(contact.created_at) || "--"}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="py-3 px-4 align-top">
+                        <span
+                          className={`px-3 py-1 rounded-full text-xs font-medium ${
+                            contact.status === "Inactive"
+                              ? "bg-red-100 text-red-800"
+                              : "bg-green-100 text-green-800"
+                          }`}
+                        >
+                          {contact.status || "Active"}
                         </span>
-                      </div>
-                    </td>
-                    <td className="py-3 px-4 align-top">
-                      <div className="flex items-center space-x-2 text-gray-500">
-                        <FiCalendar className="text-gray-500 flex-shrink-0" />
-                        <span className="text-xs">
-                          {formattedDateTime(contact.created_at) || "--"}
-                        </span>
-                      </div>
-                    </td>
-                    <td className="py-3 px-4 align-top">
-                      <span
-                        className={`px-3 py-1 rounded-full text-xs font-medium ${
-                          contact.status === "Inactive"
-                            ? "bg-red-100 text-red-800"
-                            : "bg-green-100 text-green-800"
-                        }`}
-                      >
-                        {contact.status || "Active"}
-                      </span>
-                    </td>
-                    <td className="py-3 px-4 align-top"></td>
-                  </tr>
-                );
-              })
-            ) : (
-              <tr>
-                <td
-                  className="py-4 px-4 text-center text-sm text-gray-500"
-                  colSpan={9}
-                >
-                  No contacts found.
-                </td>
-              </tr>
-            )}
+                      </td>
+                      <td className="py-3 px-4 align-top"></td>
+                    </tr>
+                  );
+                })
+              )}
           </tbody>
         </table>
       </div>

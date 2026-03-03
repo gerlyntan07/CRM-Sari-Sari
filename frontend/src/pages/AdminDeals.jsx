@@ -860,7 +860,16 @@ export default function AdminDeals() {
                         </tr>
                     </thead>
                     <tbody>
-                        {filteredDeals.length > 0 ? (
+                        {(!itemsPerPage || Number(itemsPerPage) === 0 || paginatedDeals.length === 0) ? (
+                            <tr>
+                                <td
+                                    className="py-4 px-4 text-center text-sm text-gray-500"
+                                    colSpan={8}
+                                >
+                                    No deals found.
+                                </td>
+                            </tr>
+                        ) : (
                             paginatedDeals.map((deal) => (
                                 <tr
                                     key={deal.id}
@@ -925,15 +934,6 @@ export default function AdminDeals() {
                                     </td>
                                 </tr>
                             ))
-                        ) : (
-                            <tr>
-                                <td
-                                    className="py-4 px-4 text-center text-sm text-gray-500"
-                                    colSpan={8}
-                                >
-                                    No deals found.
-                                </td>
-                            </tr>
                         )}
                     </tbody>
                 </table>

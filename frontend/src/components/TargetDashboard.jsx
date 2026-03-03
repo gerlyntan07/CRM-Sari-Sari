@@ -1248,7 +1248,7 @@ export default function TargetDashboard({ currentUserRole, currentUserId }) {
               ) : (
                 <tr>
                   <td colSpan={["ADMIN", "CEO"].includes(currentUserRole?.toUpperCase()) ? "9" : "8"} className="py-4 px-4 text-center text-gray-500">
-                    No targets found
+                    No targets found.
                   </td>
                 </tr>
               )}

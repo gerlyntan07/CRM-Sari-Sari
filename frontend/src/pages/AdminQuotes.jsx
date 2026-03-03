@@ -1684,99 +1684,100 @@ export default function AdminQuotes() {
                   Loading quotes...
                 </td>
               </tr>
-            ) : filteredQuotes.length > 0 ? (
-              paginatedQuotes.map((quote) => {
-                const expiry = computeExpiryDate(
-                  quote.presented_date,
-                  quote.validity_days,
-                );
-                return (
-                  <tr
-                    key={quote.id}
-                    className="hover:bg-gray-50 text-sm cursor-pointer transition"
-                    onClick={() => handleQuoteClick(quote)}
+            ) :
+              (!itemsPerPage || Number(itemsPerPage) === 0 || paginatedQuotes.length === 0) ? (
+                <tr>
+                  <td
+                    className="py-4 px-4 text-center text-sm text-gray-500"
+                    colSpan={10}
                   >
-                    <td
-                      className="py-3 px-4 align-top w-12"
-                      onClick={(e) => e.stopPropagation()}
+                    No quotes found.
+                  </td>
+                </tr>
+              ) : (
+                paginatedQuotes.map((quote) => {
+                  const expiry = computeExpiryDate(
+                    quote.presented_date,
+                    quote.validity_days,
+                  );
+                  return (
+                    <tr
+                      key={quote.id}
+                      className="hover:bg-gray-50 text-sm cursor-pointer transition"
+                      onClick={() => handleQuoteClick(quote)}
                     >
-                      <input
-                        type="checkbox"
-                        checked={selectedIds.includes(quote.id)}
-                        onChange={() => handleCheckboxChange(quote.id)}
-                        className="cursor-pointer"
-                      />
-                    </td>
-                    <td className="py-3 px-4 align-top">
-                      <div className="font-medium text-blue-600 hover:underline whitespace-nowrap">
-                        {formatQuoteId(quote.quote_id) || "--"}
-                      </div>
-                    </td>
-
-                    <td className="py-3 px-4 align-top">
-                      <div className="break-words">
-                        {resolveDealLabel(quote) || "--"}
-                      </div>
-                    </td>
-
-                    <td className="py-3 px-4 align-top">
-                      <div className="text-sm text-gray-700 break-words">
-                        {resolveAccountLabel(quote) || "--"}
-                      </div>
-                    </td>
-
-                    <td className="py-3 px-4 align-top">
-                      <div className="break-words">
-                        {resolveContactLabel(quote) || "--"}
-                      </div>
-                    </td>
-
-                    <td className="py-3 px-4 align-top">
-                      <div className="text-gray-700">
-                        {/* ✅ Use dynamic currency symbol in Table */}
-                        {quote.total_amount
-                          ? `${currencySymbol}${Number(quote.total_amount).toLocaleString()}`
-                          : "--"}
-                      </div>
-                    </td>
-
-                    <td className="py-3 px-4 align-top">
-                      <span
-                        className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${getStatusBadgeClass(
-                          quote.status,
-                        )}`}
+                      <td
+                        className="py-3 px-4 align-top w-12"
+                        onClick={(e) => e.stopPropagation()}
                       >
-                        {formatStatusLabel(quote.status)}
-                      </span>
-                    </td>
+                        <input
+                          type="checkbox"
+                          checked={selectedIds.includes(quote.id)}
+                          onChange={() => handleCheckboxChange(quote.id)}
+                          className="cursor-pointer"
+                        />
+                      </td>
+                      <td className="py-3 px-4 align-top">
+                        <div className="font-medium text-blue-600 hover:underline whitespace-nowrap">
+                          {formatQuoteId(quote.quote_id) || "--"}
+                        </div>
+                      </td>
 
-                    <td className="py-3 px-4 align-top">
-                      <div>
-                        {quote.assigned_user
-                          ? `${quote.assigned_user.first_name} ${quote.assigned_user.last_name}`
-                          : "Unassigned"}
-                      </div>
-                    </td>
+                      <td className="py-3 px-4 align-top">
+                        <div className="break-words">
+                          {resolveDealLabel(quote) || "--"}
+                        </div>
+                      </td>
 
-                    <td className="py-3 px-4 align-top">
-                      <div className="text-gray-500 text-xs">
-                        {formatDate(expiry) || "--"}
-                      </div>
-                    </td>
-                    <td className="py-3 px-4 align-top text-center w-24"></td>
-                  </tr>
-                );
-              })
-            ) : (
-              <tr>
-                <td
-                  className="py-4 px-4 text-center text-sm text-gray-500"
-                  colSpan={10}
-                >
-                  No quotes found.
-                </td>
-              </tr>
-            )}
+                      <td className="py-3 px-4 align-top">
+                        <div className="text-sm text-gray-700 break-words">
+                          {resolveAccountLabel(quote) || "--"}
+                        </div>
+                      </td>
+
+                      <td className="py-3 px-4 align-top">
+                        <div className="break-words">
+                          {resolveContactLabel(quote) || "--"}
+                        </div>
+                      </td>
+
+                      <td className="py-3 px-4 align-top">
+                        <div className="text-gray-700">
+                          {/* ✅ Use dynamic currency symbol in Table */}
+                          {quote.total_amount
+                            ? `${currencySymbol}${Number(quote.total_amount).toLocaleString()}`
+                            : "--"}
+                        </div>
+                      </td>
+
+                      <td className="py-3 px-4 align-top">
+                        <span
+                          className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${getStatusBadgeClass(
+                            quote.status,
+                          )}`}
+                        >
+                          {formatStatusLabel(quote.status)}
+                        </span>
+                      </td>
+
+                      <td className="py-3 px-4 align-top">
+                        <div>
+                          {quote.assigned_user
+                            ? `${quote.assigned_user.first_name} ${quote.assigned_user.last_name}`
+                            : "Unassigned"}
+                        </div>
+                      </td>
+
+                      <td className="py-3 px-4 align-top">
+                        <div className="text-gray-500 text-xs">
+                          {formatDate(expiry) || "--"}
+                        </div>
+                      </td>
+                      <td className="py-3 px-4 align-top text-center w-24"></td>
+                    </tr>
+                  );
+                })
+              )}
           </tbody>
         </table>
       </div>

@@ -853,44 +853,48 @@ const [isSubmitted, setIsSubmitted] = useState(false);
                   </tr>
                 </thead>
                 <tbody>
-                  {hasResults ? paginatedTerritories.map(t => (
-                    <tr key={t.id} className="hover:bg-gray-50 cursor-pointer" onClick={() => { 
-                      setSelectedTerritory(t);
-                      const role = getRoleForNavigation();
-                      navigate(`/${role}/territory/${t.id}`); 
-                    }}>
-                      {!['sales', 'manager'].includes(userRole.toLowerCase()) && (
-                        <td className="py-3 px-4" onClick={(e) => e.stopPropagation()}>
-                          {canDeleteTerritory(t) ? (
-                            <input
-                              type="checkbox"
-                              className="w-4 h-4 accent-blue-600"
-                              checked={
-                                // For both GROUP MANAGER and ADMIN/CEO, check if ANY territory ID in group is selected
-                                t.territory_ids && t.territory_ids.some((id) => selectedIds.includes(id))
-                              }
-                              onChange={() => handleCheckboxChange(t)}
-                            />
-                          ) : (
-                            <div className="w-4 h-4"></div>
-                          )}
+                  {(!itemsPerPage || Number(itemsPerPage) === 0 || paginatedTerritories.length === 0) ? (
+                    <tr><td colSpan={5} className="text-center py-4 text-gray-500">No territories found.</td></tr>
+                  ) : (
+                    paginatedTerritories.map(t => (
+                      <tr key={t.id} className="hover:bg-gray-50 cursor-pointer" onClick={() => { 
+                        setSelectedTerritory(t);
+                        const role = getRoleForNavigation();
+                        navigate(`/${role}/territory/${t.id}`); 
+                      }}>
+                        {!['sales', 'manager'].includes(userRole.toLowerCase()) && (
+                          <td className="py-3 px-4" onClick={(e) => e.stopPropagation()}>
+                            {canDeleteTerritory(t) ? (
+                              <input
+                                type="checkbox"
+                                className="w-4 h-4 accent-blue-600"
+                                checked={
+                                  // For both GROUP MANAGER and ADMIN/CEO, check if ANY territory ID in group is selected
+                                  t.territory_ids && t.territory_ids.some((id) => selectedIds.includes(id))
+                                }
+                                onChange={() => handleCheckboxChange(t)}
+                              />
+                            ) : (
+                              <div className="w-4 h-4"></div>
+                            )}
+                          </td>
+                        )}
+                        <td className="py-3 px-4 font-medium">
+                          <div className="flex items-center gap-2">
+                            {t.name}
+                            {t.status === 'Inactive' && (
+                              <span className="bg-red-100 text-red-700 text-xs font-semibold px-2 py-1 rounded">
+                                Inactive
+                              </span>
+                            )}
+                          </div>
                         </td>
-                      )}
-                      <td className="py-3 px-4 font-medium">
-                        <div className="flex items-center gap-2">
-                          {t.name}
-                          {t.status === 'Inactive' && (
-                            <span className="bg-red-100 text-red-700 text-xs font-semibold px-2 py-1 rounded">
-                              Inactive
-                            </span>
-                          )}
-                        </div>
-                      </td>
-                      <td className="py-3 px-4">{renderAssignedUsers(t.assigned_users_list)}</td>
-                      <td className="py-3 px-4">{t.managed_by ? `${t.managed_by.first_name}` : "—"}</td>
-                      <td></td>
-                    </tr>
-                  )) : <tr><td colSpan={5} className="text-center py-4 text-gray-500">No territories found.</td></tr>}
+                        <td className="py-3 px-4">{renderAssignedUsers(t.assigned_users_list)}</td>
+                        <td className="py-3 px-4">{t.managed_by ? `${t.managed_by.first_name}` : "—"}</td>
+                        <td></td>
+                      </tr>
+                    ))
+                  )}
                 </tbody>
              </table>
            </div>

@@ -144,6 +144,7 @@ export default function AdminUser() {
   const [selectedStatus, setSelectedStatus] = useState("");
   const [updatingStatus, setUpdatingStatus] = useState(false);
   const [selectedIds, setSelectedIds] = useState([]);
+  const [showImageModal, setShowImageModal] = useState(false);
 
   const normalizedUserRole = normalizeRoleValue(currentUser?.role);
   const isAuthorized = ["ADMIN", "CEO"].includes(normalizedUserRole);
@@ -939,14 +940,44 @@ export default function AdminUser() {
                     <p className="font-semibold">Profile Picture:</p>
                     <p>
                       {selectedUser.profile_picture ? (
-                        <a
-                          href={selectedUser.profile_picture}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-blue-600 hover:underline break-all"
-                        >
-                          View image
-                        </a>
+                        <>
+                          <button
+                            type="button"
+                            className="text-blue-600 hover:underline break-all"
+                            onClick={() => setShowImageModal(true)}
+                          >
+                            View image
+                          </button>
+                          {showImageModal && (
+                            <div
+                              className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-80 transition-all duration-300"
+                              onClick={() => setShowImageModal(false)}
+                            >
+                              {/* Modern close icon absolutely at the viewport's top-right */}
+                              <button
+                                className="fixed top-3 right-3 sm:top-5 sm:right-5 text-gray-300 hover:text-white focus:outline-none bg-transparent border-none p-0 m-0 z-50"
+                                style={{ background: 'none' }}
+                                onClick={() => setShowImageModal(false)}
+                                aria-label="Close"
+                              >
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-8 h-8">
+                                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                              </button>
+                              <div
+                                className="relative flex flex-col items-center justify-center w-full h-full animate-scale-in"
+                                onClick={e => e.stopPropagation()}
+                              >
+                                <img
+                                  src={selectedUser.profile_picture}
+                                  alt="Profile"
+                                  className="object-contain max-h-[80vh] max-w-[95vw] sm:max-w-[80vw] mx-auto"
+                                  style={{ background: 'none', boxShadow: 'none', border: 'none', borderRadius: 0, margin: 0 }}
+                                />
+                              </div>
+                            </div>
+                          )}
+                        </>
                       ) : (
                         "N/A"
                       )}

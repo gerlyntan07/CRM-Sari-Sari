@@ -123,6 +123,7 @@ const sortUsers = (list) =>
   });
 
 export default function AdminUser() {
+    const [showImageModal, setShowImageModal] = useState(false);
   const { user: currentUser, loading: userLoading } = useFetchUser();
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -748,28 +749,7 @@ export default function AdminUser() {
             {renderRoleBadge(selectedUser.role, { size: "md" })}
           </div>
 
-          {!['CEO', 'ADMIN', 'GROUP MANAGER', 'GROUP_MANAGER'].includes(selectedUser.role.toUpperCase()) && (
-            <div className="flex flex-col sm:flex-row sm:space-x-3 space-y-2 sm:space-y-0">
-            <button
-              type="button"
-              className="inline-flex items-center justify-center w-full sm:w-auto bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 disabled:opacity-70 transition text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
-              onClick={() => handleEditClick(selectedUser)}
-              disabled={confirmProcessing}
-            >
-              <FiEdit2 className="mr-2" />
-              Edit
-            </button>
-            {/* <button
-              type="button"
-              className="inline-flex items-center justify-center w-full sm:w-auto px-4 py-2 rounded-md text-sm bg-red-500 text-white hover:bg-red-600 transition focus:outline-none focus:ring-2 focus:ring-red-400"
-              onClick={() => handleDeleteClick(selectedUser)}
-              disabled={confirmProcessing}
-            >
-              <FiTrash2 className="mr-2" />
-              Delete
-            </button> */}
-          </div>
-          )}          
+          {/* Edit button removed as requested */}
         </div>
         <div className="border-b border-gray-200 mb-6"></div>
 
@@ -852,14 +832,43 @@ export default function AdminUser() {
                     <p className="font-semibold">Profile Picture:</p>
                     <p>
                       {selectedUser.profile_picture ? (
-                        <a
-                          href={selectedUser.profile_picture}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-blue-600 hover:underline break-all"
-                        >
-                          View image
-                        </a>
+                        <>
+                          <button
+                            type="button"
+                            className="text-blue-600 hover:underline break-all"
+                            onClick={() => setShowImageModal(true)}
+                          >
+                            View image
+                          </button>
+                          {showImageModal && (
+                            <div
+                              className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-80 transition-all duration-300"
+                              onClick={() => setShowImageModal(false)}
+                            >
+                              <button
+                                className="fixed top-3 right-3 sm:top-5 sm:right-5 text-gray-300 hover:text-white focus:outline-none bg-transparent border-none p-0 m-0 z-50"
+                                style={{ background: 'none' }}
+                                onClick={() => setShowImageModal(false)}
+                                aria-label="Close"
+                              >
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-8 h-8">
+                                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                              </button>
+                              <div
+                                className="relative flex flex-col items-center justify-center w-full h-full animate-scale-in"
+                                onClick={e => e.stopPropagation()}
+                              >
+                                <img
+                                  src={selectedUser.profile_picture}
+                                  alt="Profile"
+                                  className="object-contain max-h-[80vh] max-w-[95vw] sm:max-w-[80vw] mx-auto"
+                                  style={{ background: 'none', boxShadow: 'none', border: 'none', borderRadius: 0, margin: 0 }}
+                                />
+                              </div>
+                            </div>
+                          )}
+                        </>
                       ) : (
                         "N/A"
                       )}

@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { FiEye, FiEyeOff } from "react-icons/fi";
 import {
   FiShield,
   FiSearch,
@@ -1122,12 +1123,13 @@ function UserFormModal({
   onChange,
   onGeneratePassword,
 }) {
+  const [showPassword, setShowPassword] = useState(false);
   if (!open) return null;
   const disabled = isSubmitting || confirmProcessing;
 
   return (
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-      <div className="bg-white w-full max-w-2xl rounded-2xl shadow-lg border border-gray-200 p-6 sm:p-8 relative overflow-y-auto max-h-[90vh]">
+      <div className="bg-white w-full max-w-2xl rounded-2xl shadow-lg border border-gray-200 p-6 sm:p-8 relative" style={{ overflowY: 'visible', maxHeight: 'none' }}>
         <button
           onClick={onClose}
           className="absolute top-4 right-4 text-gray-500 hover:text-black transition disabled:opacity-60"
@@ -1181,19 +1183,32 @@ function UserFormModal({
               Password
             </label>
             <div className="flex flex-col sm:flex-row sm:items-center gap-2">
-              <input
-                type="text"
-                value={formData.password}
-                onChange={(event) => onChange("password", event.target.value)}
-                placeholder={
-                  isEditing
-                    ? "Leave blank to keep current password"
-                    : "Enter or generate password"
-                }
-                required={!isEditing}
-                disabled={disabled}
-                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-indigo-500 outline-none disabled:bg-gray-100"
-              />
+              <div className="relative w-full">
+                <input
+                  type="text"
+                  style={showPassword ? undefined : { WebkitTextSecurity: "disc" }}
+                  value={formData.password}
+                  onChange={(event) => onChange("password", event.target.value)}
+                  placeholder={
+                    isEditing
+                      ? "Leave blank to keep current password"
+                      : "Enter or generate password"
+                  }
+                  required={!isEditing}
+                  disabled={disabled}
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-indigo-500 outline-none disabled:bg-gray-100 pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((prev) => !prev)}
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-700 hover:text-gray-900 focus:outline-none z-10 transition-colors cursor-pointer"
+                  tabIndex={-1}
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                  disabled={disabled}
+                >
+                  {showPassword ? <FiEyeOff className="size-5" /> : <FiEye className="size-5" />}
+                </button>
+              </div>
               <button
                 type="button"
                 onClick={onGeneratePassword}
@@ -1214,7 +1229,7 @@ function UserFormModal({
               </p>
             )}
           </div>
-          <div className="flex flex-col sm:flex-row justify-end gap-2 md:col-span-2 mt-4">
+          <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 md:col-span-2 mt-4">
             <button
               type="button"
               onClick={onClose}

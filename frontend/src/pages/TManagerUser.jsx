@@ -9,6 +9,9 @@ import {
   FiPhone,
   FiMail,
   FiCalendar,
+  FiEye,
+  FiEyeOff,
+  FiLock,
 } from "react-icons/fi";
 import { HiX } from "react-icons/hi";
 import { toast } from "react-toastify";
@@ -1027,12 +1030,13 @@ function UserFormModal({
   onChange,
   onGeneratePassword,
 }) {
+  const [showPassword, setShowPassword] = useState(false);
   if (!open) return null;
   const disabled = isSubmitting || confirmProcessing;
 
   return (
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-      <div className="bg-white w-full max-w-2xl rounded-2xl shadow-lg border border-gray-200 p-6 sm:p-8 relative overflow-y-auto max-h-[90vh]">
+      <div className="bg-white w-full max-w-2xl rounded-2xl shadow-lg border border-gray-200 p-6 sm:p-8 relative" style={{ overflowY: 'visible', maxHeight: 'none' }}>
         <button
           onClick={onClose}
           className="absolute top-4 right-4 text-gray-500 hover:text-black transition disabled:opacity-60"
@@ -1085,24 +1089,38 @@ function UserFormModal({
             <label className="block text-gray-700 font-medium mb-1 text-sm">
               Password
             </label>
-            <div className="flex flex-col sm:flex-row sm:items-center gap-2">
-              <input
-                type="text"
-                value={formData.password}
-                onChange={(event) => onChange("password", event.target.value)}
-                placeholder={
-                  isEditing
-                    ? "Leave blank to keep current password"
-                    : "Enter or generate password"
-                }
-                required={!isEditing}
-                disabled={disabled}
-                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-indigo-500 outline-none disabled:bg-gray-100"
-              />
+            <div className="flex flex-row gap-2 items-center">
+              <div className="relative w-full">
+                <input
+                  type="text"
+                  style={showPassword ? undefined : { WebkitTextSecurity: 'disc' }}
+                  value={formData.password}
+                  onChange={(event) => onChange("password", event.target.value)}
+                  placeholder={
+                    isEditing
+                      ? "Leave blank to keep current password"
+                      : "Enter or generate password"
+                  }
+                  required={!isEditing}
+                  disabled={disabled}
+                  className="w-full pl-3 pr-12 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 outline-none disabled:bg-gray-100"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((v) => !v)}
+                  className="absolute inset-y-0 right-3 flex items-center text-gray-700 hover:text-gray-900 focus:outline-none z-10 transition-colors cursor-pointer"
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                  disabled={disabled}
+                  tabIndex={-1}
+                  style={{ background: 'transparent', border: 'none', padding: 0, margin: 0 }}
+                >
+                  {showPassword ? <FiEyeOff className="size-5" /> : <FiEye className="size-5" />}
+                </button>
+              </div>
               <button
                 type="button"
                 onClick={onGeneratePassword}
-                className="flex items-center justify-center px-4 py-2 bg-gray-900 text-white rounded-md hover:bg-gray-800 transition disabled:opacity-60"
+                className="flex items-center justify-center px-4 py-2 bg-gray-900 text-white rounded-md hover:bg-gray-800 transition disabled:opacity-60 whitespace-nowrap"
                 disabled={disabled}
               >
                 Generate
@@ -1121,16 +1139,8 @@ function UserFormModal({
           </div>
           <div className="flex flex-col sm:flex-row justify-end gap-2 md:col-span-2 mt-4">
             <button
-              type="button"
-              onClick={onClose}
-              className="w-full sm:w-auto px-4 py-2 text-white bg-red-400 border border-red-300 rounded hover:bg-red-500 transition disabled:opacity-70"
-              disabled={disabled}
-            >
-              Cancel
-            </button>
-            <button
               type="submit"
-              className="w-full sm:w-auto px-4 py-2 text-white border border-tertiary bg-tertiary rounded hover:bg-secondary transition disabled:opacity-70"
+              className="w-full sm:w-auto px-4 py-2 text-white border border-tertiary bg-tertiary rounded hover:bg-secondary transition disabled:opacity-70 order-1 sm:order-2"
               disabled={disabled}
             >
               {isSubmitting
@@ -1138,6 +1148,14 @@ function UserFormModal({
                 : isEditing
                 ? "Update User"
                 : "Save User"}
+            </button>
+            <button
+              type="button"
+              onClick={onClose}
+              className="w-full sm:w-auto px-4 py-2 text-white bg-red-400 border border-red-300 rounded hover:bg-red-500 transition disabled:opacity-70 order-2 sm:order-1"
+              disabled={disabled}
+            >
+              Cancel
             </button>
           </div>
         </form>

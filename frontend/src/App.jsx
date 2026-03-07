@@ -133,6 +133,12 @@ import TManagerUser from "./pages/TManagerUser";
 import TManagerCalendar from "./pages/TManagerCalendar";
 import TManagerSoas from "./pages/TManagerSoas";
 
+// 🔹 Technical Support layout + pages
+import TechnicalSupportPanel from "./components/TechnicalSupportPanel";
+import TechnicalSupportDashboard from "./pages/TechnicalSupportDashboard";
+import TechnicalSupportTickets from "./pages/TechnicalSupportTickets";
+import TechnicalSupportSystemAlerts from "./pages/TechnicalSupportSystemAlerts";
+
 function App() {
   return (
     <Router>
@@ -344,6 +350,21 @@ function App() {
           <Route path="calendar" element={<TManagerCalendar />} />
           <Route path="audit" element={<TManagerAudit />} />
           <Route path="users" element={<TManagerUser />} />
+          <Route path="manage-account" element={<PublicManageAccount />} />
+        </Route>
+
+        {/* ================= Technical Support Layout ================= */}
+        <Route path="/technical-support" element={<PrivateRoute requiredRole="technical support"><TechnicalSupportPanel /></PrivateRoute>}>
+          <Route index element={<Navigate to="dashboard" replace />} />
+          <Route path="dashboard" element={<TechnicalSupportDashboard />} />
+          <Route path="tickets" element={<TechnicalSupportTickets />} />
+          <Route path="system-alerts" element={<TechnicalSupportSystemAlerts />} />
+          <Route path="knowledge-base" element={<TechnicalSupportTickets />} />
+          <Route path="user-support" element={<TechnicalSupportTickets />} />
+          <Route path="system-monitoring" element={<TechnicalSupportSystemAlerts />} />
+          <Route path="maintenance" element={<TechnicalSupportSystemAlerts />} />
+          <Route path="reports" element={<TechnicalSupportDashboard />} />
+          <Route path="settings" element={<PublicManageAccount />} />
           <Route path="manage-account" element={<PublicManageAccount />} />
         </Route>
         </Routes>

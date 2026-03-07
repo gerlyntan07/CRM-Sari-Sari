@@ -21,6 +21,8 @@ const PrivateRoute = ({ children, requiredRole }) => {
             return <Navigate to="/manager/dashboard" replace />;
         } else if (userRole === 'SALES') {
             return <Navigate to="/sales/dashboard" replace />;
+        } else if (userRole.toUpperCase() === 'TECHNICAL SUPPORT') {
+            return <Navigate to="/technical-support/dashboard" replace />;
         } else {
             return <Navigate to="/" replace />;
         }

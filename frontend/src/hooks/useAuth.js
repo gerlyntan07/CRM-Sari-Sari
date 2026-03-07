@@ -46,7 +46,9 @@ export const useAuth = () => {
     } else if (user.role === 'CEO') {
       navigate(`/admin/dashboard`);
     } else if (user.role === 'Manager') {
-      navigate(`/manager/dashboard`)
+      navigate(`/manager/dashboard`);
+    } else if (user.role === 'Technical Support') {
+      navigate(`/technical-support/dashboard`);
     } else {
       navigate('/');
     }

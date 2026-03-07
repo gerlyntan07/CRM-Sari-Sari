@@ -1539,6 +1539,38 @@ export default function AdminAccounts() {
                 </h4>
 
                 <div className="flex flex-col gap-2 w-full">
+
+                   <button
+                    onClick={() =>
+                      navigate("/sales/contacts", {
+                        state: {
+                          openContactModal: true,
+                        },
+                      })
+                    }
+                    className="flex items-center gap-2 border border-gray-100 rounded-md py-1.5 px-2 sm:px-3 hover:bg-gray-50 transition text-sm"
+                  >
+                    <FiUsers className="text-gray-600 w-4 h-4" />
+                    Contact
+                  </button>
+
+
+                  <button
+                    onClick={() =>
+                      navigate("/sales/deals", {
+                        state: {
+                          openDealModal: true,
+                        },
+                      })
+                    }
+                    className="flex items-center gap-2 border border-gray-100 rounded-md py-1.5 px-2 sm:px-3 hover:bg-gray-50 transition text-sm"
+                  >
+                    <FiBriefcase className="text-gray-600 w-4 h-4" />
+                    Deals
+                  </button>
+
+
+                {/* Action button for Activities */}
                   <button
                     onClick={() =>
                       navigate("/sales/calls", {

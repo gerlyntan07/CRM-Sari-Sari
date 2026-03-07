@@ -78,6 +78,31 @@ export default function SalesDeals() {
       }
     }, [pendingDealId, deals, dealsLoading]);
 
+     // Handle case where openDealModal is passed to open a new deal form
+  useEffect(() => {
+    if (!location.state?.openDealModal) return;
+
+    setDealForm({
+      id: null,
+      name: "",
+      account_id: "",
+      primary_contact_id: "",
+      stage: "PROPOSAL",
+      amount: "",
+      close_date: "",
+      assigned_to: "",
+      currency: "PHP",
+      description: "",
+    });
+    setIsEditing(false);
+    setCurrentDealId(null);
+    setShowDealModal(true);
+
+    // cleanup
+    navigate(location.pathname, { replace: true, state: {} });
+  }, [location.state, location.pathname, navigate]);
+
+
     const [dealForm, setDealForm] = useState({
         id: null,
         name: "",

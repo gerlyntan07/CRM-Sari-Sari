@@ -51,8 +51,18 @@ class AccountBase(BaseModel):
         from_attributes = True
 
 
+class QuoteBase(BaseModel):
+    id: int
+    quote_id: Optional[str] = None
+    status: Optional[str] = None
+
+    class Config:
+        from_attributes = True
+
+
 class SoaBase(BaseModel):
     account_id: int
+    quote_id: Optional[int] = None
 
     purchase_order_number: Optional[str] = None
     quote_number: Optional[str] = None
@@ -90,6 +100,7 @@ class SoaCreate(SoaBase):
 
 class SoaUpdate(BaseModel):
     account_id: Optional[int] = None
+    quote_id: Optional[int] = None
 
     purchase_order_number: Optional[str] = None
     quote_number: Optional[str] = None
@@ -131,6 +142,7 @@ class SoaResponse(SoaBase):
     updated_at: Optional[datetime] = None
 
     account: Optional[AccountBase] = None
+    quote: Optional[QuoteBase] = None
 
     assigned_user: Optional[UserBase] = None
     creator: Optional[UserBase] = None

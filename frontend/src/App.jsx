@@ -111,6 +111,7 @@ import MarketingTemplates from "./pages/MarketingTemplates";
 
 // 🔹 Print pages
 import QuotePrintPage from "./pages/QuotePrintPage";
+import SoaPrintPage from "./pages/SoaPrintPage";
 
 // 🔹 Team Manager layout + pages
 import TManagerPanel from "./components/TManagerPanel";
@@ -196,6 +197,38 @@ function App() {
           element={
             <PrivateRoute requiredRole="group manager">
               <QuotePrintPage />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/admin/soas/:soaId/print"
+          element={
+            <PrivateRoute requiredRole="ceo">
+              <SoaPrintPage />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/sales/soas/:soaId/print"
+          element={
+            <PrivateRoute requiredRole="sales">
+              <SoaPrintPage />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/manager/soas/:soaId/print"
+          element={
+            <PrivateRoute requiredRole="manager">
+              <SoaPrintPage />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/group-manager/soas/:soaId/print"
+          element={
+            <PrivateRoute requiredRole="group manager">
+              <SoaPrintPage />
             </PrivateRoute>
           }
         />

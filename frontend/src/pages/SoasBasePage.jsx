@@ -1,6 +1,6 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { FiEdit2, FiFileText, FiPlus, FiTrash2, FiX } from "react-icons/fi";
+import { FiEdit2, FiFileText, FiPlus, FiPrinter, FiTrash2, FiX } from "react-icons/fi";
 import { toast } from "react-toastify";
 
 import api from "../api";
@@ -9,6 +9,7 @@ import QuoteItemsEditor from "../components/QuoteItemsEditor";
 
 const EMPTY_FORM = {
   account_id: "",
+  quote_id: "",
   purchase_order_number: "",
   quote_number: "",
   soa_date: "",
@@ -31,14 +32,24 @@ export default function SoasBasePage({ basePath }) {
 
   const currencySymbol = user?.company?.currency || "₱";
   const defaultTaxRate = Number(user?.company?.tax_rate ?? 0);
+  const defaultPreparedBy = useMemo(() => {
+    const fullName = [user?.first_name, user?.last_name].filter(Boolean).join(" ").trim();
+    if (fullName) return fullName;
+    return user?.name || user?.username || user?.email || "";
+  }, [user]);
 
   const [loading, setLoading] = useState(false);
   const [soas, setSoas] = useState([]);
   const [accounts, setAccounts] = useState([]);
+  const [quotes, setQuotes] = useState([]);
 
   const [showForm, setShowForm] = useState(false);
   const [editingSoa, setEditingSoa] = useState(null);
-  const [formData, setFormData] = useState({ ...EMPTY_FORM, tax_rate: defaultTaxRate });
+  const [formData, setFormData] = useState({
+    ...EMPTY_FORM,
+    tax_rate: defaultTaxRate,
+    prepared_by: defaultPreparedBy,
+  });
 
   const [totals, setTotals] = useState({
     subtotal: 0,
@@ -55,6 +66,26 @@ export default function SoasBasePage({ basePath }) {
     return basePath || "/admin";
   }, [basePath]);
 
+  const formatQuoteId = useCallback((quoteId) => {
+    if (!quoteId) return "";
+    // Convert Q26-1-00001 to Q26-00001 (remove middle company ID)
+    const parts = String(quoteId).split("-");
+    if (parts.length === 3) {
+      return `${parts[0]}-${parts[2]}`;
+    }
+    return String(quoteId);
+  }, []);
+
+  const formatSOAId = useCallback((soaId) => {
+    if (!soaId) return "";
+    // Convert Q26-1-00001 to Q26-00001 (remove middle company ID)
+    const parts = String(soaId).split("-");
+    if (parts.length === 3) {
+      return `${parts[0]}-${parts[2]}`;
+    }
+    return String(soaId);
+  }, []);
+
   const fetchAccounts = async () => {
     const res = await api.get("/accounts/admin/fetch-all");
     setAccounts(Array.isArray(res.data) ? res.data : []);
@@ -65,13 +96,20 @@ export default function SoasBasePage({ basePath }) {
     setSoas(Array.isArray(res.data) ? res.data : []);
   };
 
+  const fetchQuotes = async () => {
+    const res = await api.get("/quotes/admin/fetch-all");
+    const data = Array.isArray(res.data) ? res.data : [];
+    const activeQuotes = data.filter((q) => String(q?.status || "").toLowerCase() !== "inactive");
+    setQuotes(activeQuotes);
+  };
+
   useEffect(() => {
     if (!user) return;
 
     (async () => {
       try {
         setLoading(true);
-        await Promise.all([fetchAccounts(), fetchSoas()]);
+        await Promise.all([fetchAccounts(), fetchSoas(), fetchQuotes()]);
       } catch (e) {
         console.error(e);
         toast.error("Failed to load SOAs");
@@ -91,23 +129,93 @@ export default function SoasBasePage({ basePath }) {
         ...prev,
         ...EMPTY_FORM,
         tax_rate: defaultTaxRate,
+        prepared_by: defaultPreparedBy,
         account_id: state?.initialSoaData?.account_id ? String(state.initialSoaData.account_id) : "",
+        quote_id: state?.initialSoaData?.quote_id ? String(state.initialSoaData.quote_id) : "",
+        quote_number: state?.initialSoaData?.quote_number || "",
       }));
 
       // Clear state to avoid re-trigger on back/forward
       navigate(`${rolePrefix}/soas`, { replace: true, state: {} });
     }
-  }, [location.state, navigate, rolePrefix, defaultTaxRate]);
+  }, [location.state, navigate, rolePrefix, defaultTaxRate, defaultPreparedBy]);
+
+  const selectedQuote = useMemo(() => {
+    if (!formData.quote_id) return null;
+    return quotes.find((q) => String(q.id) === String(formData.quote_id)) || null;
+  }, [quotes, formData.quote_id]);
+
+  const filteredQuotes = useMemo(() => {
+    if (!formData.account_id) return quotes;
+    return quotes.filter((q) => String(q.account_id || "") === String(formData.account_id));
+  }, [quotes, formData.account_id]);
 
   const accountLabel = (accountId) => {
     const found = accounts.find((a) => String(a.id) === String(accountId));
     return found?.name || "--";
   };
 
+  const createdByLabel = (soa) => {
+    const first = soa?.creator?.first_name || "";
+    const last = soa?.creator?.last_name || "";
+    const fullName = `${first} ${last}`.trim();
+
+    if (fullName) return fullName;
+    if (soa?.creator?.name) return soa.creator.name;
+    if (soa?.creator?.username) return soa.creator.username;
+    if (soa?.creator?.email) return soa.creator.email;
+    if (soa?.created_by) return `User #${soa.created_by}`;
+    return "--";
+  };
+
+  const mapQuoteItemsToSoaItems = useCallback((items = []) => {
+    return items.map((item, idx) => ({
+      id: null,
+      item_type: item?.item_type || "Product",
+      name: item?.name || "",
+      description: item?.description || "",
+      sku: item?.sku || "",
+      variant: item?.variant || "",
+      unit: item?.unit || "pcs",
+      quantity: Number(item?.quantity ?? 1),
+      unit_price: Number(item?.unit_price ?? 0),
+      discount_percent: Number(item?.discount_percent ?? 0),
+      discount_amount: Number(item?.discount_amount ?? 0),
+      line_total: Number(item?.line_total ?? 0),
+      sort_order: item?.sort_order ?? idx,
+    }));
+  }, []);
+
+  useEffect(() => {
+    if (!showForm || editingSoa?.id || !formData.quote_id) return;
+    if (Array.isArray(formData.items) && formData.items.length > 0) return;
+
+    const q = quotes.find((quote) => String(quote.id) === String(formData.quote_id));
+    if (!q) return;
+
+    const presetItems = mapQuoteItemsToSoaItems(Array.isArray(q.items) ? q.items : []);
+    setFormData((prev) => ({
+      ...prev,
+      quote_number: prev.quote_number || formatQuoteId(q.quote_id) || "",
+      account_id: prev.account_id || (q.account_id ? String(q.account_id) : ""),
+      tax_rate: Number(q.tax_rate ?? prev.tax_rate ?? defaultTaxRate),
+      items: presetItems,
+    }));
+  }, [
+    showForm,
+    editingSoa?.id,
+    formData.quote_id,
+    formData.items,
+    quotes,
+    defaultTaxRate,
+    formatQuoteId,
+    mapQuoteItemsToSoaItems,
+  ]);
+
   const openCreate = () => {
     setShowForm(true);
     setEditingSoa(null);
-    setFormData({ ...EMPTY_FORM, tax_rate: defaultTaxRate });
+    setFormData({ ...EMPTY_FORM, tax_rate: defaultTaxRate, prepared_by: defaultPreparedBy });
     setTotals({ subtotal: 0, tax_amount: 0, total_amount: 0 });
   };
 
@@ -118,11 +226,13 @@ export default function SoasBasePage({ basePath }) {
       ...EMPTY_FORM,
       ...soa,
       account_id: soa?.account_id ? String(soa.account_id) : "",
+      quote_id: soa?.quote_id ? String(soa.quote_id) : "",
       soa_date: soa?.soa_date || "",
       due_date: soa?.due_date || "",
       items: Array.isArray(soa?.items) ? soa.items : [],
       tax_rate: Number(soa?.tax_rate ?? defaultTaxRate),
       full_payment: soa?.full_payment ?? true,
+      quote_number: formatQuoteId(soa?.quote_number || soa?.quote?.quote_id || ""),
     });
 
     setTotals({
@@ -135,7 +245,31 @@ export default function SoasBasePage({ basePath }) {
   const closeForm = () => {
     setShowForm(false);
     setEditingSoa(null);
-    setFormData({ ...EMPTY_FORM, tax_rate: defaultTaxRate });
+    setFormData({ ...EMPTY_FORM, tax_rate: defaultTaxRate, prepared_by: defaultPreparedBy });
+  };
+
+  const handleQuoteChange = (quoteIdValue) => {
+    if (!quoteIdValue) {
+      setFormData((prev) => ({ ...prev, quote_id: "" }));
+      return;
+    }
+
+    const q = quotes.find((quote) => String(quote.id) === String(quoteIdValue));
+    if (!q) {
+      setFormData((prev) => ({ ...prev, quote_id: "" }));
+      return;
+    }
+
+    const presetItems = mapQuoteItemsToSoaItems(Array.isArray(q.items) ? q.items : []);
+
+    setFormData((prev) => ({
+      ...prev,
+      quote_id: String(q.id),
+      quote_number: formatQuoteId(q.quote_id) || prev.quote_number || "",
+      account_id: q.account_id ? String(q.account_id) : prev.account_id,
+      tax_rate: Number(q.tax_rate ?? prev.tax_rate ?? defaultTaxRate),
+      items: presetItems,
+    }));
   };
 
   const handleSubmit = async (e) => {
@@ -173,8 +307,9 @@ export default function SoasBasePage({ basePath }) {
 
     const payload = {
       account_id: Number(formData.account_id),
+      quote_id: formData.quote_id ? Number(formData.quote_id) : null,
       purchase_order_number: formData.purchase_order_number || null,
-      quote_number: formData.quote_number || null,
+      quote_number: (formData.quote_number || selectedQuote?.quote_id || "").trim() || null,
       soa_date: formData.soa_date || null,
       terms_of_payment: formData.terms_of_payment || null,
       due_date: formData.due_date || null,
@@ -235,6 +370,19 @@ export default function SoasBasePage({ basePath }) {
     }
   };
 
+  const handlePrint = (soa) => {
+    if (!soa?.id) return;
+
+    const account = accounts.find((a) => String(a.id) === String(soa.account_id)) || null;
+
+    navigate(`${rolePrefix}/soas/${encodeURIComponent(soa.id)}/print`, {
+      state: {
+        soa,
+        account,
+      },
+    });
+  };
+
   const formatMoney = (amount) => {
     const num = Number(amount ?? 0);
     return `${currencySymbol}${num.toLocaleString("en-US", {
@@ -255,7 +403,7 @@ export default function SoasBasePage({ basePath }) {
           type="button"
           onClick={openCreate}
           disabled={loading}
-          className="inline-flex items-center gap-2 bg-gray-900 text-white px-4 py-2 rounded-md font-medium hover:bg-gray-800 disabled:opacity-50"
+          className="inline-flex items-center gap-2 bg-gray-900 text-white px-4 py-2 rounded-md font-medium hover:bg-gray-800 disabled:opacity-50 cursor-pointer"
         >
           <FiPlus /> New SOA
         </button>
@@ -266,12 +414,12 @@ export default function SoasBasePage({ basePath }) {
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
               <FiFileText className="text-blue-600" />
-              {editingSoa ? `Edit SOA ${editingSoa.soa_id || ""}` : "Create SOA"}
+              {editingSoa ? `Edit SOA ${formatSOAId(editingSoa.soa_id) || ""}` : "Create SOA"}
             </h2>
             <button
               type="button"
               onClick={closeForm}
-              className="p-2 rounded-md hover:bg-gray-50 text-gray-600"
+              className="p-2 rounded-md hover:bg-gray-50 text-gray-600 cursor-pointer"
               aria-label="Close"
             >
               <FiX />
@@ -284,7 +432,20 @@ export default function SoasBasePage({ basePath }) {
                 <label className="block text-gray-700 font-medium mb-2 text-sm">Client (Account)</label>
                 <select
                   value={formData.account_id}
-                  onChange={(e) => setFormData((p) => ({ ...p, account_id: e.target.value }))}
+                  onChange={(e) => {
+                    const nextAccountId = e.target.value;
+                    const quoteStillMatches = quotes.some(
+                      (q) =>
+                        String(q.id) === String(formData.quote_id || "") &&
+                        String(q.account_id || "") === String(nextAccountId || "")
+                    );
+
+                    setFormData((p) => ({
+                      ...p,
+                      account_id: nextAccountId,
+                      quote_id: quoteStillMatches ? p.quote_id : "",
+                    }));
+                  }}
                   disabled={fieldsDisabled}
                   className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white"
                   required
@@ -293,6 +454,23 @@ export default function SoasBasePage({ basePath }) {
                   {accounts.map((acc) => (
                     <option key={acc.id} value={acc.id}>
                       {acc.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-gray-700 font-medium mb-2 text-sm">Linked Quote</label>
+                <select
+                  value={formData.quote_id || ""}
+                  onChange={(e) => handleQuoteChange(e.target.value)}
+                  disabled={fieldsDisabled}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white"
+                >
+                  <option value="">No linked quote</option>
+                  {filteredQuotes.map((q) => (
+                    <option key={q.id} value={q.id}>
+                      {(formatQuoteId(q.quote_id || `Q-${q.id}`) || `Q-${q.id}`) + " • " + (q?.account?.name || accountLabel(q.account_id))}
                     </option>
                   ))}
                 </select>
@@ -321,7 +499,7 @@ export default function SoasBasePage({ basePath }) {
               </div>
 
               <div>
-                <label className="block text-gray-700 font-medium mb-2 text-sm">Quote Number</label>
+                <label className="block text-gray-700 font-medium mb-2 text-sm">Quote Number / ID</label>
                 <input
                   type="text"
                   value={formData.quote_number}
@@ -366,21 +544,7 @@ export default function SoasBasePage({ basePath }) {
                   <option value="Presented">Presented</option>
                   <option value="Paid">Paid</option>
                 </select>
-              </div>
-
-              <div className="flex items-center gap-2 mt-7">
-                <input
-                  id="full_payment"
-                  type="checkbox"
-                  checked={Boolean(formData.full_payment)}
-                  onChange={(e) => setFormData((p) => ({ ...p, full_payment: e.target.checked }))}
-                  disabled={fieldsDisabled}
-                  className="h-4 w-4"
-                />
-                <label htmlFor="full_payment" className="text-sm text-gray-700">
-                  Full Payment
-                </label>
-              </div>
+              </div>              
 
               <div>
                 <label className="block text-gray-700 font-medium mb-2 text-sm">Tax Rate (%)</label>
@@ -427,6 +591,20 @@ export default function SoasBasePage({ basePath }) {
                 />
               </div>
 
+              <div className="flex items-center gap-2 mt-7">
+                <input
+                  id="full_payment"
+                  type="checkbox"
+                  checked={Boolean(formData.full_payment)}
+                  onChange={(e) => setFormData((p) => ({ ...p, full_payment: e.target.checked }))}
+                  disabled={fieldsDisabled}
+                  className="h-4 w-4"
+                />
+                <label htmlFor="full_payment" className="text-sm text-gray-700">
+                  Full Payment
+                </label>
+              </div>
+
               <div className="sm:col-span-2">
                 <label className="block text-gray-700 font-medium mb-2 text-sm">Notes</label>
                 <textarea
@@ -462,7 +640,7 @@ export default function SoasBasePage({ basePath }) {
               <button
                 type="submit"
                 disabled={loading || (isLocked && !canChangeStatus)}
-                className="inline-flex items-center justify-center gap-2 bg-gray-900 text-white px-6 py-2 rounded-md font-medium hover:bg-gray-800 disabled:opacity-50"
+                className="inline-flex items-center justify-center gap-2 bg-gray-900 text-white px-6 py-2 rounded-md font-medium hover:bg-gray-800 disabled:opacity-50 cursor-pointer"
               >
                 {loading ? "Saving..." : isLocked ? "Update Status" : "Save SOA"}
               </button>
@@ -482,6 +660,8 @@ export default function SoasBasePage({ basePath }) {
               <tr>
                 <th className="text-left px-6 py-3 font-medium">SOA #</th>
                 <th className="text-left px-6 py-3 font-medium">Client</th>
+                <th className="text-left px-6 py-3 font-medium">Quote</th>
+                <th className="text-left px-6 py-3 font-medium">Created By</th>
                 <th className="text-left px-6 py-3 font-medium">Status</th>
                 <th className="text-left px-6 py-3 font-medium">Due Date</th>
                 <th className="text-right px-6 py-3 font-medium">Total</th>
@@ -491,27 +671,36 @@ export default function SoasBasePage({ basePath }) {
             <tbody>
               {soas.map((soa) => (
                 <tr key={soa.id} className="border-t border-gray-100 hover:bg-gray-50">
-                  <td className="px-6 py-3 text-blue-700 font-medium">{soa.soa_id || `SOA-${soa.id}`}</td>
+                  <td className="px-6 py-3 text-blue-700 font-medium">{formatSOAId(soa.soa_id) || ""}</td>
                   <td className="px-6 py-3">{soa?.account?.name || accountLabel(soa.account_id)}</td>
+                  <td className="px-6 py-3">{formatQuoteId(soa?.quote?.quote_id || soa?.quote_number || "") || "--"}</td>
+                  <td className="px-6 py-3">{createdByLabel(soa)}</td>
                   <td className="px-6 py-3">{soa.status || "Draft"}</td>
                   <td className="px-6 py-3">{soa.due_date || "--"}</td>
                   <td className="px-6 py-3 text-right">{formatMoney(soa.total_amount)}</td>
                   <td className="px-6 py-3">
-                    <div className="flex justify-end gap-2">
+                    <div className="flex justify-end gap-3">
+                      <button
+                        type="button"
+                        onClick={() => handlePrint(soa)}
+                        className="inline-flex items-center rounded-md hover:bg-white cursor-pointer"
+                      >
+                        <FiPrinter />
+                      </button>
                       <button
                         type="button"
                         onClick={() => openEdit(soa)}
-                        className="inline-flex items-center gap-1 px-3 py-1.5 border border-gray-200 rounded-md hover:bg-white"
+                        className="inline-flex items-center rounded-md hover:bg-white cursor-pointer"
                       >
-                        <FiEdit2 /> Edit
+                        <FiEdit2 />
                       </button>
                       <button
                         type="button"
                         onClick={() => handleDelete(soa)}
                         disabled={loading || (soa.status || "Draft") !== "Draft"}
-                        className="inline-flex items-center gap-1 px-3 py-1.5 border border-gray-200 rounded-md hover:bg-white text-red-600"
+                        className="inline-flex items-center rounded-md hover:bg-white text-red-600 cursor-pointer"
                       >
-                        <FiTrash2 /> Delete
+                        <FiTrash2 />
                       </button>
                     </div>
                   </td>
@@ -520,7 +709,7 @@ export default function SoasBasePage({ basePath }) {
 
               {!loading && soas.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="px-6 py-10 text-center text-gray-500">
+                  <td colSpan={8} className="px-6 py-10 text-center text-gray-500">
                     No SOAs found.
                   </td>
                 </tr>

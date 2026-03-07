@@ -12,6 +12,7 @@ from database import get_db
 from models.account import Account
 from models.auth import User
 from models.company import Company
+from models.quote import Quote
 from models.soa import SoaItem, SoaStatus, StatementOfAccount
 from schemas.soa import SoaCreate, SoaResponse, SoaUpdate
 from .auth_utils import get_current_user
@@ -80,6 +81,18 @@ def apply_status_side_effects(soa: StatementOfAccount, new_status: str) -> None:
             soa.presented_date = today
 
 
+def get_company_quote(db: Session, quote_db_id: int, company_id: int | None) -> Quote | None:
+    if not quote_db_id or not company_id:
+        return None
+
+    return (
+        db.query(Quote)
+        .join(User, Quote.created_by == User.id)
+        .filter(Quote.id == quote_db_id, User.related_to_company == company_id)
+        .first()
+    )
+
+
 @router.get("/admin/fetch-all", response_model=List[SoaResponse])
 def admin_get_soas(
     db: Session = Depends(get_db),
@@ -88,6 +101,7 @@ def admin_get_soas(
     options = [
         joinedload(StatementOfAccount.items),
         joinedload(StatementOfAccount.account),
+        joinedload(StatementOfAccount.quote),
         joinedload(StatementOfAccount.assigned_user),
         joinedload(StatementOfAccount.creator),
     ]
@@ -124,6 +138,7 @@ def get_soas_for_account(
     options = [
         joinedload(StatementOfAccount.items),
         joinedload(StatementOfAccount.account),
+        joinedload(StatementOfAccount.quote),
         joinedload(StatementOfAccount.assigned_user),
         joinedload(StatementOfAccount.creator),
     ]
@@ -174,6 +189,17 @@ def admin_create_soa(
     if not account:
         raise HTTPException(status_code=404, detail="Account not found.")
 
+    linked_quote = None
+    if data.quote_id is not None:
+        linked_quote = get_company_quote(db, data.quote_id, current_user.related_to_company)
+        if not linked_quote:
+            raise HTTPException(status_code=404, detail="Quote not found in your company.")
+        if linked_quote.account_id and linked_quote.account_id != data.account_id:
+            raise HTTPException(
+                status_code=400,
+                detail="Linked quote does not belong to the selected account.",
+            )
+
     # Default tax rate from company if not explicitly provided
     default_tax_rate = Decimal("0")
     company = db.query(Company).filter(Company.id == current_user.related_to_company).first()
@@ -190,8 +216,9 @@ def admin_create_soa(
 
     new_soa = StatementOfAccount(
         account_id=data.account_id,
+        quote_id=data.quote_id,
         purchase_order_number=data.purchase_order_number,
-        quote_number=data.quote_number,
+        quote_number=data.quote_number or (linked_quote.quote_id if linked_quote else None),
         soa_date=data.soa_date,
         terms_of_payment=data.terms_of_payment,
         due_date=data.due_date,
@@ -282,7 +309,7 @@ def admin_update_soa(
 
     soa = (
         db.query(StatementOfAccount)
-        .options(joinedload(StatementOfAccount.items))
+        .options(joinedload(StatementOfAccount.items), joinedload(StatementOfAccount.quote))
         .filter(StatementOfAccount.id == soa_db_id)
         .first()
     )
@@ -294,6 +321,7 @@ def admin_update_soa(
         # In locked state, we only accept a status transition.
         non_status_fields = [
             "account_id",
+            "quote_id",
             "purchase_order_number",
             "quote_number",
             "soa_date",
@@ -354,8 +382,26 @@ def admin_update_soa(
     old_data = serialize_instance(soa)
 
     # Basic fields
+    linked_quote = None
+    candidate_account_id = data.account_id if data.account_id is not None else soa.account_id
+    candidate_quote_id = data.quote_id if data.quote_id is not None else soa.quote_id
+
+    if candidate_quote_id is not None:
+        linked_quote = get_company_quote(db, candidate_quote_id, current_user.related_to_company)
+        if not linked_quote:
+            raise HTTPException(status_code=404, detail="Quote not found in your company.")
+        if linked_quote.account_id and linked_quote.account_id != candidate_account_id:
+            raise HTTPException(
+                status_code=400,
+                detail="Linked quote does not belong to the selected account.",
+            )
+
+    if data.quote_id is not None and data.quote_number is None and linked_quote is not None:
+        soa.quote_number = linked_quote.quote_id
+
     for field in [
         "account_id",
+        "quote_id",
         "purchase_order_number",
         "quote_number",
         "soa_date",

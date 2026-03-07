@@ -16,6 +16,7 @@ import {
   FiSettings,
   FiShield,
 } from "react-icons/fi";
+import { BiCoinStack } from "react-icons/bi";
 import { LuMapPin } from "react-icons/lu";
 import { HiOutlineOfficeBuilding } from "react-icons/hi";
 import TManagerHeader from "./TManagerHeader"; 
@@ -24,6 +25,7 @@ import useFetchUser from "../hooks/useFetchUser";
 export default function TManagerPanel() {
   const [salesOpen, setSalesOpen] = useState(false);
   const [activityOpen, setActivityOpen] = useState(false);
+  const [accountingOpen, setAccountingOpen] = useState(false);
   const [userMgmtOpen, setUserMgmtOpen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false); 
   const location = useLocation();
@@ -140,13 +142,6 @@ export default function TManagerPanel() {
                 >
                   <FiFileText /> Quotes
                 </NavLink>
-
-                <NavLink
-                  to="/group-manager/soas"
-                  className={({ isActive }) => (isActive ? activeLink : normalLink)}
-                >
-                  <FiFileText /> Statements of Account
-                </NavLink>
                 <NavLink
                   to="/group-manager/targets"
                   className={({ isActive }) => (isActive ? activeLink : normalLink)}
@@ -219,6 +214,33 @@ export default function TManagerPanel() {
                         </span>
                       </NavLink>
                     </div>
+
+                    {/* Accounting Dropdown */}
+          <div>
+            <button
+              className="w-full px-3 py-2 flex justify-between items-center text-sm font-medium text-gray-300 hover:bg-[#334155] rounded-lg transition"
+              onClick={() => setAccountingOpen(!accountingOpen)}
+            >
+              <span className="flex items-center gap-2">
+                <BiCoinStack className="text-lg" />
+                Accounting
+              </span>
+              <FiChevronDown
+                className={`transition-transform ${accountingOpen ? "rotate-180" : ""}`}
+              />
+            </button>
+
+            {accountingOpen && (
+              <div className="ml-6 mt-2 space-y-1">
+                <NavLink
+                  to="/group-manager/soas"
+                  className={({ isActive }) => (isActive ? activeLink : normalLink)}
+                >
+                  <FiFileText /> Statements of Account
+                </NavLink>                
+              </div>
+            )}
+          </div>
 
           {/* User Management Dropdown */}
           <div>

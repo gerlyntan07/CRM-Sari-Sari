@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { NavLink, Outlet, useLocation } from "react-router-dom";
 import {
-   FiHome,
+  FiHome,
   FiUsers,
   FiUser,
   FiUserPlus,
@@ -18,41 +18,42 @@ import {
   FiGrid,
   FiX,
 } from "react-icons/fi";
+import { BiCoinStack } from "react-icons/bi";
 import { LuMapPin } from "react-icons/lu";
 import { HiOutlineOfficeBuilding } from "react-icons/hi";
-import SalesHeader from "./SalesHeader"; 
+import SalesHeader from "./SalesHeader";
 import useFetchUser from "../hooks/useFetchUser";
 
 export default function SalesPanel() {
-  const [sidebarOpen, setSidebarOpen] = useState(false); 
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [activityOpen, setActivityOpen] = useState(false);
+  const [accountingOpen, setAccountingOpen] = useState(false);
   const { user } = useFetchUser();
-   const [salesOpen, setSalesOpen] = useState(false);
+  const [salesOpen, setSalesOpen] = useState(false);
 
   useEffect(() => {
     user && console.log("Fetched user:", user);
   }, [user]);
 
   const salesRoutes = [
-  "/sales/overview",
-  "/sales/hub",
-  "/sales/accounts",
-  "/sales/contacts",
-  "/sales/leads",
-  "/sales/deals",
-  "/sales/quotes",
+    "/sales/overview",
+    "/sales/hub",
+    "/sales/accounts",
+    "/sales/contacts",
+    "/sales/leads",
+    "/sales/deals",
+    "/sales/quotes",
     "/sales/soas",
-  "/sales/targets",
-];
+    "/sales/targets",
+  ];
 
-const location = useLocation();
-const isSalesActive = salesRoutes.includes(location.pathname);
+  const location = useLocation();
+  const isSalesActive = salesRoutes.includes(location.pathname);
 
   const activeLink =
     "flex items-center gap-3 px-3 py-2 rounded-lg bg-white text-[#1e293b] font-semibold shadow-sm";
   const normalLink =
     "flex items-center gap-3 px-3 py-2 rounded-lg text-gray-300 hover:bg-[#334155] hover:text-white transition";
-
 
   return (
     <div className="flex h-screen bg-gray-100 overflow-hidden">
@@ -63,11 +64,13 @@ const isSalesActive = salesRoutes.includes(location.pathname);
       >
         {/* Logo */}
         <div className="px-4 py-3 bg-[#fbbf24] leading-none">
-          <p className="text-gray-900 font-bold text-lg m-0 p-0"> Sari-Sari.CRM{" "}
-          <span className="text-[12px] text-gray-700 font-medium align-bottom">
-            v2
-          </span>
-        </p>
+          <p className="text-gray-900 font-bold text-lg m-0 p-0">
+            {" "}
+            Sari-Sari.CRM{" "}
+            <span className="text-[12px] text-gray-700 font-medium align-bottom">
+              v2
+            </span>
+          </p>
           {user && user.company && (
             <p
               className="text-[12px] text-gray-600 font-medium w-full truncate"
@@ -144,163 +147,206 @@ const isSalesActive = salesRoutes.includes(location.pathname);
             <span>Targets</span>
           </NavLink> */}
 
-    {/* Navigation */}
-<nav className="flex-1 overflow-y-auto p-4 space-y-2 hide-scrollbar">
-   <NavLink
-    to="/sales/overview"
-    className={({ isActive }) => (isActive ? activeLink : normalLink)}
-  >
-    <FiHome /> Dashboard
-  </NavLink>
+        {/* Navigation */}
+        <nav className="flex-1 overflow-y-auto p-4 space-y-2 hide-scrollbar">
+          <NavLink
+            to="/sales/overview"
+            className={({ isActive }) => (isActive ? activeLink : normalLink)}
+          >
+            <FiHome /> Dashboard
+          </NavLink>
 
-  {/* <NavLink
+          {/* <NavLink
     to="/sales/hub"
     className={({ isActive }) => (isActive ? activeLink : normalLink)}
   >
     <FiGrid /> Sales Hub
   </NavLink> */}
 
-{/* Sales Dropdown */}
-  <div>
-    <button
-      className="w-full px-3 py-2 flex justify-between items-center text-sm font-medium text-gray-300 hover:bg-[#334155] rounded-lg transition"
-      onClick={() => setSalesOpen(!salesOpen)}
-    >
-      <span className="flex items-center gap-2">
-        <FiBriefcase className="text-lg" />
-        Sales
-      </span>
-      <FiChevronDown
-        className={`transition-transform ${salesOpen ? "rotate-180" : ""}`}
-      />
-    </button>
+          {/* Sales Dropdown */}
+          <div>
+            <button
+              className="w-full px-3 py-2 flex justify-between items-center text-sm font-medium text-gray-300 hover:bg-[#334155] rounded-lg transition"
+              onClick={() => setSalesOpen(!salesOpen)}
+            >
+              <span className="flex items-center gap-2">
+                <FiBriefcase className="text-lg" />
+                Sales
+              </span>
+              <FiChevronDown
+                className={`transition-transform ${salesOpen ? "rotate-180" : ""}`}
+              />
+            </button>
 
-    {salesOpen && (
-      <div className="ml-6 mt-2 space-y-1">
-        <NavLink
-          to="/sales/accounts"
-          className={({ isActive }) => (isActive ? activeLink : normalLink)}
-        >
-          <HiOutlineOfficeBuilding /> Accounts
-        </NavLink>
+            {salesOpen && (
+              <div className="ml-6 mt-2 space-y-1">
+                <NavLink
+                  to="/sales/accounts"
+                  className={({ isActive }) =>
+                    isActive ? activeLink : normalLink
+                  }
+                >
+                  <HiOutlineOfficeBuilding /> Accounts
+                </NavLink>
 
-        <NavLink
-          to="/sales/contacts"
-          className={({ isActive }) => (isActive ? activeLink : normalLink)}
-        >
-          <FiUser /> Contacts
-        </NavLink>
+                <NavLink
+                  to="/sales/contacts"
+                  className={({ isActive }) =>
+                    isActive ? activeLink : normalLink
+                  }
+                >
+                  <FiUser /> Contacts
+                </NavLink>
 
-        <NavLink
-          to="/sales/leads"
-          className={({ isActive }) => (isActive ? activeLink : normalLink)}
-        >
-          <FiUserPlus /> Leads
-        </NavLink>
+                <NavLink
+                  to="/sales/leads"
+                  className={({ isActive }) =>
+                    isActive ? activeLink : normalLink
+                  }
+                >
+                  <FiUserPlus /> Leads
+                </NavLink>
 
-        <NavLink
-          to="/sales/deals"
-          className={({ isActive }) => (isActive ? activeLink : normalLink)}
-        >
-          <FiBriefcase /> Deals
-        </NavLink>
+                <NavLink
+                  to="/sales/deals"
+                  className={({ isActive }) =>
+                    isActive ? activeLink : normalLink
+                  }
+                >
+                  <FiBriefcase /> Deals
+                </NavLink>
 
-        <NavLink
-          to="/sales/quotes"
-          className={({ isActive }) => (isActive ? activeLink : normalLink)}
-        >
-          <FiFileText /> Quotes
-        </NavLink>
+                <NavLink
+                  to="/sales/quotes"
+                  className={({ isActive }) =>
+                    isActive ? activeLink : normalLink
+                  }
+                >
+                  <FiFileText /> Quotes
+                </NavLink>
 
-        <NavLink
-          to="/sales/soas"
-          className={({ isActive }) => (isActive ? activeLink : normalLink)}
-        >
-          <FiFileText /> Statements of Account
-        </NavLink>
+                <NavLink
+                  to="/sales/targets"
+                  className={({ isActive }) =>
+                    isActive ? activeLink : normalLink
+                  }
+                >
+                  <FiTarget /> Targets
+                </NavLink>
+              </div>
+            )}
+          </div>
 
-        <NavLink
-          to="/sales/targets"
-          className={({ isActive }) => (isActive ? activeLink : normalLink)}
-        >
-          <FiTarget /> Targets
-        </NavLink>
-      </div>
-    )}
-  </div>
+          {/* Activity Dropdown */}
+          <div>
+            <button
+              className="w-full px-3 py-2 flex justify-between items-center text-sm font-medium text-gray-300 hover:bg-[#334155] rounded-lg transition"
+              onClick={() => setActivityOpen(!activityOpen)}
+            >
+              <span className="flex items-center gap-2">
+                <FiClipboard className="text-lg" />
+                Activity
+              </span>
+              <FiChevronDown
+                className={`transition-transform ${activityOpen ? "rotate-180" : ""}`}
+              />
+            </button>
 
-            {/* Activity Dropdown */}
-                    <div>
-                      <button
-                        className="w-full px-3 py-2 flex justify-between items-center text-sm font-medium text-gray-300 hover:bg-[#334155] rounded-lg transition"
-                        onClick={() => setActivityOpen(!activityOpen)}
-                      >
-                        <span className="flex items-center gap-2">
-                          <FiClipboard className="text-lg" />
-                          Activity
-                        </span>
-                        <FiChevronDown
-                          className={`transition-transform ${activityOpen ? "rotate-180" : ""}`}
-                        />
-                      </button>
-          
-                      {activityOpen && (
-                        <div className="ml-6 mt-2 space-y-1">
-                          <NavLink
-                            to="/sales/calendar"
-                            className={({ isActive }) => (isActive ? activeLink : normalLink)}
-                          >
-                            <FiCalendar /> Calendar
-                          </NavLink>
-                          <NavLink
-                            to="/sales/tasks"
-                            className={({ isActive }) => (isActive ? activeLink : normalLink)}
-                          >
-                            <FiCheckSquare /> Tasks
-                          </NavLink>                          
-                          <NavLink
-                            to="/sales/meetings"
-                            className={({ isActive }) => (isActive ? activeLink : normalLink)}
-                          >
-                            <FiCalendar /> Meetings
-                          </NavLink>
-                          <NavLink
-                            to="/sales/calls"
-                            className={({ isActive }) => (isActive ? activeLink : normalLink)}
-                          >
-                            <FiPhoneCall /> Calls
-                          </NavLink>
-                          <NavLink
-                            to="/sales/audit"
+            {activityOpen && (
+              <div className="ml-6 mt-2 space-y-1">
+                <NavLink
+                  to="/sales/calendar"
+                  className={({ isActive }) =>
+                    isActive ? activeLink : normalLink
+                  }
+                >
+                  <FiCalendar /> Calendar
+                </NavLink>
+                <NavLink
+                  to="/sales/tasks"
+                  className={({ isActive }) =>
+                    isActive ? activeLink : normalLink
+                  }
+                >
+                  <FiCheckSquare /> Tasks
+                </NavLink>
+                <NavLink
+                  to="/sales/meetings"
+                  className={({ isActive }) =>
+                    isActive ? activeLink : normalLink
+                  }
+                >
+                  <FiCalendar /> Meetings
+                </NavLink>
+                <NavLink
+                  to="/sales/calls"
+                  className={({ isActive }) =>
+                    isActive ? activeLink : normalLink
+                  }
+                >
+                  <FiPhoneCall /> Calls
+                </NavLink>
+                <NavLink
+                  to="/sales/audit"
+                  className={({ isActive }) =>
+                    isActive ? activeLink : normalLink
+                  }
+                >
+                  <FiClipboard /> Audit
+                </NavLink>
+              </div>
+            )}
+          </div>
+
+          {/* Territory */}
+          <div>
+            <NavLink
+              to="/sales/territory"
               className={({ isActive }) => (isActive ? activeLink : normalLink)}
-                          >
-                            <FiClipboard /> Audit
-                          </NavLink>
-                        </div>
-                      )}
-                    </div>
+            >
+              <span className="flex items-center gap-2">
+                <LuMapPin className="text-lg" />
+                Territory
+              </span>
+            </NavLink>
+          </div>
 
-                    {/* Territory */}
-                              <div>
-                                <NavLink
-                                  to="/sales/territory"
-                                  className={({ isActive }) => (isActive ? activeLink : normalLink)}
-                                >
-                                  <span className="flex items-center gap-2">
-                                    <LuMapPin className="text-lg" />
-                                    Territory
-                                  </span>
-                                </NavLink>
-                              </div>
+          {/* Accounting Dropdown */}
+          <div>
+            <button
+              className="w-full px-3 py-2 flex justify-between items-center text-sm font-medium text-gray-300 hover:bg-[#334155] rounded-lg transition"
+              onClick={() => setAccountingOpen(!accountingOpen)}
+            >
+              <span className="flex items-center gap-2">
+                <BiCoinStack className="text-lg" />
+                Accounting
+              </span>
+              <FiChevronDown
+                className={`transition-transform ${accountingOpen ? "rotate-180" : ""}`}
+              />
+            </button>
 
-        
+            {accountingOpen && (
+              <div className="ml-6 mt-2 space-y-1">
+                <NavLink
+                  to="/sales/soas"
+                  className={({ isActive }) =>
+                    isActive ? activeLink : normalLink
+                  }
+                >
+                  <FiFileText /> Statements of Account
+                </NavLink>
+              </div>
+            )}
+          </div>
+
           <NavLink
             to="/sales/manage-account"
             className={({ isActive }) => (isActive ? activeLink : normalLink)}
           >
             <FiUser className="text-lg" />
             <span>Your Profile</span>
-          </NavLink>     
+          </NavLink>
         </nav>
 
         {/* Footer */}

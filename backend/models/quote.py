@@ -63,6 +63,7 @@ class Quote(Base):
     tasks = relationship("Task", back_populates="quote", cascade="all, delete-orphan")
     meetings = relationship("Meeting", back_populates="quote", cascade="all, delete-orphan")
     calls = relationship("Call", back_populates="quote", cascade="all, delete-orphan")
+    soas = relationship("StatementOfAccount", back_populates="quote")
 
     def calculate_totals(self):
         """

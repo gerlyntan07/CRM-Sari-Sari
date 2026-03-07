@@ -39,6 +39,7 @@ class StatementOfAccount(Base):
     soa_id = Column(String(24), unique=True, index=True, nullable=True)
 
     account_id = Column(Integer, ForeignKey("accounts.id", ondelete="CASCADE"), nullable=False)
+    quote_id = Column(Integer, ForeignKey("quotes.id", ondelete="SET NULL"), nullable=True)
 
     purchase_order_number = Column(String(100), nullable=True)
     quote_number = Column(String(50), nullable=True)
@@ -74,6 +75,7 @@ class StatementOfAccount(Base):
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
     account = relationship("Account", back_populates="soas")
+    quote = relationship("Quote", back_populates="soas")
     assigned_user = relationship("User", back_populates="soas_assigned", foreign_keys=[assigned_to])
     creator = relationship("User", back_populates="soas_created", foreign_keys=[created_by])
 

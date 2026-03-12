@@ -5,6 +5,7 @@ import { FcGoogle } from "react-icons/fc";
 import { FiEye, FiEyeOff } from "react-icons/fi";
 import api from "../api";
 import useAuth from "../hooks/useAuth";
+import useFetchUser from "../hooks/useFetchUser";
 import { jwtDecode } from "jwt-decode";
 import LoadingScreen from "../components/LoadingScreen";
 // --- Back Button ---
@@ -62,6 +63,7 @@ const Login = () => {
   const [loginErr, setLoginErr] = React.useState(null);
   const [isLoading, setIsLoading] = React.useState(false);
   const { isLoggedIn, login, userRole } = useAuth();
+  const { fetchUser } = useFetchUser();
   const navigate = useNavigate();
 
   React.useEffect(() => {
@@ -98,6 +100,8 @@ const Login = () => {
     try {
       const res = await api.post(`/auth/login`, formData);
       login(res.data);
+      // Fetch user data for UserContext immediately after login
+      await fetchUser();
       setLoginErr(null);
     } catch (err) {
       if (err.response && err.response.data && err.response.data.detail) {
@@ -142,7 +146,9 @@ const Login = () => {
       // Send the ID token to backend for verification
       const res = await api.post("/auth/google/login", { id_token: response.credential });
 
-      login(res.data); // use your existing login hook    
+      login(res.data); // use your existing login hook
+      // Fetch user data for UserContext immediately after login
+      await fetchUser();
     } catch (error) {
       console.error("Google login failed:", error);
       const errorDetail = error.response?.data?.detail || "Google login failed. Please try again.";

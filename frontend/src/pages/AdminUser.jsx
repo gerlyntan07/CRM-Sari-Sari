@@ -225,9 +225,11 @@ export default function AdminUser() {
     return sortUsers(
       users
         .filter((user) => {
-          // Hide users with role 'Admin' 
+          // Hide users with role 'Admin', 'Marketing Admin', and 'Technical Support'
           const roleNorm = normalizeRoleValue(user?.role);
           if (roleNorm === "ADMIN") return false;
+          if (roleNorm === "MARKETING_ADMIN") return false;
+          if (roleNorm === "TECHNICAL_SUPPORT") return false;
           // Show all users (both active and inactive) - don't filter out inactive users
           if (!user) return false;
           const matchesSearch =

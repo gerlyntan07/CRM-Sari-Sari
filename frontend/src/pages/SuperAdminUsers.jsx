@@ -895,7 +895,7 @@ export default function SuperAdminUsers() {
                                 onClick={e => e.stopPropagation()}
                               >
                                 <img
-                                  src={`${selectedUser.profile_picture}?t=${Date.now()}`}
+                                  src={selectedUser.profile_picture}
                                   alt="Profile"
                                   className="object-contain max-h-[80vh] max-w-[95vw] sm:max-w-[80vw] mx-auto"
                                   style={{ background: 'none', boxShadow: 'none', border: 'none', borderRadius: 0, margin: 0 }}

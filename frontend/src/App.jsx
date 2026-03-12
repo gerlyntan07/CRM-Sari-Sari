@@ -238,6 +238,7 @@ function App() {
           <Route index element={<Navigate to="dashboard" replace />} />
           <Route path="dashboard" element={<SuperAdminDashboard />} />
           <Route path="users" element={<SuperAdminUsers />} />
+          <Route path="manage-account" element={<PublicManageAccount />} />
         </Route>
 
         {/* ================= Admin Layout ================= */}

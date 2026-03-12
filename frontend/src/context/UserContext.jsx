@@ -29,6 +29,7 @@ export function UserProvider({ children }) {
     }
   }, []);
 
+  // Fetch user on component mount
   useEffect(() => {
     fetchUser();
   }, [fetchUser]);

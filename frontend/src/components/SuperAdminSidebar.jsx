@@ -17,9 +17,7 @@ export default function SuperAdminSidebar() {
       {/* Logo */}
       <div className="px-4 py-3 bg-[#ef4444] leading-none">
         <p className="text-white font-bold text-lg m-0 p-0">Admin Panel</p>
-        <p className="text-[12px] text-red-100 font-medium">
-          System Management
-        </p>
+        <p className="text-xs text-red-100 font-medium m-0 p-0">System Management</p>
       </div>
 
       {/* Nav */}

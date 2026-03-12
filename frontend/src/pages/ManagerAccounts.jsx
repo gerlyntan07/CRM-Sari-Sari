@@ -1283,6 +1283,12 @@ const [isSubmitted, setIsSubmitted] = useState(false);
                       navigate("/manager/contacts", {
                         state: {
                           openContactModal: true,
+                          initialContactData: {
+                            account_id: selectedAccount.id,
+                            assigned_to: selectedAccount.assigned_accs?.id
+                              ? String(selectedAccount.assigned_accs.id)
+                              : "",
+                          },
                         },
                       })
                     }
@@ -1298,6 +1304,12 @@ const [isSubmitted, setIsSubmitted] = useState(false);
                       navigate("/manager/deals", {
                         state: {
                           openDealModal: true,
+                          initialDealData: {
+                            account_id: selectedAccount.id,
+                            assigned_to: selectedAccount.assigned_accs?.id
+                              ? String(selectedAccount.assigned_accs.id)
+                              : "",
+                          },
                         },
                       })
                     }

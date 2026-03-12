@@ -397,18 +397,18 @@ export default function AdminContacts() {
       searchParams.get("openModal") === "1";
     if (!shouldOpen) return;
 
-    setFormData(INITIAL_FORM_STATE);
+    const initialData = location.state?.initialContactData || {};
+    setFormData((prev) => ({
+      ...INITIAL_FORM_STATE,
+      account_id: initialData.account_id ? String(initialData.account_id) : "",
+      assigned_to: initialData.assigned_to 
+        ? String(initialData.assigned_to) 
+        : (currentUser?.role === "Sales" ? currentUser.id : ""),
+    }));
     setIsEditing(false);
     setCurrentContactId(null);
     setShowModal(true);
     setIsSubmitted(false);
-
-    if (currentUser?.role === "Sales") {
-      setFormData((prev) => ({
-        ...prev,
-        assigned_to: currentUser.id,
-      }));
-    }
 
     navigate(location.pathname, { replace: true, state: {} });
   }, [location.state, location.pathname, location.search, navigate, currentUser]);

@@ -81,15 +81,16 @@ export default function ManagerDeals() {
   useEffect(() => {
     if (!location.state?.openDealModal) return;
 
+    const initialData = location.state?.initialDealData || {};
     setDealForm({
       id: null,
       name: "",
-      account_id: "",
+      account_id: initialData.account_id ? String(initialData.account_id) : "",
       primary_contact_id: "",
       stage: "PROPOSAL",
       amount: "",
       close_date: "",
-      assigned_to: "",
+      assigned_to: initialData.assigned_to ? String(initialData.assigned_to) : "",
       currency: "PHP",
       description: "",
     });

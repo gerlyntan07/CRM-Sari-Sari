@@ -393,7 +393,12 @@ export default function AdminContacts() {
       searchParams.get("openModal") === "1";
     if (!shouldOpen) return;
 
-    setFormData(INITIAL_FORM_STATE);
+    const initialData = location.state?.initialContactData || {};
+    setFormData((prev) => ({
+      ...INITIAL_FORM_STATE,
+      account_id: initialData.account_id ? String(initialData.account_id) : "",
+      assigned_to: initialData.assigned_to ? String(initialData.assigned_to) : "",
+    }));
     setIsEditing(false);
     setCurrentContactId(null);
     setShowModal(true);

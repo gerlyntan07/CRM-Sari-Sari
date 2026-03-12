@@ -1545,6 +1545,12 @@ export default function AdminAccounts() {
                       navigate("/sales/contacts", {
                         state: {
                           openContactModal: true,
+                          initialContactData: {
+                            account_id: selectedAccount.id,
+                            assigned_to: selectedAccount.assigned_accs?.id
+                              ? String(selectedAccount.assigned_accs.id)
+                              : "",
+                          },
                         },
                       })
                     }
@@ -1560,6 +1566,12 @@ export default function AdminAccounts() {
                       navigate("/sales/deals", {
                         state: {
                           openDealModal: true,
+                          initialDealData: {
+                            account_id: selectedAccount.id,
+                            assigned_to: selectedAccount.assigned_accs?.id
+                              ? String(selectedAccount.assigned_accs.id)
+                              : "",
+                          },
                         },
                       })
                     }

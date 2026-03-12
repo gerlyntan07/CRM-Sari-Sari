@@ -223,29 +223,33 @@ export default function AdminUser() {
     const normalizedQuery = searchQuery.trim().toLowerCase();
     const normalizedFilter = normalizeRoleValue(roleFilter);
     return sortUsers(
-      users.filter((user) => {
-        // Show all users (both active and inactive) - don't filter out inactive users
-        if (!user) return false;
-        const matchesSearch =
-          normalizedQuery === "" ||
-          [
-            user.first_name,
-            user.last_name,
-            `${user.first_name || ""} ${user.last_name || ""}`,
-            user.email,
-            formatRoleLabel(user.role),
-          ]
-            .filter(Boolean)
-            .some((field) =>
-              field.toString().toLowerCase().includes(normalizedQuery)
-            );
-        const matchesRole =
-          normalizedFilter === "" ||
-          (normalizedFilter === "CEO" &&
-            ["CEO", "ADMIN"].includes(normalizeRoleValue(user.role))) ||
-          normalizeRoleValue(user.role) === normalizedFilter;
-        return matchesSearch && matchesRole;
-      })
+      users
+        .filter((user) => {
+          // Hide users with role 'Admin' 
+          const roleNorm = normalizeRoleValue(user?.role);
+          if (roleNorm === "ADMIN") return false;
+          // Show all users (both active and inactive) - don't filter out inactive users
+          if (!user) return false;
+          const matchesSearch =
+            normalizedQuery === "" ||
+            [
+              user.first_name,
+              user.last_name,
+              `${user.first_name || ""} ${user.last_name || ""}`,
+              user.email,
+              formatRoleLabel(user.role),
+            ]
+              .filter(Boolean)
+              .some((field) =>
+                field.toString().toLowerCase().includes(normalizedQuery)
+              );
+          const matchesRole =
+            normalizedFilter === "" ||
+            (normalizedFilter === "CEO" &&
+              ["CEO", "ADMIN"].includes(normalizeRoleValue(user.role))) ||
+            normalizeRoleValue(user.role) === normalizedFilter;
+          return matchesSearch && matchesRole;
+        })
     );
   }, [users, searchQuery, roleFilter]);
 

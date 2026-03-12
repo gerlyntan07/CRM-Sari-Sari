@@ -267,8 +267,9 @@ export default function AdminPanel() {
                   className={({ isActive }) =>
                     isActive ? activeLink : normalLink
                   }
+                  title="Statement of Account"
                 >
-                  <FiFileText /> Statements of Account
+                  <FiFileText /> SOA
                 </NavLink>                
               </div>
             )}

@@ -333,8 +333,9 @@ export default function SalesPanel() {
                   className={({ isActive }) =>
                     isActive ? activeLink : normalLink
                   }
+                  title="Statement of Account"
                 >
-                  <FiFileText /> Statements of Account
+                  <FiFileText /> SOA
                 </NavLink>
               </div>
             )}

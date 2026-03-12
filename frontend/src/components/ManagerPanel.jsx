@@ -232,8 +232,9 @@ export default function ManagerPanel() {
                 <NavLink
                   to="/manager/soas"
                   className={({ isActive }) => (isActive ? activeLink : normalLink)}
+                  title="Statement of Account"
                 >
-                  <FiFileText /> Statements of Account
+                  <FiFileText /> SOA
                 </NavLink>
               </div>
             )}

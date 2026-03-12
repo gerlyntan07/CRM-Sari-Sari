@@ -395,7 +395,7 @@ export default function SoasBasePage({ basePath }) {
     <div className="p-4 lg:p-8 font-inter">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-semibold text-gray-800 mb-1">Statements of Account</h1>
+          <h1 className="text-2xl sm:text-3xl font-semibold text-gray-800 mb-1">Statement of Account</h1>
           <p className="text-gray-600 text-sm">Billing / collection statements for products and services.</p>
         </div>
 

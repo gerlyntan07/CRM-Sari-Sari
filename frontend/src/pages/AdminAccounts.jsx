@@ -1372,7 +1372,7 @@ export default function AdminAccounts() {
                     className="flex items-center gap-2 border border-gray-100 rounded-md py-1.5 px-2 sm:px-3 hover:bg-gray-50 transition text-sm"
                   >
                     <FiFileText className="text-gray-600 w-4 h-4" />
-                    Create Statement of Account
+                    Statement of Account
                   </button>
 
                 </div>

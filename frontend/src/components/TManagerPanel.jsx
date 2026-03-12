@@ -235,8 +235,9 @@ export default function TManagerPanel() {
                 <NavLink
                   to="/group-manager/soas"
                   className={({ isActive }) => (isActive ? activeLink : normalLink)}
+                  title="Statement of Account"
                 >
-                  <FiFileText /> Statements of Account
+                  <FiFileText /> SOA
                 </NavLink>                
               </div>
             )}

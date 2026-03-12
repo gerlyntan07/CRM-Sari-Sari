@@ -1338,8 +1338,8 @@ const TManagerDashboard = () => {
     }
   };
 
-  const fetchAllData = useCallback(async () => {
-    setLoading(true);
+  const fetchAllData = useCallback(async (showLoading = true) => {
+    if (showLoading) setLoading(true);
     setError(null);
     try {
       // Fetch all data in parallel with proper error handling
@@ -1628,7 +1628,7 @@ const TManagerDashboard = () => {
     // Set up auto-refresh every 30 seconds
     refreshIntervalRef.current = setInterval(() => {
       console.log("Auto-refreshing dashboard data...");
-      fetchAllData();
+      fetchAllData(false);
       setLastUpdate(new Date());
     }, 30000); // 30 seconds
 

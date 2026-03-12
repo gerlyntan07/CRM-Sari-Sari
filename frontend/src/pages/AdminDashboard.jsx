@@ -797,8 +797,8 @@ const AdminDashboard = () => {
     }
   };
 
-  const fetchAllData = useCallback(async () => {
-    setLoading(true);
+  const fetchAllData = useCallback(async (showLoading = true) => {
+    if (showLoading) setLoading(true);
     setError(null);
     try {
       const [
@@ -923,7 +923,7 @@ const AdminDashboard = () => {
     document.title = "Dashboard | Sari-Sari CRM";
     fetchAllData();
     refreshIntervalRef.current = setInterval(() => {
-      fetchAllData();
+      fetchAllData(false);
       setLastUpdate(new Date());
     }, 30000);
     return () => {

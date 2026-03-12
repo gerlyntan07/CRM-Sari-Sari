@@ -13,7 +13,7 @@ export default function SuperAdminSidebar() {
   const { logout } = useAuth();
 
   return (
-    <div className="w-64 bg-[#1e293b] text-white flex flex-col shadow-lg">
+    <div className="w-64 min-h-screen bg-[#1e293b] text-white flex flex-col shadow-lg">
       {/* Logo */}
       <div className="px-4 py-3 bg-[#ef4444] leading-none">
         <p className="text-white font-bold text-lg m-0 p-0">Admin Panel</p>
@@ -43,8 +43,7 @@ export default function SuperAdminSidebar() {
               User Management
             </span>
             <FiChevronDown
-              className={`transition-transform ${userMgmtOpen ? "rotate-180" : ""
-                }`}
+              className={`transition-transform ${userMgmtOpen ? "rotate-180" : ""}`}
             />
           </button>
 
@@ -59,14 +58,13 @@ export default function SuperAdminSidebar() {
                 <FiUsers className="text-lg" />
                 <span>Manage Users</span>
               </NavLink>
-
             </div>
           )}
         </div>
       </nav>
 
-      {/* Logout Button */}
-      <div className="p-4 border-t border-gray-700">
+      {/* Logout Button pinned to bottom */}
+      <div className="mt-auto p-4 border-t border-gray-700">
         <button
           onClick={logout}
           className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-gray-300 hover:bg-red-600 hover:text-white transition"

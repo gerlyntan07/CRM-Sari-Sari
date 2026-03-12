@@ -183,19 +183,34 @@ const SuperAdminDashboard = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
+    <div className="min-h-screen bg-gray-50 p-4 sm:p-6 lg:p-8 font-inter">
       {/* Header */}
-      <div className="mb-8 flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-800 mb-2">Admin Dashboard</h1>
-          <p className="text-gray-600">Manage all tenants and monitor system-wide statistics</p>
-        </div>
+      <div className="mb-8 relative">
+        {/* Mobile refresh icon at top right */}
         <button
           onClick={refreshAll}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+          className="absolute top-0 right-0 p-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition sm:hidden"
+          aria-label="Refresh"
         >
-          <FiRefreshCw /> Refresh
+          <FiRefreshCw size={20} />
         </button>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h1 className="flex items-center text-xl sm:text-2xl font-semibold text-gray-800">
+              <FiActivity className="mr-2 text-orange-600" />
+              Admin Dashboard
+            </h1>
+            <span className="text-gray-600 text-m mt-1 flex items-center">
+              Manage all tenants and monitor system-wide statistics
+            </span>
+          </div>
+          <button
+            onClick={refreshAll}
+            className="hidden sm:flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+          >
+            <FiRefreshCw /> Refresh
+          </button>
+        </div>
       </div>
 
       {/* Statistics Cards */}
@@ -239,10 +254,10 @@ const SuperAdminDashboard = () => {
             </span>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-0">
             {/* Expiring Soon */}
             {subscriptionAlerts.expiring_soon.length > 0 && (
-              <div className="bg-yellow-50 p-4 rounded-lg">
+              <div className="bg-orange-50 rounded-lg p-4 col-span-full w-full">
                 <h3 className="font-semibold text-yellow-800 mb-2 flex items-center gap-2">
                   <FiClock /> Expiring Soon ({subscriptionAlerts.expiring_soon.length})
                 </h3>
@@ -476,7 +491,7 @@ const SuperAdminDashboard = () => {
       {/* Tenant Details Modal */}
       {showTenantModal && selectedTenant && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+          <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto hide-scrollbar">
             <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex justify-between items-center">
               <h3 className="text-xl font-semibold text-gray-800">
                 {selectedTenant.company_name} Details

@@ -1,4 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
+import PaginationControls from "../components/PaginationControls.jsx";
+import { FiEye, FiEyeOff } from "react-icons/fi";
 import {
   FiShield,
   FiSearch,
@@ -114,6 +116,9 @@ const sortUsers = (list) =>
   });
 
 export default function SuperAdminUsers() {
+    // Pagination state
+    const [currentPage, setCurrentPage] = useState(1);
+    const [itemsPerPage, setItemsPerPage] = useState(10);
   const { user: currentUser, loading: userLoading } = useFetchUser();
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -121,6 +126,7 @@ export default function SuperAdminUsers() {
   const [roleFilter, setRoleFilter] = useState("");
   const [selectedUser, setSelectedUser] = useState(null);
   const [showFormModal, setShowFormModal] = useState(false);
+  const [showImageModal, setShowImageModal] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [currentUserId, setCurrentUserId] = useState(null);
   const [formData, setFormData] = useState(INITIAL_FORM_STATE);
@@ -216,6 +222,29 @@ export default function SuperAdminUsers() {
       })
     );
   }, [users, searchQuery, roleFilter]);
+
+  // Pagination calculations
+  const totalPages = Math.max(1, Math.ceil(filteredUsers.length / itemsPerPage) || 1);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, roleFilter, itemsPerPage]);
+
+  useEffect(() => {
+    setCurrentPage((prev) => {
+      const maxPage = Math.max(1, Math.ceil(filteredUsers.length / itemsPerPage) || 1);
+      return prev > maxPage ? maxPage : prev;
+    });
+  }, [filteredUsers.length, itemsPerPage]);
+
+  const paginatedUsers = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    return filteredUsers.slice(startIndex, startIndex + itemsPerPage);
+  }, [filteredUsers, currentPage, itemsPerPage]);
+
+  const handlePrevPage = () => setCurrentPage((prev) => Math.max(prev - 1, 1));
+  const handleNextPage = () => setCurrentPage((prev) => Math.min(prev + 1, totalPages));
+
 
   const handleOpenCreate = () => {
     setFormData(INITIAL_FORM_STATE);
@@ -398,7 +427,7 @@ export default function SuperAdminUsers() {
 
   const handleSelectAll = (e) => {
     if (e.target.checked) {
-      const allIds = filteredUsers.map((u) => u.id);
+      const allIds = paginatedUsers.map((u) => u.id);
       setSelectedIds(allIds);
     } else {
       setSelectedIds([]);
@@ -600,8 +629,8 @@ export default function SuperAdminUsers() {
                   type="checkbox"
                   className="w-4 h-4 accent-blue-600"
                   checked={
-                    filteredUsers.length > 0 &&
-                    filteredUsers.every((u) => selectedIds.includes(u.id))
+                    paginatedUsers.length > 0 &&
+                    paginatedUsers.every((u) => selectedIds.includes(u.id))
                   }
                   onChange={handleSelectAll}
                 />
@@ -635,7 +664,7 @@ export default function SuperAdminUsers() {
                   Loading users...
                 </td>
               </tr>
-            ) : filteredUsers.length === 0 ? (
+            ) : paginatedUsers.length === 0 ? (
               <tr>
                 <td
                   className="py-4 px-4 text-center text-sm text-gray-400"
@@ -645,7 +674,7 @@ export default function SuperAdminUsers() {
                 </td>
               </tr>
             ) : (
-              filteredUsers.map((user) => {
+              paginatedUsers.map((user) => {
                 return (
                   <tr
                     key={user.id}
@@ -704,6 +733,18 @@ export default function SuperAdminUsers() {
           </tbody>
         </table>
       </div>
+      {/* Pagination Controls */}
+      <div className="mt-4">
+        <PaginationControls
+          totalItems={filteredUsers.length}
+          pageSize={itemsPerPage}
+          currentPage={currentPage}
+          onPrev={handlePrevPage}
+          onNext={handleNextPage}
+          onPageSizeChange={setItemsPerPage}
+          label="users"
+        />
+        </div>
     </div>
   );
 
@@ -826,19 +867,49 @@ export default function SuperAdminUsers() {
                     <p className="font-semibold">Profile Picture:</p>
                     <p>
                       {selectedUser.profile_picture ? (
-                        <a
-                          href={selectedUser.profile_picture}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-blue-600 hover:underline break-all"
-                        >
-                          View image
-                        </a>
+                        <>
+                          <button
+                            type="button"
+                            className="text-blue-600 hover:underline break-all focus:outline-none"
+                            onClick={() => setShowImageModal(true)}
+                          >
+                            View image
+                          </button>
+                          {showImageModal && (
+                            <div
+                              className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-80 transition-all duration-300"
+                              onClick={() => setShowImageModal(false)}
+                            >
+                              <button
+                                className="fixed top-3 right-3 sm:top-5 sm:right-5 text-gray-300 hover:text-white focus:outline-none bg-transparent border-none p-0 m-0 z-50"
+                                style={{ background: 'none' }}
+                                onClick={() => setShowImageModal(false)}
+                                aria-label="Close"
+                              >
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-8 h-8">
+                                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                              </button>
+                              <div
+                                className="relative flex flex-col items-center justify-center w-full h-full animate-scale-in"
+                                onClick={e => e.stopPropagation()}
+                              >
+                                <img
+                                  src={`${selectedUser.profile_picture}?t=${Date.now()}`}
+                                  alt="Profile"
+                                  className="object-contain max-h-[80vh] max-w-[95vw] sm:max-w-[80vw] mx-auto"
+                                  style={{ background: 'none', boxShadow: 'none', border: 'none', borderRadius: 0, margin: 0 }}
+                                />
+                              </div>
+                            </div>
+                          )}
+                        </>
                       ) : (
                         "N/A"
                       )}
                     </p>
                   </div>
+                      {/* Profile Image Modal handled above, matching AdminUser style */}
                 </div>
               </div>
             )}
@@ -920,12 +991,13 @@ function UserFormModal({
   onChange,
   onGeneratePassword,
 }) {
+  const [showPassword, setShowPassword] = useState(false);
   if (!open) return null;
   const disabled = isSubmitting || confirmProcessing;
 
   return (
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-      <div className="bg-white w-full max-w-2xl rounded-2xl shadow-lg border border-gray-200 p-6 sm:p-8 relative overflow-y-auto max-h-[90vh]">
+      <div className="bg-white w-full max-w-2xl rounded-2xl shadow-lg border border-gray-200 p-6 sm:p-8 relative">
         <button
           onClick={onClose}
           className="absolute top-4 right-4 text-gray-500 hover:text-black transition disabled:opacity-60"
@@ -979,19 +1051,32 @@ function UserFormModal({
               Password
             </label>
             <div className="flex flex-col sm:flex-row sm:items-center gap-2">
-              <input
-                type="text"
-                value={formData.password}
-                onChange={(event) => onChange("password", event.target.value)}
-                placeholder={
-                  isEditing
-                    ? "Leave blank to keep current password"
-                    : "Enter or generate password"
-                }
-                required={!isEditing}
-                disabled={disabled}
-                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-indigo-500 outline-none disabled:bg-gray-100"
-              />
+              <div className="relative w-full">
+                <input
+                  type="text"
+                  style={showPassword ? undefined : { WebkitTextSecurity: "disc" }}
+                  value={formData.password}
+                  onChange={(event) => onChange("password", event.target.value)}
+                  placeholder={
+                    isEditing
+                      ? "Leave blank to keep current password"
+                      : "Enter or generate password"
+                  }
+                  required={!isEditing}
+                  disabled={disabled}
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-indigo-500 outline-none disabled:bg-gray-100 pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((prev) => !prev)}
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-700 hover:text-gray-900 focus:outline-none z-10 transition-colors cursor-pointer"
+                  tabIndex={-1}
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                  disabled={disabled}
+                >
+                  {showPassword ? <FiEyeOff className="size-5" /> : <FiEye className="size-5" />}
+                </button>
+              </div>
               <button
                 type="button"
                 onClick={onGeneratePassword}
@@ -1012,7 +1097,7 @@ function UserFormModal({
               </p>
             )}
           </div>
-          <div className="flex flex-col sm:flex-row justify-end gap-2 md:col-span-2 mt-4">
+          <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 md:col-span-2 mt-4">
             <button
               type="button"
               onClick={onClose}

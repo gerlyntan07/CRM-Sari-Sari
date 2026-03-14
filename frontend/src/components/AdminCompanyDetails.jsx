@@ -15,6 +15,7 @@ import CurrencyDropdown from "./CurrencyDropdown";
 export default function AdminCompanyDetails() {
   const { user, mutate } = useFetchUser();
   const fileInputRef = useRef(null);
+  
 
   // Form States
   const [companyName, setCompanyName] = useState("");
@@ -37,6 +38,10 @@ export default function AdminCompanyDetails() {
     "January", "February", "March", "April", "May", "June",
     "July", "August", "September", "October", "November", "December"
   ];
+
+  useEffect(() => {
+    document.title = "Organization | Forekas";
+  }, []);
 
   // Sync internal state when user data is fetched
   useEffect(() => {

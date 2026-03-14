@@ -52,7 +52,7 @@ const HeroSection = () => {
         {/* Left */}
         <div className="lg:text-left text-center">
           <h1 className="text-5xl sm:text-6xl lg:text-7xl font-lg text-secondary mb-6 leading-tight">
-            Sari-Sari{" "}
+            Forekas{" "}
             <span className="text-accent font-extrabold">CRM</span>
           </h1>
           <p className="max-w-xl mx-auto lg:mx-0 text-lg sm:text-xl text-secondary mb-10 italic">
@@ -185,7 +185,7 @@ const CTASection = () => (
       Start Building Your Future, Today.
     </h2>
     <p className="text-xl text-gray-400 mb-10">
-      Join thousands leveraging Sari-Sari CRM's intelligent platform.
+      Join thousands leveraging Forekas CRM's intelligent platform.
     </p>
     <a
       href="/signup"
@@ -201,9 +201,9 @@ const Footer = () => (
   <footer className="bg-secondary text-white border-t py-10">
     <div className="container mx-auto px-4 sm:px-6 lg:px-5 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8">
       <div>
-        <span className="text-xl font-white">Sari-Sari <span className="text-accent">CRM</span></span>        
+        <span className="text-xl font-white">Forekas <span className="text-accent">CRM</span></span>        
         <p className="text-sm text-white mt-4">
-          &copy; 2026 Sari-Sari CRM
+          &copy; 2026 Forekas CRM
         </p>
       </div>
       {[
@@ -249,7 +249,7 @@ const Footer = () => (
 // --- Landing Page Wrapper ---
 const Landing = () => {
   useEffect(() => {
-    document.title = "Sari-Sari CRM";
+    document.title = "Forekas";
   }, []);
   return (
     <main className="font-inter">

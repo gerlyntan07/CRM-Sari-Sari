@@ -148,7 +148,7 @@ export default function AdminLeads() {
   });
 
   useEffect(() => {
-    document.title = "Leads | Sari-Sari CRM";
+    document.title = "Leads | Forekas";
   }, []);
 
   const fetchAccounts = async () => {

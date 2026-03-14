@@ -30,6 +30,7 @@ export default function SoasBasePage({ basePath }) {
   const location = useLocation();
   const { user } = useFetchUser();
 
+
   const currencySymbol = user?.company?.currency || "₱";
   const defaultTaxRate = Number(user?.company?.tax_rate ?? 0);
   const defaultPreparedBy = useMemo(() => {
@@ -102,6 +103,10 @@ export default function SoasBasePage({ basePath }) {
     const activeQuotes = data.filter((q) => String(q?.status || "").toLowerCase() !== "inactive");
     setQuotes(activeQuotes);
   };
+
+  useEffect(() => {0
+    document.title = "SOA | Forekas";
+  }, []);
 
   useEffect(() => {
     if (!user) return;

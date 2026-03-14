@@ -177,7 +177,7 @@ export default function TargetDashboard({ currentUserRole, currentUserId }) {
   }, [user]);
 
   useEffect(() => {
-    document.title = "Targets | Sari-Sari CRM";
+    document.title = "Targets | Forekas";
   }, []);
 
   const [targets, setTargets] = useState([]);

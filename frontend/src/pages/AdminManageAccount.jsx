@@ -51,7 +51,7 @@ export default function AdminManageAccount() {
   }, [currentUser]);
 
   useEffect(() => {
-    document.title = "Manage Account | Sari-Sari CRM";
+    document.title = "Manage Account | Forekas";
   }, []);
 
   const handleInputChange = (field, value) => {

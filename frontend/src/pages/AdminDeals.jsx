@@ -22,7 +22,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 
 export default function AdminDeals() {
     useEffect(() => {
-        document.title = "Deals | Sari-Sari CRM";
+        document.title = "Deals | Forekas";
     }, []);
 
     const navigate = useNavigate();

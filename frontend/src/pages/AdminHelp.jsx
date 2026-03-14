@@ -18,7 +18,7 @@ export default function AdminHelp() {
     {
       id: 1,
       sender: "support",
-      message: "Hello! Welcome to Sari-Sari CRM Support. How can I help you today?",
+      message: "Hello! Welcome to Forekas Support. How can I help you today?",
       timestamp: new Date(),
     },
   ]);
@@ -32,7 +32,7 @@ export default function AdminHelp() {
   }, [chatMessages]);
 
   useEffect(() => {
-    document.title = "Help Center | Sari-Sari CRM";
+    document.title = "Help Center | Forekas";
   }, []);
 
   // Sample FAQ/Solutions data

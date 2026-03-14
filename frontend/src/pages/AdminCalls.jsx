@@ -123,6 +123,10 @@ export default function AdminCalls() {
   const [selectedIds, setSelectedIds] = useState([]);
   const [pendingCallId, setPendingCallId] = useState(null);
 
+   useEffect(() => {
+      document.title = "Call | Forekas";
+    }, []);
+
   const {
     comments: callComments,
     addComment: addCallComment,

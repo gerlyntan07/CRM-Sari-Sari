@@ -167,7 +167,7 @@ function SearchableMultiSelect({
 
 export default function AdminTerritory() {
   useEffect(() => {
-    document.title = "Territory | Sari-Sari CRM";
+    document.title = "Territory | Forekas";
   }, []);
 
   const navigate = useNavigate();

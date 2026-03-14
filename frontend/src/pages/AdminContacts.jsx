@@ -1721,7 +1721,9 @@ export default function AdminContacts() {
                 assigned_to: newId,
               }))
             }
-            items={users || []}
+            items={(users || []).filter(
+              (u) => !["Admin", "Marketing Admin", "Technical Support"].includes(u.role)
+            )}
             getLabel={(item) =>
               `${item?.first_name ?? ""} ${item?.last_name ?? ""} (${item?.role?.toUpperCase() === "CEO" ? "Admin" : (item?.role ?? "")})`.trim()
             }

@@ -2007,7 +2007,9 @@ export default function AdminQuotes() {
             onChange={(newId) =>
               setFormData((prev) => ({ ...prev, assigned_to: newId }))
             }
-            items={Array.isArray(users) ? users : []}
+            items={Array.isArray(users) ? users.filter(
+              (u) => !["Admin", "Marketing Admin", "Technical Support"].includes(u.role)
+            ) : []}
             getLabel={(item) => {
               const name =
                 `${item?.first_name ?? ""} ${item?.last_name ?? ""}`.trim();

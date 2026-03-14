@@ -996,7 +996,9 @@ const [isSubmitted, setIsSubmitted] = useState(false);
     </>
   }
     placeholder="Search and select users..."
-    options={users.map(u => ({value: String(u.id), label: `${u.first_name} ${u.last_name}`}))}
+    options={users
+      .filter(u => !["Admin", "Marketing Admin", "Technical Support"].includes(u.role))
+      .map(u => ({value: String(u.id), label: `${u.first_name} ${u.last_name}`}))}
     selectedValues={territoryData.user_ids}
     onChange={handleAssignedUsersChange}
     required

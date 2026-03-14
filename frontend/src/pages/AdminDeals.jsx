@@ -1399,7 +1399,9 @@ const [isSubmitted, setIsSubmitted] = useState(false);
                                 assigned_to: newId,
                             })
                         }
-                        items={users || []}
+                                                items={(users || []).filter(
+                                                    (u) => !["Admin", "Marketing Admin", "Technical Support"].includes(u.role)
+                                                )}
                         getLabel={(item) => {
                             const name = `${item?.first_name ?? ""} ${item?.last_name ?? ""}`.trim();
                             return name || item?.email || "";

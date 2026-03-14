@@ -1171,7 +1171,9 @@ export default function AdminLeads() {
                   }`}
                 >
                 <SearchableSelect
-                  items={Array.isArray(users) ? users : []}
+                  items={Array.isArray(users) ? users.filter(
+                    (u) => !["Admin", "Marketing Admin", "Technical Support"].includes(u.role)
+                  ) : []}
                   value={leadData.lead_owner ?? ""}
                   placeholder={`Search a user...`}
                   getLabel={(item) => `${item.first_name} ${item.last_name}`}

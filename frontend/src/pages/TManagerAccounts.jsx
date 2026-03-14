@@ -2048,7 +2048,9 @@ export default function AdminAccounts() {
                 territory_id: newTerritoryId, // Reset or Auto-select
               }));
             }}
-            items={users || []}
+            items={(users || []).filter(
+              (u) => !["Admin", "Marketing Admin", "Technical Support"].includes(u.role)
+            )}
             getLabel={(item) =>
               `${item?.first_name ?? ""} ${item?.last_name ?? ""} (${item?.role ?? ""})`.trim()
             }

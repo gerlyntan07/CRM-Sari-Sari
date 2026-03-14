@@ -1100,7 +1100,9 @@ export default function AdminCalls() {
               Assign To <span className="text-red-600 font-semibold">*</span>
             </label>
             <SearchableSelect
-              items={Array.isArray(team) ? team : []}
+              items={Array.isArray(team) ? team.filter(
+                (u) => !["Admin", "Marketing Admin", "Technical Support"].includes(u.role)
+              ) : []}
               value={formData.assigned_to ?? ""}
               placeholder={`Search an account...`}
               getLabel={(item) => `${item.first_name} ${item.last_name}`}

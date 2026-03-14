@@ -636,7 +636,9 @@ export default function TaskModal({
                           )}
                         </label>
                         <SearchableSelect
-                          items={Array.isArray(users) ? users : []}
+                          items={Array.isArray(users) ? users.filter(
+                            (u) => !["Admin", "Marketing Admin", "Technical Support"].includes(u.role)
+                          ) : []}
                           value={formData.assignedTo ?? ""}
                           placeholder={
                             currentUser?.role === "Sales"

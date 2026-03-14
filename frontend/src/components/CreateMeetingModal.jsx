@@ -385,7 +385,9 @@ const [isSubmitted, setIsSubmitted] = useState(false);
           
 
           <SearchableSelect
-            items={Array.isArray(users) ? users : []}
+            items={Array.isArray(users) ? users.filter(
+              (u) => !["Admin", "Marketing Admin", "Technical Support"].includes(u.role)
+            ) : []}
             value={formData.assignedTo ?? ""}
             placeholder="Search an account..."
             getLabel={(item) => `${item.first_name} ${item.last_name}`}

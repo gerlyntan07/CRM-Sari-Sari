@@ -2080,7 +2080,9 @@ function FormModal({
 
             <SearchableSelect
               name="user_id"
-              items={users}
+              items={Array.isArray(users) ? users.filter(
+                (u) => !["Admin", "Marketing Admin", "Technical Support"].includes(u.role)
+              ) : []}
               value={formData.user_id}
               onChange={onChange}
               getLabel={(u) => `${u.first_name} ${u.last_name}`}

@@ -6,6 +6,7 @@ import { toast } from "react-toastify";
 import api from "../api";
 import useFetchUser from "../hooks/useFetchUser";
 import QuoteItemsEditor from "../components/QuoteItemsEditor";
+import LoadingSpinner from "../components/LoadingSpinner.jsx";
 
 const EMPTY_FORM = {
   account_id: "",
@@ -397,7 +398,8 @@ export default function SoasBasePage({ basePath }) {
   };
 
   return (
-    <div className="p-4 lg:p-8 font-inter">
+    <div className="p-4 lg:p-8 font-inter relative">
+      {loading && <LoadingSpinner message="Loading SOA..." />}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
         <div>
           <h1 className="text-2xl sm:text-3xl font-semibold text-gray-800 mb-1">Statement of Account</h1>

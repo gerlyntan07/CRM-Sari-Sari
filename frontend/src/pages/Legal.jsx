@@ -10,7 +10,7 @@ const TermsModal = ({ isOpen, onClose }) => {
       number: "1",
       title: "Authorized Use",
       content: [
-        'Sari-Sari CRM  is an internal company platform intended to manage leads, deals, accounts, contacts, scheduling, and task workflows.',
+        'Forekas CRM  is an internal company platform intended to manage leads, deals, accounts, contacts, scheduling, and task workflows.',
         'Access is granted according to employment role and operational responsibilities. Users are required to safeguard their credentials and operate strictly within assigned permissions. Unauthorized access, credential sharing, or misuse of the System is prohibited and may result administrative action.'
       ]
     },
@@ -99,7 +99,7 @@ const TermsModal = ({ isOpen, onClose }) => {
       title: "Support & Reporting",
       content: [
         "Questions or concerns regarding System use should be directed to:",
-        <strong key="dept">Sari-Sari CRM Administration</strong>,
+        <strong key="dept">Forekas CRM Administration</strong>,
     <a
       key="email"
       href="https://www.sari-sari.com/"
@@ -131,7 +131,7 @@ const TermsModal = ({ isOpen, onClose }) => {
         
         <div className="overflow-y-auto max-h-[calc(90vh-120px)] px-8 py-6 scrollbar-hide">
           <p className="text-gray-700 mb-6 leading-relaxed">
-            These Terms of Use govern your access to and use of the Sari-Sari CRM system. 
+            These Terms of Use govern your access to and use of the Forekas CRM system. 
             By accessing or using the System, you acknowledge that you have read, understood, 
             and agree to be bound by these terms.
           </p>
@@ -156,7 +156,7 @@ const TermsModal = ({ isOpen, onClose }) => {
 
           <div className="mt-8 pt-6 mb-10 border-t border-gray-200">
             <p className="text-gray-600 text-xs leading-relaxed text-center">
-              By continuing to use Sari-Sari CRM, you acknowledge that you have read and agree 
+              By continuing to use Forekas CRM, you acknowledge that you have read and agree 
               to these Terms of Use. If you do not agree with any part of these terms, you must 
               discontinue use of the System immediately.
             </p>
@@ -256,7 +256,7 @@ const PrivacyModal = ({ isOpen, onClose }) => {
       number: "10",
       title: "Data Processing Agreement",
       content: [
-        "By using Sari-Sari CRM, your organization acknowledges and agrees that:",
+        "By using Forekas CRM, your organization acknowledges and agrees that:",
         "• Your organization is the Data Controller of all business and personal data entered into the CRM. \n• We implement technical and organizational measures to ensure data confidentiality, integrity, and security.\n• Developer access to business transaction data is strictly restricted and logged, and we will not use or disclose your organization's business data for any purpose other than providing and maintaining the CRM services."
       ]
     }
@@ -286,7 +286,7 @@ const PrivacyModal = ({ isOpen, onClose }) => {
         
         <div className="overflow-y-auto max-h-[calc(90vh-120px)] px-8 py-6 scrollbar-hide">
           <p className="text-gray-700 mb-6 leading-relaxed">
-Sari-Sari CRM provides a B2B CRM platform designed to help manage businesses. Protecting your business and personal data is a top priority. This Privacy Policy explains how we collect, process, store, and protect data in compliance with applicable.
+Forekas CRM provides a B2B CRM platform designed to help manage businesses. Protecting your business and personal data is a top priority. This Privacy Policy explains how we collect, process, store, and protect data in compliance with applicable.
           </p>
 
           <div className="space-y-6">
@@ -338,7 +338,7 @@ const SlaModal = ({ isOpen, onClose }) => {
       number: "1",
       title: "Purpose",
       content: [
-        "This Service Level Agreement (\"SLA\") defines the service standards, availability commitments, support expectations, and responsibilities associated with the use of Sari-Sari CRM, a business-to-business customer relationship management platform."
+        "This Service Level Agreement (\"SLA\") defines the service standards, availability commitments, support expectations, and responsibilities associated with the use of Forekas CRM, a business-to-business customer relationship management platform."
       ]
       },
     {
@@ -426,7 +426,7 @@ const SlaModal = ({ isOpen, onClose }) => {
         
         <div className="overflow-y-auto max-h-[calc(90vh-120px)] px-8 py-6 scrollbar-hide">
           <p className="text-gray-700 mb-6 leading-relaxed">
-            This Service Level Agreement defines the service standards, availability commitments, support expectations, and responsibilities associated with the use of Sari-Sari CRM.
+            This Service Level Agreement defines the service standards, availability commitments, support expectations, and responsibilities associated with the use of Forekas CRM.
           </p>
 
           <div className="space-y-6">
@@ -533,7 +533,7 @@ const ComplianceModal = ({ isOpen, onClose }) => {
         
         <div className="overflow-y-auto max-h-[calc(90vh-120px)] px-8 py-6 scrollbar-hide">
           <p className="text-gray-700 mb-6 leading-relaxed">
-            Sari-Sari CRM is designed to support responsible business data management while aligning with recognized privacy, security, and operational best practices. We are committed to maintaining safeguards that protect customer and organizational information.
+            Forekas CRM is designed to support responsible business data management while aligning with recognized privacy, security, and operational best practices. We are committed to maintaining safeguards that protect customer and organizational information.
           </p>
 
           <div className="space-y-6">
@@ -580,7 +580,7 @@ const LegalHeader = () => (
     <div className="container mx-auto px-4 sm:px-6 lg:px-8">
       <div className="flex items-center justify-between py-3">
         <Link to="/" className="text-2xl font-bold">
-          Sari-Sari <span className="text-accent">CRM</span>
+          Forekas <span className="text-accent">CRM</span>
         </Link>
         <nav className="flex space-x-8">
           <Link to="/resources" className="hover:text-accent transition-colors">
@@ -604,7 +604,7 @@ const Legal = () => {
   
 
   useEffect(() => {
-    document.title = "Legal - Sari-Sari CRM";
+    document.title = "Legal - Forekas CRM";
   }, []);
 
   const legalSections = [

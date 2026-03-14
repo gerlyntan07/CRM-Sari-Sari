@@ -40,7 +40,7 @@ const Header = () => {
           {/* Logo */}
           <div className="flex-shrink-0">
             <span className="text-2xl font-black text-white">
-              Sari-Sari <span className="text-accent"> CRM</span>
+              Forekas <span className="text-accent"> CRM</span>
             </span>
           </div>
 

@@ -10,7 +10,7 @@ const SecurityModal = ({ isOpen, onClose }) => {
       number: "1",
        title: "Enterprise Security Commitment",
       content: [
-        "Sari-Sari CRM maintains a security-first architecture designed to protect business data, preserve system integrity, and support continuous operational reliability. Security controls are implemented across administrative, technical, and operational layers to reduce risk and safeguard organizational information."
+        "Forekas CRM maintains a security-first architecture designed to protect business data, preserve system integrity, and support continuous operational reliability. Security controls are implemented across administrative, technical, and operational layers to reduce risk and safeguard organizational information."
       ]
     },
     {
@@ -48,7 +48,7 @@ const SecurityModal = ({ isOpen, onClose }) => {
       number: "6",
       title: "Technical Security Framework",
       content: [
-        "Sari-Sari CRM employs layered security controls aligned with industry best practices to protect data and platform operations."
+        "Forekas CRM employs layered security controls aligned with industry best practices to protect data and platform operations."
       ]
     },
     {
@@ -100,7 +100,7 @@ const SecurityModal = ({ isOpen, onClose }) => {
         
         <div className="overflow-y-auto max-h-[calc(90vh-120px)] px-8 py-6 scrollbar-hide">
           <p className="text-gray-700 mb-6 leading-relaxed">
-            This document outlines the enterprise and technical security measures implemented to protect your business data and ensure the integrity, confidentiality, and availability of the Sari-Sari CRM platform.
+            This document outlines the enterprise and technical security measures implemented to protect your business data and ensure the integrity, confidentiality, and availability of the Forekas CRM platform.
           </p>
 
           <div className="space-y-6">
@@ -151,7 +151,7 @@ const SupportModal = ({ isOpen, onClose }) => {
       number: "1",
       title: "Support Commitment",
       content: [
-        "Sari-Sari CRM provides operational support to help organizations maintain smooth and reliable use of the platform. Our goal is to resolve issues efficiently and minimize disruption to your business workflows."
+        "Forekas CRM provides operational support to help organizations maintain smooth and reliable use of the platform. Our goal is to resolve issues efficiently and minimize disruption to your business workflows."
       ]
     },
     {
@@ -183,7 +183,7 @@ const SupportModal = ({ isOpen, onClose }) => {
       title: "Support & Reporting",
       content: [
         "Users should submit support requests through designated communication channels, including:",
-         <strong key="dept">Sari-Sari CRM Administration</strong>,
+         <strong key="dept">Forekas CRM Administration</strong>,
     <a
       key="email"
       href="https://www.sari-sari.com/"
@@ -216,7 +216,7 @@ const SupportModal = ({ isOpen, onClose }) => {
         
         <div className="overflow-y-auto max-h-[calc(90vh-120px)] px-8 py-6 scrollbar-hide">
           <p className="text-gray-700 mb-6 leading-relaxed">
-            Sari-Sari CRM is committed to providing responsive and effective support to help your organization succeed. Our support team is here to assist with platform access, features, performance, and general questions.
+            Forekas CRM is committed to providing responsive and effective support to help your organization succeed. Our support team is here to assist with platform access, features, performance, and general questions.
           </p>
 
           <div className="space-y-6">
@@ -239,7 +239,7 @@ const SupportModal = ({ isOpen, onClose }) => {
 
           <div className="mt-8 pt-6 mb-10 border-t border-gray-200">
             <p className="text-gray-600 text-xs leading-relaxed text-center">
-              We value your feedback and continuously improve our support services based on your experience. Thank you for using Sari-Sari CRM.
+              We value your feedback and continuously improve our support services based on your experience. Thank you for using Forekas CRM.
             </p>
           </div>
         </div>
@@ -264,7 +264,7 @@ const ResourcesHeader = () => (
     <div className="container mx-auto px-4 sm:px-6 lg:px-8">
       <div className="flex items-center justify-between py-3">
         <Link to="/" className="text-2xl font-bold">
-          Sari-Sari <span className="text-accent">CRM</span>
+          Forekas <span className="text-accent">CRM</span>
         </Link>
         <nav className="flex space-x-8">
           <Link to="/resources" className="hover:text-accent transition-colors">
@@ -286,7 +286,7 @@ const Resources = () => {
   
     
   useEffect(() => {
-    document.title = "Resources - Sari-Sari CRM";
+    document.title = "Resources - Forekas CRM";
   }, []);
 
   const resourcesData = [
@@ -323,7 +323,7 @@ const Resources = () => {
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <h1 className="text-5xl font-bold text-secondary mb-4">Resources</h1>
           <p className="text-lg text-secondary mb-12">
-            Everything you need to succeed with Sari-Sari CRM
+            Everything you need to succeed with Forekas CRM
           </p>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">

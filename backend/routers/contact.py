@@ -71,6 +71,7 @@ def create_contact(
         title=data.title,
         department=data.department,
         email=data.email,
+        work_email=data.work_email,
         work_phone=data.work_phone,
         mobile_phone_1=data.mobile_phone_1,
         mobile_phone_2=data.mobile_phone_2,
@@ -198,25 +199,36 @@ def admin_create_contact(
     current_user: User = Depends(get_current_user),
     request: Request = None,
 ):
-    if current_user.role.upper() == "SALES":
-        assigned_to = current_user.id
-    else:
-        assigned_to = data.assigned_to
+    # Duplicate email detection
+    if data.email:
+        existing_email = db.query(Contact).filter(Contact.email == data.email.lower()).first()
+        if existing_email:
+            raise HTTPException(status_code=400, detail="A contact with this personal email already exists.")
 
-    if not current_user.related_to_company:
-        raise HTTPException(
-            status_code=400,
-            detail="Current user is not linked to any company.",
-        )
+    if data.work_email:
+        existing_work_email = db.query(Contact).filter(Contact.work_email == data.work_email.lower()).first()
+        if existing_work_email:
+            raise HTTPException(status_code=400, detail="A contact with this work email already exists.")
 
-    first_name = _clean_optional_string(data.first_name)
-    last_name = _clean_optional_string(data.last_name)
+        if current_user.role.upper() == "SALES":
+            assigned_to = current_user.id
+        else:
+            assigned_to = data.assigned_to
 
-    if not last_name:
-        raise HTTPException(
-            status_code=400,
-            detail="Last name is required.",
-        )
+        if not current_user.related_to_company:
+            raise HTTPException(
+                status_code=400,
+                detail="Current user is not linked to any company.",
+            )
+
+        first_name = _clean_optional_string(data.first_name)
+        last_name = _clean_optional_string(data.last_name)
+
+        if not last_name:
+            raise HTTPException(
+                status_code=400,
+                detail="Last name is required.",
+            )
 
     company_users = (
         select(User.id)
@@ -277,6 +289,7 @@ def admin_create_contact(
         title=_clean_optional_string(data.title),
         department=_clean_optional_string(data.department),
         email=_clean_optional_string(data.email.lower()) if data.email else None,
+        work_email=_clean_optional_string(data.work_email.lower()) if data.work_email else None,
         work_phone=_clean_optional_string(data.work_phone),
         mobile_phone_1=_clean_optional_string(data.mobile_phone_1),
         mobile_phone_2=_clean_optional_string(data.mobile_phone_2),
@@ -339,6 +352,17 @@ def admin_update_contact(
     current_user: User = Depends(get_current_user),
     request: Request = None,
 ):
+    update_data = data.model_dump(exclude_unset=True)
+    # Duplicate email detection for update
+    if "email" in update_data and update_data["email"]:
+        existing_email = db.query(Contact).filter(Contact.email == update_data["email"], Contact.id != contact_id).first()
+        if existing_email:
+            raise HTTPException(status_code=400, detail="Strictly no contact duplication: personal email already exists.")
+
+    if "work_email" in update_data and update_data["work_email"]:
+        existing_work_email = db.query(Contact).filter(Contact.work_email == update_data["work_email"], Contact.id != contact_id).first()
+        if existing_work_email:
+            raise HTTPException(status_code=400, detail="Strictly no contact duplication: work email already exists.")
     company_users = (
         select(User.id)
         .where(User.related_to_company == current_user.related_to_company)
@@ -430,6 +454,7 @@ def admin_update_contact(
         "mobile_phone_1",
         "mobile_phone_2",
         "notes",
+        "work_email",
     ]:
         if field in update_data:
             update_data[field] = _clean_optional_string(update_data[field])

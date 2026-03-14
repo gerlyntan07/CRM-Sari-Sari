@@ -18,6 +18,7 @@ class Contact(Base):
     title = Column(String, nullable=True)
     department = Column(String, nullable=True)
     email = Column(String, nullable=True)    
+    work_email = Column(String, nullable=True)
     work_phone = Column(String(20), nullable=True)
     mobile_phone_1 = Column(String(20), nullable=True)
     mobile_phone_2 = Column(String(20), nullable=True)

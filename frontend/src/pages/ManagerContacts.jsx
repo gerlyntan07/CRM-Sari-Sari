@@ -42,6 +42,7 @@ const INITIAL_FORM_STATE = {
   title: "",
   department: "",
   email: "",
+  work_email: "",
   work_phone: "",
   mobile_phone_1: "",
   mobile_phone_2: "",
@@ -408,6 +409,7 @@ export default function AdminContacts() {
       title: contact.title || "",
       department: contact.department || "",
       email: contact.email || "",
+      work_email: contact.work_email || "",
       work_phone: contact.work_phone || "",
       mobile_phone_1: contact.mobile_phone_1 || "",
       mobile_phone_2: contact.mobile_phone_2 || "",
@@ -542,6 +544,7 @@ export default function AdminContacts() {
       title: formData.title?.trim() || null,
       department: formData.department?.trim() || null,
       email: formData.email?.trim().toLowerCase() || null,
+      work_email: formData.work_email?.trim().toLowerCase() || null,
       work_phone: formData.work_phone?.trim() || null,
       mobile_phone_1: formData.mobile_phone_1?.trim() || null,
       mobile_phone_2: formData.mobile_phone_2?.trim() || null,
@@ -816,7 +819,7 @@ export default function AdminContacts() {
                       <p>{selectedContact.title || "N/A"}</p>
                     </div>
                     <div>
-                      <p className="font-semibold">Email:</p>
+                      <p className="font-semibold">Personal Email:</p>
                       <p>
                         {selectedContact.email ? (
                           <a
@@ -824,6 +827,21 @@ export default function AdminContacts() {
                             className="text-blue-600 hover:underline break-all"
                           >
                             {selectedContact.email}
+                          </a>
+                        ) : (
+                          "N/A"
+                        )}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="font-semibold">Work Email:</p>
+                      <p>
+                        {selectedContact.work_email ? (
+                          <a
+                            href={`mailto:${selectedContact.work_email}`}
+                            className="text-blue-600 hover:underline break-all"
+                          >
+                            {selectedContact.work_email}
                           </a>
                         ) : (
                           "N/A"
@@ -1795,40 +1813,52 @@ export default function AdminContacts() {
             placeholder="Department"
             disabled={isSubmitting}
           />
-          <InputField
-            label="Email"
-            name="email"
-            type="email"
-            value={formData.email}
-            onChange={handleInputChange}
-            placeholder="example@email.com"
-            required
-            isSubmitted={isSubmitted}
-          />
-          <InputField
-            label="Work Phone"
-            name="work_phone"
-            value={formData.work_phone}
-            onChange={handleInputChange}
-            placeholder="09xx xxx xxxx"
-            disabled={isSubmitting}
-          />
-          <InputField
-            label="Mobile Phone 1"
-            name="mobile_phone_1"
-            value={formData.mobile_phone_1}
-            onChange={handleInputChange}
-            placeholder="09xx xxx xxxx"
-            disabled={isSubmitting}
-          />
-          <InputField
-            label="Mobile Phone 2"
-            name="mobile_phone_2"
-            value={formData.mobile_phone_2}
-            onChange={handleInputChange}
-            placeholder="09xx xxx xxxx"
-            disabled={isSubmitting}
-          />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:col-span-2">
+            <InputField
+              label="Personal Email"
+              name="email"
+              type="email"
+              value={formData.email}
+              onChange={handleInputChange}
+              placeholder="example@email.com"
+              disabled={isSubmitting}
+            />
+            <InputField
+              label="Work Email"
+              name="work_email"
+              type="email"
+              value={formData.work_email}
+              onChange={handleInputChange}
+              placeholder="work@email.com"
+              disabled={isSubmitting}
+            />
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:col-span-2">
+            <InputField
+              label="Work Phone"
+              name="work_phone"
+              value={formData.work_phone}
+              onChange={handleInputChange}
+              placeholder="09xx xxx xxxx"
+              disabled={isSubmitting}
+            />
+            <InputField
+              label="Mobile Phone 1"
+              name="mobile_phone_1"
+              value={formData.mobile_phone_1}
+              onChange={handleInputChange}
+              placeholder="09xx xxx xxxx"
+              disabled={isSubmitting}
+            />
+            <InputField
+              label="Mobile Phone 2"
+              name="mobile_phone_2"
+              value={formData.mobile_phone_2}
+              onChange={handleInputChange}
+              placeholder="09xx xxx xxxx"
+              disabled={isSubmitting}
+            />
+          </div>
           <TextareaField
             label="Notes"
             name="notes"

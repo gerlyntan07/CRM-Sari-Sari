@@ -11,6 +11,7 @@ class ContactBase(BaseModel):
     title: Optional[str] = None
     department: Optional[str] = None
     email: Optional[EmailStr] = None
+    work_email: Optional[EmailStr] = None
     work_phone: Optional[str] = None
     mobile_phone_1: Optional[str] = None
     mobile_phone_2: Optional[str] = None
@@ -31,6 +32,7 @@ class ContactUpdate(BaseModel):
     title: Optional[str] = None
     department: Optional[str] = None
     email: Optional[EmailStr] = None
+    work_email: Optional[EmailStr] = None
     work_phone: Optional[str] = None
     mobile_phone_1: Optional[str] = None
     mobile_phone_2: Optional[str] = None

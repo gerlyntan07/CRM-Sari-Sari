@@ -1305,7 +1305,7 @@ const [isSubmitted, setIsSubmitted] = useState(false);
                                     onClick={onAddAccount}
                                     disabled={isSubmitting}
                                     title="Add account"
-                                    className="inline-flex items-center justify-center w-8 h-8 rounded-md border border-gray-300 text-gray-600 hover:bg-gray-50 transition disabled:opacity-60"
+                            className="inline-flex items-center justify-center w-4 h-4 rounded-sm border border-gray-300 text-gray-600 hover:bg-gray-50 transition disabled:opacity-60"
                                 >
                                     <FiPlus size={16} />
                                 </button>
@@ -1314,7 +1314,7 @@ const [isSubmitted, setIsSubmitted] = useState(false);
                                     onClick={onRefreshAccounts}
                                     disabled={isSubmitting}
                                     title="Refresh accounts"
-                                    className="inline-flex items-center justify-center w-8 h-8 rounded-md border border-gray-300 text-gray-600 hover:bg-gray-50 transition disabled:opacity-60"
+                            className="inline-flex items-center justify-center w-4 h-3 text-gray-600 hover:bg-gray-50 transition disabled:opacity-60"
                                 >
                                     <FiRefreshCw size={16} />
                                 </button>
@@ -1348,7 +1348,7 @@ const [isSubmitted, setIsSubmitted] = useState(false);
                                     onClick={onAddContact}
                                     disabled={isSubmitting}
                                     title="Add contact"
-                                    className="inline-flex items-center justify-center w-8 h-8 rounded-md border border-gray-300 text-gray-600 hover:bg-gray-50 transition disabled:opacity-60"
+                            className="inline-flex items-center justify-center w-4 h-4 rounded-sm border border-gray-300 text-gray-600 hover:bg-gray-50 transition disabled:opacity-60"
                                 >
                                     <FiPlus size={16} />
                                 </button>
@@ -1357,7 +1357,7 @@ const [isSubmitted, setIsSubmitted] = useState(false);
                                     onClick={onRefreshContacts}
                                     disabled={isSubmitting}
                                     title="Refresh contacts"
-                                    className="inline-flex items-center justify-center w-8 h-8 rounded-md border border-gray-300 text-gray-600 hover:bg-gray-50 transition disabled:opacity-60"
+                            className="inline-flex items-center justify-center w-4 h-3 text-gray-600 hover:bg-gray-50 transition disabled:opacity-60"
                                 >
                                     <FiRefreshCw size={16} />
                                 </button>

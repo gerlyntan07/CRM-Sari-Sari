@@ -246,7 +246,7 @@ const formattedDateTime = (datetime) => {
                   setLocalActiveTab(tab);
                 }
               }}
-              className={`flex-1 min-w-[90px] px-4 py-2.5 text-xs sm:text-sm font-medium text-center transition-all duration-200 border-b-2
+              className={`flex-1 min-w-[90px] px-4 py-2.5 text-xs sm:text-sm font-medium text-center transition-all duration-200 border-b-2 cursor-pointer
                 ${currentTab === tab
                   ? "bg-paper-white text-[#6A727D] border-white"
                   : "text-white hover:bg-[#5c636d]"

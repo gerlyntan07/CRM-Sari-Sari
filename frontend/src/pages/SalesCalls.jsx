@@ -879,7 +879,7 @@ export default function AdminCalls() {
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
-                className={`flex-1 min-w-[90px] px-4 py-2.5 text-xs sm:text-sm font-medium border-b-2 ${
+                className={`flex-1 min-w-[90px] px-4 py-2.5 text-xs sm:text-sm font-medium border-b-2 cursor-pointer ${
                   activeTab === tab
                     ? "bg-paper-white text-[#6A727D] border-white"
                     : "text-white hover:bg-[#5c636d]"

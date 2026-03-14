@@ -1315,7 +1315,7 @@ export default function AdminQuotes() {
                 <button
                   key={tab}
                   onClick={() => setActiveTab(tab)}
-                  className={`flex-1 min-w-[90px] px-4 py-2.5 text-xs sm:text-sm font-medium text-center transition-all duration-200 border-b-2
+                  className={`flex-1 min-w-[90px] px-4 py-2.5 text-xs sm:text-sm font-medium text-center transition-all duration-200 border-b-2 cursor-pointer
                     ${
                       activeTab === tab
                         ? "bg-paper-white text-[#6A727D] border-white"

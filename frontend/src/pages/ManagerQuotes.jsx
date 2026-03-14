@@ -265,7 +265,7 @@ export default function AdminQuotes() {
   const currencySymbol = user?.company?.currency || "₱";
 
   useEffect(() => {
-    document.title = "Quotes | Sari-Sari CRM";
+    document.title = "Quotes | Forekas";
   }, []);
 
   const [quotes, setQuotes] = useState([]);

@@ -30,6 +30,15 @@ export default function ManagerHeader({ toggleSidebar }) {
     "/manager/quotes": "Quotes",
     "/manager/users": "Users",
     "/manager/deals": "Deals",
+    "/manager/soas": "SOA",
+    "/manager/territory": "Territory",
+    "/manager/manage-account": "Profile",
+     "/manager/calendar": "Calendar",
+     "/manager/tasks": "Task",
+     "/manager/calls": "Call",
+     "/manager/meetings": "Meeting",
+     "/manager/audit": "Audit",
+    
   };
 
   const currentTitle = routeTitles[location.pathname] || "Manager Panel";

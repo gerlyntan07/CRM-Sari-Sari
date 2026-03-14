@@ -72,7 +72,7 @@ export default function AdminContacts() {
   const { user: currentUser } = useFetchUser();
 
   useEffect(() => {
-    document.title = "Contacts | Sari-Sari CRM";
+    document.title = "Contacts | Forekas";
   }, []);
 
   const [contacts, setContacts] = useState([]);

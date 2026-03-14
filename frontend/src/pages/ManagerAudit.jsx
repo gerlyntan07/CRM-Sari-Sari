@@ -8,7 +8,7 @@ import { FiCalendar } from "react-icons/fi";
 
 export default function AdminAudit() {
   useEffect(() => {
-    document.title = "Audit | Sari-Sari CRM";
+    document.title = "Audit | Forekas";
   }, []);
 
   const [logs, setLogs] = useState(null);

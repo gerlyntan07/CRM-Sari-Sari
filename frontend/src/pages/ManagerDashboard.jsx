@@ -1621,7 +1621,7 @@ const ManagerDashboard = () => {
   }, []);
 
   useEffect(() => {
-    document.title = "Dashboard | Sari-Sari CRM";
+    document.title = "Dashboard | Forekas";
     console.log("ManagerDashboard mounted, fetching data...");
     fetchAllData();
 

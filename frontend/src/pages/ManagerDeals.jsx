@@ -22,7 +22,7 @@ import useFetchUser from "../hooks/useFetchUser";
 
 export default function ManagerDeals() {
     useEffect(() => {
-        document.title = "Deals | Sari-Sari CRM";
+        document.title = "Deals | Forekas";
     }, []);
 
     const navigate = useNavigate();

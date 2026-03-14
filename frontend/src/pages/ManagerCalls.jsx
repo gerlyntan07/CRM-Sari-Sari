@@ -118,6 +118,10 @@ export default function AdminCalls() {
 
   const { user: currentUser } = useFetchUser();
 
+ useEffect(() => {
+    document.title = "Call | Forekas";
+  }, []);
+
   const {
     comments: callComments,
     addComment: addCallComment,

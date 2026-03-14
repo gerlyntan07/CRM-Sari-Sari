@@ -13,7 +13,7 @@ export default function ManagerCalendar() {
   const [calls, setCalls] = useState([]);
 
   useEffect(() => {
-    document.title = "Calendar | Sari-Sari CRM";
+    document.title = "Calendar | Forekas";
   }, []);
 
   const fetchAll = useCallback(async () => {

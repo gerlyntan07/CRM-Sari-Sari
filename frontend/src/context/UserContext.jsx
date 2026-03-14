@@ -9,6 +9,17 @@ export function UserProvider({ children }) {
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
+  const logout = useCallback(async () => {
+    try {
+      await api.post("/auth/logout");
+    } catch {
+      // best-effort
+    }
+    setUser(null);
+    setIsLoggedIn(false);
+    navigate("/login");
+  }, [navigate]);
+
   const fetchUser = useCallback(async () => {
     setLoading(true);
     try {
@@ -32,18 +43,13 @@ export function UserProvider({ children }) {
   // Fetch user on component mount
   useEffect(() => {
     fetchUser();
-  }, [fetchUser]);
-
-  const logout = useCallback(async () => {
-    try {
-      await api.post("/auth/logout");
-    } catch {
-      // best-effort
-    }
-    setUser(null);
-    setIsLoggedIn(false);
-    navigate("/login");
-  }, [navigate]);
+    // Listen for forceLogout event
+    const handler = () => logout();
+    window.addEventListener("forceLogout", handler);
+    return () => {
+      window.removeEventListener("forceLogout", handler);
+    };
+  }, [fetchUser, logout]);
 
   const value = useMemo(
     () => ({

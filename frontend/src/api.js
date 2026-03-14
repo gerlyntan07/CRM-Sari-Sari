@@ -26,37 +26,30 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
-      const requestUrl = String(error.config?.url || "");
+    const status = error.response?.status;
+    const requestUrl = String(error.config?.url || "");
+    const path = window.location?.pathname || "";
+    const isAlreadyOnAuthPage =
+      path.startsWith("/login") ||
+      path.startsWith("/signup") ||
+      path.startsWith("/forgot-password");
 
-      // 401 on these endpoints is expected during normal flows (e.g., logged out).
-      const ignore401For = [
-        "/auth/me",
-        "/auth/login",
-        "/auth/google/login",
-        "/auth/logout",
-      ];
-      const shouldIgnore = ignore401For.some((p) => requestUrl.includes(p));
+    // 401 on these endpoints is expected during normal flows (e.g., logged out).
+    const ignore401For = [
+      "/auth/me",
+      "/auth/login",
+      "/auth/google/login",
+      "/auth/logout",
+    ];
+    const shouldIgnore = ignore401For.some((p) => requestUrl.includes(p));
 
-      const path = window.location?.pathname || "";
-      const isAlreadyOnAuthPage =
-        path.startsWith("/login") ||
-        path.startsWith("/signup") ||
-        path.startsWith("/forgot-password");
-
-      console.warn(
-        "⚠️ Unauthorized — possible expired token or not logged in.",
-        requestUrl
-      );
-
-      if (!shouldIgnore && !isAlreadyOnAuthPage) {
-        // Clear only auth-related keys (avoid nuking unrelated app state).
-        localStorage.removeItem("isLoggedIn");
-        localStorage.removeItem("userRole");
-        localStorage.removeItem("user_id");
-
-        window.location.assign("/login");
-      }
+    if ((status === 401 && !shouldIgnore && !isAlreadyOnAuthPage) || status === 403) {
+      // 403 is for inactive user or suspended company
+      localStorage.removeItem("isLoggedIn");
+      localStorage.removeItem("userRole");
+      localStorage.removeItem("user_id");
+      // Trigger logout event for app state update
+      window.dispatchEvent(new CustomEvent("forceLogout"));
     }
     return Promise.reject(error);
   }

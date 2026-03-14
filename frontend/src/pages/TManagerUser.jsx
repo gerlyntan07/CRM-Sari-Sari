@@ -184,7 +184,12 @@ export default function AdminUser() {
     try {
       const res = await api.get("/users/all");
       const data = Array.isArray(res.data) ? res.data : [];
-      const sorted = sortUsers(data);
+      // Hide Marketing Admin and Technical Support roles
+      const filteredByRole = data.filter((user) => {
+        const role = normalizeRoleValue(user.role);
+        return role !== "MARKETING_ADMIN" && role !== "TECHNICAL_SUPPORT";
+      });
+      const sorted = sortUsers(filteredByRole);
       setUsers(sorted);
       setSelectedUser((prev) => {
         if (!prev) return prev;
@@ -223,8 +228,10 @@ export default function AdminUser() {
     const normalizedFilter = normalizeRoleValue(roleFilter);
     return sortUsers(
       users.filter((user) => {
-        // Show all users (both active and inactive) - don't filter out inactive users
         if (!user) return false;
+        // Hide Marketing Admin and Technical Support roles in UI
+        const role = normalizeRoleValue(user.role);
+        if (role === "MARKETING_ADMIN" || role === "TECHNICAL_SUPPORT") return false;
         const matchesSearch =
           normalizedQuery === "" ||
           [

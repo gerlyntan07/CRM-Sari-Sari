@@ -17,7 +17,10 @@ import {
   FiShield,
   FiGrid,
   FiX,
+  FiMail,
+  FiTrendingUp,
 } from "react-icons/fi";
+import { toast } from "react-toastify";
 import { BiCoinStack } from "react-icons/bi";
 import { LuMapPin } from "react-icons/lu";
 import { HiOutlineOfficeBuilding } from "react-icons/hi";
@@ -28,6 +31,7 @@ export default function SalesPanel() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [activityOpen, setActivityOpen] = useState(false);
   const [accountingOpen, setAccountingOpen] = useState(false);
+  const [marketingOpen, setMarketingOpen] = useState(false);
   const { user } = useFetchUser();
   const [salesOpen, setSalesOpen] = useState(false);
 
@@ -336,6 +340,38 @@ export default function SalesPanel() {
                   title="Statement of Account"
                 >
                   <FiFileText /> SOA
+                </NavLink>
+              </div>
+            )}
+          </div>
+
+            {/* Marketing Dropdown */}
+          <div>
+            <button
+              className="w-full px-3 py-2 flex justify-between items-center text-sm font-medium text-gray-300 hover:bg-[#334155] rounded-lg transition"
+              onClick={() => setMarketingOpen(!marketingOpen)}
+            >
+              <span className="flex items-center gap-2">
+                <FiTrendingUp className="text-lg" />
+                Marketing
+              </span>
+              <FiChevronDown
+                className={`transition-transform ${marketingOpen ? "rotate-180" : ""}`}
+              />
+            </button>
+
+            {marketingOpen && (
+              <div className="ml-6 mt-2 space-y-1">
+                <NavLink
+                  to="#"
+                  className={() => normalLink}
+                  onClick={e => {
+                    e.preventDefault();
+                    toast.info("This feature is coming soon!");
+                  }}
+                  style={{ display: "flex", alignItems: "center", gap: "8px", cursor: "pointer" }}
+                >
+                  <FiMail /> Email Templates
                 </NavLink>
               </div>
             )}

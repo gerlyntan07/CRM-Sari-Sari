@@ -8,35 +8,35 @@ load_dotenv()
 def send_welcome_email(to_email: str, first_name: str, password: str, role: str):
     ses = boto3.client("ses", region_name=os.getenv("AWS_DEFAULT_REGION"))
 
-    subject = "Welcome to Sari-Sari CRM"
+    subject = "Welcome to Forekas CRM"
     body_text = (
         f"Hello {first_name},\n\n"
-        f"You have been added as a {role} in Sari-Sari CRM.\n\n"
+        f"You have been added as a {role} in Forekas CRM.\n\n"
         f"You can now log in using your credentials below and start managing your sales activities.\n\n"
         f"Email: {to_email}\n"
         f"Password: {password}\n\n"
-        f"Best regards,\nSari-Sari CRM Team"
+        f"Best regards,\nForekas CRM Team"
     )
 
     body_html = f"""
     <html>
     <body>
         <h3>Hello {first_name},</h3>
-        <p>You have been added as a <strong>{role}</strong> in <strong>Sari-Sari CRM</strong>.</p>
+        <p>You have been added as a <strong>{role}</strong> in <strong>Forekas CRM</strong>.</p>
         <p>You can now log in using your credentials below and start managing your sales activities.</p>
         
         <p><strong>Login credentials:</strong></p>
         <p><strong>Email:</strong> {to_email}<br>
         <strong>Password:</strong> {password}</p>
 
-        <p>Best regards,<br>Sari-Sari CRM Team</p>
+        <p>Best regards,<br>Forekas CRM Team</p>
     </body>
     </html>
     """
 
     try:
         ses.send_email(
-            Source="no-reply@sari-sari.com",  # must be verified in SES
+            Source="no-reply@forekas.com",  # must be verified in SES
             Destination={"ToAddresses": [to_email]},
             Message={
                 "Subject": {"Data": subject},

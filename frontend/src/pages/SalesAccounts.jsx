@@ -112,7 +112,7 @@ export default function AdminAccounts() {
   const isSales = currentUser?.role === "Sales";
 
   useEffect(() => {
-    document.title = "Accounts | Sari-Sari CRM";
+    document.title = "Accounts | Forekas";
   }, []);
 
   const [showModal, setShowModal] = useState(false);

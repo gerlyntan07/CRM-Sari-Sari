@@ -920,7 +920,7 @@ const AdminDashboard = () => {
   }, []);
 
   useEffect(() => {
-    document.title = "Dashboard | Sari-Sari CRM";
+    document.title = "Dashboard | Forekas";
     fetchAllData();
     refreshIntervalRef.current = setInterval(() => {
       fetchAllData(false);

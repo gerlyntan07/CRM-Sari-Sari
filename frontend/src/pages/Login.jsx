@@ -67,7 +67,7 @@ const Login = () => {
   const navigate = useNavigate();
 
   React.useEffect(() => {
-    document.title = "Login | Sari-Sari CRM";
+    document.title = "Login | Forekas";
   }, []);
 
   React.useEffect(() => {

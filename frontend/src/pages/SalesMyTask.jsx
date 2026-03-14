@@ -5,7 +5,7 @@ import api from "../api.js";
 
 export default function SalesMyTasks() {
     useEffect(() => {
-    document.title = "Saleshub | Sari-Sari CRM";
+    document.title = "Saleshub | Forekas";
   }, []);
 
   const [tasks, setTasks] = useState([]);

@@ -27,12 +27,20 @@ export default function AdminHeader({ toggleSidebar }) {
     "/admin/contacts": "Contacts",
     "/reports": "Reports",
     "/leads": "Leads",
-    "/admin/Audit": "Audit",
+    "/admin/audit": "Audit",
     "/admin/targets": "Targets",
     "/admin/leads": "Leads",
     "/admin/quotes": "Quotes",
     "/admin/users": "Users",
     "/admin/deals": "Deals",
+    "/admin/tasks": "Tasks",
+    "/admin/calendar": "Calendar",
+    "/admin/calls": "Call",
+    "/admin/meetings": "Meeting",
+    "/admin/territory": "Territory",
+    "/admin/soas": "SOA",
+    "/admin/manage-account": "Profile",
+    "/admin/company-details": "Organization",
   };
 
   const currentTitle = routeTitles[location.pathname] || "Admin Panel";

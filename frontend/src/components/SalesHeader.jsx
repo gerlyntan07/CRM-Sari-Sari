@@ -31,6 +31,13 @@ export default function SalesHeader({ toggleSidebar }) {
     "/sales/targets": "Targets",
     "/sales/reports": "Reports",
     "/sales/tasks": "Tasks",
+    "/sales/calendar": "Calendar",
+    "/sales/calls": "Call",
+    "/sales/meetings": "Meeting",
+    "/sales/audit": "Audit",
+    "/sales/territory": "Territory",
+    "/sales/soas": "SOA",
+    "/sales/manage-account": "Profile",
   };
 
   const currentTitle = routeTitles[location.pathname] || "Sales Panel";

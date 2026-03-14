@@ -30,6 +30,14 @@ export default function AdminHeader({ toggleSidebar }) {
     "/group-manager/quotes": "Quotes",
     "/group-manager/users": "Users",
     "/group-manager/deals": "Deals",
+     "/group-manager/tasks": "Tasks",
+    "/group-manager/calendar": "Calendar",
+    "/group-manager/calls": "Call",
+    "/group-manager/meetings": "Meeting",
+    "/group-manager/audit": "Audit",
+    "/group-manager/territory": "Territory",
+    "/group-manager/soas": "SOA",
+    "/group-manager/manage-account": "Profile",
   };
 
   const currentTitle = routeTitles[location.pathname] || "Group Manager Panel";

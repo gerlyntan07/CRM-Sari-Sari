@@ -132,6 +132,10 @@ export default function AdminCalls() {
   const [selectedIds, setSelectedIds] = useState([]);
   const [currentUser, setCurrentUser] = useState(null);
 
+    useEffect(() => {
+      document.title = "Call | Forekas";
+    }, []);
+
   const {
     comments: callComments,
     addComment: addCallComment,

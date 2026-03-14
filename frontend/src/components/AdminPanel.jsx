@@ -40,7 +40,7 @@ export default function AdminPanel() {
   }, [user]);
 
   useEffect(() => {
-    document.title = `Admin Panel | Sari-Sari CRM`;
+    document.title = `Admin Panel | Forekas`;
   }, []);
 
   const salesRoutes = [
@@ -76,7 +76,7 @@ export default function AdminPanel() {
       >
         {/* Logo */}
         <div className="px-4 py-3 bg-[#fbbf24] leading-none">
-          <p className="text-gray-900 font-bold text-lg m-0 p-0"> Sari-Sari.CRM{" "}
+          <p className="text-gray-900 font-bold text-lg m-0 p-0"> Forekas CRM{" "}
             <span className="text-[12px] text-gray-700 font-medium align-bottom">
               v2
             </span>
@@ -359,7 +359,7 @@ export default function AdminPanel() {
 
         {/* Footer */}
         <div className="px-4 py-3 text-xs text-gray-400 border-t border-gray-700">
-          © {new Date().getFullYear()} Sari-Sari CRM
+          © {new Date().getFullYear()} Forekas CRM
         </div>
       </div>
 

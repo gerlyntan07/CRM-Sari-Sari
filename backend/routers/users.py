@@ -129,10 +129,10 @@ def get_users(
     """Get all calls for admin users"""
     if current_user.role.upper() in ["CEO", "ADMIN"]:
         users = (
-            db.query(User)            
+            db.query(User)
             .filter(
-                User.related_to_company == current_user.related_to_company,
-                User.is_active == True)
+                User.related_to_company == current_user.related_to_company
+            )
             .all()
         )
     elif current_user.role.upper() == "GROUP MANAGER":

@@ -1,10 +1,12 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { 
   FiFilter, FiLayout, FiMail, 
   FiArrowDown, FiArrowUp, FiDownload, FiPhone, FiUser, FiTarget, 
   FiActivity, FiXCircle, FiCheckCircle, FiMove 
 } from "react-icons/fi"; 
 import { useNavigate } from 'react-router-dom';
+import { toast } from 'react-toastify';
+import api from '../api';
 
 // --- NEW IMPORTS FOR DRAG AND DROP ---
 import {
@@ -12,6 +14,8 @@ import {
   closestCenter,
   KeyboardSensor,
   PointerSensor,
+  useDraggable,
+  useDroppable,
   useSensor,
   useSensors,
 } from '@dnd-kit/core';
@@ -62,6 +66,15 @@ const downloadCSV = (data, filename) => {
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
+};
+
+const STAGE_PROBABILITY_MAP = {
+  PROSPECTING: 10,
+  QUALIFICATION: 25,
+  PROPOSAL: 60,
+  NEGOTIATION: 80,
+  CLOSED_WON: 100,
+  CLOSED_LOST: 0,
 };
 
 // --- Sub-Components ---
@@ -233,6 +246,63 @@ const UserComparisonCard = ({ user, metrics, stages, currencySymbol, target, dra
     );
 };
 
+const DroppableStageBar = ({ stageKey, children }) => {
+  const { setNodeRef, isOver } = useDroppable({
+    id: `stage-${stageKey}`,
+    data: {
+      type: 'stage',
+      stageKey,
+    },
+  });
+
+  return (
+    <div
+      ref={setNodeRef}
+      className={`rounded-lg transition-all ${isOver ? 'ring-2 ring-blue-300 ring-offset-1 bg-blue-50/40' : ''}`}
+    >
+      {children}
+    </div>
+  );
+};
+
+const DraggableDealRow = ({ deal, disabled = false, children, onClick, className }) => {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useDraggable({
+    id: `deal-${deal.id}`,
+    disabled,
+    data: {
+      type: 'deal',
+      dealId: deal.id,
+      fromStage: (deal.stage || '').toUpperCase(),
+    },
+  });
+
+  const style = {
+    transform: CSS.Translate.toString(transform),
+    transition,
+    opacity: isDragging ? 0.45 : 1,
+  };
+
+  return (
+    <tr
+      ref={setNodeRef}
+      {...attributes}
+      {...listeners}
+      style={style}
+      className={className}
+      onClick={onClick}
+    >
+      {children({ isDragging })}
+    </tr>
+  );
+};
+
 // ... [DetailTable Component remains exactly the same as before] ...
 const DetailTable = ({ data, stageKey, currencySymbol, basePath = '/admin' }) => {
     const navigate = useNavigate();
@@ -332,75 +402,94 @@ const DetailTable = ({ data, stageKey, currencySymbol, basePath = '/admin' }) =>
               {sortedData.map((item) => {
                 const daysStuck = !isLeadStage ? getDaysStuck(item.stage_updated_at || item.created_at) : 0;
                 const isBottleneck = daysStuck > 30 && isActiveDeal;
+                const isDraggableDeal = !isLeadStage;
                 return (
-                  <tr 
-                    key={item.id} 
-                    className="hover:bg-blue-50 transition-colors cursor-pointer group"
+                  <DraggableDealRow
+                    key={item.id}
+                    deal={item}
+                    disabled={!isDraggableDeal}
+                    className={`hover:bg-blue-50 transition-colors group ${isDraggableDeal ? 'cursor-grab active:cursor-grabbing' : 'cursor-pointer'}`}
                     onClick={() => navigate(isLeadStage ? `${basePath}/leads/${item.id}` : `${basePath}/deals/info?id=${item.id}`)}
                   >
-                    <td className="p-4">
-                      <p className="font-bold text-gray-800 text-sm group-hover:text-blue-600 transition-colors">
-                        {isLeadStage ? `${item.first_name} ${item.last_name}` : item.name}
-                      </p>
-                      <p className="text-xs text-gray-400 mt-0.5">{formatDate(item.created_at)}</p>
-                    </td>
-                    <td className="p-4 text-sm text-gray-600">
-                      {isLeadStage ? item.company_name : item.account?.name}
-                    </td>
-                    {isLeadStage && (
-                      <td className="p-4 text-xs text-gray-500">
-                          {item.email && <div className="flex items-center mb-1"><FiMail className="mr-1"/> {item.email}</div>}
-                          {item.phone && <div className="flex items-center"><FiPhone className="mr-1"/> {item.phone}</div>}
-                      </td>
-                    )}
-                    {isActiveDeal && (
+                    {() => (
                       <>
-                        <td className="p-4 text-right font-medium text-gray-700">
-                          {formatCurrency(item.amount, currencySymbol)}
-                        </td>
-                        <td className="p-4 text-center">
-                          <span className={`inline-block px-2 py-1 rounded text-xs font-bold ${
-                            item.probability >= 80 ? 'bg-green-100 text-green-700' :
-                            item.probability >= 50 ? 'bg-yellow-100 text-yellow-700' : 'bg-gray-100 text-gray-600'
-                          }`}>
-                            {item.probability}%
-                          </span>
-                        </td>
-                        <td className="p-4 text-center">
-                          {isBottleneck ? (
-                            <div className="flex items-center justify-center text-red-600 bg-red-50 px-2 py-1 rounded border border-red-100" title="Stuck for >30 days">
-                              <FiActivity size={14} className="mr-1" />
-                              <span className="text-xs font-bold">{daysStuck}d</span>
+                        <td className="p-4">
+                          <div className="flex items-center">
+                            {!isLeadStage && (
+                              <span
+                                className="mr-2 p-1 rounded text-gray-300"
+                                title="Drag from anywhere in this row"
+                              >
+                                <FiMove size={14} />
+                              </span>
+                            )}
+                            <div>
+                              <p className="font-bold text-gray-800 text-sm group-hover:text-blue-600 transition-colors">
+                                {isLeadStage ? `${item.first_name} ${item.last_name}` : item.name}
+                              </p>
+                              <p className="text-xs text-gray-400 mt-0.5">{formatDate(item.created_at)}</p>
                             </div>
-                          ) : <span className="text-xs text-gray-400">{daysStuck}d</span>}
+                          </div>
+                        </td>
+                        <td className="p-4 text-sm text-gray-600">
+                          {isLeadStage ? item.company_name : item.account?.name}
+                        </td>
+                        {isLeadStage && (
+                          <td className="p-4 text-xs text-gray-500">
+                              {item.email && <div className="flex items-center mb-1"><FiMail className="mr-1"/> {item.email}</div>}
+                              {item.phone && <div className="flex items-center"><FiPhone className="mr-1"/> {item.phone}</div>}
+                          </td>
+                        )}
+                        {isActiveDeal && (
+                          <>
+                            <td className="p-4 text-right font-medium text-gray-700">
+                              {formatCurrency(item.amount, currencySymbol)}
+                            </td>
+                            <td className="p-4 text-center">
+                              <span className={`inline-block px-2 py-1 rounded text-xs font-bold ${
+                                item.probability >= 80 ? 'bg-green-100 text-green-700' :
+                                item.probability >= 50 ? 'bg-yellow-100 text-yellow-700' : 'bg-gray-100 text-gray-600'
+                              }`}>
+                                {item.probability}%
+                              </span>
+                            </td>
+                            <td className="p-4 text-center">
+                              {isBottleneck ? (
+                                <div className="flex items-center justify-center text-red-600 bg-red-50 px-2 py-1 rounded border border-red-100" title="Stuck for >30 days">
+                                  <FiActivity size={14} className="mr-1" />
+                                  <span className="text-xs font-bold">{daysStuck}d</span>
+                                </div>
+                              ) : <span className="text-xs text-gray-400">{daysStuck}d</span>}
+                            </td>
+                          </>
+                        )}
+                        {isClosedWon && (
+                            <td className="p-4 text-right font-bold text-green-700">
+                              {formatCurrency(item.amount, currencySymbol)}
+                            </td>
+                        )}
+                        {isClosedLost && (
+                            <>
+                              <td className="p-4 text-right font-bold text-red-600 opacity-75">
+                                  {formatCurrency(item.amount, currencySymbol)}
+                              </td>
+                              <td className="p-4 text-center text-xs text-gray-500">
+                                  {formatDate(item.stage_updated_at)}
+                              </td>
+                            </>
+                        )}
+                        <td className="p-4 text-right">
+                          <div className="flex items-center justify-end text-gray-500 text-xs">
+                            <FiUser className="mr-1" />
+                            {isLeadStage
+                              ? (item.lead_owner?.first_name || item.owner?.first_name || item.assigned_to?.first_name || 'Unassigned')
+                              : (item.assigned_deals?.first_name || item.deal_creator?.first_name || 'Unassigned')
+                            }
+                          </div>
                         </td>
                       </>
                     )}
-                    {isClosedWon && (
-                        <td className="p-4 text-right font-bold text-green-700">
-                          {formatCurrency(item.amount, currencySymbol)}
-                        </td>
-                    )}
-                    {isClosedLost && (
-                        <>
-                          <td className="p-4 text-right font-bold text-red-600 opacity-75">
-                              {formatCurrency(item.amount, currencySymbol)}
-                          </td>
-                          <td className="p-4 text-center text-xs text-gray-500">
-                              {formatDate(item.stage_updated_at)}
-                          </td>
-                        </>
-                    )}
-                    <td className="p-4 text-right">
-                      <div className="flex items-center justify-end text-gray-500 text-xs">
-                        <FiUser className="mr-1" />
-                        {isLeadStage
-                          ? (item.lead_owner?.first_name || item.owner?.first_name || item.assigned_to?.first_name || 'Unassigned')
-                          : (item.assigned_deals?.first_name || item.deal_creator?.first_name || 'Unassigned')
-                        }
-                      </div>
-                    </td>
-                  </tr>
+                  </DraggableDealRow>
                 );
               })}
             </tbody>
@@ -417,6 +506,7 @@ const FunnelWidget = ({ leads, deals, currencySymbol, targets = [], basePath = '
     const [filterTime, setFilterTime] = useState('ALL'); 
     const [filterUser, setFilterUser] = useState('ALL');
     const [viewMode, setViewMode] = useState('AGGREGATE');
+  const [localDeals, setLocalDeals] = useState(deals || []);
     
     // If currentUser is provided, always filter to that user
     const effectiveFilterUser = currentUser ? currentUser.id.toString() : filterUser;
@@ -424,6 +514,10 @@ const FunnelWidget = ({ leads, deals, currencySymbol, targets = [], basePath = '
     
     // --- DRAG AND DROP STATE ---
     const [userOrder, setUserOrder] = useState([]); 
+
+    useEffect(() => {
+      setLocalDeals(deals || []);
+    }, [deals]);
 
     // Sensors for drag detection (Pointer + Keyboard for accessibility)
     const sensors = useSensors(
@@ -498,7 +592,7 @@ const FunnelWidget = ({ leads, deals, currencySymbol, targets = [], basePath = '
       };
   
       const filteredLeads = leads.filter(filterItem);
-      const filteredDeals = deals.filter(filterItem);
+      const filteredDeals = localDeals.filter(filterItem);
   
       const stages = [
         { key: 'LEADS', label: 'Top Leads', color: 'bg-blue-400', isDeal: false },
@@ -568,7 +662,7 @@ const FunnelWidget = ({ leads, deals, currencySymbol, targets = [], basePath = '
           });
       }
       return { stages, aggregate, userGroups };
-    }, [deals, leads, filterTime, effectiveFilterUser, viewMode, usersList, filteredTargets]);
+    }, [localDeals, leads, filterTime, effectiveFilterUser, viewMode, usersList, filteredTargets]);
 
     // --- SORTED USER GROUPS LOGIC ---
     const sortedUserGroups = useMemo(() => {
@@ -597,6 +691,7 @@ const FunnelWidget = ({ leads, deals, currencySymbol, targets = [], basePath = '
 
     const handleDragEnd = (event) => {
         const { active, over } = event;
+        if (!over) return;
         if (active.id !== over.id) {
         setUserOrder(() => {
                 // Determine the current order of IDs
@@ -606,6 +701,44 @@ const FunnelWidget = ({ leads, deals, currencySymbol, targets = [], basePath = '
                 return arrayMove(currentIds, oldIndex, newIndex);
             });
         }
+    };
+
+    const handleAggregateDragEnd = async (event) => {
+      const { active, over } = event;
+      if (!over) return;
+
+      const activeData = active?.data?.current;
+      const overData = over?.data?.current;
+
+      if (activeData?.type !== 'deal' || overData?.type !== 'stage') return;
+
+      const dealId = activeData.dealId;
+      const fromStage = activeData.fromStage;
+      const targetStage = overData.stageKey;
+
+      if (!dealId || !targetStage || fromStage === targetStage) return;
+
+      const previousDeals = localDeals;
+      const nextProbability = STAGE_PROBABILITY_MAP[targetStage];
+
+      setLocalDeals((prev) => prev.map((deal) => {
+        if (deal.id !== dealId) return deal;
+        return {
+          ...deal,
+          stage: targetStage,
+          probability: typeof nextProbability === 'number' ? nextProbability : deal.probability,
+          stage_updated_at: new Date().toISOString(),
+        };
+      }));
+
+      try {
+        await api.put(`/deals/admin/${dealId}`, { stage: targetStage });
+        toast.success('Deal moved successfully');
+      } catch (error) {
+        setLocalDeals(previousDeals);
+        const message = error.response?.data?.detail || 'Failed to move deal';
+        toast.error(message);
+      }
     };
   
     // 3. Calculate Global Totals & Health Metrics
@@ -721,7 +854,12 @@ const FunnelWidget = ({ leads, deals, currencySymbol, targets = [], basePath = '
                 </SortableContext>
              </DndContext>
          ) : (
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragEnd={handleAggregateDragEnd}
+          >
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
                <div className="lg:col-span-4 flex flex-col space-y-2 relative">
                   
                   {/* Active Funnel */}
@@ -735,7 +873,8 @@ const FunnelWidget = ({ leads, deals, currencySymbol, targets = [], basePath = '
                               const prevCount = funnelData.aggregate.metrics[prevStageKey].count;
                               if (prevCount > 0) conversionRate = ((metric.count / prevCount) * 100).toFixed(0);
                           }
-                          return (
+
+                          const barNode = (
                             <FunnelBar 
                               key={stage.key}
                               label={stage.label}
@@ -750,6 +889,16 @@ const FunnelWidget = ({ leads, deals, currencySymbol, targets = [], basePath = '
                               conversionRate={conversionRate}
                               onClick={() => setSelectedStage(stage.key)}
                             />
+                          );
+
+                          if (!stage.isDeal) {
+                            return barNode;
+                          }
+
+                          return (
+                            <DroppableStageBar key={stage.key} stageKey={stage.key}>
+                              {barNode}
+                            </DroppableStageBar>
                           );
                       })}
                   </div>
@@ -773,19 +922,21 @@ const FunnelWidget = ({ leads, deals, currencySymbol, targets = [], basePath = '
                         </div>
 
                         {/* Explicit Lost Bar for Analysis */}
-                        <FunnelBar 
-                            label="Closed Lost"
-                            key="CLOSED_LOST"
-                            count={funnelData.aggregate.metrics['CLOSED_LOST'].count}
-                            value={funnelData.aggregate.metrics['CLOSED_LOST'].value}
-                            width={funnelData.aggregate.metrics['CLOSED_LOST'].width}
-                            color="bg-red-500 opacity-90"
-                            isLead={false}
-                            weightedValue={0}
-                            currencySymbol={currencySymbol}
-                            isActive={selectedStage === 'CLOSED_LOST'}
-                            onClick={() => setSelectedStage('CLOSED_LOST')}
-                        />
+                        <DroppableStageBar stageKey="CLOSED_LOST">
+                          <FunnelBar 
+                              label="Closed Lost"
+                              key="CLOSED_LOST"
+                              count={funnelData.aggregate.metrics['CLOSED_LOST'].count}
+                              value={funnelData.aggregate.metrics['CLOSED_LOST'].value}
+                              width={funnelData.aggregate.metrics['CLOSED_LOST'].width}
+                              color="bg-red-500 opacity-90"
+                              isLead={false}
+                              weightedValue={0}
+                              currencySymbol={currencySymbol}
+                              isActive={selectedStage === 'CLOSED_LOST'}
+                              onClick={() => setSelectedStage('CLOSED_LOST')}
+                          />
+                        </DroppableStageBar>
 
                         {/* Total Target Progress Bar */}
                         <div className="bg-gray-50 p-2 rounded-lg border border-gray-100 mt-4">
@@ -848,6 +999,7 @@ const FunnelWidget = ({ leads, deals, currencySymbol, targets = [], basePath = '
                   )}
                </div>
             </div>
+            </DndContext>
          )}
       </div>
     );

@@ -298,7 +298,7 @@ const mapBackendTaskToFrontend = (task) => {
 
 export default function AdminTask() {
   useEffect(() => {
-    document.title = "Tasks | Sari-Sari CRM";
+    document.title = "Tasks | Forekas";
   }, []);
 
   const { user: currentUser, loading: userLoading } = useFetchUser();

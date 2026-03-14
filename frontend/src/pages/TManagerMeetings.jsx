@@ -95,7 +95,7 @@ const AdminMeeting = () => {
   const isInfoRoute = location.pathname === "/admin/meetings/info";
 
   useEffect(() => {
-    document.title = "Meetings | Sari-Sari CRM";
+    document.title = "Meetings | Forekas";
   }, []);
 
   const [meetings, setMeetings] = useState([]);

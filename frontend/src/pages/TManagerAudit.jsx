@@ -10,7 +10,7 @@ const ITEMS_PER_PAGE = 10;
 
 export default function AdminAudit() {
   useEffect(() => {
-    document.title = "Audit | Sari-Sari CRM";
+    document.title = "Audit | Forekas";
   }, []);
 
   const [logs, setLogs] = useState(null);

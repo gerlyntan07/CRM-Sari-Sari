@@ -24,7 +24,7 @@ const ITEMS_PER_PAGE = 10;
 
 export default function AdminDeals() {
     useEffect(() => {
-        document.title = "Deals | Sari-Sari CRM";
+        document.title = "Deals | Forekas";
     }, []);
 
     const navigate = useNavigate();

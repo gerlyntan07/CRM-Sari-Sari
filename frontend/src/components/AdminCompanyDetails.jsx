@@ -29,6 +29,8 @@ export default function AdminCompanyDetails() {
   const [companyLogo, setCompanyLogo] = useState(null); // Current logo from DB
   const [newLogo, setNewLogo] = useState(null); // New uploaded logo (base64)
   const [address, setAddress] = useState("");
+    // Backup Reminder State
+    const [backupReminder, setBackupReminder] = useState("Daily");
 
   // UI States
   const [loading, setLoading] = useState(false);
@@ -60,6 +62,7 @@ export default function AdminCompanyDetails() {
       if (user.company.company_logo) setCompanyLogo(user.company.company_logo);
       if (user.company.address) setAddress(user.company.address);
       if (user.company.calendar_start_day) setCalendarStartDay(user.company.calendar_start_day);
+        if (user.company.backup_reminder) setBackupReminder(user.company.backup_reminder);
     }
   }, [user]);
 
@@ -107,6 +110,7 @@ export default function AdminCompanyDetails() {
         tax_id_number: taxIdNumber,
         address: address,
         calendar_start_day: calendarStartDay,
+          backup_reminder: backupReminder,
       };
 
       // Include logo if changed (newLogo is non-null means user made a change)
@@ -309,6 +313,31 @@ export default function AdminCompanyDetails() {
                   rows={3}
                 />
               </div>
+
+                {/* Backup Reminder */}
+                <div>
+                  <label className="flex items-center gap-2 text-gray-700 font-medium mb-2 text-sm">
+                    <FiDownload className="text-blue-600" /> Backup Reminder
+                  </label>
+                  <div className="relative">
+                    <select
+                      value={backupReminder}
+                      onChange={(e) => setBackupReminder(e.target.value)}
+                      disabled={!canEdit || loading}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none appearance-none bg-white disabled:bg-gray-50 cursor-pointer"
+                    >
+                      <option value="Daily">Daily</option>
+                      <option value="Weekly">Weekly</option>
+                      <option value="Monthly">Monthly</option>
+                      <option value="Quarterly">Quarterly</option>
+                      <option value="Yearly">Yearly</option>
+                    </select>
+                    <div className="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none text-gray-500">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
+                    </div>
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1">Set how often you want backup reminders.</p>
+                </div>
             </div>
           </div>
 

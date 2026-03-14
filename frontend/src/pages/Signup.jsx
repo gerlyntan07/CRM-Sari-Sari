@@ -7,6 +7,7 @@ import api from '../api.js'
 import useAuth from "../hooks/useAuth.js";
 import { jwtDecode } from "jwt-decode";
 import LoadingScreen from "../components/LoadingScreen.jsx";
+import useFetchUser from '../hooks/useFetchUser.js';
 
 // Helper for Tailwind class names
 const cn = (...i) => i.flat().filter(Boolean).join(" ");
@@ -237,7 +238,10 @@ const Signup = () => {
   const [termsAccepted, setTermsAccepted] = React.useState(false);
   const [formError, setFormError] = React.useState(null);
   const [isSubmitted, setIsSubmitted] = React.useState(false);
+
+  // --- Add fetchUser from UserProvider ---
   const { login } = useAuth();
+  const { fetchUser } = useFetchUser();
   const [subscription, setSubscription] = React.useState({
     plan_name: 'Free',
     price: 0.00,
@@ -451,6 +455,7 @@ const Signup = () => {
           setFormError(null);
           setIsSubmitted(true);
           login(resGoogle.data);
+          await fetchUser(); // <-- auto-fetch user context
         } else {
           const res2 = await api.post(`/auth/signup`, finalFormData);
 
@@ -465,6 +470,7 @@ const Signup = () => {
           setFormError(null);
           setIsSubmitted(true);
           login(res2.data);
+          await fetchUser(); // <-- auto-fetch user context
         }
       } catch (err) {
         if (err.response?.data?.detail) {

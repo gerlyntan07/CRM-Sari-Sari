@@ -151,6 +151,9 @@ def update_company_details(
     # ✅ Update Calendar Start Day (if provided)
     if hasattr(payload, 'calendar_start_day') and payload.calendar_start_day is not None:
         company.calendar_start_day = payload.calendar_start_day
+        # ✅ Update Backup Reminder (if provided)
+        if hasattr(payload, 'backup_reminder') and payload.backup_reminder is not None:
+            company.backup_reminder = payload.backup_reminder
     db.commit()
     db.refresh(company)
 

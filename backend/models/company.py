@@ -27,6 +27,9 @@ class Company(Base):
     is_subscription_active = Column(Boolean, default=True, nullable=False)  # New field for subscription status
     calendar_start_day = Column(String, default=CalendarStartCategory.MONDAY.value, nullable=True)
 
+    # Backup reminder frequency (Daily, Weekly, Monthly, etc.)
+    backup_reminder = Column(String, default="Daily", nullable=True)
+
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 

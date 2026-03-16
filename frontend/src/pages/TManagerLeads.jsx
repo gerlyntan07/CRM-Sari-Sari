@@ -785,8 +785,50 @@ export default function AdminLeads() {
         <div className="flex justify-center lg:justify-end gap-3 w-full sm:w-auto">
           <button
             onClick={() => {
-              // TODO: Implement download functionality
-              toast.info("Download functionality coming soon");
+              if (!leads.length) {
+                toast.error("No leads to export!");
+                return;
+              }
+              // Define headers for leads
+              const headers = [
+                "ID", "First Name", "Last Name", "Company Name", "Title", "Department", "Email", "Work Phone", "Mobile Phone 1", "Mobile Phone 2", "Address", "Notes", "Source", "Status", "Territory ID", "Lead Owner"
+              ];
+              // Map leads to rows
+              const rows = leads.map((lead) => [
+                lead.id,
+                lead.first_name,
+                lead.last_name,
+                lead.company_name,
+                lead.title,
+                lead.department,
+                lead.email,
+                lead.work_phone,
+                lead.mobile_phone_1,
+                lead.mobile_phone_2,
+                lead.address,
+                lead.notes,
+                lead.source,
+                lead.status,
+                lead.territory_id,
+                lead.lead_owner
+              ]);
+              // Convert to CSV
+              const csvContent = [
+                headers.join(","),
+                ...rows.map((row) =>
+                  row.map((cell) => `"${String(cell ?? "").replace(/"/g, '""')}"`).join(",")
+                )
+              ].join("\n");
+              // Download
+              const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement("a");
+              a.href = url;
+              a.download = `Leads_${new Date().toISOString().split("T")[0]}.csv`;
+              document.body.appendChild(a);
+              a.click();
+              document.body.removeChild(a);
+              URL.revokeObjectURL(url);
             }}
     className="flex items-center bg-black text-white px-3 sm:px-4 py-2 rounded-md hover:bg-gray-800 text-sm sm:text-base self-end sm:self-auto cursor-pointer"
           >

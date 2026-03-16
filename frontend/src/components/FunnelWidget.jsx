@@ -159,7 +159,7 @@ const UserComparisonCard = ({ user, metrics, stages, currencySymbol, target, dra
     const progress = target > 0 ? (closedWonAmount / target) * 100 : 0;
 
     return (
-        <div className="bg-white p-4 rounded-xl shadow-md border border-gray-100 flex flex-col h-full hover:shadow-lg transition-shadow relative group">
+        <div className="bg-white p-4 rounded-xl flex flex-col h-full relative group">
             
             {/* Header Section with Drag Handle */}
             <div className="flex flex-col mb-4 pb-4 border-b border-gray-100">
@@ -352,7 +352,7 @@ const DetailTable = ({ data, stageKey, currencySymbol, basePath = '/admin' }) =>
     }
   
     return (
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden flex flex-col h-full">
+      <div className="bg-white rounded-xl overflow-hidden flex flex-col h-full">
         <div className="overflow-x-auto flex-grow">
           <table className="w-full text-left border-collapse">
             <thead className="bg-gray-50 sticky top-0 z-10">
@@ -769,15 +769,12 @@ const FunnelWidget = ({ leads, deals, currencySymbol, targets = [], basePath = '
     }, [selectedStage, funnelData]);
   
     return (
-      <div className="bg-white rounded-xl shadow-lg border border-gray-100 p-6 flex flex-col h-full">
-         <div className="flex flex-col md:flex-row justify-between items-center mb-6">
-            <div>
-                <h3 className="text-lg font-bold text-gray-800 flex items-center">
-                    <FiLayout className="mr-2" /> {isPersonalDashboard ? 'My Pipeline' : 'Pipeline Intelligence'}
-                </h3>
-                <p className="text-sm text-gray-500">
-                    {isPersonalDashboard ? 'Your personal pipeline performance and metrics.' : 'Analyze pipeline velocity and bottlenecks.'}
-                </p>
+      <div className="bg-white rounded-xl p-6 flex flex-col h-full">
+       <div className="flex flex-col md:flex-row justify-between items-center mb-6">
+        <div>
+          <p className="text-sm text-gray-500">
+            Analyze pipeline velocity and bottlenecks.
+          </p>
             </div>
             
             <div className="flex flex-wrap gap-2 mt-4 md:mt-0">
@@ -807,18 +804,18 @@ const FunnelWidget = ({ leads, deals, currencySymbol, targets = [], basePath = '
                    </select>
       
                    <div className="flex bg-gray-100 p-0.5 rounded-lg">
-                      <button 
+                        <button 
                           onClick={() => setViewMode('AGGREGATE')}
-                          className={`px-2 py-1 rounded-md text-xs font-medium transition-all ${viewMode === 'AGGREGATE' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
-                      >
+                          className={`px-2 py-1 rounded-md text-xs font-medium transition-all cursor-pointer ${viewMode === 'AGGREGATE' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                        >
                           Aggregate
-                      </button>
-                      <button 
+                        </button>
+                        <button 
                           onClick={() => setViewMode('COMPARE')}
-                          className={`px-2 py-1 rounded-md text-xs font-medium transition-all ${viewMode === 'COMPARE' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
-                      >
+                          className={`px-2 py-1 rounded-md text-xs font-medium transition-all cursor-pointer ${viewMode === 'COMPARE' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                        >
                           Compare
-                      </button>
+                        </button>
                    </div>
                  </>
                )}

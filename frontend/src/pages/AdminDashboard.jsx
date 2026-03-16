@@ -17,6 +17,7 @@ import LoadingSpinner from '../components/LoadingSpinner';
 // --- NEW IMPORT ---
 import FunnelWidget from '../components/FunnelWidget';
 import TopPerformers from '../components/TopPerformers';
+import AdminTabs from '../components/AdminTabs';
 
 // --- Icon Components using React Icons ---
 
@@ -277,7 +278,7 @@ const AuditLogItem = ({ action, description, entity_type, entity_name, timestamp
 const RecentLogsCard = ({ logs, loading }) => {
   const navigate = useNavigate();
   return (
-    <div className="bg-white p-6 rounded-xl shadow-lg border border-gray-100 flex flex-col h-full">
+    <div className="bg-white p-6 rounded-xl flex flex-col h-full">
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-md font-semibold text-gray-800">Recent Logs</h2>
         <span className="text-sm text-blue-500 cursor-pointer hover:underline flex items-center space-x-1 font-medium"
@@ -301,7 +302,7 @@ const RecentLogsCard = ({ logs, loading }) => {
 
 const MetricCard = ({ icon: Icon, title, value, color, bgColor, loading, onClick }) => (
   <div
-    className="flex items-center p-4 bg-white rounded-xl shadow-md border border-gray-200 transition-all duration-300"
+    className="flex items-center p-4 bg-white rounded-xl shadow-md border border-gray-200 transition-all duration-300 cursor-pointer"
     onClick={onClick || (() => console.log(`Clicked metric card: ${title}`))}
   >
     <div className={`p-3 rounded-full ${bgColor} ${color} mr-4`}>
@@ -402,9 +403,9 @@ const RevenueChart = ({ revenueData, loading }) => {
   const yAxisData = chartData.revenues;
 
   return (
-    <div className="bg-white p-6 rounded-xl shadow-lg h-full flex flex-col">
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-xl font-semibold text-gray-800">Revenue Overview</h2>
+    <div className="bg-white p-6 rounded-xl h-full flex flex-col">
+      <div className="flex flex-row justify-end items-center mb-6">
+        {/* 'See All' stays at the right side */}
         <span className="text-sm text-blue-500 cursor-pointer hover:underline flex items-center space-x-1 font-medium"
           onClick={() => navigate('/admin/deals')}>
           <span>See All</span>
@@ -465,7 +466,7 @@ const ListCard = ({ title, items, children, onSeeAll }) => {
       const routeMap = {
         'Latest Leads': '/admin/leads',
         'Latest Deals': '/admin/deals',
-        'Upcoming Activities': '/admin/tasks'
+        'Tasks': '/admin/tasks'
       };
       if (routeMap[title]) {
         navigate(routeMap[title]);
@@ -474,10 +475,10 @@ const ListCard = ({ title, items, children, onSeeAll }) => {
   };
 
   return (
-    <div className="bg-white p-6 rounded-xl shadow-lg flex flex-col h-full">
-      <div className="flex justify-between items-center mb-4">
+    <div className="bg-white p-6 rounded-xl flex flex-col h-full">
+      <div className="flex flex-row justify-between items-center mb-4">
         <h2 className="text-xl font-semibold text-gray-800">{title}</h2>
-        <span className="text-sm text-blue-500 cursor-pointer hover:underline"
+        <span className="text-sm text-blue-500 cursor-pointer hover:underline font-medium"
           onClick={handleSeeAll}>See All</span>
       </div>
       {children}
@@ -697,6 +698,7 @@ const AdminDashboard = () => {
   const [allTargets, setAllTargets] = useState([]);
   const [totalTarget, setTotalTarget] = useState(0);
 
+  const [activeTab, setActiveTab] = useState("all");
   const [metrics, setMetrics] = useState({
     activeLeads: 0,
     totalDeals: 0,
@@ -987,39 +989,131 @@ const AdminDashboard = () => {
           ))}
         </div>
 
-        {/* ROW 3: Recent Logs & Top Performers */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-          <RecentLogsCard logs={auditLogs} loading={loading} />
-          <TopPerformers currencySymbol={currencySymbol} />
-        </div>
+          {/* Unified Section: AdminTabs to Detailed Lists */}
+          <div className="mb-8 bg-white rounded-xl shadow-lg border border-gray-200 p-6">
+            <AdminTabs
+              activeTab={activeTab}
+              onTabChange={setActiveTab}
+              counts={{ pastPerformance: 3, keyPersonnel: 2 }}
+            />
 
-        {/* ROW 4: Funnel Intelligence Section (With Targets passed in) */}
-        <div className="mb-8">
-          <FunnelWidget
-            leads={allLeads}
-            deals={allDeals}
-            targets={allTargets} // --- NEW PROP ---
-            currencySymbol={currencySymbol}
-          />
-        </div>
+            {/* Default: show all sections if 'All' tab is selected */}
+            {(!activeTab || activeTab === "all") && (
+              <>
+                <div className="mb-4">
+                  <h2 className="text-lg font-semibold text-gray-800 mt-2 mb-2 border-b-2 border-blue-600 inline-block">Logs & Performers</h2>
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div className="flex flex-col h-full">
+                      <RecentLogsCard logs={auditLogs} loading={loading} />
+                    </div>
+                    <div className="lg:border-l border-gray-300 lg:pl-6 flex flex-col h-full">
+                      <TopPerformers currencySymbol={currencySymbol} />
+                    </div>
+                  </div>
+                </div>
 
-        {/* ROW 5: Revenue Chart */}
-        <div className="grid grid-cols-1 mb-8">
-          <RevenueChart revenueData={revenueData} loading={loading} />
-        </div>
+                <hr className="mt-2 mb-4 border-gray-300" />
+                <div className="mb-4">
+                  <h2 className="text-lg font-semibold text-gray-800 mt-2 mb-2 border-b-2 border-blue-600 inline-block">Pipeline Intelligence</h2>
+                  <FunnelWidget
+                    leads={allLeads}
+                    deals={allDeals}
+                    targets={allTargets}
+                    currencySymbol={currencySymbol}
+                  />
+                </div>
 
-        {/* ROW 6: Detailed Lists */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <ListCard title="Latest Leads">
-            {latestLeads.length > 0 ? latestLeads.map((lead, index) => <LeadItem key={lead.id || index} {...lead} />) : <div className="text-sm text-gray-500 py-4 text-center">No leads found</div>}
-          </ListCard>
-          <ListCard title="Latest Deals">
-            {latestDeals.length > 0 ? latestDeals.map((deal, index) => <DealItem key={deal.id || index} {...deal} stage_updated_at={deal.stage_updated_at} currencySymbol={currencySymbol} />) : <div className="text-sm text-gray-500 py-4 text-center">No deals found</div>}
-          </ListCard>
-          <ListCard title="Upcoming Activities">
-            {upcomingActivities.length > 0 ? upcomingActivities.map((activity, index) => <ActivityItem key={activity.id || index} {...activity} />) : <div className="text-sm text-gray-500 py-4 text-center">No upcoming activities</div>}
-          </ListCard>
-        </div>
+                <hr className="mt-2 mb-4 border-gray-300" />
+                <div className="mb-4">
+                  <h2 className="text-lg font-semibold text-gray-800 mt-2 mb-2 border-b-2 border-blue-600 inline-block">Revenue Overview</h2>
+                  <RevenueChart revenueData={revenueData} loading={loading} />
+                </div>
+
+                <hr className="mt-2 mb-4 border-gray-300" />
+                <div className="mb-4">
+                  <h2 className="text-lg font-semibold text-gray-800 mt-2 mb-2 border-b-2 border-blue-600 inline-block">Quick Data Access</h2>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div className="flex flex-col h-full">
+                      <ListCard title="Latest Leads">
+                        {latestLeads.length > 0 ? latestLeads.map((lead, index) => <LeadItem key={lead.id || index} {...lead} />) : <div className="text-sm text-gray-500 py-4 text-center">No leads found</div>}
+                      </ListCard>
+                    </div>
+                    <div className="lg:border-l border-gray-300 lg:pl-6 flex flex-col h-full">
+                      <ListCard title="Latest Deals">
+                        {latestDeals.length > 0 ? latestDeals.map((deal, index) => <DealItem key={deal.id || index} {...deal} stage_updated_at={deal.stage_updated_at} currencySymbol={currencySymbol} />) : <div className="text-sm text-gray-500 py-4 text-center">No deals found</div>}
+                      </ListCard>
+                    </div>
+                    <div className="lg:border-l border-gray-300 lg:pl-6 flex flex-col h-full">
+                      <ListCard title="Tasks">
+                        {upcomingActivities.length > 0 ? upcomingActivities.map((activity, index) => <ActivityItem key={activity.id || index} {...activity} />) : <div className="text-sm text-gray-500 py-4 text-center">No upcoming activities</div>}
+                      </ListCard>
+                    </div>
+                  </div>
+                </div>
+              </>
+            )}
+            {/* Show only section for selected tab */}
+            {activeTab === "logsLeaders" && (
+              <>
+                {/* REMOVE divider above Logs & Leaders for single tab view */}
+                <div className="mb-8">
+                  <h2 className={`text-lg font-semibold text-gray-800 mt-2 mb-2 ${activeTab === "logsLeaders" ? "border-b-2 border-blue-600 inline-block" : ""}`}>Logs & Performers</h2>
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <RecentLogsCard logs={auditLogs} loading={loading} />
+                    <TopPerformers currencySymbol={currencySymbol} />
+                  </div>
+                </div>
+              </>
+            )}
+            {activeTab === "pipelineSummary" && (
+              <>
+                {/* REMOVE divider above Pipeline Intelligence for single tab view */}
+                <div className="mb-8">
+                  <h2 className={`text-lg font-semibold text-gray-800 mt-2 mb-2 ${activeTab === "pipelineSummary" ? "border-b-2 border-blue-600 inline-block" : ""}`}>Pipeline Intelligence</h2>
+                  <FunnelWidget
+                    leads={allLeads}
+                    deals={allDeals}
+                    targets={allTargets}
+                    currencySymbol={currencySymbol}
+                  />
+                </div>
+              </>
+            )}
+            {activeTab === "revenuePerformance" && (
+              <>
+                {/* REMOVE divider above Revenue Overview for single tab view */}
+                <div className="mb-8">
+                  <h2 className={`text-lg font-semibold text-gray-800 mt-2 mb-2 ${activeTab === "revenuePerformance" ? "border-b-2 border-blue-600 inline-block" : ""}`}>Revenue Overview</h2>
+                  <RevenueChart revenueData={revenueData} loading={loading} />
+                </div>
+              </>
+            )}
+            {activeTab === "quickDataAccess" && (
+              <>
+                {/* REMOVE divider above Quick Data Access for single tab view */}
+                <div>
+                  <h2 className={`text-lg font-semibold text-gray-800 mt-2 mb-2 ${activeTab === "quickDataAccess" ? "border-b-2 border-blue-600 inline-block" : ""}`}>Quick Data Access</h2>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div className="flex flex-col h-full">
+                      <ListCard title="Latest Leads">
+                        {latestLeads.length > 0 ? latestLeads.map((lead, index) => <LeadItem key={lead.id || index} {...lead} />) : <div className="text-sm text-gray-500 py-4 text-center">No leads found</div>}
+                      </ListCard>
+                    </div>
+                    <div className="lg:border-l border-gray-300 lg:pl-6 flex flex-col h-full">
+                      <ListCard title="Latest Deals">
+                        {latestDeals.length > 0 ? latestDeals.map((deal, index) => <DealItem key={deal.id || index} {...deal} stage_updated_at={deal.stage_updated_at} currencySymbol={currencySymbol} />) : <div className="text-sm text-gray-500 py-4 text-center">No deals found</div>}
+                      </ListCard>
+                    </div>
+                    <div className="lg:border-l border-gray-300 lg:pl-6 flex flex-col h-full">
+                      <ListCard title="Tasks">
+                        {upcomingActivities.length > 0 ? upcomingActivities.map((activity, index) => <ActivityItem key={activity.id || index} {...activity} />) : <div className="text-sm text-gray-500 py-4 text-center">No upcoming activities</div>}
+                      </ListCard>
+                    </div>
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
       </div>
     </div>
   );

@@ -17,7 +17,7 @@ const getWeekNumber = (d) => {
 };
 
 const TopPerformers = ({ currencySymbol = "₱" }) => {
-  const [activeTab, setActiveTab] = useState('month'); // 'week', 'month', 'year'
+  const [activeTab, setActiveTab] = useState('week'); // 'week', 'month', 'year'
   const [weeklyData, setWeeklyData] = useState([]);
   const [monthlyData, setMonthlyData] = useState([]);
   const [yearlyData, setYearlyData] = useState([]);
@@ -111,7 +111,7 @@ const TopPerformers = ({ currencySymbol = "₱" }) => {
   };
 
   return (
-    <div className="bg-white p-6 rounded-xl shadow-lg border border-gray-100 flex flex-col h-full">
+    <div className="bg-white p-6 rounded-xl flex flex-col h-full">
       {/* Header */}
       <div className="flex justify-between items-center mb-4">
         <div className="flex items-center space-x-2">
@@ -126,7 +126,7 @@ const TopPerformers = ({ currencySymbol = "₱" }) => {
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
-            className={`flex-1 py-1.5 px-3 text-xs font-medium rounded-md transition-all duration-200 ${
+            className={`flex-1 py-1.5 px-3 text-xs font-medium rounded-md transition-all duration-200 cursor-pointer ${
               activeTab === tab.id
                 ? 'bg-white text-blue-600 shadow-sm'
                 : 'text-gray-500 hover:text-gray-700'

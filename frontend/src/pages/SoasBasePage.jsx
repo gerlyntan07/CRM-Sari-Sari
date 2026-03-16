@@ -7,6 +7,7 @@ import api from "../api";
 import useFetchUser from "../hooks/useFetchUser";
 import QuoteItemsEditor from "../components/QuoteItemsEditor";
 import LoadingSpinner from "../components/LoadingSpinner.jsx";
+import ConfirmationModal from "../components/ConfirmationModal.jsx";
 
 const EMPTY_FORM = {
   account_id: "",
@@ -30,6 +31,8 @@ export default function SoasBasePage({ basePath }) {
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useFetchUser();
+  const [confirmModalData, setConfirmModalData] = useState(null);
+  const [confirmProcessing, setConfirmProcessing] = useState(false);
 
 
   const currencySymbol = user?.company?.currency || "₱";
@@ -359,21 +362,18 @@ export default function SoasBasePage({ basePath }) {
 
   const handleDelete = async (soa) => {
     if (!soa?.id) return;
-
-    const ok = window.confirm("Delete this SOA? This cannot be undone.");
-    if (!ok) return;
-
-    try {
-      setLoading(true);
-      await api.delete(`/soas/admin/${soa.id}`);
-      toast.success("SOA deleted");
-      await fetchSoas();
-    } catch (err) {
-      console.error(err);
-      toast.error(err?.response?.data?.detail || "Failed to delete SOA");
-    } finally {
-      setLoading(false);
-    }
+    setConfirmModalData({
+      open: true,
+      title: "Delete SOA",
+      message: `Are you sure you want to permanently delete SOA #${formatSOAId(soa.soa_id) || soa.id}? This action cannot be undone.`,
+      confirmLabel: "Delete SOA",
+      cancelLabel: "Cancel",
+      variant: "danger",
+      action: {
+        type: "delete",
+        soaId: soa.id,
+      },
+    });
   };
 
   const handlePrint = (soa) => {
@@ -399,6 +399,38 @@ export default function SoasBasePage({ basePath }) {
 
   return (
     <div className="p-4 lg:p-8 font-inter relative">
+      {confirmModalData && (
+        <ConfirmationModal
+          open={!!confirmModalData.open}
+          title={confirmModalData.title}
+          message={confirmModalData.message}
+          confirmLabel={confirmModalData.confirmLabel}
+          cancelLabel={confirmModalData.cancelLabel}
+          variant={confirmModalData.variant}
+          loading={confirmProcessing}
+          onConfirm={async () => {
+            if (confirmModalData?.action?.type === "delete" && confirmModalData?.action?.soaId) {
+              setConfirmProcessing(true);
+              try {
+                await api.delete(`/soas/admin/${confirmModalData.action.soaId}`);
+                toast.success("SOA deleted");
+                await fetchSoas();
+              } catch (err) {
+                console.error(err);
+                toast.error(err?.response?.data?.detail || "Failed to delete SOA");
+              } finally {
+                setConfirmProcessing(false);
+                setConfirmModalData(null);
+              }
+            } else {
+              setConfirmModalData(null);
+            }
+          }}
+          onCancel={() => {
+            if (!confirmProcessing) setConfirmModalData(null);
+          }}
+        />
+      )}
       {loading && <LoadingSpinner message="Loading SOA..." />}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
         <div>

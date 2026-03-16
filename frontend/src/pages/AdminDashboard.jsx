@@ -1059,8 +1059,12 @@ const AdminDashboard = () => {
                 <div className="mb-8">
                   <h2 className={`text-lg font-semibold text-gray-800 mt-2 mb-2 ${activeTab === "logsLeaders" ? "border-b-2 border-blue-600 inline-block" : ""}`}>Logs & Performers</h2>
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    <RecentLogsCard logs={auditLogs} loading={loading} />
-                    <TopPerformers currencySymbol={currencySymbol} />
+                    <div className="flex flex-col h-full">
+                      <RecentLogsCard logs={auditLogs} loading={loading} />
+                    </div>
+                    <div className="lg:border-l border-gray-300 lg:pl-6 flex flex-col h-full">
+                      <TopPerformers currencySymbol={currencySymbol} />
+                    </div>
                   </div>
                 </div>
               </>

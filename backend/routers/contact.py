@@ -210,25 +210,25 @@ def admin_create_contact(
         if existing_work_email:
             raise HTTPException(status_code=400, detail="A contact with this work email already exists.")
 
-        if current_user.role.upper() == "SALES":
-            assigned_to = current_user.id
-        else:
-            assigned_to = data.assigned_to
+    if current_user.role.upper() == "SALES":
+        assigned_to = current_user.id
+    else:
+        assigned_to = data.assigned_to
 
-        if not current_user.related_to_company:
-            raise HTTPException(
-                status_code=400,
-                detail="Current user is not linked to any company.",
-            )
+    if not current_user.related_to_company:
+        raise HTTPException(
+            status_code=400,
+            detail="Current user is not linked to any company.",
+        )
 
-        first_name = _clean_optional_string(data.first_name)
-        last_name = _clean_optional_string(data.last_name)
+    first_name = _clean_optional_string(data.first_name)
+    last_name = _clean_optional_string(data.last_name)
 
-        if not last_name:
-            raise HTTPException(
-                status_code=400,
-                detail="Last name is required.",
-            )
+    if not last_name:
+        raise HTTPException(
+            status_code=400,
+            detail="Last name is required.",
+        )
 
     company_users = (
         select(User.id)
@@ -257,7 +257,7 @@ def admin_create_contact(
         assigned_user = (
             db.query(User)
             .filter(
-                User.id == data.assigned_to,
+                User.id == assigned_to,
                 User.related_to_company == current_user.related_to_company,
             )
             .first()

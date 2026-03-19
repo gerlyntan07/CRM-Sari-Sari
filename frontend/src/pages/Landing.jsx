@@ -198,7 +198,7 @@ const CTASection = () => (
 
 // --- Footer ---
 const Footer = () => (
-  <footer className="bg-secondary text-white border-t py-10">
+  <footer className="bg-tertiary text-white border-t py-10">
     <div className="container mx-auto px-4 sm:px-6 lg:px-5 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8">
       <div>
         <span className="text-xl font-white">Forekas <span className="text-accent">CRM</span></span>        

@@ -49,9 +49,9 @@ export default function TManagerPanel() {
   }, []);
 
   const activeLink =
-    "flex items-center gap-3 px-3 py-2 rounded-lg bg-white text-[#1e293b] font-semibold shadow-sm";
+    "flex items-center gap-3 px-3 py-2 rounded-lg bg-white text-tertiary font-semibold shadow-sm";
   const normalLink =
-    "flex items-center gap-3 px-3 py-2 rounded-lg text-gray-300 hover:bg-[#334155] hover:text-white transition";
+    "flex items-center gap-3 px-3 py-2 rounded-lg text-gray-300 hover:bg-secondary hover:text-white transition";
 
   const salesRoutes = [
     "/group-manager/accounts",
@@ -69,11 +69,11 @@ export default function TManagerPanel() {
     <div className="flex h-screen bg-gray-100 overflow-hidden">
       {/* Sidebar */}
       <div
-        className={`fixed top-0 left-0 h-screen w-64 bg-[#1e293b] text-white flex flex-col shadow-lg transform transition-transform duration-300 z-50
+        className={`fixed top-0 left-0 h-screen w-64 bg-tertiary text-white flex flex-col shadow-lg transform transition-transform duration-300 z-50
           ${sidebarOpen ? "translate-x-0" : "-translate-x-full"} lg:translate-x-0`}
       >
         {/* Logo */}
-        <div className="px-4 py-3 bg-[#fbbf24] leading-none">
+        <div className="px-4 py-3 bg-accent leading-none">
             <p className="text-gray-900 font-bold text-lg m-0 p-0"> Forekas CRM{" "}
           <span className="text-[12px] text-gray-700 font-medium align-bottom">
             v2
@@ -103,7 +103,7 @@ export default function TManagerPanel() {
           {/* Sales Dropdown */}
           <div>
             <button
-              className="w-full px-3 py-2 flex justify-between items-center text-sm font-medium text-gray-300 hover:bg-[#334155] rounded-lg transition"
+              className="w-full px-3 py-2 flex justify-between items-center text-sm font-medium text-gray-300 hover:bg-secondary rounded-lg transition"
               onClick={() => setSalesOpen(!salesOpen)}
             >
               <span className="flex items-center gap-2">
@@ -160,7 +160,7 @@ export default function TManagerPanel() {
           {/* Activity Dropdown */}
           <div>
             <button
-              className="w-full px-3 py-2 flex justify-between items-center text-sm font-medium text-gray-300 hover:bg-[#334155] rounded-lg transition"
+              className="w-full px-3 py-2 flex justify-between items-center text-sm font-medium text-gray-300 hover:bg-secondary rounded-lg transition"
               onClick={() => setActivityOpen(!activityOpen)}
             >
               <span className="flex items-center gap-2">
@@ -223,7 +223,7 @@ export default function TManagerPanel() {
                     {/* Accounting Dropdown */}
           <div>
             <button
-              className="w-full px-3 py-2 flex justify-between items-center text-sm font-medium text-gray-300 hover:bg-[#334155] rounded-lg transition"
+              className="w-full px-3 py-2 flex justify-between items-center text-sm font-medium text-gray-300 hover:bg-secondary rounded-lg transition"
               onClick={() => setAccountingOpen(!accountingOpen)}
             >
               <span className="flex items-center gap-2">
@@ -251,7 +251,7 @@ export default function TManagerPanel() {
             {/* Marketing Dropdown */}
                     <div>
                       <button
-                        className="w-full px-3 py-2 flex justify-between items-center text-sm font-medium text-gray-300 hover:bg-[#334155] rounded-lg transition"
+                        className="w-full px-3 py-2 flex justify-between items-center text-sm font-medium text-gray-300 hover:bg-secondary rounded-lg transition"
                         onClick={() => setMarketingOpen(!marketingOpen)}
                       >
                         <span className="flex items-center gap-2">
@@ -284,7 +284,7 @@ export default function TManagerPanel() {
           {/* User Management Dropdown */}
           <div>
             <button
-              className="w-full px-3 py-2 flex justify-between items-center text-sm font-medium text-gray-300 hover:bg-[#334155] rounded-lg transition"
+              className="w-full px-3 py-2 flex justify-between items-center text-sm font-medium text-gray-300 hover:bg-secondary rounded-lg transition"
               onClick={() => setUserMgmtOpen(!userMgmtOpen)}
             >
               <span className="flex items-center gap-2">
@@ -334,7 +334,7 @@ export default function TManagerPanel() {
         <TManagerHeader toggleSidebar={() => setSidebarOpen(!sidebarOpen)} />
         <main
           className="flex-1 p-6 overflow-auto hide-scrollbar"
-          style={{ backgroundColor: "#fffeee" }}
+          style={{ backgroundColor: "var(--color-paper-white)" }}
         >
           <Outlet />
         </main>

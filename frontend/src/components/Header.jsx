@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { FiMenu, FiX } from "react-icons/fi";
+import { Link } from "react-router-dom";
 
 const Header = () => {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -49,7 +50,7 @@ const Header = () => {
             <a href="#platform" className="hover:text-accent transition duration-150">Platform</a>
             {/* <a href="#solutions" className="hover:text-accent transition duration-150">Solutions</a>
             <a href="#insights" className="hover:text-accent transition duration-150">Insights</a> */}
-            <a href="#pricing" className="hover:text-accent transition duration-150">Pricing</a>
+            <Link to="/pricing" className="hover:text-accent transition duration-150">Pricing</Link>
           </nav>
 
           {/* Desktop CTA Buttons */}
@@ -79,9 +80,15 @@ const Header = () => {
             {menuOpen && (
               <div className="absolute top-11 right-0 mt-2 w-48 border border-tertiary rounded-lg shadow-lg z-50 bg-primary">
                 <nav className="flex flex-col">
+                  <Link
+                    to="/pricing"
+                    className="block px-4 py-2 text-center text-tertiary bg-white hover:bg-accent hover:text-secondary transition rounded-t-lg"
+                  >
+                    Pricing
+                  </Link>
                   <a
                     href="/login"
-                    className="block px-4 py-2 text-center text-tertiary bg-white hover:bg-accent hover:text-secondary transition rounded-t-lg"
+                    className="block px-4 py-2 text-center text-tertiary bg-white hover:bg-accent hover:text-secondary transition"
                   >
                     Log In
                   </a>

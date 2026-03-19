@@ -20,6 +20,7 @@ import ForgotPass from "./pages/ForgotPass";
 import PublicManageAccount from './pages/PublicManageAccount.jsx';
 import Resources from "./pages/Resources";
 import Legal from "./pages/Legal";
+import Pricing from "./pages/Pricing";
 
 // 🔹 Admin layout + pages
 import AdminPanel from "./components/AdminPanel";
@@ -164,6 +165,7 @@ function App() {
         <Route path="/signup" element={<Signup />} />
         <Route path="/login" element={<Login />} />
         <Route path="/forgot-password" element={<ForgotPass />} />
+        <Route path="/pricing" element={<Pricing />} />
         <Route path="/resources" element={<Resources />} />
         <Route path="/legal" element={<Legal />} />        
 

@@ -36,6 +36,7 @@ import { useNavigate } from "react-router-dom";
 import api from "../api";
 import useFetchUser from "../hooks/useFetchUser";
 import LoadingSpinner from "../components/LoadingSpinner";
+import AdminTabs from "../components/AdminTabs";
 import FunnelWidget from "../components/FunnelWidget";
 import { LineChart } from "@mui/x-charts/LineChart";
 
@@ -399,7 +400,7 @@ const RecentLogsCard = ({ logs, loading }) => {
   const navigate = useNavigate();
 
   return (
-    <div className="bg-white p-6 rounded-xl shadow-lg border border-gray-100 flex flex-col h-full">
+    <div className="bg-white p-6 rounded-xl flex flex-col h-full">
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-md font-semibold text-gray-800">Recent Logs</h2>
         <span
@@ -434,7 +435,7 @@ const MetricCard = ({
   onClick,
 }) => (
   <div
-    className="flex items-center p-4 bg-white rounded-xl shadow-md border border-gray-200 transition-all duration-300"
+    className="flex items-center p-4 bg-white rounded-xl shadow-md border border-gray-200 transition-all duration-300 cursor-pointer"
     onClick={onClick || (() => console.log(`Clicked metric card: ${title}`))}
   >
     <div className={`p-3 rounded-full ${bgColor} ${color} mr-4`}>
@@ -666,11 +667,8 @@ const RevenueChart = ({ revenueData, loading }) => {
   console.log("Max revenue:", chartData.maxRevenue);
 
   return (
-    <div className="bg-white p-6 rounded-xl shadow-lg h-full flex flex-col">
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-xl font-semibold text-gray-800">
-          Revenue Overview
-        </h2>
+    <div className="bg-white p-6 rounded-xl h-full flex flex-col">
+      <div className="flex justify-between items-center mb-6 self-end">
         <span
           className="text-sm text-blue-500 cursor-pointer hover:underline flex items-center space-x-1 font-medium"
           onClick={() => navigate("/sales/deals")}
@@ -922,7 +920,7 @@ const MyActivitiesChart = ({ activityData, loading }) => {
   }
 
   return (
-    <div className="bg-white p-6 rounded-xl shadow-lg border border-gray-100 flex flex-col h-full">
+    <div className="bg-white p-6 rounded-xl flex flex-col h-full">
       {/* Header */}
       <div className="flex justify-between items-start mb-4">
         <div className="flex-1">
@@ -1347,16 +1345,10 @@ const ComparisonChart = ({ comparisonData, loading }) => {
   }
 
   return (
-    <div className="bg-white p-6 rounded-xl shadow-lg border border-gray-100 flex flex-col h-full">
+    <div className="bg-white p-6 rounded-xl flex flex-col h-full">
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <div>
-          <h3 className="text-lg font-semibold text-gray-800 flex items-center">
-            Growth Comparison
-            <span className="ml-2 text-xs font-normal text-gray-500">
-              ({viewType.charAt(0).toUpperCase() + viewType.slice(1)})
-            </span>
-          </h3>
           <p className="text-xs text-gray-500 mt-1">
             Compare deals, accounts, contacts, and leads creation
           </p>
@@ -1703,7 +1695,7 @@ const ListCard = ({ title, items, children, onSeeAll }) => {
   };
 
   return (
-    <div className="bg-white p-6 rounded-xl shadow-lg flex flex-col">
+    <div className="bg-white p-6 rounded-xl flex flex-col">
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-xl font-semibold text-gray-800">{title}</h2>
         <span
@@ -2012,6 +2004,8 @@ const ActivityItem = ({
 // --- Main SalesOverview Component ---
 
 const SalesOverview= () => {
+    // State for AdminTabs active tab (sales role)
+    const [activeSalesTab, setActiveSalesTab] = useState("all");
   const navigate = useNavigate();
   const { user } = useFetchUser();
 
@@ -2986,9 +2980,6 @@ const SalesOverview= () => {
       {/* Loading Spinner - Full page overlay */}
       {loading && <LoadingSpinner />}
 
-      {/* CHANGED: max-w-7xl to max-w-screen-2xl 
-        This increases the maximum width of the content on large screens.
-      */}
       <div className="max-w-screen-2xl mx-auto">
         {/* Error Message */}
         {error && (
@@ -2997,7 +2988,7 @@ const SalesOverview= () => {
           </div>
         )}
 
-        {/* ROW 1: Top Bar (Full Width) */}
+        {/* Top Bar */}
         <div className="mb-8">
           <TopBar
             searchQuery={searchQuery}
@@ -3007,87 +2998,226 @@ const SalesOverview= () => {
           />
         </div>
 
-        {/* ROW 2: Metrics Cards (Full Width) */}
+        {/* Metrics Cards (unchanged) */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-7 gap-4 mb-8">
           {metricsConfig.map((metric) => (
             <MetricCard key={metric.title} {...metric} loading={loading} />
           ))}
         </div>
 
-        {/* ROW 3: Recent Logs & My Activities */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-          <RecentLogsCard logs={auditLogs} loading={loading} />
-          <MyActivitiesChart activityData={taskCompletionData} loading={loading} />
-        </div>
+        {/* Combined Dashboard Section (after metrics) */}
+        <div className="bg-white rounded-xl border border-gray-200 p-6 flex flex-col">
+          {/* Custom AdminTabs for sales role (case-insensitive) */}
+          {user?.role && user.role.toLowerCase().includes("sales") && (
+            <AdminTabs
+              activeTab={activeSalesTab}
+              onTabChange={setActiveSalesTab}
+              tabs={[
+                { key: "all", label: "All" },
+                { key: "logsActivities", label: "Logs & Activities" },
+                { key: "pipelineIntelligence", label: "Pipeline Intelligence" },
+                { key: "revenueOverview", label: "Revenue Overview" },
+                { key: "growthExpansion", label: "Growth Expansion" },
+                { key: "quickDataAccess", label: "Quick Data Access" },
+              ]}
+            />
+          )}
 
-        {/* ROW 4: Funnel Intelligence Section (With Targets passed in) */}
-        <div className="mb-8">
-          <FunnelWidget
-            leads={allLeads}
-            deals={allDeals}
-            targets={allTargets}
-            currencySymbol={currencySymbol}
-            basePath="/sales"
-            currentUser={user}
-          />
-        </div>
-
-        {/* ROW 5: Revenue Chart */}
-        <div className="grid grid-cols-1 mb-8">
-          <RevenueChart revenueData={revenueData} loading={loading} />
-        </div>
-
-        {/* ROW 6: Comparison Chart - Growth Comparison */}
-        <div className="grid grid-cols-1 mb-8">
-          <ComparisonChart comparisonData={comparisonData} loading={loading} />
-        </div>
-
-        {/* ROW 7: Detailed Lists */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <ListCard title="Latest Leads">
-            {latestLeads.length > 0 ? (
-              latestLeads.map((lead, index) => (
-                <LeadItem key={lead.id || index} {...lead} />
-              ))
-            ) : (
-              <div className="text-sm text-gray-500 py-4 text-center">
-                No leads found
+          {/* Tab-driven content display */}
+          {activeSalesTab === "all" && (
+            <>
+              <div className="mb-4 mt-2">
+                <h2 className="text-lg font-semibold text-gray-800 mb-2 border-b-2 border-blue-500 inline-block">Logs & Activities</h2>
               </div>
-            )}
-          </ListCard>
-
-          <ListCard title="Latest Deals">
-            {loading ? (
-              <div className="flex flex-col items-center justify-center py-8">
-                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500 mb-2"></div>
-                <div className="text-sm text-gray-500">Loading deals...</div>
+              <div className="flex flex-col md:grid md:grid-cols-2 gap-0">
+                <div className="mb-6 md:mb-0 md:pr-6 md:border-r md:border-gray-300">
+                  <RecentLogsCard logs={auditLogs} loading={loading} />
+                </div>
+                <div className="md:pl-6">
+                  <MyActivitiesChart activityData={taskCompletionData} loading={loading} />
+                </div>
               </div>
-            ) : latestDeals.length > 0 ? (
-              latestDeals.map((deal, index) => (
-                <DealItem
-                  key={deal.id || index}
-                  {...deal}
-                  currencySymbol={currencySymbol}
-                />
-              ))
-            ) : (
-              <div className="text-sm text-gray-500 py-4 text-center">
-                No deals found
+              <hr className="my-6 border-gray-300" />
+              <div className="mb-4 mt-2">
+                <h2 className="text-lg font-semibold text-gray-800 mb-2 border-b-2 border-blue-500 inline-block">Pipeline Intelligence</h2>
               </div>
-            )}
-          </ListCard>
-
-          <ListCard title="Upcoming Activities">
-            {upcomingActivities.length > 0 ? (
-              upcomingActivities.map((activity, index) => (
-                <ActivityItem key={activity.id || index} {...activity} />
-              ))
-            ) : (
-              <div className="text-sm text-gray-500 py-4 text-center">
-                No upcoming activities
+              <FunnelWidget
+                leads={allLeads}
+                deals={allDeals}
+                targets={allTargets}
+                currencySymbol={currencySymbol}
+                basePath="/sales"
+                currentUser={user}
+              />
+              <hr className="my-6 border-gray-300" />
+              <div className="mb-4 mt-2">
+                <h2 className="text-lg font-semibold text-gray-800 mb-2 border-b-2 border-blue-500 inline-block">Revenue Overview</h2>
               </div>
-            )}
-          </ListCard>
+              <RevenueChart revenueData={revenueData} loading={loading} />
+              <hr className="my-6 border-gray-300" />
+              <div className="mb-4 mt-2">
+                <h2 className="text-lg font-semibold text-gray-800 mb-2 border-b-2 border-blue-500 inline-block">Growth Expansion</h2>
+              </div>
+              <ComparisonChart comparisonData={comparisonData} loading={loading} />
+              <hr className="my-6 border-gray-300" />
+              <div className="mb-4 mt-2">
+                <h2 className="text-lg font-semibold text-gray-800 mb-2 border-b-2 border-blue-500 inline-block">Quick Data Access</h2>
+              </div>
+              <div className="flex flex-col md:grid md:grid-cols-3 gap-0">
+                <div className="mb-6 md:mb-0 md:pr-6 md:border-r md:border-gray-300">
+                  <ListCard title="Latest Leads">
+                    {latestLeads.length > 0 ? (
+                      latestLeads.map((lead, index) => (
+                        <LeadItem key={lead.id || index} {...lead} />
+                      ))
+                    ) : (
+                      <div className="text-sm text-gray-500 py-4 text-center">
+                        No leads found
+                      </div>
+                    )}
+                  </ListCard>
+                </div>
+                <div className="mb-6 md:mb-0 md:px-6 md:border-r md:border-gray-300">
+                  <ListCard title="Latest Deals">
+                    {loading ? (
+                      <div className="flex flex-col items-center justify-center py-8">
+                        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500 mb-2"></div>
+                        <div className="text-sm text-gray-500">Loading deals...</div>
+                      </div>
+                    ) : latestDeals.length > 0 ? (
+                      latestDeals.map((deal, index) => (
+                        <DealItem
+                          key={deal.id || index}
+                          {...deal}
+                          currencySymbol={currencySymbol}
+                        />
+                      ))
+                    ) : (
+                      <div className="text-sm text-gray-500 py-4 text-center">
+                        No deals found
+                      </div>
+                    )}
+                  </ListCard>
+                </div>
+                <div className="md:pl-6">
+                  <ListCard title="Tasks">
+                    {upcomingActivities.length > 0 ? (
+                      upcomingActivities.map((activity, index) => (
+                        <ActivityItem key={activity.id || index} {...activity} />
+                      ))
+                    ) : (
+                      <div className="text-sm text-gray-500 py-4 text-center">
+                        No upcoming activities
+                      </div>
+                    )}
+                  </ListCard>
+                </div>
+              </div>
+            </>
+          )}
+          {activeSalesTab === "logsActivities" && (
+            <>
+              <div className="mb-4 mt-2">
+                <h2 className="text-lg font-semibold text-gray-800 mb-2 border-b-2 border-blue-500 inline-block">Logs & Activities</h2>
+              </div>
+              <div className="flex flex-col md:grid md:grid-cols-2 gap-0">
+                <div className="mb-6 md:mb-0 md:pr-6 md:border-r md:border-gray-300">
+                  <RecentLogsCard logs={auditLogs} loading={loading} />
+                </div>
+                <div className="md:pl-6">
+                  <MyActivitiesChart activityData={taskCompletionData} loading={loading} />
+                </div>
+              </div>
+            </>
+          )}
+          {activeSalesTab === "pipelineIntelligence" && (
+            <>
+              <div className="mb-4 mt-2">
+                <h2 className="text-lg font-semibold text-gray-800 mb-2 border-b-2 border-blue-500 inline-block">Pipeline Intelligence</h2>
+              </div>
+              <FunnelWidget
+                leads={allLeads}
+                deals={allDeals}
+                targets={allTargets}
+                currencySymbol={currencySymbol}
+                basePath="/sales"
+                currentUser={user}
+              />
+            </>
+          )}
+          {activeSalesTab === "revenueOverview" && (
+            <>
+              <div className="mb-4 mt-2">
+                <h2 className="text-lg font-semibold text-gray-800 mb-2 border-b-2 border-blue-500 inline-block">Revenue Overview</h2>
+              </div>
+              <RevenueChart revenueData={revenueData} loading={loading} />
+            </>
+          )}
+          {activeSalesTab === "growthExpansion" && (
+            <>
+              <div className="mb-4 mt-2">
+                <h2 className="text-lg font-semibold text-gray-800 mb-2 border-b-2 border-blue-500 inline-block">Growth Expansion</h2>
+              </div>
+              <ComparisonChart comparisonData={comparisonData} loading={loading} />
+            </>
+          )}
+          {activeSalesTab === "quickDataAccess" && (
+            <>
+              <div className="mb-4 mt-2">
+                <h2 className="text-lg font-semibold text-gray-800 mb-2 border-b-2 border-blue-500 inline-block">Quick Data Access</h2>
+              </div>
+              <div className="flex flex-col md:grid md:grid-cols-3 gap-0">
+                <div className="mb-6 md:mb-0 md:pr-6 md:border-r md:border-gray-300">
+                  <ListCard title="Latest Leads">
+                    {latestLeads.length > 0 ? (
+                      latestLeads.map((lead, index) => (
+                        <LeadItem key={lead.id || index} {...lead} />
+                      ))
+                    ) : (
+                      <div className="text-sm text-gray-500 py-4 text-center">
+                        No leads found
+                      </div>
+                    )}
+                  </ListCard>
+                </div>
+                <div className="mb-6 md:mb-0 md:px-6 md:border-r md:border-gray-300">
+                  <ListCard title="Latest Deals">
+                    {loading ? (
+                      <div className="flex flex-col items-center justify-center py-8">
+                        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500 mb-2"></div>
+                        <div className="text-sm text-gray-500">Loading deals...</div>
+                      </div>
+                    ) : latestDeals.length > 0 ? (
+                      latestDeals.map((deal, index) => (
+                        <DealItem
+                          key={deal.id || index}
+                          {...deal}
+                          currencySymbol={currencySymbol}
+                        />
+                      ))
+                    ) : (
+                      <div className="text-sm text-gray-500 py-4 text-center">
+                        No deals found
+                      </div>
+                    )}
+                  </ListCard>
+                </div>
+                <div className="md:pl-6">
+                  <ListCard title="Tasks">
+                    {upcomingActivities.length > 0 ? (
+                      upcomingActivities.map((activity, index) => (
+                        <ActivityItem key={activity.id || index} {...activity} />
+                      ))
+                    ) : (
+                      <div className="text-sm text-gray-500 py-4 text-center">
+                        No upcoming activities
+                      </div>
+                    )}
+                  </ListCard>
+                </div>
+              </div>
+            </>
+          )}
         </div>
       </div>
     </div>

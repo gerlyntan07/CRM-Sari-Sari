@@ -30,15 +30,29 @@ export default function AdminTabs({
   activeTab,
   onTabChange,
   counts = { pastPerformance: 3, keyPersonnel: 2 },
+  tabs,
 }) {
+  // Default tabs if none provided
+  const defaultTabs = [
+    { key: "all", label: "All" },
+    { key: "logsLeaders", label: "Logs & Performers" },
+    { key: "pipelineSummary", label: "Pipeline Intelligence" },
+    { key: "revenuePerformance", label: "Revenue Overview" },
+    { key: "quickDataAccess", label: "Quick Data Access" },
+  ];
+  const renderTabs = tabs && Array.isArray(tabs) && tabs.length > 0 ? tabs : defaultTabs;
   return (
     <>
       <div className="flex w-full bg-white p-2 rounded-xl mb-4 gap-2 whitespace-nowrap overflow-x-auto">
-        <TabButton active={!activeTab || activeTab === "all"} onClick={() => onTabChange("all")}>All</TabButton>
-        <TabButton active={activeTab === "logsLeaders"} onClick={() => onTabChange("logsLeaders")}>Logs & Performers</TabButton>
-        <TabButton active={activeTab === "pipelineSummary"} onClick={() => onTabChange("pipelineSummary")}>Pipeline Intelligence</TabButton>
-        <TabButton active={activeTab === "revenuePerformance"} onClick={() => onTabChange("revenuePerformance")}>Revenue Overview</TabButton>
-        <TabButton active={activeTab === "quickDataAccess"} onClick={() => onTabChange("quickDataAccess")}>Quick Data Access</TabButton>
+        {renderTabs.map(tab => (
+          <TabButton
+            key={tab.key}
+            active={activeTab === tab.key || (!activeTab && tab.key === "all")}
+            onClick={() => onTabChange(tab.key)}
+          >
+            {tab.label}
+          </TabButton>
+        ))}
       </div>
       <hr className="mb-4 mt-0 border-gray-300" />
       {/* Only show content for selected tab, single line */}

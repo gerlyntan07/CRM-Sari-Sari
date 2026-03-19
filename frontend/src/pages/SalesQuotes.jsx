@@ -1318,7 +1318,7 @@ export default function AdminQuotes() {
                   className={`flex-1 min-w-[90px] px-4 py-2.5 text-xs sm:text-sm font-medium text-center transition-all duration-200 border-b-2 cursor-pointer
                     ${
                       activeTab === tab
-                        ? "bg-paper-white text-[#6A727D] border-white"
+                        ? "bg-paper-white text-[#6A727D] border-white rounded-t-lg transform -translate-y-1 shadow-lg"
                         : "text-white hover:bg-[#5c636d]"
                     }`}
                 >

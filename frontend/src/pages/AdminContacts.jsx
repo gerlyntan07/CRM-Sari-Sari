@@ -1659,7 +1659,7 @@ export default function AdminContacts() {
             value={formData.first_name}
             onChange={handleInputChange}
             placeholder="First name"
-            isSubmitted={isSubmitted}
+            disabled={isSubmitting}
           />
 
           <InputField

@@ -5,6 +5,7 @@ import {
   FiUser, FiCalendar, FiCheckCircle, FiFileText, FiPhone, FiList, FiBookmark, FiEdit, FiArrowRight, FiPhoneCall,
   FiClipboard
 } from "react-icons/fi";
+import { MdOutlineSwitchAccount } from "react-icons/md";
 import { LuMapPin } from "react-icons/lu";
 import { HiOutlineOfficeBuilding } from "react-icons/hi";
 import { FaHandshakeAngle } from "react-icons/fa6";
@@ -47,6 +48,8 @@ export const IconFiCalendar = (props) => <FiCalendar {...props} />;
 export const IconFiPhoneCall = (props) => <FiPhoneCall {...props} />;
 export const IconLuMapPin = (props) => <LuMapPin {...props} />;
 export const IconFiClipboard = (props) => <FiClipboard {...props} />;
+export const IconMdOutlineSwitchAccount = (props) => <MdOutlineSwitchAccount {...props} />;
+
 
 // --- Constants ---
 
@@ -127,6 +130,7 @@ const TopBar = ({ searchQuery, onSearchChange, searchResults, onSearchResultClic
     { icon: IconFiPhoneCall, label: "Call" },
     { icon: IconFiClipboard, label: "Audit" },
     { icon: IconLuMapPin, label: "Territory" },
+    { icon: IconMdOutlineSwitchAccount, label: "SOA" },
   ];
 
   useEffect(() => {
@@ -215,7 +219,8 @@ const TopBar = ({ searchQuery, onSearchChange, searchResults, onSearchResultClic
                     "Meeting": "/admin/meetings",
                     "Call": "/admin/calls",
                     "Audit": "/admin/audit",
-                    "Territory": "/admin/territory"
+                    "Territory": "/admin/territory",
+                    "SOA": "/admin/soas",
                   };
                   if (routes[item.label]) navigate(routes[item.label]);
                 }}

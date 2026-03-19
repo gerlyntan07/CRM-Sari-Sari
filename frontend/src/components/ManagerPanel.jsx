@@ -18,6 +18,7 @@ import {
   FiTrendingUp,
   FiShield,
 } from "react-icons/fi";
+import { MdOutlineSwitchAccount } from "react-icons/md";
 import { toast } from "react-toastify";
 import { BiCoinStack } from "react-icons/bi";
 import { LuMapPin } from "react-icons/lu";
@@ -238,7 +239,7 @@ export default function ManagerPanel() {
                   className={({ isActive }) => (isActive ? activeLink : normalLink)}
                   title="Statement of Account"
                 >
-                  <FiFileText /> SOA
+                  <MdOutlineSwitchAccount /> SOA
                 </NavLink>
               </div>
             )}

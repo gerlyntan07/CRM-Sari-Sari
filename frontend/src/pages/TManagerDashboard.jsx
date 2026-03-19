@@ -28,6 +28,7 @@ import {
   FiPhoneCall,
   FiClipboard,
 } from "react-icons/fi";
+import { MdOutlineSwitchAccount } from "react-icons/md";
 import { LuMapPin } from "react-icons/lu";
 import { HiOutlineOfficeBuilding } from "react-icons/hi";
 import { FaHandshakeAngle } from "react-icons/fa6";
@@ -67,6 +68,7 @@ export const IconFiCalendar = (props) => <FiCalendar {...props} />;
 export const IconFiPhoneCall = (props) => <FiPhoneCall {...props} />;
 export const IconLuMapPin = (props) => <LuMapPin {...props} />;
 export const IconFiClipboard = (props) => <FiClipboard {...props} />;
+export const IconMdOutlineSwitchAccount = (props) => <MdOutlineSwitchAccount {...props} />;
 
 // --- Constants (No more mock data, all will be dynamic) ---
 
@@ -175,6 +177,7 @@ const TopBar = ({
     { icon: IconFiPhoneCall, label: "Call" },
     { icon: IconFiClipboard, label: "Audit" },
     { icon: IconLuMapPin, label: "Territory" },
+    { icon: IconMdOutlineSwitchAccount, label: "SOA" },
   ];
 
   // Close search results when clicking outside
@@ -313,6 +316,9 @@ const TopBar = ({
                       break;
                     case "Territory":
                       navigate("/group-manager/territory");
+                      break;
+                       case "SOA":
+                      navigate("/group-manager/soas");
                       break;
                     default:
                       console.log(`Clicked ${item.label}`);

@@ -18,6 +18,8 @@ import {
   FiSettings,
   FiShield,
 } from "react-icons/fi";
+import { MdOutlineSwitchAccount } from "react-icons/md";
+
 import { BiCoinStack } from "react-icons/bi";
 import { LuMapPin } from "react-icons/lu";
 import { HiOutlineOfficeBuilding } from "react-icons/hi";
@@ -273,7 +275,7 @@ export default function AdminPanel() {
                   }
                   title="Statement of Account"
                 >
-                  <FiFileText /> SOA
+                  <MdOutlineSwitchAccount /> SOA
                 </NavLink>                
               </div>
             )}

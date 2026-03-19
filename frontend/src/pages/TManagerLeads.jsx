@@ -169,7 +169,6 @@ export default function AdminLeads() {
     try {
       const res = await api.get(`/leads/admin/getLeads`);
       setLeads(res.data);
-      console.log(res.data);
     } catch (err) {
       console.error(`Error fetching leads: ${err}`);
     } finally {
@@ -408,9 +407,6 @@ export default function AdminLeads() {
       return;
     }
     
-    console.log("handleEditClick called with lead:", lead);
-    console.log("Current state - leadID:", leadID, "selectedLead:", selectedLead, "showModal:", showModal);
-    
     // Parse phone numbers to extract country code and number
     const parsePhone = (phone) => {
       if (!phone) return { code: "+63", number: "" };
@@ -459,13 +455,11 @@ export default function AdminLeads() {
     
     // If coming from detail view, close detail modal and show edit form
     if (selectedLead) {
-      console.log("Coming from detail view - closing detail modal and showing edit form");
       // Close detail modal
       setSelectedLead(null);
       // Show edit form
       setShowModal(true);
     } else {
-      console.log("Already in list view - showing modal");
       // If already in list view, show edit form immediately
       setShowModal(true);
     }
@@ -593,6 +587,7 @@ export default function AdminLeads() {
 
     const finalForm = {
       ...leadData,
+      email: leadData.email?.trim() ? leadData.email : null,
       territory_id: leadData.territory_id ? parseInt(leadData.territory_id) : null,
       lead_owner: parseInt(leadData.lead_owner),
       work_phone: `${leadData.work_ccode} ${leadData.work_phone}`,
@@ -637,7 +632,6 @@ export default function AdminLeads() {
     const { action } = confirmModalData;
     const { type, payload, targetId, name, targetIds, count } = action;
 
-    console.log(payload)
     setConfirmProcessing(true);
 
     try {
@@ -652,7 +646,7 @@ export default function AdminLeads() {
           throw new Error("Missing lead identifier for update.");
         }
         setIsSubmitting(true);
-        const res = await api.put(`/leads/${targetId}`, payload);
+        await api.put(`/leads/${targetId}`, payload);
         toast.success(`Lead "${name}" updated successfully.`);
         
         // Update selectedLead if it's the one being edited

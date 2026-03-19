@@ -594,6 +594,7 @@ export default function AdminLeads() {
 
     const finalForm = {
       ...leadData,
+      email: leadData.email?.trim() ? leadData.email : null,
       territory_id: leadData.territory_id ? parseInt(leadData.territory_id) : null,
       lead_owner: parseInt(leadData.lead_owner),
       work_phone: `${leadData.work_ccode} ${leadData.work_phone}`,

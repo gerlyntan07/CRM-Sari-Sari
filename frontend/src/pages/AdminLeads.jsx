@@ -1,4 +1,10 @@
-import React, { useState, useEffect, useMemo, useRef, useCallback } from "react";
+import React, {
+  useState,
+  useEffect,
+  useMemo,
+  useRef,
+  useCallback,
+} from "react";
 import {
   FiSearch,
   FiEdit,
@@ -29,7 +35,7 @@ const allCountries = countryCodesList.all();
 const COUNTRY_CODES = allCountries.map((country, index) => ({
   code: `+${country.countryCallingCode}`,
   name: country.countryCode,
-  id: `${country.countryCallingCode}-${country.countryCode}-${index}` // Unique identifier
+  id: `${country.countryCallingCode}-${country.countryCode}-${index}`, // Unique identifier
 }));
 
 // --- HELPER FUNCTIONS ---
@@ -108,14 +114,14 @@ export default function AdminLeads() {
   const [leadToConvert, setLeadToConvert] = useState(null);
   const [convertAccountData, setConvertAccountData] = useState({
     name: "",
-    website: '',
-    countryCode: '+63',
-    phone_number: '',
-    combinedPhoneNumbers: '',
-    billing_address: '',
-    shipping_address: '',
-    industry: '',
-    status: 'Prospect',
+    website: "",
+    countryCode: "+63",
+    phone_number: "",
+    combinedPhoneNumbers: "",
+    billing_address: "",
+    shipping_address: "",
+    industry: "",
+    status: "Prospect",
     territory_id: null,
     assigned_to: null,
     created_by: null,
@@ -130,19 +136,19 @@ export default function AdminLeads() {
     work_phone: "",
     mobile_phone_1: "",
     mobile_phone_2: "",
-    notes: '',
+    notes: "",
     assigned_to: null,
     created_by: null,
   });
   const [convertDealData, setConvertDealData] = useState({
-    name: 'Converted from Lead',
+    name: "Converted from Lead",
     account_id: null,
     primary_contact_id: null,
-    stage: 'PROSPECTING',
+    stage: "PROSPECTING",
     probability: 10,
     amount: 0.0,
-    currency: 'PHP',
-    description: 'Initial deal from lead conversion.',
+    currency: "PHP",
+    description: "Initial deal from lead conversion.",
     assigned_to: null,
     created_by: null,
   });
@@ -165,13 +171,12 @@ export default function AdminLeads() {
     try {
       const res = await api.get(`/leads/admin/getLeads`);
       setLeads(res.data);
-      console.log(res.data);
     } catch (err) {
       console.error(`Error fetching leads: ${err}`);
     } finally {
       setLeadsLoading(false);
     }
-  }
+  };
 
   useEffect(() => {
     fetchAccounts();
@@ -205,7 +210,10 @@ export default function AdminLeads() {
         if (phone.startsWith("+")) {
           const codeMatch = phone.match(/^(\+\d{1,3})/);
           if (codeMatch) {
-            return { code: codeMatch[1], number: phone.substring(codeMatch[1].length).trim() };
+            return {
+              code: codeMatch[1],
+              number: phone.substring(codeMatch[1].length).trim(),
+            };
           }
         }
         return { code: "+63", number: phone };
@@ -215,21 +223,25 @@ export default function AdminLeads() {
 
       // Combine all three phone numbers from lead into one string for account
       const phoneNumbers = [];
-      if (leadToConvert.work_phone) phoneNumbers.push(`Work: ${leadToConvert.work_phone}`);
-      if (leadToConvert.mobile_phone_1) phoneNumbers.push(`Mobile 1: ${leadToConvert.mobile_phone_1}`);
-      if (leadToConvert.mobile_phone_2) phoneNumbers.push(`Mobile 2: ${leadToConvert.mobile_phone_2}`);
-      const combinedPhoneNumbers = phoneNumbers.length > 0 ? phoneNumbers.join(' | ') : '';
+      if (leadToConvert.work_phone)
+        phoneNumbers.push(`Work: ${leadToConvert.work_phone}`);
+      if (leadToConvert.mobile_phone_1)
+        phoneNumbers.push(`Mobile 1: ${leadToConvert.mobile_phone_1}`);
+      if (leadToConvert.mobile_phone_2)
+        phoneNumbers.push(`Mobile 2: ${leadToConvert.mobile_phone_2}`);
+      const combinedPhoneNumbers =
+        phoneNumbers.length > 0 ? phoneNumbers.join(" | ") : "";
 
       setConvertAccountData({
         name: leadToConvert.company_name || "",
-        website: '',
+        website: "",
         countryCode: workPhone.code,
         phone_number: workPhone.number, // This will be the primary number for the input field
         combinedPhoneNumbers: combinedPhoneNumbers, // Store combined numbers separately
-        billing_address: leadToConvert.address || '',
-        shipping_address: leadToConvert.address || '',
-        industry: '',
-        status: 'Prospect',
+        billing_address: leadToConvert.address || "",
+        shipping_address: leadToConvert.address || "",
+        industry: "",
+        status: "Prospect",
         territory_id: leadToConvert.assigned_to?.territory?.id || null,
         assigned_to: leadToConvert.assigned_to?.id || null,
         created_by: leadToConvert.creator?.id || null,
@@ -245,26 +257,25 @@ export default function AdminLeads() {
         work_phone: leadToConvert.work_phone || "",
         mobile_phone_1: leadToConvert.mobile_phone_1 || "",
         mobile_phone_2: leadToConvert.mobile_phone_2 || "",
-        notes: leadToConvert.notes || '',
+        notes: leadToConvert.notes || "",
         assigned_to: leadToConvert.assigned_to?.id || null,
         created_by: leadToConvert.creator?.id || null,
       });
 
       setConvertDealData({
-        name: 'Converted from Lead',
+        name: "Converted from Lead",
         account_id: null,
         primary_contact_id: null,
-        stage: 'PROSPECTING',
+        stage: "PROSPECTING",
         probability: 10,
         amount: 0.0,
-        currency: 'PHP',
-        description: 'Initial deal from lead conversion.',
+        currency: "PHP",
+        description: "Initial deal from lead conversion.",
         assigned_to: leadToConvert.assigned_to?.id || null,
         created_by: leadToConvert.creator?.id || null,
       });
     }
   }, [leadToConvert]);
-
 
   const handleSearch = (event) => setSearchTerm(event.target.value);
 
@@ -284,26 +295,33 @@ export default function AdminLeads() {
           lead?.title,
           lead?.email,
           lead?.work_phone,
-          lead?.assigned_to ? `${lead.assigned_to.first_name} ${lead.assigned_to.last_name}` : "",
+          lead?.assigned_to
+            ? `${lead.assigned_to.first_name} ${lead.assigned_to.last_name}`
+            : "",
         ];
         return searchFields.some(
           (field) =>
-            field && field.toString().toLowerCase().includes(normalizedQuery)
+            field && field.toString().toLowerCase().includes(normalizedQuery),
         );
       });
     }
 
     // 2. Apply status filter
     const normalizedStatusFilter = statusFilter.trim().toUpperCase();
-    if (normalizedStatusFilter && normalizedStatusFilter !== "FILTER BY STATUS") {
+    if (
+      normalizedStatusFilter &&
+      normalizedStatusFilter !== "FILTER BY STATUS"
+    ) {
       filteredData = filteredData.filter(
         (lead) =>
-          (lead.status ? lead.status.toUpperCase() : "") === normalizedStatusFilter
+          (lead.status ? lead.status.toUpperCase() : "") ===
+          normalizedStatusFilter,
       );
     } else {
       // Default: show everything except Converted
       filteredData = filteredData.filter(
-        (lead) => (lead.status ? lead.status.toUpperCase() : "") !== "CONVERTED"
+        (lead) =>
+          (lead.status ? lead.status.toUpperCase() : "") !== "CONVERTED",
       );
     }
 
@@ -330,10 +348,9 @@ export default function AdminLeads() {
 
   // -------------------------------------------------------------------
 
-
   const totalPages = Math.max(
     1,
-    Math.ceil(filteredLeads.length / itemsPerPage) || 1
+    Math.ceil(filteredLeads.length / itemsPerPage) || 1,
   );
 
   useEffect(() => {
@@ -344,7 +361,7 @@ export default function AdminLeads() {
     setCurrentPage((prev) => {
       const maxPage = Math.max(
         1,
-        Math.ceil(filteredLeads.length / itemsPerPage) || 1
+        Math.ceil(filteredLeads.length / itemsPerPage) || 1,
       );
       return prev > maxPage ? maxPage : prev;
     });
@@ -365,17 +382,17 @@ export default function AdminLeads() {
   };
 
   const fetchRelatedActivities = useCallback(async (lead_id) => {
-      try {
-        const res = await api.get(`/activities/lead/${lead_id}`);
-        setRelatedActs(res.data && typeof res.data === "object" ? res.data : {});
-      } catch (err) {
-        console.error(err);
-        if (err.response?.status === 404) {
-          console.warn("No activities found for this account.");
-          setRelatedActs({});
-        }
+    try {
+      const res = await api.get(`/activities/lead/${lead_id}`);
+      setRelatedActs(res.data && typeof res.data === "object" ? res.data : {});
+    } catch (err) {
+      console.error(err);
+      if (err.response?.status === 404) {
+        console.warn("No activities found for this account.");
+        setRelatedActs({});
       }
-    }, []);
+    }
+  }, []);
 
   const handleLeadClick = (lead) => {
     // Set selectedLead instead of navigating - this will show modal overlay
@@ -398,7 +415,7 @@ export default function AdminLeads() {
     setIsSubmitting(false);
     setSelectedUser(null);
     // Clear any edit data from sessionStorage
-    sessionStorage.removeItem('editLeadData');
+    sessionStorage.removeItem("editLeadData");
   };
 
   const handleBackdropClick = (e) => {
@@ -413,15 +430,11 @@ export default function AdminLeads() {
     setShowModal(true);
   };
 
-
   const handleEditClick = (lead) => {
     if (!lead) {
       console.error("handleEditClick: lead is null or undefined");
       return;
-    }
-
-    console.log("handleEditClick called with lead:", lead);
-    console.log("Current state - leadID:", leadID, "selectedLead:", selectedLead, "showModal:", showModal);
+    }    
 
     // Parse phone numbers to extract country code and number
     const parsePhone = (phone) => {
@@ -471,13 +484,11 @@ export default function AdminLeads() {
 
     // If coming from detail view, close detail modal and show edit form
     if (selectedLead) {
-      console.log("Coming from detail view - closing detail modal and showing edit form");
       // Close detail modal
       setSelectedLead(null);
       // Show edit form
       setShowModal(true);
     } else {
-      console.log("Already in list view - showing modal");
       // If already in list view, show edit form immediately
       setShowModal(true);
     }
@@ -489,7 +500,6 @@ export default function AdminLeads() {
       return;
     }
 
-    console.log("handleDelete called with lead:", lead);
     const name = `${lead.first_name} ${lead.last_name}` || "this lead";
     setConfirmModalData({
       title: "Delete Lead",
@@ -518,17 +528,16 @@ export default function AdminLeads() {
       [name]: value,
     }));
 
-    if (name === 'lead_owner') {
+    if (name === "lead_owner") {
       const user = users.find((user) => user.id === parseInt(value));
       setSelectedUser(user);
     }
-  }
+  };
 
   const [isSubmitted, setIsSubmitted] = useState(false);
   const handleSubmit = (e) => {
-    e.preventDefault();         // prevent page reload
-    setIsSubmitted(true);       // mark that submit was attempted
-
+    e.preventDefault(); // prevent page reload
+    setIsSubmitted(true); // mark that submit was attempted
 
     // Validation
     if (!leadData.last_name?.trim()) {
@@ -543,32 +552,34 @@ export default function AdminLeads() {
     //   toast.error("Job title is required.");
     //   return;
     // }
-    
+
     // Optional email validation - only validate format if provided
     if (leadData.email?.trim() && !leadData.email.includes("@")) {
-         toast.error("Email must contain '@'.");
-         return;
-       }
+      toast.error("Email must contain '@'.");
+      return;
+    }
 
-        if (!leadData.lead_owner) {
-          toast.error("Please assign a lead owner.");
-          return;
-        };
-   
-      //  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      //  if (!emailRegex.test(leadData.email)) {
-      //    toast.error("Please enter a valid email address with a dot in the domain.");
-      //    return;
-      //  }  
+    if (!leadData.lead_owner) {
+      toast.error("Please assign a lead owner.");
+      return;
+    }
+
+    //  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    //  if (!emailRegex.test(leadData.email)) {
+    //    toast.error("Please enter a valid email address with a dot in the domain.");
+    //    return;
+    //  }
 
     const finalForm = {
       ...leadData,
       email: leadData.email?.trim() ? leadData.email : null,
-      territory_id: leadData.territory_id ? parseInt(leadData.territory_id) : null,
+      territory_id: leadData.territory_id
+        ? parseInt(leadData.territory_id)
+        : null,
       lead_owner: parseInt(leadData.lead_owner),
       work_phone: `${leadData.work_ccode} ${leadData.work_phone}`,
       mobile_phone_1: `${leadData.m1_ccode} ${leadData.mobile_phone_1}`,
-      mobile_phone_2: `${leadData.m2_ccode} ${leadData.mobile_phone_2}`
+      mobile_phone_2: `${leadData.m2_ccode} ${leadData.mobile_phone_2}`,
     };
 
     const actionType = isEditing && currentLeadId ? "update" : "create";
@@ -649,13 +660,12 @@ export default function AdminLeads() {
     const { action } = confirmModalData;
     const { type, payload, targetId, name, lead, leadIds } = action;
 
-    console.log(payload)
     setConfirmProcessing(true);
 
     try {
       if (type === "create") {
         setIsSubmitting(true);
-        await api.post('/leads/create', payload);
+        await api.post("/leads/create", payload);
         toast.success(`Lead "${name}" created successfully.`);
         closeModal();
         await fetchLeads();
@@ -783,7 +793,22 @@ export default function AdminLeads() {
               }
               // Define headers for leads
               const headers = [
-                "ID", "First Name", "Last Name", "Company Name", "Title", "Department", "Email", "Work Phone", "Mobile Phone 1", "Mobile Phone 2", "Address", "Notes", "Source", "Status", "Territory ID", "Lead Owner"
+                "ID",
+                "First Name",
+                "Last Name",
+                "Company Name",
+                "Title",
+                "Department",
+                "Email",
+                "Work Phone",
+                "Mobile Phone 1",
+                "Mobile Phone 2",
+                "Address",
+                "Notes",
+                "Source",
+                "Status",
+                "Territory ID",
+                "Lead Owner",
               ];
               // Map leads to rows
               const rows = leads.map((lead) => [
@@ -802,17 +827,23 @@ export default function AdminLeads() {
                 lead.source,
                 lead.status,
                 lead.territory_id,
-                lead.lead_owner
+                lead.lead_owner,
               ]);
               // Convert to CSV
               const csvContent = [
                 headers.join(","),
                 ...rows.map((row) =>
-                  row.map((cell) => `"${String(cell ?? "").replace(/"/g, '""')}"`).join(",")
-                )
+                  row
+                    .map(
+                      (cell) => `"${String(cell ?? "").replace(/"/g, '""')}"`,
+                    )
+                    .join(","),
+                ),
               ].join("\n");
               // Download
-              const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+              const blob = new Blob([csvContent], {
+                type: "text/csv;charset=utf-8;",
+              });
               const url = URL.createObjectURL(blob);
               const a = document.createElement("a");
               a.href = url;
@@ -827,10 +858,10 @@ export default function AdminLeads() {
             <FiDownload className="mr-2" /> Download
           </button>
           <button
-              onClick={() => {
-          handleOpenAddModal();  // open the modal
-          setIsSubmitted(false); // reset all error borders
-        }}
+            onClick={() => {
+              handleOpenAddModal(); // open the modal
+              setIsSubmitted(false); // reset all error borders
+            }}
             className="flex items-center bg-black text-white px-3 sm:px-4 py-2 rounded-md hover:bg-gray-800 text-sm sm:text-base self-end sm:self-auto cursor-pointer"
           >
             <FiPlus className="mr-2" /> Add Lead
@@ -920,7 +951,9 @@ export default function AdminLeads() {
             </tr>
           </thead>
           <tbody>
-            {(!itemsPerPage || Number(itemsPerPage) === 0 || paginatedLeads.length === 0) ? (
+            {!itemsPerPage ||
+            Number(itemsPerPage) === 0 ||
+            paginatedLeads.length === 0 ? (
               <tr>
                 <td
                   className="py-4 px-4 text-center text-sm text-gray-500"
@@ -935,7 +968,10 @@ export default function AdminLeads() {
                   key={lead.id}
                   className="hover:bg-gray-50 text-sm cursor-pointer"
                 >
-                  <td className="py-3 px-4" onClick={(e) => e.stopPropagation()}>
+                  <td
+                    className="py-3 px-4"
+                    onClick={(e) => e.stopPropagation()}
+                  >
                     <input
                       type="checkbox"
                       className="w-4 h-4 accent-blue-600"
@@ -943,31 +979,49 @@ export default function AdminLeads() {
                       onChange={() => handleCheckboxChange(lead.id)}
                     />
                   </td>
-                  <td className="py-3 px-4" onClick={() => handleLeadClick(lead)}>
+                  <td
+                    className="py-3 px-4"
+                    onClick={() => handleLeadClick(lead)}
+                  >
                     <div className="font-medium text-blue-600 hover:underline break-all text-sm">
                       {lead.first_name} {lead.last_name}
                     </div>
                   </td>
-                  <td className="py-3 px-4" onClick={() => handleLeadClick(lead)}>
+                  <td
+                    className="py-3 px-4"
+                    onClick={() => handleLeadClick(lead)}
+                  >
                     <div className="font-medium text-gray-800 text-sm leading-tight">
                       {lead.company_name || "--"}
                     </div>
                   </td>
-                  <td className="py-3 px-4 text-gray-800 font-medium text-sm" onClick={() => handleLeadClick(lead)}>
+                  <td
+                    className="py-3 px-4 text-gray-800 font-medium text-sm"
+                    onClick={() => handleLeadClick(lead)}
+                  >
                     {lead.title || "--"}
                   </td>
-                  <td className="py-3 px-4 text-gray-800 font-medium text-sm" onClick={() => handleLeadClick(lead)}>
+                  <td
+                    className="py-3 px-4 text-gray-800 font-medium text-sm"
+                    onClick={() => handleLeadClick(lead)}
+                  >
                     {lead.email || "--"}
                   </td>
-                  <td className="py-3 px-4 text-gray-800 font-medium text-sm" onClick={() => handleLeadClick(lead)}>
+                  <td
+                    className="py-3 px-4 text-gray-800 font-medium text-sm"
+                    onClick={() => handleLeadClick(lead)}
+                  >
                     {lead.assigned_to
                       ? `${lead.assigned_to.first_name} ${lead.assigned_to.last_name}`
                       : "--"}
                   </td>
-                  <td className="py-3 px-4" onClick={() => handleLeadClick(lead)}>
+                  <td
+                    className="py-3 px-4"
+                    onClick={() => handleLeadClick(lead)}
+                  >
                     <span
                       className={`px-2 py-1 rounded-full text-xs font-medium whitespace-nowrap ${getStatusBadgeClass(
-                        lead.status || "New"
+                        lead.status || "New",
                       )}`}
                     >
                       {formatStatusLabel(lead.status || "New")}
@@ -1004,7 +1058,7 @@ export default function AdminLeads() {
           >
             <button
               onClick={() => {
-                closeModal();          // close the modal
+                closeModal(); // close the modal
                 setIsSubmitted(false); // reset validation errors
               }}
               className="absolute top-4 right-4 text-gray-500 hover:text-black transition"
@@ -1034,30 +1088,33 @@ export default function AdminLeads() {
               </div>
 
               {/* Last Name */}
-             <div className="flex flex-col">
-  <label className="block text-gray-700 font-medium mb-1 text-sm">
-    Last Name <span className="text-red-500">*</span>
-  </label>
-      <input
-        type="text"
-        name="last_name"
-        placeholder="Smith"
-        value={leadData.last_name}
-        onChange={handleLeadChange}
-        required
-        className={`w-full rounded-md px-2 py-1.5 text-sm outline-none border
-              ${isSubmitted && !leadData.last_name?.trim()
-              ? "border-red-400 focus:ring-red-400"
-            : "border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-400 outline-none"}
+              <div className="flex flex-col">
+                <label className="block text-gray-700 font-medium mb-1 text-sm">
+                  Last Name <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  name="last_name"
+                  placeholder="Smith"
+                  value={leadData.last_name}
+                  onChange={handleLeadChange}
+                  required
+                  className={`w-full rounded-md px-2 py-1.5 text-sm outline-none border
+              ${
+                isSubmitted && !leadData.last_name?.trim()
+                  ? "border-red-400 focus:ring-red-400"
+                  : "border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-400 outline-none"
+              }
           focus:ring-2`}
-      />
-    </div>
+                />
+              </div>
 
               {/* Company */}
               <div className="flex flex-col">
                 <label className="block text-gray-700 font-medium mb-1 text-sm">
                   {/* Company <span className="text-red-500">*</span></label> */}
-                  Company</label>
+                  Company
+                </label>
                 <input
                   type="text"
                   placeholder="ABC Company"
@@ -1065,19 +1122,21 @@ export default function AdminLeads() {
                   value={leadData.company_name}
                   onChange={handleLeadChange}
                   // required
-              // className={`w-full rounded-md px-2 py-1.5 text-sm outline-none border
-              //          ${isSubmitted && !leadData.company_name?.trim()
-              //          ? "border-red-400 focus:ring-red-400"
-              //       : "border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-400 outline-none"}
-              //     focus:ring-2`}/>
-                    className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-400 outline-none"/>
+                  // className={`w-full rounded-md px-2 py-1.5 text-sm outline-none border
+                  //          ${isSubmitted && !leadData.company_name?.trim()
+                  //          ? "border-red-400 focus:ring-red-400"
+                  //       : "border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-400 outline-none"}
+                  //     focus:ring-2`}/>
+                  className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-400 outline-none"
+                />
               </div>
 
               {/* Title */}
               <div className="flex flex-col">
                 <label className="block text-gray-700 font-medium mb-1 text-sm">
                   {/* Job Title<span className="text-red-500">*</span></label> */}
-                   Job Title</label>
+                  Job Title
+                </label>
                 <input
                   type="text"
                   placeholder="ABC Agenda"
@@ -1091,8 +1150,9 @@ export default function AdminLeads() {
                   //     : "border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-400 outline-none"}
                   //     focus:ring-2`}
                   // />
-                  className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-400 outline-none"/>
-                 </div>
+                  className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-400 outline-none"
+                />
+              </div>
 
               {/* Department */}
               <div className="flex flex-col">
@@ -1112,7 +1172,8 @@ export default function AdminLeads() {
               {/* Email */}
               <div className="flex flex-col">
                 <label className="block text-gray-700 font-medium mb-1 text-sm">
-                  Email</label>
+                  Email
+                </label>
                 <input
                   type="email"
                   placeholder="abc@gmail.com"
@@ -1130,8 +1191,17 @@ export default function AdminLeads() {
                 </label>
 
                 <div className="w-full border border-gray-300 rounded-md focus-within:ring-2 focus-within:ring-blue-400 outline-none flex flex-row gap-1">
-                  <select name="work_ccode" value={leadData.work_ccode} onChange={handleLeadChange} className="outline-none cursor-pointer py-1.5 px-2 border-r border-gray-400 text-sm">
-                    {COUNTRY_CODES.map((c) => <option key={c.id} value={c.code}>{c.code}</option>)}
+                  <select
+                    name="work_ccode"
+                    value={leadData.work_ccode}
+                    onChange={handleLeadChange}
+                    className="outline-none cursor-pointer py-1.5 px-2 border-r border-gray-400 text-sm"
+                  >
+                    {COUNTRY_CODES.map((c) => (
+                      <option key={c.id} value={c.code}>
+                        {c.code}
+                      </option>
+                    ))}
                   </select>
                   <input
                     type="text"
@@ -1142,7 +1212,6 @@ export default function AdminLeads() {
                     className="w-full outline-none px-2 py-1.5 text-sm"
                   />
                 </div>
-
               </div>
 
               {/* Mobile Phone 1 */}
@@ -1152,8 +1221,17 @@ export default function AdminLeads() {
                 </label>
 
                 <div className="w-full border border-gray-300 rounded-md focus-within:ring-2 focus-within:ring-blue-400 outline-none flex flex-row gap-1">
-                  <select name="m1_ccode" value={leadData.m1_ccode} onChange={handleLeadChange} className="outline-none cursor-pointer py-1.5 px-2 border-r border-gray-400 text-sm">
-                    {COUNTRY_CODES.map((c) => <option key={c.id} value={c.code}>{c.code}</option>)}
+                  <select
+                    name="m1_ccode"
+                    value={leadData.m1_ccode}
+                    onChange={handleLeadChange}
+                    className="outline-none cursor-pointer py-1.5 px-2 border-r border-gray-400 text-sm"
+                  >
+                    {COUNTRY_CODES.map((c) => (
+                      <option key={c.id} value={c.code}>
+                        {c.code}
+                      </option>
+                    ))}
                   </select>
                   <input
                     type="text"
@@ -1173,8 +1251,17 @@ export default function AdminLeads() {
                 </label>
 
                 <div className="w-full border border-gray-300 rounded-md focus-within:ring-2 focus-within:ring-blue-400 outline-none flex flex-row gap-1">
-                  <select name="m2_ccode" value={leadData.m2_ccode} onChange={handleLeadChange} className="outline-none cursor-pointer py-1.5 px-2 border-r border-gray-400 text-sm">
-                    {COUNTRY_CODES.map((c) => <option key={c.id} value={c.code}>{c.code}</option>)}
+                  <select
+                    name="m2_ccode"
+                    value={leadData.m2_ccode}
+                    onChange={handleLeadChange}
+                    className="outline-none cursor-pointer py-1.5 px-2 border-r border-gray-400 text-sm"
+                  >
+                    {COUNTRY_CODES.map((c) => (
+                      <option key={c.id} value={c.code}>
+                        {c.code}
+                      </option>
+                    ))}
                   </select>
                   <input
                     type="text"
@@ -1189,7 +1276,9 @@ export default function AdminLeads() {
 
               {/* Address */}
               <div className="flex flex-col col-span-1 sm:col-span-2 lg:col-span-3">
-                <label className="block text-gray-700 font-medium mb-1 text-sm">Address</label>
+                <label className="block text-gray-700 font-medium mb-1 text-sm">
+                  Address
+                </label>
                 <input
                   type="text"
                   name="address"
@@ -1203,8 +1292,9 @@ export default function AdminLeads() {
               {/* Assign To */}
               <div className="flex flex-col col-span-1 md:col-span-2 lg:col-span-1">
                 <label className="block text-gray-700 font-medium mb-1 text-sm">
-                  Assign To <span className="text-red-500">*</span></label>
-  
+                  Assign To <span className="text-red-500">*</span>
+                </label>
+
                 <div
                   className={`w-full rounded-lg ${
                     isSubmitted && !leadData.lead_owner
@@ -1212,32 +1302,47 @@ export default function AdminLeads() {
                       : "border border-gray-300"
                   }`}
                 >
-                <SearchableSelect
-                  items={Array.isArray(users) ? users.filter(
-                    (u) => !["Admin", "Marketing Admin", "Technical Support"].includes(u.role)
-                  ) : []}
-                  value={leadData.lead_owner ?? ""}
-                  placeholder={`Search a user...`}
-                  getLabel={(item) => `${item.first_name} ${item.last_name}`}
-                  onChange={(newId) => {
-                    const user = users.find((u) => String(u.id) === String(newId));
-                    setSelectedUser(user);
-
-                    // Auto-select territory if user has exactly one, otherwise reset
-                    let newTerritoryId = null;
-                    if (user && user.assigned_territory && user.assigned_territory.length === 1) {
-                      newTerritoryId = user.assigned_territory[0].id;
+                  <SearchableSelect
+                    items={
+                      Array.isArray(users)
+                        ? users.filter(
+                            (u) =>
+                              ![
+                                "Admin",
+                                "Marketing Admin",
+                                "Technical Support",
+                              ].includes(u.role),
+                          )
+                        : []
                     }
+                    value={leadData.lead_owner ?? ""}
+                    placeholder={`Search a user...`}
+                    getLabel={(item) => `${item.first_name} ${item.last_name}`}
+                    onChange={(newId) => {
+                      const user = users.find(
+                        (u) => String(u.id) === String(newId),
+                      );
+                      setSelectedUser(user);
 
-                    setLeadData((prev) => ({
-                      ...prev,
-                      lead_owner: newId,
-                      territory_id: newTerritoryId // Reset or Auto-select
-                    }));
-                  }}
-                />
+                      // Auto-select territory if user has exactly one, otherwise reset
+                      let newTerritoryId = null;
+                      if (
+                        user &&
+                        user.assigned_territory &&
+                        user.assigned_territory.length === 1
+                      ) {
+                        newTerritoryId = user.assigned_territory[0].id;
+                      }
+
+                      setLeadData((prev) => ({
+                        ...prev,
+                        lead_owner: newId,
+                        territory_id: newTerritoryId, // Reset or Auto-select
+                      }));
+                    }}
+                  />
+                </div>
               </div>
-               </div>
 
               {/* Territory */}
               <div className="flex flex-col">
@@ -1248,16 +1353,20 @@ export default function AdminLeads() {
                   name="territory_id"
                   value={leadData.territory_id || ""}
                   onChange={handleLeadChange}
-                  disabled={!selectedUser || !selectedUser.assigned_territory || selectedUser.assigned_territory.length === 0}
+                  disabled={
+                    !selectedUser ||
+                    !selectedUser.assigned_territory ||
+                    selectedUser.assigned_territory.length === 0
+                  }
                   className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm bg-white focus:ring-2 focus:ring-blue-400 outline-none disabled:bg-gray-100 disabled:text-gray-500"
                 >
                   <option value="" disabled>
                     {!selectedUser
                       ? "Select a user first"
-                      : (selectedUser.assigned_territory && selectedUser.assigned_territory.length > 0)
+                      : selectedUser.assigned_territory &&
+                          selectedUser.assigned_territory.length > 0
                         ? "Select Territory"
-                        : "No territories assigned to this user"
-                    }
+                        : "No territories assigned to this user"}
                   </option>
 
                   {selectedUser &&
@@ -1295,7 +1404,9 @@ export default function AdminLeads() {
 
               {/* Notes */}
               <div className="flex flex-col col-span-1 sm:col-span-2 lg:col-span-3">
-                <label className="block text-gray-700 font-medium mb-1 text-sm">Notes</label>
+                <label className="block text-gray-700 font-medium mb-1 text-sm">
+                  Notes
+                </label>
                 <textarea
                   placeholder="Additional details..."
                   name="notes"
@@ -1311,7 +1422,7 @@ export default function AdminLeads() {
                 <button
                   type="button"
                   onClick={() => {
-                    closeModal();       // close the modal
+                    closeModal(); // close the modal
                     setIsSubmitted(false); // reset validation errors
                   }}
                   className="w-full sm:w-auto px-4 py-2 text-white bg-red-400 border border-red-300 rounded hover:bg-red-500 transition disabled:opacity-70"
@@ -1332,7 +1443,6 @@ export default function AdminLeads() {
                       : "Save Lead"}
                 </button>
               </div>
-      
             </form>
           </div>
         </div>
@@ -1367,9 +1477,7 @@ export default function AdminLeads() {
       )}
     </div>
   );
-
 }
-
 
 function ConfirmationModal({
   open,
@@ -1481,7 +1589,8 @@ function SearchableSelect({
 
   useEffect(() => {
     const onDoc = (e) => {
-      if (wrapRef.current && !wrapRef.current.contains(e.target)) setOpen(false);
+      if (wrapRef.current && !wrapRef.current.contains(e.target))
+        setOpen(false);
     };
     document.addEventListener("mousedown", onDoc);
     return () => document.removeEventListener("mousedown", onDoc);
@@ -1522,8 +1631,9 @@ function SearchableSelect({
                       onChange(id);
                       setOpen(false);
                     }}
-                    className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-50 ${active ? "bg-blue-50" : ""
-                      }`}
+                    className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-50 ${
+                      active ? "bg-blue-50" : ""
+                    }`}
                   >
                     {label || "--"}
                   </button>

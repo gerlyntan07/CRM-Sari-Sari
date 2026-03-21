@@ -1,18 +1,19 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { GiCheckMark } from "react-icons/gi";
+import { IoIosArrowDown } from "react-icons/io";
 
 const plans = [
   {
     name: "Free",
     monthly: "₱0",
     annual: "₱0",
-    badge: "For individuals",
+    badge: "Lead Organizer",
     features: [
-      "Up to 2 team members",
-      "Up to 5 active deals",
-      "View-only quotes",
-      "No CSV export",
+      "Unlimited contacts & leads",
+      "Unlimited deals",
+      "Essential pipeline view",
+      "1 user seat",
     ],
     highlight: false,
   },
@@ -20,12 +21,12 @@ const plans = [
     name: "Starter",
     monthly: "₱299",
     annual: "₱2,990",
-    badge: "For small teams",
+    badge: "Collaboration Step",
     features: [
-      "Up to 10 team members",
-      "Unlimited deals",
-      "1 CSV export / month",
-      "5 quotes / month",
+      "Up to 10 users",
+      "Shared team calendar",
+      "Activity tracking",
+      "Manual workflow",
     ],
     highlight: false,
   },
@@ -33,12 +34,12 @@ const plans = [
     name: "Pro",
     monthly: "₱599",
     annual: "₱5,990",
-    badge: "Most popular",
+    badge: "Efficiency Step",
     features: [
       "Unlimited users",
-      "Unlimited deals",
-      "Unlimited CSV exports",
-      "Unlimited quotes",
+      "Automated follow-ups",
+      "Bulk CSV exports/imports",
+      "Custom fields",
     ],
     highlight: true,
   },
@@ -46,13 +47,91 @@ const plans = [
     name: "Enterprise",
     monthly: "₱999",
     annual: "₱8,991",
-    badge: "For scaling businesses",
+    badge: "Scale + Intelligence",
     features: [
       "Custom territory management",
       "Advanced team view",
       "Full accounting features",
+      "AI integration",
     ],
     highlight: false,
+  },
+];
+
+const featureComparison = [
+  {
+    feature: "User seats",
+    Free: "1 user",
+    Starter: "Up to 10 users",
+    Pro: "Unlimited",
+    Enterprise: "Unlimited",
+  },
+  {
+    feature: "Contacts & leads",
+    checklistOnly: true,
+    Free: "Unlimited",
+    Starter: "Unlimited",
+    Pro: "Unlimited",
+    Enterprise: "Unlimited",
+  },
+  {
+    feature: "Deals",
+    checklistOnly: true,
+    Free: "Unlimited",
+    Starter: "Unlimited",
+    Pro: "Unlimited",
+    Enterprise: "Unlimited",
+  },
+  {
+    feature: "Pipeline view",
+    Free: "Essential",
+    Starter: "Advanced",
+    Pro: "Advanced",
+    Enterprise: "Advanced",
+  },
+  {
+    feature: "Team calendar",
+    Free: "—",
+    Starter: "Shared",
+    Pro: "Shared",
+    Enterprise: "Shared + custom",
+  },
+  {
+    feature: "Activity tracking",
+    Free: "Basic",
+    Starter: "Included",
+    Pro: "Included",
+    Enterprise: "Included",
+  },
+  {
+    feature: "Workflow automation",
+    Free: "—",
+    Starter: "Manual only",
+    Pro: "Automated follow-ups",
+    Enterprise: "Advanced automation",
+  },
+  {
+    feature: "CSV import/export",
+    Free: "—",
+    Starter: "Limited",
+    Pro: "Bulk import/export",
+    Enterprise: "Bulk + scheduled",
+  },
+  {
+    feature: "Custom fields",
+    checklistOnly: true,
+    Free: "—",
+    Starter: "—",
+    Pro: "Included",
+    Enterprise: "Included",
+  },
+  {
+    feature: "AI integration",
+    checklistOnly: true,
+    Free: "—",
+    Starter: "—",
+    Pro: "—",
+    Enterprise: "Included",
   },
 ];
 
@@ -77,6 +156,33 @@ const faqs = [
 
 const Pricing = () => {
   const [isAnnual, setIsAnnual] = useState(false);
+  const [showComparison, setShowComparison] = useState(false);
+
+  const renderChecklistCell = (value) => {
+    const isUnavailable = value === "—";
+
+    return (
+      <span className={isUnavailable ? "text-gray-400" : "text-gray-700"}>{value}</span>
+    );
+  };
+
+  const renderIconOnlyCell = (value) => {
+    const isUnavailable = value === "—";
+
+    return (
+      <div className="flex items-center justify-center" title={isUnavailable ? "Not included" : value}>
+        {isUnavailable ? (
+          <span className="inline-flex items-center justify-center rounded-full text-gray-400 text-sm">
+            —
+          </span>
+        ) : (
+          <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-green-100 text-green-700">
+            <GiCheckMark className="text-[10px]" />
+          </span>
+        )}
+      </div>
+    );
+  };
 
   useEffect(() => {
     document.title = "Pricing - Forekas CRM";
@@ -102,7 +208,7 @@ const Pricing = () => {
       <section className="bg-tertiary text-white py-16 text-center">
         <h1 className="text-4xl font-bold mb-3">Simple, transparent pricing</h1>
         <p className="text-gray-200 mb-6">
-          Start free. Upgrade when your business grows.
+          You pay for collaboration and complexity, not for winning more deals.
         </p>
 
         {/* TOGGLE */}
@@ -166,8 +272,59 @@ const Pricing = () => {
               </Link>
             </div>
           ))}
-        </div>
+        </div>        
       </section>
+
+      <div className='w-full text-center pb-10 items-center flex justify-center'>
+        <button
+          onClick={() => setShowComparison((prev) => !prev)}
+          className="mt-6 px-5 py-2 rounded-lg text-tertiary/40 bg-white/5 hover:bg-white/10 cursor-pointer flex flex-row justify-center items-center gap-2 font-medium"
+        >
+          {showComparison ? "Hide full feature grid" : "Expand full feature grid"} <IoIosArrowDown className={`${showComparison ? "transform rotate-180" : "transform rotate-0"} ease-in-out transition-all delay-150 duration-300`} />
+        </button>
+      </div>
+
+      {/* EXPANDABLE FEATURE GRID */}
+      {showComparison && (
+        <section className="pb-16">        
+          <div className="container mx-auto px-4">
+            <div className="overflow-x-auto rounded-2xl border border-gray-200 bg-white">
+              <table className="min-w-full text-sm">
+                <thead className="bg-gray-50 border-b border-gray-200">
+                  <tr>
+                    <th className="text-left px-4 py-3 font-semibold">Feature</th>
+                    <th className="text-left px-4 py-3 font-semibold">Free</th>
+                    <th className="text-left px-4 py-3 font-semibold">Starter</th>
+                    <th className="text-left px-4 py-3 font-semibold">Pro</th>
+                    <th className="text-left px-4 py-3 font-semibold">Enterprise</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {featureComparison.map((row) => (
+                    <tr key={row.feature} className="border-b border-gray-100 last:border-b-0 text-center">
+                      <td className="px-4 py-3 font-medium text-secondary">{row.feature}</td>
+                      <td className="px-4 py-3">
+                        {row.checklistOnly ? renderIconOnlyCell(row.Free) : renderChecklistCell(row.Free)}
+                      </td>
+                      <td className="px-4 py-3">
+                        {row.checklistOnly ? renderIconOnlyCell(row.Starter) : renderChecklistCell(row.Starter)}
+                      </td>
+                      <td className="px-4 py-3">
+                        {row.checklistOnly ? renderIconOnlyCell(row.Pro) : renderChecklistCell(row.Pro)}
+                      </td>
+                      <td className="px-4 py-3">
+                        {row.checklistOnly
+                          ? renderIconOnlyCell(row.Enterprise)
+                          : renderChecklistCell(row.Enterprise)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* TRIAL SECTION */}
       <section className="py-16 bg-gray-50 text-center">

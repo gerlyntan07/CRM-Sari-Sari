@@ -8,12 +8,12 @@ const plans = [
     name: "Free",
     monthly: "₱0",
     annual: "₱0",
-    badge: "Lead Organizer",
+    badge: "For solo operators",
     features: [
-      "Unlimited contacts & leads",
-      "Unlimited deals",
-      "Essential pipeline view",
-      "1 user seat",
+      "Up to 1 user",
+      "Up to 50 deals",
+      "Basic dashboard",
+      "Core CRM only",
     ],
     highlight: false,
   },
@@ -21,12 +21,12 @@ const plans = [
     name: "Starter",
     monthly: "₱299",
     annual: "₱2,990",
-    badge: "Collaboration Step",
+    badge: "For growing teams",
     features: [
-      "Up to 10 users",
-      "Shared team calendar",
-      "Activity tracking",
-      "Manual workflow",
+      "Up to 5 users",
+      "Up to 1,000 deals",
+      "Quotes + CSV limits",
+      "Team collaboration",
     ],
     highlight: false,
   },
@@ -34,12 +34,12 @@ const plans = [
     name: "Pro",
     monthly: "₱599",
     annual: "₱5,990",
-    badge: "Efficiency Step",
+    badge: "Most practical for SMEs",
     features: [
       "Unlimited users",
-      "Automated follow-ups",
-      "Bulk CSV exports/imports",
-      "Custom fields",
+      "Unlimited CRM records",
+      "Advanced reports + logs",
+      "Territory + targets",
     ],
     highlight: true,
   },
@@ -47,91 +47,215 @@ const plans = [
     name: "Enterprise",
     monthly: "₱999",
     annual: "₱8,991",
-    badge: "Scale + Intelligence",
+    badge: "For multi-team operations",
     features: [
-      "Custom territory management",
-      "Advanced team view",
-      "Full accounting features",
-      "AI integration",
+      "Advanced permissions",
+      "Longest audit retention",
+      "Dedicated support",
+      "AI integration (roadmap)",
     ],
     highlight: false,
   },
 ];
 
-const featureComparison = [
+const comparisonSections = [
   {
-    feature: "User seats",
-    Free: "1 user",
-    Starter: "Up to 10 users",
-    Pro: "Unlimited",
-    Enterprise: "Unlimited",
+    title: "Core",
+    rows: [
+      {
+        feature: "Users",
+        Free: "1",
+        Starter: "5",
+        Pro: "Unlimited",
+        Enterprise: "Unlimited",
+      },
+      {
+        feature: "Roles & Permissions",
+        Free: "Basic",
+        Starter: "Basic",
+        Pro: "Standard",
+        Enterprise: "Advanced (granular)",
+      },
+      // {
+      //   feature: "Companies / Workspaces",
+      //   Free: "1",
+      //   Starter: "1",
+      //   Pro: "1",
+      //   Enterprise: "Multi-company setup",
+      // },
+    ],
   },
   {
-    feature: "Contacts & leads",
-    checklistOnly: true,
-    Free: "Unlimited",
-    Starter: "Unlimited",
-    Pro: "Unlimited",
-    Enterprise: "Unlimited",
+    title: "CRM Data",
+    rows: [
+      { feature: "Accounts", Free: "100", Starter: "1,000", Pro: "Unlimited", Enterprise: "Unlimited" },
+      { feature: "Contacts", Free: "200", Starter: "2,000", Pro: "Unlimited", Enterprise: "Unlimited" },
+      { feature: "Leads", Free: "100", Starter: "1,000", Pro: "Unlimited", Enterprise: "Unlimited" },
+      { feature: "Deals", Free: "50", Starter: "1,000", Pro: "Unlimited", Enterprise: "Unlimited" },
+    ],
   },
   {
-    feature: "Deals",
-    checklistOnly: true,
-    Free: "Unlimited",
-    Starter: "Unlimited",
-    Pro: "Unlimited",
-    Enterprise: "Unlimited",
+    title: "Sales & Finance",
+    rows: [
+      {
+        feature: "Pipelines",
+        Free: "1 (fixed)",
+        Starter: "2 (custom)",
+        Pro: "Unlimited",
+        Enterprise: "Unlimited",
+      },
+      {
+        feature: "Quotes",
+        Free: "View-only",
+        Starter: "20/month",
+        Pro: "Unlimited",
+        Enterprise: "Unlimited + approvals",
+      },
+      {
+        feature: "Sales Targets",
+        Free: "❌",
+        Starter: "2 (per user)",
+        Pro: "Team + individual",
+        Enterprise: "Advanced (multi-dimension)",
+      },
+      {
+        feature: "Statement of Account (SOA)",
+        Free: "View-only",
+        Starter: "Basic",
+        Pro: "Full",
+        Enterprise: "Full + controls",
+      },
+    ],
   },
   {
-    feature: "Pipeline view",
-    Free: "Essential",
-    Starter: "Advanced",
-    Pro: "Advanced",
-    Enterprise: "Advanced",
+    title: "Dashboard & Reporting",
+    rows: [
+      {
+        feature: "Dashboard",
+        Free: "Basic",
+        Starter: "Basic + summary",
+        Pro: "Advanced",
+        Enterprise: "Fully customizable",
+      },
+      {
+        feature: "Reports",
+        Free: "❌",
+        Starter: "Basic",
+        Pro: "Advanced",
+        Enterprise: "Advanced + forecasting",
+      },
+    ],
   },
   {
-    feature: "Team calendar",
-    Free: "—",
-    Starter: "Shared",
-    Pro: "Shared",
-    Enterprise: "Shared + custom",
+    title: "Activities",
+    rows: [
+      {
+        feature: "Tasks",
+        Free: "50/month",
+        Starter: "Unlimited",
+        Pro: "Unlimited + reminders",
+        Enterprise: "Advanced analytics",
+      },
+      {
+        feature: "Calls",
+        Free: "Log only",
+        Starter: "Tracking",
+        Pro: "Tracking + analytics",
+        Enterprise: "Advanced analytics",
+      },
+      {
+        feature: "Meetings",
+        Free: "Logging",
+        Starter: "Calendar sync",
+        Pro: "Full sync + reminders",
+        Enterprise: "Advanced analytics",
+      },
+      {
+        feature: "Calendar",
+        Free: "Basic",
+        Starter: "Shared view",
+        Pro: "Team view",
+        Enterprise: "Cross-team view",
+      },
+    ],
   },
   {
-    feature: "Activity tracking",
-    Free: "Basic",
-    Starter: "Included",
-    Pro: "Included",
-    Enterprise: "Included",
+    title: "Territory & Team",
+    rows: [
+      {
+        feature: "Territory Management",
+        Free: "❌",
+        Starter: "❌",
+        Pro: "Basic",
+        Enterprise: "Advanced (hierarchy)",
+      },
+      { feature: "Team Performance", Free: "❌", Starter: "❌", Pro: "✔", Enterprise: "Advanced" },
+      // {
+      //   feature: "User Management",
+      //   Free: "Basic",
+      //   Starter: "Standard",
+      //   Pro: "Advanced",
+      //   Enterprise: "Advanced + policy controls",
+      // },
+    ],
   },
   {
-    feature: "Workflow automation",
-    Free: "—",
-    Starter: "Manual only",
-    Pro: "Automated follow-ups",
-    Enterprise: "Advanced automation",
+    title: "Customization",
+    rows: [
+      { feature: "Custom Fields", Free: "❌", Starter: "10/module", Pro: "50/module", Enterprise: "Unlimited" },
+      { feature: "Pipeline Customization", Free: "❌", Starter: "✔", Pro: "✔", Enterprise: "✔" },
+      { feature: "Field Validation", Free: "❌", Starter: "❌", Pro: "✔", Enterprise: "✔" },
+      { feature: "Branding / Theme", Free: "❌", Starter: "Basic", Pro: "Standard", Enterprise: "Advanced" },
+    ],
   },
   {
-    feature: "CSV import/export",
-    Free: "—",
-    Starter: "Limited",
-    Pro: "Bulk import/export",
-    Enterprise: "Bulk + scheduled",
+    title: "Data & Export",
+    rows: [
+      {
+        feature: "CSV Export",
+        Free: "❌",
+        Starter: "5/month",
+        Pro: "Unlimited",
+        Enterprise: "Unlimited + scheduled",
+      },
+      {
+        feature: "Data Import",
+        Free: "❌",
+        Starter: "Limited",
+        Pro: "Bulk",
+        Enterprise: "Bulk + assisted",
+      },
+    ],
   },
   {
-    feature: "Custom fields",
-    checklistOnly: true,
-    Free: "—",
-    Starter: "—",
-    Pro: "Included",
-    Enterprise: "Included",
+    title: "Security & Logs",
+    rows: [
+      { feature: "Audit Logs", Free: "❌", Starter: "❌", Pro: "30 days", Enterprise: "1 year" },
+      { feature: "Activity Logs", Free: "❌", Starter: "❌", Pro: "✔", Enterprise: "✔" },
+      { feature: "Backup & Restore", Free: "❌", Starter: "Manual", Pro: "Scheduled", Enterprise: "Priority restore" },
+    ],
   },
   {
-    feature: "AI integration",
-    checklistOnly: true,
-    Free: "—",
-    Starter: "—",
-    Pro: "—",
-    Enterprise: "Included",
+    title: "Integrations & API",
+    rows: [
+      // { feature: "API Access", Free: "❌", Starter: "❌", Pro: "Limited", Enterprise: "Extended" },
+      // { feature: "Webhook Events", Free: "❌", Starter: "❌", Pro: "❌", Enterprise: "Roadmap" },
+      { feature: "Email Notifications", Free: "Basic", Starter: "Standard", Pro: "Advanced", Enterprise: "Advanced" },
+    ],
+  },
+  {
+    title: "Support",
+    rows: [
+      { feature: "Support", Free: "Basic", Starter: "Basic", Pro: "Priority", Enterprise: "Dedicated" },
+      { feature: "Onboarding", Free: "Self-serve", Starter: "Guided setup", Pro: "Guided + training", Enterprise: "White-glove" },
+      { feature: "SLA", Free: "❌", Starter: "❌", Pro: "Standard", Enterprise: "Custom" },
+    ],
+  },
+  {
+    title: "Roadmap",
+    rows: [
+      { feature: "AI Integration", Free: "❌", Starter: "❌", Pro: "❌", Enterprise: "Roadmap" },
+    ],
   },
 ];
 
@@ -158,30 +282,31 @@ const Pricing = () => {
   const [isAnnual, setIsAnnual] = useState(false);
   const [showComparison, setShowComparison] = useState(false);
 
-  const renderChecklistCell = (value) => {
-    const isUnavailable = value === "—";
+  const renderCell = (value) => {
+    if (value === "❌") {
+      return <span className="text-gray-400">—</span>;
+    }
 
-    return (
-      <span className={isUnavailable ? "text-gray-400" : "text-gray-700"}>{value}</span>
-    );
-  };
+    if (value === "✔") {
+      return (
+        <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-green-100 text-green-700 align-middle">
+          <GiCheckMark className="text-[10px]" />
+        </span>
+      );
+    }
 
-  const renderIconOnlyCell = (value) => {
-    const isUnavailable = value === "—";
-
-    return (
-      <div className="flex items-center justify-center" title={isUnavailable ? "Not included" : value}>
-        {isUnavailable ? (
-          <span className="inline-flex items-center justify-center rounded-full text-gray-400 text-sm">
-            —
-          </span>
-        ) : (
+    if (typeof value === "string" && value.startsWith("✔ ")) {
+      return (
+        <span className="inline-flex items-center gap-2 text-gray-700">
           <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-green-100 text-green-700">
             <GiCheckMark className="text-[10px]" />
           </span>
-        )}
-      </div>
-    );
+          {value.replace("✔ ", "")}
+        </span>
+      );
+    }
+
+    return <span className="text-gray-700">{value}</span>;
   };
 
   useEffect(() => {
@@ -208,7 +333,7 @@ const Pricing = () => {
       <section className="bg-tertiary text-white py-16 text-center">
         <h1 className="text-4xl font-bold mb-3">Simple, transparent pricing</h1>
         <p className="text-gray-200 mb-6">
-          You pay for collaboration and complexity, not for winning more deals.
+          Built around the current Forekas CRM modules, with clear limits that scale as teams grow.
         </p>
 
         {/* TOGGLE */}
@@ -216,11 +341,15 @@ const Pricing = () => {
           <span className={!isAnnual ? "font-bold" : "opacity-60"}>Monthly</span>
           <button
             onClick={() => setIsAnnual(!isAnnual)}
-            className="w-12 h-6 bg-accent rounded-full relative"
+            aria-label="Toggle billing cycle"
+            aria-pressed={isAnnual}
+            className={`w-12 h-6 rounded-full relative border transition-colors duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-accent/50 ${
+              isAnnual ? "bg-accent border-accent" : "bg-white/20 border-white/40"
+            }`}
           >
             <div
-              className={`h-6 w-6 bg-white rounded-full absolute top-0 transition-all ${
-                isAnnual ? "right-0" : "left-0"
+              className={`h-5 w-5 bg-white rounded-full absolute top-0.5 left-0.5 shadow-sm transition-transform duration-300 ease-in-out ${
+                isAnnual ? "translate-x-6" : "translate-x-0"
               }`}
             />
           </button>
@@ -236,7 +365,7 @@ const Pricing = () => {
           {plans.map((plan) => (
             <div
               key={plan.name}
-              className={`rounded-2xl border p-6 ${
+              className={`rounded-2xl border p-6 transition-all duration-300 hover:-translate-y-1 hover:shadow-md ${
                 plan.highlight
                   ? "bg-secondary text-white border-accent scale-105"
                   : "bg-white border-gray-200"
@@ -245,9 +374,9 @@ const Pricing = () => {
               <p className="text-sm mb-1 opacity-80">{plan.badge}</p>
               <h3 className="text-xl font-bold mb-3">{plan.name}</h3>
 
-              <p className="text-3xl font-bold mb-4">
+              <p className="text-3xl font-bold mb-4 transition-all duration-300">
                 {isAnnual ? plan.annual : plan.monthly}
-                <span className="text-sm font-normal opacity-70">
+                <span className="text-sm font-normal opacity-70 ml-1">
                   {isAnnual ? "/year" : "/month"}
                 </span>
               </p>
@@ -262,69 +391,78 @@ const Pricing = () => {
 
               <Link
                 to="/signup"
-                className={`block text-center py-2 rounded-lg font-semibold ${
+                className={`block text-center py-2 rounded-lg font-semibold transition-all duration-200 ${
                   plan.highlight
-                    ? "bg-accent text-secondary"
-                    : "border border-accent text-accent"
+                    ? "bg-accent text-secondary hover:opacity-90"
+                    : "border border-accent text-accent hover:bg-accent/10"
                 }`}
               >
                 Get Started
               </Link>
             </div>
           ))}
-        </div>        
+        </div>
       </section>
 
-      <div className='w-full text-center pb-10 items-center flex justify-center'>
+      <div className="w-full text-center pb-10 items-center flex justify-center">
         <button
           onClick={() => setShowComparison((prev) => !prev)}
-          className="mt-6 px-5 py-2 rounded-lg text-tertiary/40 bg-white/5 hover:bg-white/10 cursor-pointer flex flex-row justify-center items-center gap-2 font-medium"
+          className="mt-6 px-5 py-2 rounded-lg text-tertiary/50 bg-white/5 hover:bg-white/10 cursor-pointer flex flex-row justify-center items-center gap-2 font-medium transition-all duration-200 hover:scale-[1.02]"
         >
-          {showComparison ? "Hide full feature grid" : "Expand full feature grid"} <IoIosArrowDown className={`${showComparison ? "transform rotate-180" : "transform rotate-0"} ease-in-out transition-all delay-150 duration-300`} />
+          {showComparison ? "Hide full feature grid" : "Expand full feature grid"}
+          <IoIosArrowDown
+            className={`${showComparison ? "rotate-180" : "rotate-0"} transition-transform duration-300 ease-in-out`}
+          />
         </button>
       </div>
 
       {/* EXPANDABLE FEATURE GRID */}
-      {showComparison && (
-        <section className="pb-16">        
-          <div className="container mx-auto px-4">
-            <div className="overflow-x-auto rounded-2xl border border-gray-200 bg-white">
-              <table className="min-w-full text-sm">
-                <thead className="bg-gray-50 border-b border-gray-200">
-                  <tr>
-                    <th className="text-left px-4 py-3 font-semibold">Feature</th>
-                    <th className="text-left px-4 py-3 font-semibold">Free</th>
-                    <th className="text-left px-4 py-3 font-semibold">Starter</th>
-                    <th className="text-left px-4 py-3 font-semibold">Pro</th>
-                    <th className="text-left px-4 py-3 font-semibold">Enterprise</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {featureComparison.map((row) => (
-                    <tr key={row.feature} className="border-b border-gray-100 last:border-b-0 text-center">
-                      <td className="px-4 py-3 font-medium text-secondary">{row.feature}</td>
-                      <td className="px-4 py-3">
-                        {row.checklistOnly ? renderIconOnlyCell(row.Free) : renderChecklistCell(row.Free)}
-                      </td>
-                      <td className="px-4 py-3">
-                        {row.checklistOnly ? renderIconOnlyCell(row.Starter) : renderChecklistCell(row.Starter)}
-                      </td>
-                      <td className="px-4 py-3">
-                        {row.checklistOnly ? renderIconOnlyCell(row.Pro) : renderChecklistCell(row.Pro)}
-                      </td>
-                      <td className="px-4 py-3">
-                        {row.checklistOnly
-                          ? renderIconOnlyCell(row.Enterprise)
-                          : renderChecklistCell(row.Enterprise)}
+      <section
+        className={`overflow-hidden transition-all duration-500 ease-in-out ${
+          showComparison
+            ? "max-h-[5000px] opacity-100 translate-y-0 pb-16"
+            : "max-h-0 opacity-0 -translate-y-2 pointer-events-none"
+        }`}
+      >
+        <div className="container mx-auto px-4">
+          <div className="overflow-x-auto rounded-2xl border border-gray-200 bg-white">
+            <table className="min-w-full text-sm">
+              <thead className="bg-secondary text-white border-b border-gray-200 text-center">
+                <tr>
+                  <th className="text-center px-4 py-3 font-semibold">Feature</th>
+                  <th className="text-center px-4 py-3 font-semibold">Free</th>
+                  <th className="text-center px-4 py-3 font-semibold">Starter</th>
+                  <th className="text-center px-4 py-3 font-semibold">Pro</th>
+                  <th className="text-center px-4 py-3 font-semibold">Enterprise</th>
+                </tr>
+              </thead>
+              <tbody>
+                {comparisonSections.map((section) => (
+                  <React.Fragment key={section.title}>
+                    <tr className="bg-gray-200 border-y border-gray-200">
+                      <td colSpan={5} className="px-4 py-2 text-center font-bold text-secondary uppercase">
+                        {section.title}
                       </td>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                    {section.rows.map((row) => (
+                      <tr
+                        key={`${section.title}-${row.feature}`}
+                        className="border-b border-gray-100 last:border-b-0 text-center"
+                      >
+                        <td className="px-4 py-3 font-medium text-secondary text-left">{row.feature}</td>
+                        <td className="px-4 py-3">{renderCell(row.Free)}</td>
+                        <td className="px-4 py-3">{renderCell(row.Starter)}</td>
+                        <td className="px-4 py-3">{renderCell(row.Pro)}</td>
+                        <td className="px-4 py-3">{renderCell(row.Enterprise)}</td>
+                      </tr>
+                    ))}
+                  </React.Fragment>
+                ))}
+              </tbody>
+            </table>
           </div>
-        </section>
-      )}
+        </div>
+      </section>
 
       {/* TRIAL SECTION */}
       <section className="py-16 bg-gray-50 text-center">

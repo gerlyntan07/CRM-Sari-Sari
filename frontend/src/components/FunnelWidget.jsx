@@ -781,7 +781,7 @@ const FunnelWidget = ({ leads, deals, currencySymbol, targets = [], basePath = '
                <select 
                   value={filterTime} 
                   onChange={(e) => setFilterTime(e.target.value)}
-                  className="bg-gray-50 border border-gray-200 text-gray-700 text-xs rounded-lg p-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="bg-gray-50 border border-gray-200 text-gray-700 text-xs rounded-lg p-2 focus:ring-blue-500 focus:border-blue-500 cursor-pointer"
                >
                   <option value="ALL">All Time</option>
                   <option value="THIS_MONTH">This Month</option>

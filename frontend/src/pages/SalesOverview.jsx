@@ -1349,8 +1349,8 @@ const ComparisonChart = ({ comparisonData, loading }) => {
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <div>
-          <p className="text-xs text-gray-500 mt-1">
-            Compare deals, accounts, contacts, and leads creation
+          <p className="text-sm text-gray-500">
+            Compare deals, accounts, contacts, and leads creation.
           </p>
         </div>
         {hasData && lastYearTotal > 0 && (
@@ -1365,7 +1365,7 @@ const ComparisonChart = ({ comparisonData, loading }) => {
       <div className="flex items-center space-x-2 mb-4">
         <button
           onClick={() => setViewType('monthly')}
-          className={`text-xs px-3 py-1.5 rounded-full font-medium transition-all ${
+          className={`text-xs px-3 py-1.5 rounded-full font-medium transition-all cursor-pointer ${
             viewType === 'monthly'
               ? 'bg-blue-500 text-white'
               : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
@@ -1375,7 +1375,7 @@ const ComparisonChart = ({ comparisonData, loading }) => {
         </button>
         <button
           onClick={() => setViewType('quarterly')}
-          className={`text-xs px-3 py-1.5 rounded-full font-medium transition-all ${
+          className={`text-xs px-3 py-1.5 rounded-full font-medium transition-all cursor-pointer ${
             viewType === 'quarterly'
               ? 'bg-blue-500 text-white'
               : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
@@ -1385,7 +1385,7 @@ const ComparisonChart = ({ comparisonData, loading }) => {
         </button>
         <button
           onClick={() => setViewType('yearly')}
-          className={`text-xs px-3 py-1.5 rounded-full font-medium transition-all ${
+          className={`text-xs px-3 py-1.5 rounded-full font-medium transition-all cursor-pointer ${
             viewType === 'yearly'
               ? 'bg-blue-500 text-white'
               : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
@@ -1399,7 +1399,7 @@ const ComparisonChart = ({ comparisonData, loading }) => {
       <div className="flex flex-wrap items-center gap-2 mb-4">
         <button
           onClick={() => setShowDeals(!showDeals)}
-          className={`text-xs px-3 py-1.5 rounded-full font-medium transition-all flex items-center ${
+          className={`text-xs px-3 py-1.5 rounded-full font-medium transition-all flex items-center cursor-pointer ${
             showDeals
               ? 'bg-amber-100 text-amber-700 border-2 border-amber-300'
               : 'bg-gray-100 text-gray-500 border-2 border-gray-200'
@@ -1415,7 +1415,7 @@ const ComparisonChart = ({ comparisonData, loading }) => {
         </button>
         <button
           onClick={() => setShowAccounts(!showAccounts)}
-          className={`text-xs px-3 py-1.5 rounded-full font-medium transition-all flex items-center ${
+          className={`text-xs px-3 py-1.5 rounded-full font-medium transition-all flex items-center cursor-pointer ${
             showAccounts
               ? 'bg-blue-100 text-blue-700 border-2 border-blue-300'
               : 'bg-gray-100 text-gray-500 border-2 border-gray-200'
@@ -1431,7 +1431,7 @@ const ComparisonChart = ({ comparisonData, loading }) => {
         </button>
         <button
           onClick={() => setShowContacts(!showContacts)}
-          className={`text-xs px-3 py-1.5 rounded-full font-medium transition-all flex items-center ${
+          className={`text-xs px-3 py-1.5 rounded-full font-medium transition-all flex items-center cursor-pointer ${
             showContacts
               ? 'bg-purple-100 text-purple-700 border-2 border-purple-300'
               : 'bg-gray-100 text-gray-500 border-2 border-gray-200'
@@ -1447,7 +1447,7 @@ const ComparisonChart = ({ comparisonData, loading }) => {
         </button>
         <button
           onClick={() => setShowLeads(!showLeads)}
-          className={`text-xs px-3 py-1.5 rounded-full font-medium transition-all flex items-center ${
+          className={`text-xs px-3 py-1.5 rounded-full font-medium transition-all flex items-center cursor-pointer ${
             showLeads
               ? 'bg-green-100 text-green-700 border-2 border-green-300'
               : 'bg-gray-100 text-gray-500 border-2 border-gray-200'
@@ -1464,7 +1464,7 @@ const ComparisonChart = ({ comparisonData, loading }) => {
         {lastYearTotal > 0 && (
           <button
             onClick={() => setShowLastYear(!showLastYear)}
-            className={`text-xs px-3 py-1.5 rounded-full font-medium transition-all ml-auto ${
+            className={`text-xs px-3 py-1.5 rounded-full font-medium transition-all ml-auto cursor-pointer ${
               showLastYear
                 ? 'bg-gray-200 text-gray-700 border-2 border-gray-300'
                 : 'bg-gray-100 text-gray-500 border-2 border-gray-200'
@@ -3006,7 +3006,7 @@ const SalesOverview= () => {
         </div>
 
         {/* Combined Dashboard Section (after metrics) */}
-        <div className="bg-white rounded-xl border border-gray-200 p-6 flex flex-col">
+        <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-6 flex flex-col">
           {/* Custom AdminTabs for sales role (case-insensitive) */}
           {user?.role && user.role.toLowerCase().includes("sales") && (
             <AdminTabs
@@ -3026,8 +3026,8 @@ const SalesOverview= () => {
           {/* Tab-driven content display */}
           {activeSalesTab === "all" && (
             <>
-              <div className="mb-4 mt-2">
-                <h2 className="text-lg font-semibold text-gray-800 mb-2 border-b-2 border-blue-500 inline-block">Logs & Activities</h2>
+              <div>
+                <h2 className="text-lg font-semibold text-gray-800 border-b-2 border-blue-600 inline-block">Logs & Activities</h2>
               </div>
               <div className="flex flex-col md:grid md:grid-cols-2 gap-0">
                 <div className="mb-6 md:mb-0 md:pr-6 md:border-r md:border-gray-300">
@@ -3037,9 +3037,9 @@ const SalesOverview= () => {
                   <MyActivitiesChart activityData={taskCompletionData} loading={loading} />
                 </div>
               </div>
-              <hr className="my-6 border-gray-300" />
-              <div className="mb-4 mt-2">
-                <h2 className="text-lg font-semibold text-gray-800 mb-2 border-b-2 border-blue-500 inline-block">Pipeline Intelligence</h2>
+              <hr className="mt-2 mb-4 border-gray-300" />
+              <div className="mt-2 mb-2">
+                <h2 className="text-lg font-semibold text-gray-800 border-b-2 border-blue-600 inline-block">Pipeline Intelligence</h2>
               </div>
               <FunnelWidget
                 leads={allLeads}
@@ -3049,19 +3049,19 @@ const SalesOverview= () => {
                 basePath="/sales"
                 currentUser={user}
               />
-              <hr className="my-6 border-gray-300" />
-              <div className="mb-4 mt-2">
-                <h2 className="text-lg font-semibold text-gray-800 mb-2 border-b-2 border-blue-500 inline-block">Revenue Overview</h2>
+              <hr className="mt-2 mb-4 border-gray-300" />
+              <div className="mt-2 mb-2">
+                <h2 className="text-lg font-semibold text-gray-800 border-b-2 border-blue-600 inline-block">Revenue Overview</h2>
               </div>
               <RevenueChart revenueData={revenueData} loading={loading} />
-              <hr className="my-6 border-gray-300" />
-              <div className="mb-4 mt-2">
-                <h2 className="text-lg font-semibold text-gray-800 mb-2 border-b-2 border-blue-500 inline-block">Growth Expansion</h2>
+              <hr className="mt-2 mb-4 border-gray-300" />
+              <div className="mt-2 mb-2">
+                <h2 className="text-lg font-semibold text-gray-800 border-b-2 border-blue-600 inline-block">Growth Expansion</h2>
               </div>
               <ComparisonChart comparisonData={comparisonData} loading={loading} />
-              <hr className="my-6 border-gray-300" />
-              <div className="mb-4 mt-2">
-                <h2 className="text-lg font-semibold text-gray-800 mb-2 border-b-2 border-blue-500 inline-block">Quick Data Access</h2>
+              <hr className="mt-2 mb-4 border-gray-300" />
+              <div className="mt-2 mb-2">
+                <h2 className="text-lg font-semibold text-gray-800 border-b-2 border-blue-600 inline-block">Quick Data Access</h2>
               </div>
               <div className="flex flex-col md:grid md:grid-cols-3 gap-0">
                 <div className="mb-6 md:mb-0 md:pr-6 md:border-r md:border-gray-300">
@@ -3117,9 +3117,9 @@ const SalesOverview= () => {
           )}
           {activeSalesTab === "logsActivities" && (
             <>
-              <div className="mb-4 mt-2">
-                <h2 className="text-lg font-semibold text-gray-800 mb-2 border-b-2 border-blue-500 inline-block">Logs & Activities</h2>
-              </div>
+              <div>
+                  <h2 className="text-lg font-semibold text-gray-800 border-b-2 border-blue-600 inline-block">Logs & Activities</h2>
+                </div>
               <div className="flex flex-col md:grid md:grid-cols-2 gap-0">
                 <div className="mb-6 md:mb-0 md:pr-6 md:border-r md:border-gray-300">
                   <RecentLogsCard logs={auditLogs} loading={loading} />
@@ -3132,9 +3132,9 @@ const SalesOverview= () => {
           )}
           {activeSalesTab === "pipelineIntelligence" && (
             <>
-              <div className="mb-4 mt-2">
-                <h2 className="text-lg font-semibold text-gray-800 mb-2 border-b-2 border-blue-500 inline-block">Pipeline Intelligence</h2>
-              </div>
+              <div>
+                  <h2 className="text-lg font-semibold text-gray-800 border-b-2 border-blue-600 inline-block">Pipeline Intelligence</h2>
+                </div>
               <FunnelWidget
                 leads={allLeads}
                 deals={allDeals}
@@ -3147,25 +3147,25 @@ const SalesOverview= () => {
           )}
           {activeSalesTab === "revenueOverview" && (
             <>
-              <div className="mb-4 mt-2">
-                <h2 className="text-lg font-semibold text-gray-800 mb-2 border-b-2 border-blue-500 inline-block">Revenue Overview</h2>
-              </div>
+              <div>
+                  <h2 className="text-lg font-semibold text-gray-800 border-b-2 border-blue-600 inline-block">Revenue Overview</h2>
+                </div>
               <RevenueChart revenueData={revenueData} loading={loading} />
             </>
           )}
           {activeSalesTab === "growthExpansion" && (
             <>
-              <div className="mb-4 mt-2">
-                <h2 className="text-lg font-semibold text-gray-800 mb-2 border-b-2 border-blue-500 inline-block">Growth Expansion</h2>
-              </div>
+              <div>
+                  <h2 className="text-lg font-semibold text-gray-800 border-b-2 border-blue-600 inline-block">Growth Expansion</h2>
+                </div>
               <ComparisonChart comparisonData={comparisonData} loading={loading} />
             </>
           )}
           {activeSalesTab === "quickDataAccess" && (
             <>
-              <div className="mb-4 mt-2">
-                <h2 className="text-lg font-semibold text-gray-800 mb-2 border-b-2 border-blue-500 inline-block">Quick Data Access</h2>
-              </div>
+              <div>
+                  <h2 className="text-lg font-semibold text-gray-800 border-b-2 border-blue-600 inline-block">Quick Data Access</h2>
+                </div>
               <div className="flex flex-col md:grid md:grid-cols-3 gap-0">
                 <div className="mb-6 md:mb-0 md:pr-6 md:border-r md:border-gray-300">
                   <ListCard title="Latest Leads">

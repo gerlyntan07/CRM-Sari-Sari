@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useState } from "react";
+import LoadingSpinner from "../components/LoadingSpinner";
 import { HiX } from "react-icons/hi";
 import {
   FiPhone,
@@ -50,6 +51,7 @@ export default function AdminLeadsInformation({
   const navigate = useNavigate();
   const { leadID } = useParams();
   const [lead, setLead] = useState(leadProp || null);
+  const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState("Overview");
   const [selectedStatus, setSelectedStatus] = useState("");
   const canConvert = lead?.status?.toUpperCase() === "QUALIFIED";  
@@ -99,14 +101,19 @@ export default function AdminLeadsInformation({
 
   const fetchLead = async () => {
     try {
+      setLoading(true);
       if (leadProp) {
         // Use prop if available
         setLead(leadProp);
         setSelectedStatus(leadProp.status || "New");
+        setLoading(false);
         return;
       }
 
-      if (!leadID) return;
+      if (!leadID) {
+        setLoading(false);
+        return;
+      }
 
       const res = await api.get(`/leads/get/${leadID}`);
       setLead(res.data);
@@ -156,6 +163,8 @@ export default function AdminLeadsInformation({
       });
     } catch (err) {
       console.error(err);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -351,7 +360,14 @@ export default function AdminLeadsInformation({
       .replace(/\b\w/g, (char) => char.toUpperCase());
   };
 
-  if (!lead) return null;
+
+  // Show loading spinner if fetching via route param
+  if (leadID && loading) {
+    return <LoadingSpinner message="Loading lead details..." />;
+  }
+
+  if (!lead && !leadID) return null;
+  if (leadID && !lead && !loading) return null;
 
   return (
     <>

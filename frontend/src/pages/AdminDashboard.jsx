@@ -3,7 +3,7 @@ import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import {
   FiSearch, FiUsers, FiDollarSign, FiUserPlus, FiClock, FiBriefcase, FiTarget, FiArrowUpRight, FiArrowDownRight,
   FiUser, FiCalendar, FiCheckCircle, FiFileText, FiPhone, FiList, FiBookmark, FiEdit, FiArrowRight, FiPhoneCall,
-  FiClipboard
+  FiClipboard, FiCheckSquare
 } from "react-icons/fi";
 import { MdOutlineSwitchAccount } from "react-icons/md";
 import { LuMapPin } from "react-icons/lu";
@@ -85,12 +85,20 @@ const getStatusClasses = (status) => {
 
 // Utility function to map LEAD source colors
 const getLeadSourceClasses = (source) => {
-  switch (source) {
-    case 'Website': return { text: 'text-green-600', bg: 'bg-green-100' };
-    case 'Referral': return { text: 'text-purple-600', bg: 'bg-purple-100' };
-    case 'Trade Show': return { text: 'text-orange-600', bg: 'bg-orange-100' };
-    case 'Cold Call': return { text: 'text-red-600', bg: 'bg-red-100' };
-    default: return { text: 'text-gray-600', bg: 'bg-gray-100' };
+  const normalized = (source || '').trim().toLowerCase();
+  switch (normalized) {
+    case 'website':
+      return { text: 'text-green-600', bg: 'bg-green-100' };
+    case 'referral':
+      return { text: 'text-purple-600', bg: 'bg-purple-100' };
+    case 'cold call':
+      return { text: 'text-red-600', bg: 'bg-red-100' };
+    case 'event':
+      return { text: 'text-blue-600', bg: 'bg-blue-100' };
+    case 'other':
+      return { text: 'text-yellow-700', bg: 'bg-yellow-100' };
+    default:
+      return { text: 'text-gray-600', bg: 'bg-gray-100' };
   }
 };
 
@@ -106,9 +114,14 @@ const getActivityType = (type) => {
 // Utility for Priority Tags
 const getPriorityClasses = (priority) => {
   switch (priority.toUpperCase()) {
-    case 'HIGH': return { text: 'text-red-700', bg: 'bg-red-100' };
-    case 'LOW': return { text: 'text-blue-700', bg: 'bg-blue-100' };
-    default: return { text: 'text-gray-700', bg: 'bg-gray-100' };
+    case 'HIGH':
+      return { text: 'text-red-700', bg: 'bg-red-100' };
+    case 'NORMAL':
+      return { text: 'text-yellow-700', bg: 'bg-yellow-100' };
+    case 'LOW':
+      return { text: 'text-blue-700', bg: 'bg-blue-100' };
+    default:
+      return { text: 'text-gray-700', bg: 'bg-gray-100' };
   }
 };
 
@@ -341,7 +354,9 @@ const RevenueChart = ({ revenueData, loading }) => {
     revenueData.forEach((deal) => {
       const closeDate = deal.close_date || deal.closeDate || null;
       const stage = deal.stage || '';
+      const status = (deal.status || '').toLowerCase();
       const isClosedWon = stage.toUpperCase() === 'CLOSED_WON' || stage === 'CLOSED_WON';
+      if (['inactive', 'Inactive', 'INACTIVE'].includes(status)) return;
 
       let amount = deal.amount;
       if (amount && typeof amount === 'object' && amount.toString) {
@@ -493,7 +508,8 @@ const ListCard = ({ title, items, children, onSeeAll }) => {
 
 const LeadItem = ({ first_name, last_name, company_name, source, created_at, id }) => {
   const navigate = useNavigate();
-  const { text, bg } = getLeadSourceClasses(source || 'Website');
+  const displaySource = source && source.trim() ? source : 'N/A';
+  const { text, bg } = getLeadSourceClasses(displaySource);
 
   const formatDate = (dateString) => {
     if (!dateString) return "Unknown";
@@ -530,7 +546,7 @@ const LeadItem = ({ first_name, last_name, company_name, source, created_at, id 
         </div>
         <div className="text-right">
           <p className="text-xs text-gray-400">{date}</p>
-          <span className={`inline-block mt-1 text-xs font-medium ${text} ${bg} px-2 py-0.5 rounded-full`}>{source || 'Website'}</span>
+          <span className={`inline-block mt-1 text-xs font-medium ${text} ${bg} px-2 py-0.5 rounded-full`}>{displaySource}</span>
         </div>
       </div>
     </div>
@@ -598,17 +614,17 @@ const DealItem = ({ name, amount, account, stage, created_at, stage_updated_at, 
   );
 };
 
+
 const ActivityItem = ({ type, title, assignedTo, dueDate, scheduledDate, priority, id, activityType, fullData }) => {
   const navigate = useNavigate();
 
-  const activityTypeMap = {
-    'Call': 'call',
-    'Meeting': 'meeting',
-    'Task': 'qualification',
-  };
-
-  const finalType = activityType || activityTypeMap[type] || 'meeting';
-  const { Icon, color, bgColor } = getActivityType(finalType);
+  // Remove tick box and bullet for quick access tasks
+  let Icon = null;
+  if ((type || '').toLowerCase() === 'call') {
+    Icon = FiPhone;
+  } else if ((type || '').toLowerCase() === 'meeting') {
+    Icon = FiCalendar;
+  }
   const { text, bg } = getPriorityClasses(priority || 'MEDIUM');
 
   const formatDateTime = (dateString) => {
@@ -636,20 +652,25 @@ const ActivityItem = ({ type, title, assignedTo, dueDate, scheduledDate, priorit
   const handleClick = () => {
     if (id) {
       if (fullData) {
-        if (finalType === 'call') {
+        if ((type || '').toLowerCase() === 'call') {
           sessionStorage.setItem('callDetailData', JSON.stringify(fullData));
           navigate(`/admin/calls/info?id=${id}`);
-        } else if (finalType === 'meeting') {
+        } else if ((type || '').toLowerCase() === 'meeting') {
           sessionStorage.setItem('meetingDetailData', JSON.stringify(fullData));
           navigate(`/admin/meetings/info?id=${id}`);
+        } else if ((type || '').toLowerCase() === 'task') {
+          sessionStorage.setItem('taskDetailData', JSON.stringify(fullData));
+          navigate(`/admin/tasks/info?id=${id}`);
         } else {
           navigate('/admin/tasks');
         }
       } else {
-        if (finalType === 'call') {
+        if ((type || '').toLowerCase() === 'call') {
           navigate(`/admin/calls/info?id=${id}`);
-        } else if (finalType === 'meeting') {
+        } else if ((type || '').toLowerCase() === 'meeting') {
           navigate(`/admin/meetings/info?id=${id}`);
+        } else if ((type || '').toLowerCase() === 'task') {
+          navigate(`/admin/tasks/info?id=${id}`);
         } else {
           navigate('/admin/tasks');
         }
@@ -662,23 +683,24 @@ const ActivityItem = ({ type, title, assignedTo, dueDate, scheduledDate, priorit
       className="flex items-start py-3 border-b border-gray-100 last:border-b-0 cursor-pointer hover:bg-gray-50 transition duration-150 px-2 -mx-2 rounded-md"
       onClick={handleClick}
     >
-      <div className={`p-2 rounded-lg ${bgColor} mr-3 flex-shrink-0 mt-1`}>
-        <Icon size={20} className={`${color}`} />
-      </div>
+      {Icon && (
+        <div className={`p-2 rounded-lg ${bg} mr-3 flex-shrink-0 mt-1`}>
+          <Icon size={20} className={`${text}`} />
+        </div>
+      )}
 
       <div className="flex-grow">
         <p className="font-medium text-gray-800 flex items-center mb-1">
-          <span className="text-xl leading-none mr-2">•</span>
           {title || 'Untitled Activity'}
         </p>
 
         <div className="space-y-1 text-xs text-gray-500">
           <p className="flex items-center">
-            <IconClock size={14} className="mr-1.5 text-gray-400" />
+            <IconClock size={18} className="mr-1.5 text-gray-400 align-middle" />
             {timeDisplay}
           </p>
           <p className="flex items-center">
-            <IconUser size={14} className="mr-1.5 text-gray-400" />
+            <IconUser size={18} className="mr-1.5 text-gray-400 align-middle" />
             Assigned to: {assignedName}
           </p>
         </div>
@@ -843,76 +865,84 @@ const AdminDashboard = () => {
       setAllTargets(targets); // --- Store Targets ---
 
       // --- Calculate Total Target ---
-      const totalTargetVal = targets.reduce((sum, t) => {
-        const val = t.amount || t.value || t.target_amount || 0;
-        const numericVal = typeof val === 'string'
-          ? parseFloat(val.replace(/[^\d.-]/g, ''))
-          : parseFloat(val);
-
-        return sum + (isNaN(numericVal) ? 0 : numericVal);
-      }, 0);
+      // --- Calculate Total Target (exclude Inactive) ---
+      const totalTargetVal = targets
+        .filter(t => !t.status || !['Inactive', 'INACTIVE'].includes(t.status))
+        .reduce((sum, t) => {
+          const val = t.amount || t.value || t.target_amount || 0;
+          const numericVal = typeof val === 'string'
+            ? parseFloat(val.replace(/[^\d.-]/g, ''))
+            : parseFloat(val);
+          return sum + (isNaN(numericVal) ? 0 : numericVal);
+        }, 0);
 
       setTotalTarget(totalTargetVal);
 
       setMetrics({
-        activeLeads: leads.filter(lead => lead.status && !['Lost', 'Converted'].includes(lead.status)).length,
-        totalDeals: deals.length,
+        activeLeads: leads.filter(
+          lead => lead.status && !['Lost', 'Converted', 'Inactive', 'INACTIVE'].includes(lead.status)
+        ).length,
+        totalDeals: deals.filter(
+          deal => !deal.status || !['Inactive', 'INACTIVE'].includes(deal.status)
+        ).length,
         activeAccounts: accounts.length,
         overdueTasks: tasks.filter(task => {
-          if (!task.dueDate || task.status === 'Completed') return false;
-          return new Date(task.dueDate) < new Date();
+          const due = task.dueDate || task.due_date;
+          const status = (task.status || '').toLowerCase();
+          if (!due || status === 'completed' || status === 'inactive') return false;
+          return new Date(due) < new Date();
         }).length,
       });
 
-      const sortedLeads = [...leads].sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0)).slice(0, 5);
+      const sortedLeads = [...leads]
+        .filter(lead => !lead.status || !['Inactive', 'INACTIVE'].includes(lead.status))
+        .sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0))
+        .slice(0, 5);
       setLatestLeads(sortedLeads);
 
-      const sortedDeals = [...deals].sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0)).slice(0, 5);
+      const sortedDeals = [...deals]
+        .filter(deal => !deal.status || !['Inactive', 'INACTIVE'].includes(deal.status))
+        .sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0))
+        .slice(0, 5);
       setLatestDeals(sortedDeals);
 
-      const activities = [];
-      calls.forEach(call => {
-        const callDate = call.due_date || call.call_time;
-        const status = (call.status || '').toUpperCase();
-        if (callDate && !['COMPLETED', 'MISSED', 'NOT_HELD', 'HELD'].includes(status)) {
-          activities.push({
-            type: 'Call',
-            title: call.subject || 'Untitled Call',
-            assignedTo: call.assigned_to || (call.call_assign_to ? `${call.call_assign_to.first_name || ''} ${call.call_assign_to.last_name || ''}`.trim() : 'Unassigned'),
-            scheduledDate: callDate,
-            priority: (call.priority || 'MEDIUM').toUpperCase(),
-            id: call.id,
-            activityType: 'call',
-            fullData: call
-          });
-        }
-      });
 
-      meetings.forEach(meeting => {
-        const meetingDate = meeting.dueDate || meeting.start_time;
-        const status = (meeting.status || '').toUpperCase();
-        if (meetingDate && !['COMPLETED', 'CANCELLED', 'DONE'].includes(status)) {
-          activities.push({
-            type: 'Meeting',
-            title: meeting.subject || meeting.activity || 'Untitled Meeting',
-            assignedTo: meeting.assignedTo || (meeting.meet_assign_to ? `${meeting.meet_assign_to.first_name || ''} ${meeting.meet_assign_to.last_name || ''}`.trim() : 'Unassigned'),
-            scheduledDate: meetingDate,
-            priority: (meeting.priority || 'MEDIUM').toUpperCase(),
-            id: meeting.id,
-            activityType: 'meeting',
-            fullData: meeting
-          });
-        }
-      });
-
-      const priorityOrder = { 'HIGH': 1, 'MEDIUM': 2, 'LOW': 3 };
-      const sortedActivities = activities.sort((a, b) => {
-        const priorityA = priorityOrder[a.priority] || 3;
-        const priorityB = priorityOrder[b.priority] || 3;
-        if (priorityA !== priorityB) return priorityA - priorityB;
-        return new Date(a.scheduledDate || 0) - new Date(b.scheduledDate || 0);
-      }).slice(0, 5);
-      setUpcomingActivities(sortedActivities);
+      // Quick Data Access: Only show recent tasks (not calls/meetings), exclude Inactive, sort by priority (high first)
+      // Only allow priorities: HIGH, NORMAL, LOW
+      const priorityOrder = { 'HIGH': 1, 'NORMAL': 2, 'LOW': 3 };
+      const sortedTasks = tasks
+        .filter(task => !task.status || !['Inactive', 'INACTIVE'].includes(task.status))
+        .map(task => {
+          let rawPriority = (task.priority || '').toUpperCase();
+          let priority = ['HIGH', 'NORMAL', 'LOW'].includes(rawPriority) ? rawPriority : 'NORMAL';
+          return { ...task, _priority: priority };
+        })
+        .sort((a, b) => {
+          const priorityA = priorityOrder[a._priority] || 3;
+          const priorityB = priorityOrder[b._priority] || 3;
+          if (priorityA !== priorityB) return priorityA - priorityB;
+          return new Date(b.dueDate || b.due_date || 0) - new Date(a.dueDate || a.due_date || 0);
+        })
+        .slice(0, 5)
+        .map(task => {
+          let assignedName = 'Unassigned';
+          if (task.task_assign_to && (task.task_assign_to.first_name || task.task_assign_to.last_name)) {
+            assignedName = `${task.task_assign_to.first_name || ''} ${task.task_assign_to.last_name || ''}`.trim();
+          } else if (task.assigned_to) {
+            assignedName = task.assigned_to;
+          }
+          return {
+            type: 'Task',
+            title: task.subject || task.title || 'Untitled Task',
+            assignedTo: assignedName,
+            scheduledDate: task.dueDate || task.due_date,
+            priority: task._priority,
+            id: task.id,
+            activityType: 'task',
+            fullData: task
+          };
+        });
+      setUpcomingActivities(sortedTasks);
 
       setRevenueData(deals);
       const sortedLogs = [...logs].sort((a, b) => new Date(b.timestamp || 0) - new Date(a.timestamp || 0));

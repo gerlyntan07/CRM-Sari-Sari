@@ -262,6 +262,7 @@ function App() {
           <Route path="deals/info" element={<AdminDealsInformation />} />
           <Route path="deals/quickaction" element={<AdminDealsQuickAction />} />
           <Route path="tasks" element={<AdminTask />} />
+          <Route path="tasks/info" element={<AdminTask />} />
           <Route path="/admin/territory">
             <Route index element={<AdminTerritory />} />
             <Route path=":id" element={<AdminTerritory />} />

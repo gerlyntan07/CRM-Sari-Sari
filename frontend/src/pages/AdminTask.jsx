@@ -418,6 +418,10 @@ export default function AdminTask() {
     const initialData = location.state?.initialTaskData;
     const taskIdFromState = location.state?.taskID;
 
+    // --- Support ?id=... in URL and KEEP it while modal is open ---
+    const searchParams = new URLSearchParams(location.search);
+    const taskIdFromQuery = searchParams.get('id');
+
     if (shouldOpen) {
       setShowModal(true);
       if (initialData) {
@@ -428,9 +432,11 @@ export default function AdminTask() {
       }
       navigate(location.pathname, { replace: true, state: {} });
     } else if (taskIdFromState) {
-      // If taskID is passed from another page (e.g., AdminAccounts), store it
       setPendingTaskId(taskIdFromState);
       navigate(location.pathname, { replace: true, state: {} });
+    } else if (taskIdFromQuery) {
+      setPendingTaskId(Number(taskIdFromQuery));
+      // DO NOT remove ?id=... from URL; keep it while modal is open
     }
   }, [location, navigate]);
 
@@ -579,6 +585,14 @@ export default function AdminTask() {
   };
 
   const handleCloseModal = () => {
+    // If on /admin/tasks/info?id=... go back to dashboard immediately, do NOT reset form or modal state
+    if (location.pathname === '/admin/tasks/info') {
+      const searchParams = new URLSearchParams(location.search);
+      if (searchParams.get('id')) {
+        navigate('/admin/dashboard');
+        return;
+      }
+    }
     setShowModal(false);
     setSelectedTask(null);
     setViewMode(false);

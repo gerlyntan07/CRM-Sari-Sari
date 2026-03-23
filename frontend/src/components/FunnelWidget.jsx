@@ -795,7 +795,7 @@ const FunnelWidget = ({ leads, deals, currencySymbol, targets = [], basePath = '
                    <select
                       value={filterUser}
                       onChange={(e) => setFilterUser(e.target.value)}
-                      className="bg-gray-50 border border-gray-200 text-gray-700 text-xs rounded-lg p-2 focus:ring-blue-500 focus:border-blue-500"
+                      className="bg-gray-50 border border-gray-200 text-gray-700 text-xs rounded-lg p-2 focus:ring-blue-500 focus:border-blue-500 cursor-pointer"
                    >
                       <option value="ALL">All Users</option>
                       {usersList.map(u => (

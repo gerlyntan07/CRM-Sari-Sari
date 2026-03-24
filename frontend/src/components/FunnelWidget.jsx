@@ -592,7 +592,11 @@ const FunnelWidget = ({ leads, deals, currencySymbol, targets = [], basePath = '
       };
   
       const filteredLeads = leads.filter(filterItem);
-      const filteredDeals = localDeals.filter(filterItem);
+      // Exclude deals with status 'Inactive', 'inactive', or 'INACTIVE' (case-insensitive)
+      const filteredDeals = localDeals.filter(item => {
+        if (!item.status) return true;
+        return String(item.status).toLowerCase() !== 'inactive';
+      }).filter(filterItem);
   
       const stages = [
         { key: 'LEADS', label: 'Top Leads', color: 'bg-blue-400', isDeal: false },

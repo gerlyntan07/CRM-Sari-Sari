@@ -72,7 +72,7 @@ const TopPerformers = ({ currencySymbol = "₱" }) => {
     fetchLeaderboardData();
   }, [fetchLeaderboardData]);
 
-  // Get current performers based on active tab (top 5 only)
+  // Get current performers based on active tab (top 5 only), excluding 'Inactive' status (case-insensitive)
   const currentPerformers = useMemo(() => {
     let data = [];
     switch (activeTab) {
@@ -88,7 +88,15 @@ const TopPerformers = ({ currencySymbol = "₱" }) => {
       default:
         data = monthlyData;
     }
-    return Array.isArray(data) ? data.slice(0, 5) : [];
+    // Exclude performers with status 'Inactive' (case-insensitive)
+    const filtered = Array.isArray(data)
+      ? data.filter(
+          (person) =>
+            !person.status ||
+            !String(person.status).toLowerCase().includes('inactive')
+        )
+      : [];
+    return filtered.slice(0, 5);
   }, [activeTab, weeklyData, monthlyData, yearlyData]);
 
   const tabs = [

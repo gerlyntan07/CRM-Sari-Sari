@@ -28,7 +28,7 @@ export default function AdminDealsInformation({
   onEdit,
   onDelete,
   onStatusUpdate,
-  relatedActs,
+  relatedActs = {},
 }) {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();

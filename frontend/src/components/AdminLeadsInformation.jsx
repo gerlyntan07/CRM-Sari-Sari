@@ -46,7 +46,7 @@ export default function AdminLeadsInformation({
   onEdit,
   onDelete,
   setSelectedLead,
-  relatedActs
+  relatedActs = {}
 }) {
   const navigate = useNavigate();
   const { leadID } = useParams();

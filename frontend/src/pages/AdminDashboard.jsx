@@ -806,7 +806,7 @@ const AdminDashboard = () => {
               name: account.name || 'Unnamed Account',
               type: 'Account',
               details: account.email || account.phone || 'No contact info',
-              route: `/admin/accounts`
+              route: `/admin/accounts?id=${account.id}`
             });
           }
         });

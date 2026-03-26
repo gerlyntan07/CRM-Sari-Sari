@@ -95,9 +95,9 @@ const comparisonSections = [
   {
     title: "CRM Data",
     rows: [
-      { feature: "Accounts", Free: "500", Starter: "10,000", Pro: "Unlimited", Enterprise: "Unlimited" },
-      { feature: "Contacts", Free: "1,000", Starter: "20,000", Pro: "Unlimited", Enterprise: "Unlimited" },
-      { feature: "Leads", Free: "500", Starter: "10,000", Pro: "Unlimited", Enterprise: "Unlimited" },
+      { feature: "Accounts", Free: "500", Starter: "5,000", Pro: "Unlimited", Enterprise: "Unlimited" },
+      { feature: "Contacts", Free: "1,000", Starter: "8,000", Pro: "Unlimited", Enterprise: "Unlimited" },
+      { feature: "Leads", Free: "500", Starter: "6,000", Pro: "Unlimited", Enterprise: "Unlimited" },
       { feature: "Deals", Free: "50", Starter: "1,000", Pro: "Unlimited", Enterprise: "Unlimited" },
     ],
   },
@@ -144,13 +144,13 @@ const comparisonSections = [
         Pro: "Advanced",
         Enterprise: "Fully customizable",
       },
-      {
-        feature: "Reports",
-        Free: "❌",
-        Starter: "Basic",
-        Pro: "Advanced + forecasting",
-        Enterprise: "Advanced + forecasting",
-      },
+      // {
+      //   feature: "Reports",
+      //   Free: "❌",
+      //   Starter: "Basic",
+      //   Pro: "Advanced + forecasting",
+      //   Enterprise: "Advanced + forecasting",
+      // },
     ],
   },
   {
@@ -163,13 +163,13 @@ const comparisonSections = [
         Pro: "Unlimited + reminders",
         Enterprise: "Advanced analytics",
       },
-      {
-        feature: "Calls",
-        Free: "Log only",
-        Starter: "Tracking",
-        Pro: "Tracking + analytics",
-        Enterprise: "Advanced analytics",
-      },
+      // {
+      //   feature: "Calls",
+      //   Free: "Log only",
+      //   Starter: "Tracking",
+      //   Pro: "Tracking + analytics",
+      //   Enterprise: "Advanced analytics",
+      // },
       {
         feature: "Meetings",
         Free: "Logging",
@@ -196,7 +196,7 @@ const comparisonSections = [
         Pro: "Basic",
         Enterprise: "Advanced (hierarchy)",
       },
-      { feature: "Team Performance", Free: "❌", Starter: "❌", Pro: "✔", Enterprise: "Advanced" },
+      // { feature: "Team Performance", Free: "❌", Starter: "❌", Pro: "✔", Enterprise: "Advanced" },
       // {
       //   feature: "User Management",
       //   Free: "Basic",
@@ -206,16 +206,16 @@ const comparisonSections = [
       // },
     ],
   },
-  {
-    title: "Customization",
-    rows: [
-      { feature: "Custom Fields", Free: "❌", Starter: "10/module", Pro: "50/module", Enterprise: "Unlimited" },
-      { feature: "Pipeline Customization", Free: "❌", Starter: "✔", Pro: "✔", Enterprise: "✔" },
-      { feature: "Field Validation", Free: "❌", Starter: "❌", Pro: "✔", Enterprise: "✔" },
-      { feature: "Branding / Theme", Free: "❌", Starter: "Basic", Pro: "Standard", Enterprise: "Advanced" },
-      { feature: "AI Features", Free: "❌", Starter: "❌", Pro: "Basic AI", Enterprise: "Advanced AI" },
-    ],
-  },
+  // {
+  //   title: "Customization",
+  //   rows: [
+  //     { feature: "Custom Fields", Free: "❌", Starter: "10/module", Pro: "50/module", Enterprise: "Unlimited" },
+  //     { feature: "Pipeline Customization", Free: "❌", Starter: "✔", Pro: "✔", Enterprise: "✔" },
+  //     { feature: "Field Validation", Free: "❌", Starter: "❌", Pro: "✔", Enterprise: "✔" },
+  //     { feature: "Branding / Theme", Free: "❌", Starter: "Basic", Pro: "Standard", Enterprise: "Advanced" },
+  //     { feature: "AI Features", Free: "❌", Starter: "❌", Pro: "Basic AI", Enterprise: "Advanced AI" },
+  //   ],
+  // },
   {
     title: "Data & Export",
     rows: [
@@ -226,13 +226,13 @@ const comparisonSections = [
         Pro: "Unlimited + scheduled",
         Enterprise: "Unlimited + scheduled",
       },
-      {
-        feature: "Data Import",
-        Free: "❌",
-        Starter: "Standard",
-        Pro: "Bulk",
-        Enterprise: "Bulk + assisted",
-      },
+      // {
+      //   feature: "Data Import",
+      //   Free: "❌",
+      //   Starter: "Standard",
+      //   Pro: "Bulk",
+      //   Enterprise: "Bulk + assisted",
+      // },
     ],
   },
   {
@@ -240,7 +240,7 @@ const comparisonSections = [
     rows: [
       { feature: "Audit Logs", Free: "❌", Starter: "❌", Pro: "30 days", Enterprise: "1 year" },
       { feature: "Activity Logs", Free: "❌", Starter: "❌", Pro: "✔", Enterprise: "✔" },
-      { feature: "Backup & Restore", Free: "❌", Starter: "Manual", Pro: "Scheduled", Enterprise: "Priority restore" },
+      // { feature: "Backup & Restore", Free: "❌", Starter: "Manual", Pro: "Scheduled", Enterprise: "Priority restore" },
     ],
   },
   {

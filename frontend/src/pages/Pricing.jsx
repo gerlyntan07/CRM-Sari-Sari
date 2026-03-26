@@ -8,51 +8,51 @@ const plans = [
     name: "Free",
     monthly: "₱0",
     annual: "₱0",
-    badge: "For solo operators",
+    badge: "Entry plan",
     features: [
       "Up to 1 user",
-      "Up to 50 deals",
+      "500 accounts/leads + 1,000 contacts",
       "Basic dashboard",
-      "Core CRM only",
+      "1 fixed pipeline",
     ],
     highlight: false,
   },
   {
     name: "Starter",
-    monthly: "₱299",
-    annual: "₱2,990",
-    badge: "For growing teams",
+    monthly: "₱199",
+    annual: "₱159",
+    badge: "Per user / month",
     features: [
-      "Up to 5 users",
-      "Up to 1,000 deals",
-      "Quotes + CSV limits",
-      "Team collaboration",
+      "10k accounts/leads + 20k contacts",
+      "2 custom pipelines",
+      "20 CSV exports/month",
+      "10 custom fields",
     ],
     highlight: false,
   },
   {
     name: "Pro",
-    monthly: "₱599",
-    annual: "₱5,990",
-    badge: "Most practical for SMEs",
+    monthly: "₱399",
+    annual: "₱319",
+    badge: "Per user / month",
     features: [
-      "Unlimited users",
       "Unlimited CRM records",
-      "Advanced reports + logs",
-      "Territory + targets",
+      "Basic AI + forecasting",
+      "Bulk import + scheduled export",
+      "30-day audit logs",
     ],
     highlight: true,
   },
   {
     name: "Enterprise",
-    monthly: "₱999",
-    annual: "₱8,991",
-    badge: "For multi-team operations",
+    monthly: "₱799",
+    annual: "₱639",
+    badge: "Per user / month",
     features: [
-      "Advanced permissions",
-      "Longest audit retention",
-      "Dedicated support",
-      "AI integration (roadmap)",
+      "Unlimited everything",
+      "Advanced AI + granular roles",
+      "1-year audit logs",
+      "Custom SLA + white-glove onboarding",
     ],
     highlight: false,
   },
@@ -60,37 +60,44 @@ const plans = [
 
 const comparisonSections = [
   {
-    title: "Core",
+    title: "Core Billing",
     rows: [
       {
-        feature: "Users",
-        Free: "1",
-        Starter: "5",
-        Pro: "Unlimited",
-        Enterprise: "Unlimited",
+        feature: "Billing Model",
+        Free: "Flat",
+        Starter: "Per-user",
+        Pro: "Per-user",
+        Enterprise: "Per-user",
       },
       {
-        feature: "Roles & Permissions",
-        Free: "Basic",
-        Starter: "Basic",
-        Pro: "Standard",
-        Enterprise: "Advanced (granular)",
+        feature: "Monthly Price (per user)",
+        Free: "₱0",
+        Starter: "₱199",
+        Pro: "₱399",
+        Enterprise: "₱799",
       },
-      // {
-      //   feature: "Companies / Workspaces",
-      //   Free: "1",
-      //   Starter: "1",
-      //   Pro: "1",
-      //   Enterprise: "Multi-company setup",
-      // },
+      {
+        feature: "Annual Effective Rate (per user/mo)",
+        Free: "₱0",
+        Starter: "₱159",
+        Pro: "₱319",
+        Enterprise: "₱639",
+      },
+      {
+        feature: "Annual Incentive",
+        Free: "—",
+        Starter: "2 months free",
+        Pro: "2 months free",
+        Enterprise: "3 months free",
+      },
     ],
   },
   {
     title: "CRM Data",
     rows: [
-      { feature: "Accounts", Free: "100", Starter: "1,000", Pro: "Unlimited", Enterprise: "Unlimited" },
-      { feature: "Contacts", Free: "200", Starter: "2,000", Pro: "Unlimited", Enterprise: "Unlimited" },
-      { feature: "Leads", Free: "100", Starter: "1,000", Pro: "Unlimited", Enterprise: "Unlimited" },
+      { feature: "Accounts", Free: "500", Starter: "10,000", Pro: "Unlimited", Enterprise: "Unlimited" },
+      { feature: "Contacts", Free: "1,000", Starter: "20,000", Pro: "Unlimited", Enterprise: "Unlimited" },
+      { feature: "Leads", Free: "500", Starter: "10,000", Pro: "Unlimited", Enterprise: "Unlimited" },
       { feature: "Deals", Free: "50", Starter: "1,000", Pro: "Unlimited", Enterprise: "Unlimited" },
     ],
   },
@@ -107,7 +114,7 @@ const comparisonSections = [
       {
         feature: "Quotes",
         Free: "View-only",
-        Starter: "20/month",
+        Starter: "Standard",
         Pro: "Unlimited",
         Enterprise: "Unlimited + approvals",
       },
@@ -141,7 +148,7 @@ const comparisonSections = [
         feature: "Reports",
         Free: "❌",
         Starter: "Basic",
-        Pro: "Advanced",
+        Pro: "Advanced + forecasting",
         Enterprise: "Advanced + forecasting",
       },
     ],
@@ -174,7 +181,7 @@ const comparisonSections = [
         feature: "Calendar",
         Free: "Basic",
         Starter: "Shared view",
-        Pro: "Team view",
+        Pro: "Team calendar sync",
         Enterprise: "Cross-team view",
       },
     ],
@@ -206,6 +213,7 @@ const comparisonSections = [
       { feature: "Pipeline Customization", Free: "❌", Starter: "✔", Pro: "✔", Enterprise: "✔" },
       { feature: "Field Validation", Free: "❌", Starter: "❌", Pro: "✔", Enterprise: "✔" },
       { feature: "Branding / Theme", Free: "❌", Starter: "Basic", Pro: "Standard", Enterprise: "Advanced" },
+      { feature: "AI Features", Free: "❌", Starter: "❌", Pro: "Basic AI", Enterprise: "Advanced AI" },
     ],
   },
   {
@@ -214,14 +222,14 @@ const comparisonSections = [
       {
         feature: "CSV Export",
         Free: "❌",
-        Starter: "5/month",
-        Pro: "Unlimited",
+        Starter: "20/month",
+        Pro: "Unlimited + scheduled",
         Enterprise: "Unlimited + scheduled",
       },
       {
         feature: "Data Import",
         Free: "❌",
-        Starter: "Limited",
+        Starter: "Standard",
         Pro: "Bulk",
         Enterprise: "Bulk + assisted",
       },
@@ -238,8 +246,8 @@ const comparisonSections = [
   {
     title: "Integrations & API",
     rows: [
-      // { feature: "API Access", Free: "❌", Starter: "❌", Pro: "Limited", Enterprise: "Extended" },
-      // { feature: "Webhook Events", Free: "❌", Starter: "❌", Pro: "❌", Enterprise: "Roadmap" },
+      { feature: "API Access", Free: "❌", Starter: "❌", Pro: "Limited", Enterprise: "Extended" },
+      { feature: "Webhook Events", Free: "❌", Starter: "❌", Pro: "❌", Enterprise: "Roadmap" },
       { feature: "Email Notifications", Free: "Basic", Starter: "Standard", Pro: "Advanced", Enterprise: "Advanced" },
     ],
   },
@@ -252,9 +260,12 @@ const comparisonSections = [
     ],
   },
   {
-    title: "Roadmap",
+    title: "Growth Incentives",
     rows: [
-      { feature: "AI Integration", Free: "❌", Starter: "❌", Pro: "❌", Enterprise: "Roadmap" },
+      { feature: "Volume Discount (10–19 users)", Free: "❌", Starter: "10% off", Pro: "10% off", Enterprise: "10% off" },
+      { feature: "Volume Discount (20+ users)", Free: "❌", Starter: "15% off", Pro: "15% off", Enterprise: "15% off" },
+      { feature: "Migration Credit", Free: "❌", Starter: "₱4,999 one-time", Pro: "₱4,999 one-time", Enterprise: "₱4,999 one-time" },
+      { feature: "Upgrade Bonus", Free: "❌", Starter: "❌", Pro: "+1 month Pro (first upgrade)", Enterprise: "+1 month Pro (first upgrade)" },
     ],
   },
 ];
@@ -274,7 +285,15 @@ const faqs = [
   },
   {
     q: "Do you offer annual discounts?",
-    a: "Yes. You get 2 months free on Starter and Pro, and 3 months free on Enterprise when billed annually.",
+    a: "Yes. Starter and Pro include 2 months free, while Enterprise includes 3 months free when billed annually.",
+  },
+  {
+    q: "Are there team-size discounts?",
+    a: "Yes. Total bill gets 10% off for 10–19 active users and 15% off for 20+ active users.",
+  },
+  {
+    q: "Do migration credits apply?",
+    a: "Yes. Qualified upgrades include a one-time ₱4,999 migration credit for assisted bulk import and +1 month Pro on first upgrade.",
   },
 ];
 
@@ -333,7 +352,7 @@ const Pricing = () => {
       <section className="bg-tertiary text-white py-16 text-center">
         <h1 className="text-4xl font-bold mb-3">Simple, transparent pricing</h1>
         <p className="text-gray-200 mb-6">
-          Built around the current Forekas CRM modules, with clear limits that scale as teams grow.
+          Per-user billing designed for aggressive growth, with annual incentives and automatic volume discounts.
         </p>
 
         {/* TOGGLE */}
@@ -377,8 +396,13 @@ const Pricing = () => {
               <p className="text-3xl font-bold mb-4 transition-all duration-300">
                 {isAnnual ? plan.annual : plan.monthly}
                 <span className="text-sm font-normal opacity-70 ml-1">
-                  {isAnnual ? "/year" : "/month"}
+                  /user/mo
                 </span>
+              </p>
+              <p className="text-xs opacity-70 mb-4">
+                {isAnnual
+                  ? "Billed annually (discounted effective rate)"
+                  : "Billed monthly"}
               </p>
 
               <ul className="space-y-2 text-sm mb-6">
@@ -401,6 +425,23 @@ const Pricing = () => {
               </Link>
             </div>
           ))}
+        </div>
+      </section>
+
+      <section className="pb-12">
+        <div className="container mx-auto px-4 grid md:grid-cols-3 gap-4">
+          <div className="rounded-xl border border-gray-200 bg-white p-4">
+            <p className="text-sm text-gray-500">Volume Discount</p>
+            <p className="font-semibold text-secondary">10–19 users: 10% off total bill</p>
+          </div>
+          <div className="rounded-xl border border-gray-200 bg-white p-4">
+            <p className="text-sm text-gray-500">Volume Discount</p>
+            <p className="font-semibold text-secondary">20+ users: 15% off total bill</p>
+          </div>
+          <div className="rounded-xl border border-gray-200 bg-white p-4">
+            <p className="text-sm text-gray-500">Migration Incentive</p>
+            <p className="font-semibold text-secondary">₱4,999 credit + 1 extra month Pro on first upgrade</p>
+          </div>
         </div>
       </section>
 
@@ -472,7 +513,7 @@ const Pricing = () => {
         <div className="max-w-xl mx-auto text-gray-700 space-y-2">
           <p>✔ Full Pro access for 14 days</p>
           <p>✔ No credit card required</p>
-          <p>✔ Continue on Free if you don’t upgrade</p>
+          <p>✔ Auto-downgrade to Free if no plan is selected after trial</p>
         </div>
       </section>
 

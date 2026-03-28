@@ -1,4 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
+import ManagerLeadsInformation from './ManagerLeadsInformation';
+import ManagerDealsInformation from './ManagerDealsInformation';
 import { 
   FiFilter, FiLayout, FiMail, 
   FiArrowDown, FiArrowUp, FiDownload, FiPhone, FiUser, FiTarget, 
@@ -304,200 +306,191 @@ const DraggableDealRow = ({ deal, disabled = false, children, onClick, className
 };
 
 // ... [DetailTable Component remains exactly the same as before] ...
-const DetailTable = ({ data, stageKey, currencySymbol, basePath = '/admin' }) => {
-    const navigate = useNavigate();
-    const [sortConfig, setSortConfig] = useState({ key: null, direction: 'desc' });
-  
-    const isLeadStage = stageKey === 'LEADS';
-    const isClosedWon = stageKey === 'CLOSED_WON';
-    const isClosedLost = stageKey === 'CLOSED_LOST';
-    const isActiveDeal = !isLeadStage && !isClosedWon && !isClosedLost;
-  
-    const sortedData = useMemo(() => {
-      if (!sortConfig.key) return data;
-      return [...data].sort((a, b) => {
-        let aVal = a[sortConfig.key];
-        let bVal = b[sortConfig.key];
-        if (sortConfig.key === 'amount' || sortConfig.key === 'probability') {
-           aVal = parseFloat(a[sortConfig.key] || 0);
-           bVal = parseFloat(b[sortConfig.key] || 0);
-        }
-        if (aVal < bVal) return sortConfig.direction === 'asc' ? -1 : 1;
-        if (aVal > bVal) return sortConfig.direction === 'asc' ? 1 : -1;
-        return 0;
-      });
-    }, [data, sortConfig]);
-  
-    const handleSort = (key) => {
-      setSortConfig({
-        key,
-        direction: sortConfig.key === key && sortConfig.direction === 'desc' ? 'asc' : 'desc'
-      });
-    };
-  
-    const SortIcon = ({ columnKey }) => {
-      if (sortConfig.key !== columnKey) return <FiArrowDown className="inline ml-1 opacity-0 group-hover:opacity-30" />;
-      return sortConfig.direction === 'asc' 
-        ? <FiArrowUp className="inline ml-1 text-blue-600" /> 
-        : <FiArrowDown className="inline ml-1 text-blue-600" />;
-    };
-  
-    if (!data || data.length === 0) {
-      return (
-        <div className="h-full flex flex-col items-center justify-center text-gray-400 bg-gray-50 rounded-xl border-2 border-dashed border-gray-200">
-          <FiLayout size={48} className="mb-4 opacity-50" />
-          <p className="font-medium">No records in this stage</p>
-        </div>
-      );
-    }
-  
+const DetailTable = ({ data, stageKey, currencySymbol, onRowClick }) => {
+  const [sortConfig, setSortConfig] = useState({ key: null, direction: 'desc' });
+  const isLeadStage = stageKey === 'LEADS';
+  const isClosedWon = stageKey === 'CLOSED_WON';
+  const isClosedLost = stageKey === 'CLOSED_LOST';
+  const isActiveDeal = !isLeadStage && !isClosedWon && !isClosedLost;
+
+  const sortedData = useMemo(() => {
+    if (!sortConfig.key) return data;
+    return [...data].sort((a, b) => {
+      let aVal = a[sortConfig.key];
+      let bVal = b[sortConfig.key];
+      if (sortConfig.key === 'amount' || sortConfig.key === 'probability') {
+         aVal = parseFloat(a[sortConfig.key] || 0);
+         bVal = parseFloat(b[sortConfig.key] || 0);
+      }
+      if (aVal < bVal) return sortConfig.direction === 'asc' ? -1 : 1;
+      if (aVal > bVal) return sortConfig.direction === 'asc' ? 1 : -1;
+      return 0;
+    });
+  }, [data, sortConfig]);
+
+  const handleSort = (key) => {
+    setSortConfig({
+      key,
+      direction: sortConfig.key === key && sortConfig.direction === 'desc' ? 'asc' : 'desc'
+    });
+  };
+
+  const SortIcon = ({ columnKey }) => {
+    if (sortConfig.key !== columnKey) return <FiArrowDown className="inline ml-1 opacity-0 group-hover:opacity-30" />;
+    return sortConfig.direction === 'asc' 
+      ? <FiArrowUp className="inline ml-1 text-blue-600" /> 
+      : <FiArrowDown className="inline ml-1 text-blue-600" />;
+  };
+
+  if (!data || data.length === 0) {
     return (
-      <div className="bg-white rounded-xl overflow-hidden flex flex-col h-full">
-        <div className="overflow-x-auto flex-grow">
-          <table className="w-full text-left border-collapse">
-            <thead className="bg-gray-50 sticky top-0 z-10">
-              <tr>
-                <th className="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider cursor-pointer group" onClick={() => handleSort('name')}>
-                  Name <SortIcon columnKey="name"/>
-                </th>
-                <th className="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Company</th>
-                {isLeadStage && <th className="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Contact Info</th>}
-                
-                {/* Active Deal Columns */}
-                {isActiveDeal && (
-                  <>
-                    <th className="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-right cursor-pointer group" onClick={() => handleSort('amount')}>
-                      Value <SortIcon columnKey="amount"/>
-                    </th>
-                    <th className="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-center cursor-pointer group" onClick={() => handleSort('probability')}>
-                      Prob. <SortIcon columnKey="probability"/>
-                    </th>
-                    <th className="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-center">Age</th>
-                  </>
-                )}
-  
-                {/* Closed Won Columns */}
-                {isClosedWon && (
-                    <th className="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-right text-green-600 cursor-pointer group" onClick={() => handleSort('amount')}>
-                      Booked <SortIcon columnKey="amount"/>
-                    </th>
-                )}
-  
-                {/* Closed Lost Columns - NEW */}
-                {isClosedLost && (
-                    <>
-                      <th className="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-right text-red-600 cursor-pointer group" onClick={() => handleSort('amount')}>
-                          Lost Value <SortIcon columnKey="amount"/>
-                      </th>
-                      <th className="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-center">
-                          Lost Date
-                      </th>
-                    </>
-                )}
-  
-                <th className="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-right">Owner</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100">
-              {sortedData.map((item) => {
-                const daysStuck = !isLeadStage ? getDaysStuck(item.stage_updated_at || item.created_at) : 0;
-                const isBottleneck = daysStuck > 30 && isActiveDeal;
-                const isDraggableDeal = !isLeadStage;
-                return (
-                  <DraggableDealRow
-                    key={item.id}
-                    deal={item}
-                    disabled={!isDraggableDeal}
-                    className={`hover:bg-blue-50 transition-colors group ${isDraggableDeal ? 'cursor-grab active:cursor-grabbing' : 'cursor-pointer'}`}
-                    onClick={() => navigate(isLeadStage ? `${basePath}/leads/${item.id}` : `${basePath}/deals/info?id=${item.id}`)}
-                  >
-                    {() => (
-                      <>
-                        <td className="p-4">
-                          <div className="flex items-center">
-                            {!isLeadStage && (
-                              <span
-                                className="mr-2 p-1 rounded text-gray-300"
-                                title="Drag from anywhere in this row"
-                              >
-                                <FiMove size={14} />
-                              </span>
-                            )}
-                            <div>
-                              <p className="font-bold text-gray-800 text-sm group-hover:text-blue-600 transition-colors">
-                                {isLeadStage ? `${item.first_name} ${item.last_name}` : item.name}
-                              </p>
-                              <p className="text-xs text-gray-400 mt-0.5">{formatDate(item.created_at)}</p>
-                            </div>
-                          </div>
-                        </td>
-                        <td className="p-4 text-sm text-gray-600">
-                          {isLeadStage ? item.company_name : item.account?.name}
-                        </td>
-                        {isLeadStage && (
-                          <td className="p-4 text-xs text-gray-500">
-                              {item.email && <div className="flex items-center mb-1"><FiMail className="mr-1"/> {item.email}</div>}
-                              {item.phone && <div className="flex items-center"><FiPhone className="mr-1"/> {item.phone}</div>}
-                          </td>
-                        )}
-                        {isActiveDeal && (
-                          <>
-                            <td className="p-4 text-right font-medium text-gray-700">
-                              {formatCurrency(item.amount, currencySymbol)}
-                            </td>
-                            <td className="p-4 text-center">
-                              <span className={`inline-block px-2 py-1 rounded text-xs font-bold ${
-                                item.probability >= 80 ? 'bg-green-100 text-green-700' :
-                                item.probability >= 50 ? 'bg-yellow-100 text-yellow-700' : 'bg-gray-100 text-gray-600'
-                              }`}>
-                                {item.probability}%
-                              </span>
-                            </td>
-                            <td className="p-4 text-center">
-                              {isBottleneck ? (
-                                <div className="flex items-center justify-center text-red-600 bg-red-50 px-2 py-1 rounded border border-red-100" title="Stuck for >30 days">
-                                  <FiActivity size={14} className="mr-1" />
-                                  <span className="text-xs font-bold">{daysStuck}d</span>
-                                </div>
-                              ) : <span className="text-xs text-gray-400">{daysStuck}d</span>}
-                            </td>
-                          </>
-                        )}
-                        {isClosedWon && (
-                            <td className="p-4 text-right font-bold text-green-700">
-                              {formatCurrency(item.amount, currencySymbol)}
-                            </td>
-                        )}
-                        {isClosedLost && (
-                            <>
-                              <td className="p-4 text-right font-bold text-red-600 opacity-75">
-                                  {formatCurrency(item.amount, currencySymbol)}
-                              </td>
-                              <td className="p-4 text-center text-xs text-gray-500">
-                                  {formatDate(item.stage_updated_at)}
-                              </td>
-                            </>
-                        )}
-                        <td className="p-4 text-right">
-                          <div className="flex items-center justify-end text-gray-500 text-xs">
-                            <FiUser className="mr-1" />
-                            {isLeadStage
-                              ? (item.lead_owner?.first_name || item.owner?.first_name || item.assigned_to?.first_name || 'Unassigned')
-                              : (item.assigned_deals?.first_name || item.deal_creator?.first_name || 'Unassigned')
-                            }
-                          </div>
-                        </td>
-                      </>
-                    )}
-                  </DraggableDealRow>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+      <div className="h-full flex flex-col items-center justify-center text-gray-400 bg-gray-50 rounded-xl border-2 border-dashed border-gray-200">
+        <FiLayout size={48} className="mb-4 opacity-50" />
+        <p className="font-medium">No records in this stage</p>
       </div>
     );
-  };
+  }
+
+  return (
+    <div className="bg-white rounded-xl overflow-hidden flex flex-col h-full">
+      <div className="overflow-x-auto flex-grow">
+        <table className="w-full text-left border-collapse">
+          <thead className="bg-gray-50 sticky top-0 z-10">
+            <tr>
+              <th className="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider cursor-pointer group" onClick={() => handleSort('name')}>
+                Name <SortIcon columnKey="name"/>
+              </th>
+              <th className="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Company</th>
+              {isLeadStage && <th className="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Contact Info</th>}
+              {isActiveDeal && (
+                <>
+                  <th className="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-right cursor-pointer group" onClick={() => handleSort('amount')}>
+                    Value <SortIcon columnKey="amount"/>
+                  </th>
+                  <th className="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-center cursor-pointer group" onClick={() => handleSort('probability')}>
+                    Prob. <SortIcon columnKey="probability"/>
+                  </th>
+                  <th className="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-center">Age</th>
+                </>
+              )}
+              {isClosedWon && (
+                  <th className="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-right text-green-600 cursor-pointer group" onClick={() => handleSort('amount')}>
+                    Booked <SortIcon columnKey="amount"/>
+                  </th>
+              )}
+              {isClosedLost && (
+                  <>
+                    <th className="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-right text-red-600 cursor-pointer group" onClick={() => handleSort('amount')}>
+                        Lost Value <SortIcon columnKey="amount"/>
+                    </th>
+                    <th className="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-center">
+                        Lost Date
+                    </th>
+                  </>
+              )}
+              <th className="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-right">Owner</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-100">
+            {sortedData.map((item) => {
+              const daysStuck = !isLeadStage ? getDaysStuck(item.stage_updated_at || item.created_at) : 0;
+              const isBottleneck = daysStuck > 30 && isActiveDeal;
+              const isDraggableDeal = !isLeadStage;
+              return (
+                <DraggableDealRow
+                  key={item.id}
+                  deal={item}
+                  disabled={!isDraggableDeal}
+                  className={`hover:bg-blue-50 transition-colors group ${isDraggableDeal ? 'cursor-grab active:cursor-grabbing' : 'cursor-pointer'}`}
+                  onClick={() => onRowClick(item, isLeadStage)}
+                >
+                  {() => (
+                    <>
+                      <td className="p-4">
+                        <div className="flex items-center">
+                          {!isLeadStage && (
+                            <span
+                              className="mr-2 p-1 rounded text-gray-300"
+                              title="Drag from anywhere in this row"
+                            >
+                              <FiMove size={14} />
+                            </span>
+                          )}
+                          <div>
+                            <p className="font-bold text-gray-800 text-sm group-hover:text-blue-600 transition-colors">
+                              {isLeadStage ? `${item.first_name} ${item.last_name}` : item.name}
+                            </p>
+                            <p className="text-xs text-gray-400 mt-0.5">{formatDate(item.created_at)}</p>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="p-4 text-sm text-gray-600">
+                        {isLeadStage ? item.company_name : item.account?.name}
+                      </td>
+                      {isLeadStage && (
+                        <td className="p-4 text-xs text-gray-500">
+                            {item.email && <div className="flex items-center mb-1"><FiMail className="mr-1"/> {item.email}</div>}
+                            {item.phone && <div className="flex items-center"><FiPhone className="mr-1"/> {item.phone}</div>}
+                        </td>
+                      )}
+                      {isActiveDeal && (
+                        <>
+                          <td className="p-4 text-right font-medium text-gray-700">
+                            {formatCurrency(item.amount, currencySymbol)}
+                          </td>
+                          <td className="p-4 text-center">
+                            <span className={`inline-block px-2 py-1 rounded text-xs font-bold ${
+                              item.probability >= 80 ? 'bg-green-100 text-green-700' :
+                              item.probability >= 50 ? 'bg-yellow-100 text-yellow-700' : 'bg-gray-100 text-gray-600'
+                            }`}>
+                              {item.probability}%
+                            </span>
+                          </td>
+                          <td className="p-4 text-center">
+                            {isBottleneck ? (
+                              <div className="flex items-center justify-center text-red-600 bg-red-50 px-2 py-1 rounded border border-red-100" title="Stuck for >30 days">
+                                <FiActivity size={14} className="mr-1" />
+                                <span className="text-xs font-bold">{daysStuck}d</span>
+                              </div>
+                            ) : <span className="text-xs text-gray-400">{daysStuck}d</span>}
+                          </td>
+                        </>
+                      )}
+                      {isClosedWon && (
+                          <td className="p-4 text-right font-bold text-green-700">
+                            {formatCurrency(item.amount, currencySymbol)}
+                          </td>
+                      )}
+                      {isClosedLost && (
+                          <>
+                            <td className="p-4 text-right font-bold text-red-600 opacity-75">
+                                {formatCurrency(item.amount, currencySymbol)}
+                            </td>
+                            <td className="p-4 text-center text-xs text-gray-500">
+                                {formatDate(item.stage_updated_at)}
+                            </td>
+                          </>
+                      )}
+                      <td className="p-4 text-right">
+                        <div className="flex items-center justify-end text-gray-500 text-xs">
+                          <FiUser className="mr-1" />
+                          {isLeadStage
+                            ? (item.lead_owner?.first_name || item.owner?.first_name || item.assigned_to?.first_name || 'Unassigned')
+                            : (item.assigned_deals?.first_name || item.deal_creator?.first_name || 'Unassigned')
+                          }
+                        </div>
+                      </td>
+                    </>
+                  )}
+                </DraggableDealRow>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+};
 
 // --- MAIN EXPORTED WIDGET ---
 
@@ -767,243 +760,258 @@ const FunnelWidget = ({ leads, deals, currencySymbol, targets = [], basePath = '
         return { totalTarget, totalWon, totalLost, progress, winRate, conversionRate };
     }, [filteredTargets, funnelData]);
 
-    const activeTableData = useMemo(() => {
-      if (selectedStage === 'ALL') return []; 
-      return funnelData.aggregate.metrics[selectedStage]?.items || [];
-    }, [selectedStage, funnelData]);
-  
-    return (
-      <div className="bg-white rounded-xl p-6 flex flex-col h-full">
-       <div className="flex flex-col md:flex-row justify-between items-center mb-6">
+  const activeTableData = useMemo(() => {
+    if (selectedStage === 'ALL') return [];
+    return funnelData.aggregate.metrics[selectedStage]?.items || [];
+  }, [selectedStage, funnelData]);
+
+  // Modal state for lead/deal details
+  const [modalData, setModalData] = useState(null);
+  const [modalType, setModalType] = useState(null); // 'lead' or 'deal'
+
+  const handleRowClick = (item, isLeadStage) => {
+    setModalData(item);
+    setModalType(isLeadStage ? 'lead' : 'deal');
+  };
+
+  const handleCloseModal = () => {
+    setModalData(null);
+    setModalType(null);
+  };
+
+  return (
+    <div className="bg-white rounded-xl p-6 flex flex-col h-full">
+      <div className="flex flex-col md:flex-row justify-between items-center mb-6">
         <div>
           <p className="text-sm text-gray-500">
             Analyze pipeline velocity and bottlenecks.
           </p>
-            </div>
-            
-            <div className="flex flex-wrap gap-2 mt-4 md:mt-0">
-               <select 
-                  value={filterTime} 
-                  onChange={(e) => setFilterTime(e.target.value)}
-                  className="bg-gray-50 border border-gray-200 text-gray-700 text-xs rounded-lg p-2 focus:ring-blue-500 focus:border-blue-500 cursor-pointer"
-               >
-                  <option value="ALL">All Time</option>
-                  <option value="THIS_MONTH">This Month</option>
-                  <option value="THIS_QUARTER">This Quarter</option>
-                  <option value="THIS_YEAR">This Year</option>
-               </select>
-  
-               {/* Show user filter and compare mode only if not personal dashboard */}
-               {!isPersonalDashboard && (
-                 <>
-                   <select
-                      value={filterUser}
-                      onChange={(e) => setFilterUser(e.target.value)}
-                      className="bg-gray-50 border border-gray-200 text-gray-700 text-xs rounded-lg p-2 focus:ring-blue-500 focus:border-blue-500 cursor-pointer"
-                   >
-                      <option value="ALL">All Users</option>
-                      {usersList.map(u => (
-                          <option key={u.id} value={u.id}>{u.name}</option>
-                      ))}
-                   </select>
-      
-                   <div className="flex bg-gray-100 p-0.5 rounded-lg">
-                        <button 
-                          onClick={() => setViewMode('AGGREGATE')}
-                          className={`px-2 py-1 rounded-md text-xs font-medium transition-all cursor-pointer ${viewMode === 'AGGREGATE' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
-                        >
-                          Aggregate
-                        </button>
-                        <button 
-                          onClick={() => setViewMode('COMPARE')}
-                          className={`px-2 py-1 rounded-md text-xs font-medium transition-all cursor-pointer ${viewMode === 'COMPARE' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
-                        >
-                          Compare
-                        </button>
-                   </div>
-                 </>
-               )}
-            </div>
-         </div>
-  
-         {viewMode === 'COMPARE' ? (
-             <DndContext 
-                sensors={sensors}
-                collisionDetection={closestCenter}
-                onDragEnd={handleDragEnd}
-             >
-                <SortableContext 
-                    items={sortedUserGroups.map(g => g.user.id)}
-                    strategy={rectSortingStrategy}
-                >
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 overflow-x-auto pb-4">
-                        {sortedUserGroups.map((group) => (
-                            <SortableUserItem key={group.user.id} id={group.user.id}>
-                                <UserComparisonCard 
-                                    user={group.user}
-                                    metrics={group.data}
-                                    stages={funnelData.stages.filter(s => s.key !== 'CLOSED_LOST')} 
-                                    currencySymbol={currencySymbol}
-                                    target={group.target}
-                                />
-                            </SortableUserItem>
-                        ))}
-                        {sortedUserGroups.length === 0 && (
-                            <div className="col-span-full text-center py-10 text-gray-400">No data for selected filters.</div>
-                        )}
-                    </div>
-                </SortableContext>
-             </DndContext>
-         ) : (
-          <DndContext
-            sensors={sensors}
-            collisionDetection={closestCenter}
-            onDragEnd={handleAggregateDragEnd}
+        </div>
+        <div className="flex flex-wrap gap-2 mt-4 md:mt-0">
+          <select
+            value={filterTime}
+            onChange={(e) => setFilterTime(e.target.value)}
+            className="bg-gray-50 border border-gray-200 text-gray-700 text-xs rounded-lg p-2 focus:ring-blue-500 focus:border-blue-500 cursor-pointer"
           >
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-               <div className="lg:col-span-4 flex flex-col space-y-2 relative">
-                  
-                  {/* Active Funnel */}
-                  <div className="relative">
-                      <div className="absolute left-6 top-4 bottom-4 w-0.5 bg-gray-100 -z-0"></div>
-                      {funnelData.stages.filter(s => s.key !== 'CLOSED_LOST').map((stage, index) => {
-                          const metric = funnelData.aggregate.metrics[stage.key];
-                          let conversionRate = null;
-                          if (index > 0) {
-                              const prevStageKey = funnelData.stages[index - 1].key;
-                              const prevCount = funnelData.aggregate.metrics[prevStageKey].count;
-                              if (prevCount > 0) conversionRate = ((metric.count / prevCount) * 100).toFixed(0);
-                          }
-
-                          const barNode = (
-                            <FunnelBar 
-                              key={stage.key}
-                              label={stage.label}
-                              count={metric.count}
-                              value={metric.value}
-                              width={metric.width}
-                              color={metric.color}
-                              isLead={!stage.isDeal}
-                              weightedValue={metric.weightedValue}
-                              currencySymbol={currencySymbol}
-                              isActive={selectedStage === stage.key}
-                              conversionRate={conversionRate}
-                              onClick={() => setSelectedStage(stage.key)}
-                            />
-                          );
-
-                          if (!stage.isDeal) {
-                            return barNode;
-                          }
-
-                          return (
-                            <DroppableStageBar key={stage.key} stageKey={stage.key}>
-                              {barNode}
-                            </DroppableStageBar>
-                          );
-                      })}
-                  </div>
-
-                  {/* Funnel Health Dashboard & Outcome Section */}
-                  <div className="mt-4 pt-4 border-t border-gray-100">
-                        <div className="mb-2 text-xs font-bold text-gray-400 uppercase">Funnel Health</div>
-                        <div className="grid grid-cols-3 gap-2 text-center mb-4">
-                            <div className="bg-green-50 rounded p-2 border border-green-100">
-                               <p className="text-[9px] text-green-600 uppercase font-bold">Win Rate</p>
-                               <p className="text-sm font-bold text-gray-800">{globalMetrics.winRate.toFixed(0)}%</p>
-                            </div>
-                            <div className="bg-blue-50 rounded p-2 border border-blue-100">
-                               <p className="text-[9px] text-blue-600 uppercase font-bold">Conversion</p>
-                               <p className="text-sm font-bold text-gray-800">{globalMetrics.conversionRate.toFixed(0)}%</p>
-                            </div>
-                            <div className="bg-red-50 rounded p-2 border border-red-100">
-                               <p className="text-[9px] text-red-600 uppercase font-bold">Lost Value</p>
-                               <p className="text-sm font-bold text-gray-800">{formatCurrency(globalMetrics.totalLost, currencySymbol)}</p>
-                            </div>
-                        </div>
-
-                        {/* Explicit Lost Bar for Analysis */}
-                        <DroppableStageBar stageKey="CLOSED_LOST">
-                          <FunnelBar 
-                              label="Closed Lost"
-                              key="CLOSED_LOST"
-                              count={funnelData.aggregate.metrics['CLOSED_LOST'].count}
-                              value={funnelData.aggregate.metrics['CLOSED_LOST'].value}
-                              width={funnelData.aggregate.metrics['CLOSED_LOST'].width}
-                              color="bg-red-500 opacity-90"
-                              isLead={false}
-                              weightedValue={0}
-                              currencySymbol={currencySymbol}
-                              isActive={selectedStage === 'CLOSED_LOST'}
-                              onClick={() => setSelectedStage('CLOSED_LOST')}
-                          />
-                        </DroppableStageBar>
-
-                        {/* Total Target Progress Bar */}
-                        <div className="bg-gray-50 p-2 rounded-lg border border-gray-100 mt-4">
-                            <div className="flex justify-between items-center text-[10px] mb-1">
-                                <span className="font-bold text-gray-600 flex items-center"><FiTarget className="mr-1"/> Total Target</span>
-                                <span className={globalMetrics.progress >= 100 ? "text-green-600 font-bold" : "text-blue-600 font-bold"}>
-                                    {globalMetrics.progress.toFixed(0)}%
-                                </span>
-                            </div>
-                            <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden mb-1">
-                                <div 
-                                    className={`h-full rounded-full transition-all duration-1000 ${globalMetrics.progress >= 100 ? 'bg-green-500' : 'bg-blue-500'}`} 
-                                    style={{ width: `${Math.min(globalMetrics.progress, 100)}%` }}
-                                ></div>
-                            </div>
-                            <div className="flex justify-between text-[9px] text-gray-400">
-                                <span>Achieved: <span className="text-gray-700 font-medium">{formatCurrency(globalMetrics.totalWon, currencySymbol)}</span></span>
-                                <span>Goal: {formatCurrency(globalMetrics.totalTarget, currencySymbol)}</span>
-                            </div>
-                        </div>
-                   </div>
-               </div>
-  
-               <div className="lg:col-span-8 h-[600px] flex flex-col">
-                  <div className="bg-gray-50 p-3 rounded-t-xl border-b border-gray-200 flex justify-between items-center">
-                        <h3 className="text-sm font-bold text-gray-800 flex items-center">
-                          {selectedStage === 'ALL' ? (
-                            <span>Select a stage to view details</span>
-                          ) : (
-                            <>
-                              <span className={`w-2.5 h-2.5 rounded-full mr-2 ${funnelData.aggregate.metrics[selectedStage]?.color}`}></span>
-                              {funnelData.stages.find(s => s.key === selectedStage)?.label} Details
-                              <span className="ml-2 px-2 py-0.5 bg-white border border-gray-200 text-gray-600 text-[10px] rounded-full">
-                                {activeTableData.length} records
-                              </span>
-                            </>
-                          )}
-                        </h3>
-                        {selectedStage !== 'ALL' && activeTableData.length > 0 && (
-                          <button 
-                            onClick={() => downloadCSV(activeTableData, `Funnel_${selectedStage}`)}
-                            className="text-[10px] font-bold text-blue-600 hover:bg-blue-100 px-2 py-1 rounded transition-colors flex items-center"
-                          >
-                            <FiDownload className="mr-1" /> Export
-                          </button>
-                        )}
-                  </div>
-                  {selectedStage === 'ALL' ? (
-                        <div className="bg-white flex-grow rounded-b-xl border border-gray-100 flex flex-col items-center justify-center p-12 text-center text-gray-400">
-                          <FiFilter size={48} className="mb-4 text-blue-100" />
-                          <p>Click on any stage bar (including Lost Deals) to inspect records.</p>
-                        </div>
-                  ) : (
-                        <DetailTable 
-                           data={activeTableData} 
-                           stageKey={selectedStage}
-                           currencySymbol={currencySymbol} 
-                          basePath={basePath}
-                        />
-                  )}
-               </div>
-            </div>
-            </DndContext>
-         )}
+            <option value="ALL">All Time</option>
+            <option value="THIS_MONTH">This Month</option>
+            <option value="THIS_QUARTER">This Quarter</option>
+            <option value="THIS_YEAR">This Year</option>
+          </select>
+          {!isPersonalDashboard && (
+            <>
+              <select
+                value={filterUser}
+                onChange={(e) => setFilterUser(e.target.value)}
+                className="bg-gray-50 border border-gray-200 text-gray-700 text-xs rounded-lg p-2 focus:ring-blue-500 focus:border-blue-500 cursor-pointer"
+              >
+                <option value="ALL">All Users</option>
+                {usersList.map(u => (
+                  <option key={u.id} value={u.id}>{u.name}</option>
+                ))}
+              </select>
+              <div className="flex bg-gray-100 p-0.5 rounded-lg">
+                <button
+                  onClick={() => setViewMode('AGGREGATE')}
+                  className={`px-2 py-1 rounded-md text-xs font-medium transition-all cursor-pointer ${viewMode === 'AGGREGATE' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                >
+                  Aggregate
+                </button>
+                <button
+                  onClick={() => setViewMode('COMPARE')}
+                  className={`px-2 py-1 rounded-md text-xs font-medium transition-all cursor-pointer ${viewMode === 'COMPARE' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                >
+                  Compare
+                </button>
+              </div>
+            </>
+          )}
+        </div>
       </div>
-    );
+      {viewMode === 'COMPARE' ? (
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragEnd={handleDragEnd}
+        >
+          <SortableContext
+            items={sortedUserGroups.map(g => g.user.id)}
+            strategy={rectSortingStrategy}
+          >
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 overflow-x-auto pb-4">
+              {sortedUserGroups.map((group) => (
+                <SortableUserItem key={group.user.id} id={group.user.id}>
+                  <UserComparisonCard
+                    user={group.user}
+                    metrics={group.data}
+                    stages={funnelData.stages.filter(s => s.key !== 'CLOSED_LOST')}
+                    currencySymbol={currencySymbol}
+                    target={group.target}
+                  />
+                </SortableUserItem>
+              ))}
+              {sortedUserGroups.length === 0 && (
+                <div className="col-span-full text-center py-10 text-gray-400">No data for selected filters.</div>
+              )}
+            </div>
+          </SortableContext>
+        </DndContext>
+      ) : (
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragEnd={handleAggregateDragEnd}
+        >
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+            <div className="lg:col-span-4 flex flex-col space-y-2 relative">
+              {/* Active Funnel */}
+              <div className="relative">
+                <div className="absolute left-6 top-4 bottom-4 w-0.5 bg-gray-100 -z-0"></div>
+                {funnelData.stages.filter(s => s.key !== 'CLOSED_LOST').map((stage, index) => {
+                  const metric = funnelData.aggregate.metrics[stage.key];
+                  let conversionRate = null;
+                  if (index > 0) {
+                    const prevStageKey = funnelData.stages[index - 1].key;
+                    const prevCount = funnelData.aggregate.metrics[prevStageKey].count;
+                    if (prevCount > 0) conversionRate = ((metric.count / prevCount) * 100).toFixed(0);
+                  }
+                  const barNode = (
+                    <FunnelBar
+                      key={stage.key}
+                      label={stage.label}
+                      count={metric.count}
+                      value={metric.value}
+                      width={metric.width}
+                      color={metric.color}
+                      isLead={!stage.isDeal}
+                      weightedValue={metric.weightedValue}
+                      currencySymbol={currencySymbol}
+                      isActive={selectedStage === stage.key}
+                      conversionRate={conversionRate}
+                      onClick={() => setSelectedStage(stage.key)}
+                    />
+                  );
+                  if (!stage.isDeal) {
+                    return barNode;
+                  }
+                  return (
+                    <DroppableStageBar key={stage.key} stageKey={stage.key}>
+                      {barNode}
+                    </DroppableStageBar>
+                  );
+                })}
+              </div>
+              {/* Funnel Health Dashboard & Outcome Section */}
+              <div className="mt-4 pt-4 border-t border-gray-100">
+                <div className="mb-2 text-xs font-bold text-gray-400 uppercase">Funnel Health</div>
+                <div className="grid grid-cols-3 gap-2 text-center mb-4">
+                  <div className="bg-green-50 rounded p-2 border border-green-100">
+                    <p className="text-[9px] text-green-600 uppercase font-bold">Win Rate</p>
+                    <p className="text-sm font-bold text-gray-800">{globalMetrics.winRate.toFixed(0)}%</p>
+                  </div>
+                  <div className="bg-blue-50 rounded p-2 border border-blue-100">
+                    <p className="text-[9px] text-blue-600 uppercase font-bold">Conversion</p>
+                    <p className="text-sm font-bold text-gray-800">{globalMetrics.conversionRate.toFixed(0)}%</p>
+                  </div>
+                  <div className="bg-red-50 rounded p-2 border border-red-100">
+                    <p className="text-[9px] text-red-600 uppercase font-bold">Lost Value</p>
+                    <p className="text-sm font-bold text-gray-800">{formatCurrency(globalMetrics.totalLost, currencySymbol)}</p>
+                  </div>
+                </div>
+                {/* Explicit Lost Bar for Analysis */}
+                <DroppableStageBar stageKey="CLOSED_LOST">
+                  <FunnelBar
+                    label="Closed Lost"
+                    key="CLOSED_LOST"
+                    count={funnelData.aggregate.metrics['CLOSED_LOST'].count}
+                    value={funnelData.aggregate.metrics['CLOSED_LOST'].value}
+                    width={funnelData.aggregate.metrics['CLOSED_LOST'].width}
+                    color="bg-red-500 opacity-90"
+                    isLead={false}
+                    weightedValue={0}
+                    currencySymbol={currencySymbol}
+                    isActive={selectedStage === 'CLOSED_LOST'}
+                    onClick={() => setSelectedStage('CLOSED_LOST')}
+                  />
+                </DroppableStageBar>
+                {/* Total Target Progress Bar */}
+                <div className="bg-gray-50 p-2 rounded-lg border border-gray-100 mt-4">
+                  <div className="flex justify-between items-center text-[10px] mb-1">
+                    <span className="font-bold text-gray-600 flex items-center"><FiTarget className="mr-1"/> Total Target</span>
+                    <span className={globalMetrics.progress >= 100 ? "text-green-600 font-bold" : "text-blue-600 font-bold"}>
+                      {globalMetrics.progress.toFixed(0)}%
+                    </span>
+                  </div>
+                  <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden mb-1">
+                    <div
+                      className={`h-full rounded-full transition-all duration-1000 ${globalMetrics.progress >= 100 ? 'bg-green-500' : 'bg-blue-500'}`}
+                      style={{ width: `${Math.min(globalMetrics.progress, 100)}%` }}
+                    ></div>
+                  </div>
+                  <div className="flex justify-between text-[9px] text-gray-400">
+                    <span>Achieved: <span className="text-gray-700 font-medium">{formatCurrency(globalMetrics.totalWon, currencySymbol)}</span></span>
+                    <span>Goal: {formatCurrency(globalMetrics.totalTarget, currencySymbol)}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="lg:col-span-8 h-[600px] flex flex-col">
+              <div className="bg-gray-50 p-3 rounded-t-xl border-b border-gray-200 flex justify-between items-center">
+                <h3 className="text-sm font-bold text-gray-800 flex items-center">
+                  {selectedStage === 'ALL' ? (
+                    <span>Select a stage to view details</span>
+                  ) : (
+                    <>
+                      <span className={`w-2.5 h-2.5 rounded-full mr-2 ${funnelData.aggregate.metrics[selectedStage]?.color}`}></span>
+                      {funnelData.stages.find(s => s.key === selectedStage)?.label} Details
+                      <span className="ml-2 px-2 py-0.5 bg-white border border-gray-200 text-gray-600 text-[10px] rounded-full">
+                        {activeTableData.length} records
+                      </span>
+                    </>
+                  )}
+                </h3>
+                {selectedStage !== 'ALL' && activeTableData.length > 0 && (
+                  <button
+                    onClick={() => downloadCSV(activeTableData, `Funnel_${selectedStage}`)}
+                    className="text-[10px] font-bold text-blue-600 hover:bg-blue-100 px-2 py-1 rounded transition-colors flex items-center"
+                  >
+                    <FiDownload className="mr-1" /> Export
+                  </button>
+                )}
+              </div>
+              {selectedStage === 'ALL' ? (
+                <div className="bg-white flex-grow rounded-b-xl border border-gray-100 flex flex-col items-center justify-center p-12 text-center text-gray-400">
+                  <FiFilter size={48} className="mb-4 text-blue-100" />
+                  <p>Click on any stage bar (including Lost Deals) to inspect records.</p>
+                </div>
+              ) : (
+                <DetailTable
+                  data={activeTableData}
+                  stageKey={selectedStage}
+                  currencySymbol={currencySymbol}
+                  onRowClick={handleRowClick}
+                />
+              )}
+            </div>
+          </div>
+        </DndContext>
+      )}
+      {/* Modal for lead/deal details */}
+      {modalData && modalType === 'lead' && (
+        <ManagerLeadsInformation
+          lead={modalData}
+          onBack={handleCloseModal}
+        />
+      )}
+      {modalData && modalType === 'deal' && (
+        <ManagerDealsInformation
+          selectedDeal={modalData}
+          show={true}
+          onClose={handleCloseModal}
+        />
+      )}
+    </div>
+  );
 };
 
 export default FunnelWidget;

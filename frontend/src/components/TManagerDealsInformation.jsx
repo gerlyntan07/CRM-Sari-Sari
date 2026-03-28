@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import LoadingSpinner from "../components/LoadingSpinner";
 import {
   FiX,
   FiPhone,
@@ -18,7 +19,7 @@ import useFetchUser from "../hooks/useFetchUser";
 import CommentSection from "../components/CommentSection.jsx";
 import { useComments } from "../hooks/useComments.js";
 
-export default function AdminDealsInformation({
+export default function TManagerDealsInformation({
   selectedDeal: selectedDealProp,
   relatedActs = {},
   show,
@@ -33,6 +34,7 @@ export default function AdminDealsInformation({
   const [searchParams] = useSearchParams();
   const dealIdFromQuery = searchParams.get('id');
   const [selectedDeal, setSelectedDeal] = useState(selectedDealProp || null);
+  const [loading, setLoading] = useState(false);
   const [localActiveTab, setLocalActiveTab] = useState(activeTab || "Overview");
   const [expandedSection, setExpandedSection] = useState(null);
   const {user} = useFetchUser();
@@ -92,6 +94,7 @@ const formattedDateTime = (datetime) => {
   useEffect(() => {
     const fetchDealFromRoute = async () => {
       if (dealIdFromQuery && !selectedDealProp) {
+        setLoading(true);
         try {
           // Fetch all deals to get the one we need with relationships
           const response = await api.get(`/deals/admin/fetch-all`);
@@ -110,21 +113,27 @@ const formattedDateTime = (datetime) => {
           }
         } catch (error) {
           console.error('Error fetching deal:', error);
+        } finally {
+          setLoading(false);
         }
       }
     };
-
     fetchDealFromRoute();
   }, [dealIdFromQuery, selectedDealProp]);
 
   // Show modal if accessed via route or if show prop is true
   const shouldShow = show || (dealIdFromQuery && selectedDeal);
 
+  // Show loading spinner if fetching via route param
+  if (dealIdFromQuery && loading) {
+    return <LoadingSpinner message="Loading deal details..." />;
+  }
+
   // Don't render if no deal and not accessed via route
   if (!selectedDeal && !dealIdFromQuery) return null;
-  
+
   // If accessed via route but deal not found yet, show nothing (will show once loaded)
-  if (dealIdFromQuery && !selectedDeal) return null;
+  if (dealIdFromQuery && !selectedDeal && !loading) return null;
 
   const getStageBadgeClasses = (stage) => {
     const stageColors = {

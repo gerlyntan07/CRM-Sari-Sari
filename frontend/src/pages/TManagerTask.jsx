@@ -19,7 +19,7 @@ import api from "../api";
 import { toast } from "react-toastify";
 import useFetchUser from "../hooks/useFetchUser";
 import LoadingSpinner from "../components/LoadingSpinner.jsx";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import {
   DndContext,
   DragOverlay,
@@ -321,6 +321,7 @@ export default function AdminTask() {
   
   const navigate = useNavigate();
   const location = useLocation();
+  const { taskID } = useParams();
 
   const [formData, setFormData] = useState({
     id: "",
@@ -337,8 +338,15 @@ export default function AdminTask() {
     relatedTo2: "",
   });
 
-  // State to track taskID passed from navigation (e.g., from AdminAccounts)
+  // State to track taskID passed from navigation (e.g., from AdminAccounts or URL param)
   const [pendingTaskId, setPendingTaskId] = useState(null);
+
+  // --- Support opening modal when visiting /group-manager/tasks/:taskID ---
+  useEffect(() => {
+    if (taskID) {
+      setPendingTaskId(Number(taskID));
+    }
+  }, [taskID]);
 
   // --- DnD Configuration ---
   const sensors = useSensors(
@@ -407,11 +415,15 @@ export default function AdminTask() {
     setActiveTask(null);
   };
 
-  // --- Auto-Open Modal Logic ---
+  // --- Auto-Open Modal Logic with ?id=... support (like AdminTask) ---
   useEffect(() => {
     const shouldOpen = location.state?.openTaskModal;
     const initialData = location.state?.initialTaskData;
     const taskIdFromState = location.state?.taskID;
+
+    // --- Support ?id=... in URL and KEEP it while modal is open ---
+    const searchParams = new URLSearchParams(location.search);
+    const taskIdFromQuery = searchParams.get('id');
 
     if (shouldOpen) {
       setShowModal(true);
@@ -423,9 +435,11 @@ export default function AdminTask() {
       }
       navigate(location.pathname, { replace: true, state: {} });
     } else if (taskIdFromState) {
-      // If taskID is passed from another page (e.g., AdminAccounts), store it
       setPendingTaskId(taskIdFromState);
       navigate(location.pathname, { replace: true, state: {} });
+    } else if (taskIdFromQuery) {
+      setPendingTaskId(Number(taskIdFromQuery));
+      // DO NOT remove ?id=... from URL; keep it while modal is open
     }
   }, [location, navigate]);
 
@@ -545,6 +559,27 @@ export default function AdminTask() {
   };
 
   const handleCloseModal = () => {
+    // If on /group-manager/tasks/:taskID (view mode), go back to dashboard and do NOT reset form/modal state
+    if (location.pathname.match(/^\/group-manager\/tasks\/[0-9]+$/)) {
+      navigate('/group-manager/dashboard');
+      return;
+    }
+    // If on /tmanager/tasks/info?id=... (legacy), go back to dashboard and do NOT reset form/modal state
+    if (location.pathname === '/tmanager/tasks/info') {
+      const searchParams = new URLSearchParams(location.search);
+      if (searchParams.get('id')) {
+        navigate('/tmanager/dashboard');
+        return;
+      }
+    }
+    // If on /group-manager/tasks/info?id=... (Quick Data Access), go back to group-manager dashboard
+    if (location.pathname === '/group-manager/tasks/info') {
+      const searchParams = new URLSearchParams(location.search);
+      if (searchParams.get('id')) {
+        navigate('/group-manager/dashboard');
+        return;
+      }
+    }
     setShowModal(false);
     setSelectedTask(null);
     setViewMode(false);

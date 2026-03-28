@@ -368,6 +368,7 @@ function App() {
           <Route path="leads" element={<TManagerLeads />} />
           <Route path="leads/info" element={<TManagerLeadsInformation />} />
           <Route path="leads/convert" element={<TManagerLeadsConvert />} />
+          <Route path="leads/:leadID" element={<TManagerLeads />} />
           <Route path="deals" element={<TManagerDeals />} />
           <Route path="deals/info" element={<TManagerDealsInformation />} />
           <Route
@@ -378,6 +379,7 @@ function App() {
           <Route path="soas" element={<TManagerSoas />} />
           <Route path="targets" element={<TManagerTargets />} />
           <Route path="tasks" element={<TManagerTask />} />
+          <Route path="tasks/:taskID" element={<TManagerTask />} />
           <Route path="/group-manager/territory">
             <Route index element={<AdminTerritory />} />
             <Route path=":id" element={<AdminTerritory />} />

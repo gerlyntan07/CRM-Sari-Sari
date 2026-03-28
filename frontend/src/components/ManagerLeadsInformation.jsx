@@ -574,7 +574,7 @@ export default function AdminLeadsInformation({
 
                     <div className="space-y-2 text-sm">
                       {/* TASKS */}
-                      {relatedActs.tasks && relatedActs.tasks.length > 0 && (
+                      {relatedActs && relatedActs.tasks && relatedActs.tasks.length > 0 && (
                         <div className="rounded-lg border border-gray-200 bg-white overflow-hidden">
                           <button
                             type="button"
@@ -597,9 +597,9 @@ export default function AdminLeadsInformation({
                               <FiChevronRight className="text-gray-500" />
                             )}
                           </button>
-                          {expandedSection === "tasks" && (
+                          {relatedActs && expandedSection === "tasks" && (
                             <div className="border-t border-gray-200 p-2 space-y-2 max-h-60 overflow-y-auto hide-scrollbar">
-                              {relatedActs.tasks.map((task, idx) => (
+                              {relatedActs && relatedActs.tasks && relatedActs.tasks.map((task, idx) => (
                                 <div
                                   key={`task-${idx}`}
                                   className="flex flex-col sm:flex-row justify-between items-start border border-gray-100 rounded-lg p-3 bg-gray-50 w-full break-words cursor-pointer" onClick={() => navigate(`/manager/tasks`, { state: { taskID: task.id } })}
@@ -637,7 +637,7 @@ export default function AdminLeadsInformation({
                       )}
 
                       {/* MEETINGS */}
-                      {relatedActs.meetings &&
+                      {relatedActs && relatedActs.meetings &&
                         relatedActs.meetings.length > 0 && (
                           <div className="rounded-lg border border-gray-200 bg-white overflow-hidden">
                             <button
@@ -663,9 +663,9 @@ export default function AdminLeadsInformation({
                                 <FiChevronRight className="text-gray-500" />
                               )}
                             </button>
-                            {expandedSection === "meetings" && (
+                            {relatedActs && expandedSection === "meetings" && (
                               <div className="border-t border-gray-200 p-2 space-y-2 max-h-60 overflow-y-auto hide-scrollbar">
-                                {relatedActs.meetings.map((meeting, idx) => (
+                                {relatedActs && relatedActs.meetings && relatedActs.meetings.map((meeting, idx) => (
                                   <div
                                     key={`meeting-${idx}`}
                                     className="flex flex-col sm:flex-row justify-between items-start border border-gray-100 rounded-lg p-3 bg-gray-50 w-full break-words cursor-pointer" onClick={() => navigate(`/manager/meetings`, { state: { meetingID: meeting.id } })}
@@ -707,7 +707,7 @@ export default function AdminLeadsInformation({
                         )}
 
                       {/* CALLS */}
-                      {relatedActs.calls && relatedActs.calls.length > 0 && (
+                      {relatedActs && relatedActs.calls && relatedActs.calls.length > 0 && (
                         <div className="rounded-lg border border-gray-200 bg-white overflow-hidden">
                           <button
                             type="button"
@@ -730,9 +730,9 @@ export default function AdminLeadsInformation({
                               <FiChevronRight className="text-gray-500" />
                             )}
                           </button>
-                          {expandedSection === "calls" && (
+                          {relatedActs && expandedSection === "calls" && (
                             <div className="border-t border-gray-200 p-2 space-y-2 max-h-60 overflow-y-auto hide-scrollbar">
-                              {relatedActs.calls.map((call, idx) => (
+                              {relatedActs && relatedActs.calls && relatedActs.calls.map((call, idx) => (
                                 <div
                                   key={`call-${idx}`}
                                   className="flex flex-col sm:flex-row justify-between items-start border border-gray-100 rounded-lg p-3 bg-gray-50 w-full break-words cursor-pointer" onClick={() => navigate(`/manager/calls`, { state: { callID: call.id } })}
@@ -765,17 +765,17 @@ export default function AdminLeadsInformation({
                       {/* No activities message */}
                       {(!relatedActs ||
                         ((!relatedActs.tasks ||
-                          relatedActs.tasks.length === 0) &&
+                          (relatedActs.tasks && relatedActs.tasks.length === 0)) &&
                           (!relatedActs.meetings ||
-                            relatedActs.meetings.length === 0) &&
+                            (relatedActs.meetings && relatedActs.meetings.length === 0)) &&
                           (!relatedActs.calls ||
-                            relatedActs.calls.length === 0) &&
+                            (relatedActs.calls && relatedActs.calls.length === 0)) &&
                           (!relatedActs.quotes ||
-                            relatedActs.quotes.length === 0) &&
+                            (relatedActs.quotes && relatedActs.quotes.length === 0)) &&
                           (!relatedActs.deals ||
-                            relatedActs.deals.length === 0) &&
+                            (relatedActs.deals && relatedActs.deals.length === 0)) &&
                           (!relatedActs.contacts ||
-                            relatedActs.contacts.length === 0))) && (
+                            (relatedActs.contacts && relatedActs.contacts.length === 0)))) && (
                         <div className="text-center py-8 text-gray-500">
                           <p>No related activities found for this account.</p>
                         </div>

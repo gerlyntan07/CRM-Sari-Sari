@@ -30,7 +30,7 @@ const ForecastRevenueWidget = () => {
 
     const fetchData = () => {
       setError(null);
-      fetch(`/api/forecast-revenue/summary?range=${range}`, { credentials: 'include' })
+      fetch(`/api/forecast-revenue/summary?range_param=${range}`, { credentials: 'include' })
         .then(async (res) => {
           const text = await res.text();
           if (!res.ok) {

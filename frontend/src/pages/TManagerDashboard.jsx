@@ -19,6 +19,7 @@ import LoadingSpinner from '../components/LoadingSpinner';
 import FunnelWidget from '../components/FunnelWidget';
 import TopPerformers from '../components/TopPerformers';
 import AdminTabs from '../components/AdminTabs';
+import ForecastRevenueWidget from '../components/ForecastRevenueWidget';
 
 // --- Icon Components using React Icons ---
 
@@ -1062,6 +1063,10 @@ const TManagerDashboard = () => {
                 <div className="mb-4">
                   <h2 className="text-lg font-semibold text-gray-800 mt-2 mb-2 border-b-2 border-blue-600 inline-block">Revenue Overview</h2>
                   <RevenueChart revenueData={revenueData} loading={loading} />
+                  {/* Forecasted Revenue Widget */}
+                  <div className="mt-0">
+                    <ForecastRevenueWidget data={revenueData} />
+                  </div>
                 </div>
 
                 <hr className="mt-2 mb-4 border-gray-300" />
@@ -1124,6 +1129,9 @@ const TManagerDashboard = () => {
                 <div className="mb-8">
                   <h2 className={`text-lg font-semibold text-gray-800 mt-2 mb-2 ${activeTab === "revenuePerformance" ? "border-b-2 border-blue-600 inline-block" : ""}`}>Revenue Overview</h2>
                   <RevenueChart revenueData={revenueData} loading={loading} />
+                  <div className="mt-0">
+                    <ForecastRevenueWidget data={revenueData} />
+                  </div>
                 </div>
               </>
             )}

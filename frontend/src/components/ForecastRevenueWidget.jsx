@@ -25,29 +25,38 @@ const ForecastRevenueWidget = () => {
   const [data, setData] = useState(null);
 
   useEffect(() => {
-    // Do not show loading spinner when switching range
-    setError(null);
-    fetch(`/api/forecast-revenue/summary?range=${range}`, { credentials: 'include' })
-      .then(async (res) => {
-        const text = await res.text();
-        if (!res.ok) {
-          throw new Error(`HTTP ${res.status}: ${text}`);
-        }
-        try {
-          return JSON.parse(text);
-        } catch (e) {
-          throw new Error(`Invalid JSON: ${text}`);
-        }
-      })
-      .then((json) => {
-        setData(json);
-        // setLoading(false); // Don't show loading
-      })
-      .catch((err) => {
-        setError(err.message);
-        // setLoading(false); // Don't show loading
-      });
-    // setLoading(true); // Don't show loading
+    let isMounted = true;
+    let intervalId;
+
+    const fetchData = () => {
+      setError(null);
+      fetch(`/api/forecast-revenue/summary?range=${range}`, { credentials: 'include' })
+        .then(async (res) => {
+          const text = await res.text();
+          if (!res.ok) {
+            throw new Error(`HTTP ${res.status}: ${text}`);
+          }
+          try {
+            return JSON.parse(text);
+          } catch (e) {
+            throw new Error(`Invalid JSON: ${text}`);
+          }
+        })
+        .then((json) => {
+          if (isMounted) setData(json);
+        })
+        .catch((err) => {
+          if (isMounted) setError(err.message);
+        });
+    };
+
+    fetchData();
+    intervalId = setInterval(fetchData, 5000); // auto-refresh every 5 seconds
+
+    return () => {
+      isMounted = false;
+      clearInterval(intervalId);
+    };
   }, [range]);
 
   // Prepare chart data

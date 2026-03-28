@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useState } from "react";
+import LoadingSpinner from "../components/LoadingSpinner";
 import { HiX } from "react-icons/hi";
 import {
   FiPhone,
@@ -39,19 +40,20 @@ const formattedDateTime = (datetime) => {
     .replace(",", "");
 };
 
-export default function AdminLeadsInformation({
+export default function ManagerLeadsInformation({
   lead: leadProp,
   onBack,
   fetchLeads,
   onEdit,
   onArchive,
   setSelectedLead,
-  relatedActs
+  relatedActs = {}
 }) {
   const navigate = useNavigate();
   const { leadID } = useParams();
   const { user: currentUser } = useFetchUser();
   const [lead, setLead] = useState(leadProp || null);
+  const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState("Overview");
   const [selectedStatus, setSelectedStatus] = useState("");
   const canConvert = lead?.status?.toUpperCase() === "QUALIFIED";  
@@ -102,14 +104,19 @@ export default function AdminLeadsInformation({
 
   const fetchLead = async () => {
     try {
+      setLoading(true);
       if (leadProp) {
         // Use prop if available
         setLead(leadProp);
         setSelectedStatus(leadProp.status || "New");
+        setLoading(false);
         return;
       }
 
-      if (!leadID) return;
+      if (!leadID) {
+        setLoading(false);
+        return;
+      }
 
       const res = await api.get(`/leads/get/${leadID}`);
       setLead(res.data);
@@ -159,6 +166,8 @@ export default function AdminLeadsInformation({
       });
     } catch (err) {
       console.error(err);
+      } finally {
+      setLoading(false);
     }
   };
 
@@ -170,6 +179,18 @@ export default function AdminLeadsInformation({
       fetchLead();
     }
   }, [leadID, leadProp]);
+
+  // Show loading spinner if fetching via route param
+  if (leadID && loading) {
+    return <LoadingSpinner message="Loading lead details..." />;
+  }
+
+  // Don't render if no lead and not accessed via route
+  if (!lead && !leadID) return null;
+
+  // If accessed via route but lead not found yet, show nothing (will show once loaded)
+  if (leadID && !lead && !loading) return null;
+  
   const updateStatus = async () => {
     try {
       if (

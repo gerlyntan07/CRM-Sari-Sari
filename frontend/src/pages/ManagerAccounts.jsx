@@ -410,7 +410,14 @@ export default function AdminAccounts() {
     setSelectedStatus(normalizeStatus(acc?.status) || "PROSPECT");
   };
 
-  const handleBackToList = () => setSelectedAccount(null);
+  const handleBackToList = () => {
+    const searchParams = new URLSearchParams(location.search || "");
+    if (searchParams.get("id")) {
+      navigate("/manager/dashboard");
+    } else {
+      setSelectedAccount(null);
+    }
+  };
 
   const handleAccountModalBackdropClick = (e) => {
     if (e.target.id === "accountModalBackdrop" && !confirmProcessing) {
@@ -465,16 +472,25 @@ export default function AdminAccounts() {
     const shouldOpen =
       Boolean(location.state?.openAccountModal) ||
       searchParams.get("openModal") === "1";
-    if (!shouldOpen) return;
 
-    setFormData(INITIAL_FORM_STATE);
-    setIsEditing(false);
-    setCurrentAccountId(null);
-    setShowModal(true);
-    setIsSubmitted(false);
+      const accountIdFromQuery = searchParams.get("id");
 
-    navigate(location.pathname, { replace: true, state: {} });
-  }, [location.state, location.pathname, location.search, navigate]);
+    if (accountIdFromQuery && accounts.length > 0) {
+      const found = accounts.find(acc => String(acc.id) === String(accountIdFromQuery));
+      if (found) {
+        setSelectedAccount(found);
+        setActiveTab("Overview");
+        setSelectedStatus(normalizeStatus(found.status) || "PROSPECT");
+      }
+    } else if (shouldOpen) {
+      setFormData(INITIAL_FORM_STATE);
+      setIsEditing(false);
+      setCurrentAccountId(null);
+      setShowModal(true);
+      setIsSubmitted(false);
+      navigate(location.pathname, { replace: true, state: {} });
+    }
+  }, [location.state, location.pathname, location.search, navigate, accounts]);
 
   const handleEditClick = (account) => {
     // Close the account details modal

@@ -320,6 +320,7 @@ function App() {
           <Route path="leads" element={<ManagerLeads />} />
           <Route path="leads/info" element={<ManagerLeadsInformation />} />
           <Route path="leads/convert" element={<ManagerLeadsConvert />} />
+          <Route path="leads/:leadID" element={<ManagerLeads />} />
           <Route path="deals" element={<ManagerDeals />} />
           <Route path="deals/info" element={<ManagerDealsInformation />} />
           <Route
@@ -333,6 +334,7 @@ function App() {
           <Route path="audit" element={<ManagerAudit />} />
           <Route path="calls" element={<ManagerCalls />} />
           <Route path="tasks" element={<ManagerTask />} />
+          <Route path="tasks/:taskID" element={<ManagerTask />} />
           <Route path="calendar" element={<ManagerCalendar />} />
           <Route path="/manager/territory">
             <Route index element={<AdminTerritory />} />

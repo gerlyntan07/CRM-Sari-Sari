@@ -370,10 +370,14 @@ export default function AdminLeads() {
     fetchRelatedActivities(lead.id);
   };
   const handleBackToList = () => {
-    // Clear selectedLead and navigate to base URL
+    // Clear selectedLead and navigate to correct dashboard/list based on role
     setSelectedLead(null);
     if (leadID) {
-      navigate(`/admin/leads`, { replace: true });
+      if (/manager/i.test(currentUser?.role)) {
+        navigate(`/manager/dashboard`, { replace: true });
+      } else {
+        navigate(`/admin/leads`, { replace: true });
+      }
     }
   };
 

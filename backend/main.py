@@ -51,6 +51,7 @@ import routers.activities as activities_router
 import routers.comments as comments_router
 import routers.backup as backup_router
 import routers.admin as admin_router
+import routers.forecast_revenue as forecast_revenue_router
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -85,6 +86,7 @@ app.include_router(ws_notification.router)
 app.include_router(activities_router.router, prefix='/api')
 app.include_router(comments_router.router, prefix='/api')
 app.include_router(backup_router.router, prefix='/api')
+app.include_router(forecast_revenue_router.router, prefix='/api')
 
 # === Database initialization ===
 #Base.metadata.create_all(bind=engine)

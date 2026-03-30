@@ -105,60 +105,61 @@ def download_backup_csv_zip(
     timestamp = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S")
     filename = f"crm-backup-company-{company_id}-{timestamp}.zip"
 
-    buffer = io.BytesIO()
-    with zipfile.ZipFile(buffer, mode="w", compression=zipfile.ZIP_DEFLATED) as zf:
-        # Export all mapped models as separate CSVs.
-        tables_exported = 0
-        for mapper in Base.registry.mappers:
-            model = mapper.class_
-            table_name = mapper.local_table.name
+    def zip_generator():
+        with io.BytesIO() as buffer:
+            with zipfile.ZipFile(buffer, mode="w", compression=zipfile.ZIP_DEFLATED) as zf:
+                tables_exported = 0
+                for mapper in Base.registry.mappers:
+                    model = mapper.class_
+                    table_name = mapper.local_table.name
+                    if not table_name or table_name.startswith("sqlite_"):
+                        continue
+                    try:
+                        csv_bytes = _write_model_to_csv_bytes(
+                            db=db,
+                            model=model,
+                            company_id=company_id,
+                            company_user_ids=company_user_ids,
+                        )
+                        zf.writestr(f"{table_name}.csv", csv_bytes)
+                        tables_exported += 1
+                    except Exception as exc:
+                        import traceback
+                        error_details = f"Exception: {exc}\n\nTraceback:\n{traceback.format_exc()}"
+                        zf.writestr(f"{table_name}.ERROR.txt", error_details)
+                        try:
+                            db.rollback()
+                        except Exception:
+                            pass
+            buffer.seek(0)
+            chunk_size = 8192
+            while True:
+                chunk = buffer.read(chunk_size)
+                if not chunk:
+                    break
+                yield chunk
 
-            # Safety: skip any SQLAlchemy internal tables if they appear.
-            if not table_name or table_name.startswith("sqlite_"):
-                continue
-
-            try:
-                csv_bytes = _write_model_to_csv_bytes(
-                    db=db,
-                    model=model,
-                    company_id=company_id,
-                    company_user_ids=company_user_ids,
-                )
-                zf.writestr(f"{table_name}.csv", csv_bytes)
-                tables_exported += 1
-            except Exception as exc:
-                import traceback
-                error_details = f"Exception: {exc}\n\nTraceback:\n{traceback.format_exc()}"
-                zf.writestr(f"{table_name}.ERROR.txt", error_details)
-                try:
-                    db.rollback()
-                except Exception:
-                    pass
-
-    buffer.seek(0)
-
-    # Record audit log (best-effort): the backup was generated for download.
-    try:
-        company = db.query(Company).filter(Company.id == company_id).first()
-        create_audit_log(
-            db=db,
-            current_user=current_user,
-            instance=company or current_user,
-            action="BACKUP",
-            request=request,
-            new_data={
-                "format": "csv",
-                "company_id": company_id,
-                "tables_exported": tables_exported,
-            },
-            custom_message=f"downloaded CSV backup (tables: {tables_exported})",
-        )
-    except Exception:
-        # Never break backup download because of audit logging.
-        pass
+        # Record audit log (best-effort): the backup was generated for download.
+        try:
+            company = db.query(Company).filter(Company.id == company_id).first()
+            create_audit_log(
+                db=db,
+                current_user=current_user,
+                instance=company or current_user,
+                action="BACKUP",
+                request=request,
+                new_data={
+                    "format": "csv",
+                    "company_id": company_id,
+                    "tables_exported": tables_exported,
+                },
+                custom_message=f"downloaded CSV backup (tables: {tables_exported})",
+            )
+        except Exception:
+            pass
 
     return StreamingResponse(
-        buffer,
+        zip_generator(),
         media_type="application/zip",
         headers={"Content-Disposition": f'attachment; filename="{filename}"'},
     )

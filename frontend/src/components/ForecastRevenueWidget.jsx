@@ -16,7 +16,7 @@ const timeRanges = [
 
 
 
-const ForecastRevenueWidget = () => {
+const ForecastRevenueWidget = ({ dashboardLoading }) => {
 
   const [range, setRange] = useState("month");
   const [customStart, setCustomStart] = useState("");
@@ -90,7 +90,18 @@ const ForecastRevenueWidget = () => {
   let customPipelineStages = [];
   let customWeightedForecast = 0;
 
-  if (data) {
+  // If loading, always show zero/empty data
+  if (dashboardLoading) {
+    sampleData = Array(12).fill(0);
+    forecastData = Array(12).fill(0);
+    pipelineStages = [];
+    weightedForecast = 0;
+    customLabels = [];
+    customSampleData = [];
+    customForecastData = [];
+    customPipelineStages = [];
+    customWeightedForecast = 0;
+  } else if (data) {
     // If custom, expect backend to return .labels, .actuals, .forecasts, .weighted_forecasts_by_month, .pipeline for the custom range
     if (range === "custom" && data.labels && Array.isArray(data.labels)) {
       customLabels = data.labels;
@@ -204,7 +215,12 @@ const ForecastRevenueWidget = () => {
   let previousForecast = null;
   let growth = null;
   let totalForecast = 0;
-  if (isCustom) {
+  if (dashboardLoading) {
+    nextPeriodForecast = 0;
+    previousForecast = 0;
+    growth = null;
+    totalForecast = 0;
+  } else if (isCustom) {
     // Next period: after last label
     nextPeriodForecast = customForecastData.length > 1 ? customForecastData[customForecastData.length - 1] : null;
     previousForecast = customForecastData.length > 2 ? customForecastData[customForecastData.length - 2] : null;
@@ -388,10 +404,12 @@ const ForecastRevenueWidget = () => {
         <div>
           <span className="text-gray-500 text-xs">Next Period</span>
           <div className="text-2xl font-bold text-violet-700">
-            {nextPeriodForecast != null ? (
+            {dashboardLoading ? (
+              <span className="text-gray-400">—</span>
+            ) : nextPeriodForecast != null ? (
               `₱${nextPeriodForecast.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
             ) : (
-              <div className="text-gray-400 text-2xl font-bold">—</div>
+              <span className="text-gray-400">—</span>
             )}
           </div>
         </div>
@@ -466,7 +484,11 @@ const ForecastRevenueWidget = () => {
                   Weighted Forecast:
                 </td>
                 <td className="py-1 px-2 text-xs font-bold text-green-700 text-left min-w-[120px]">
-                  ₱{Number(isCustom ? customWeightedForecast : weightedForecast).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  {dashboardLoading ? (
+                    <span className="text-gray-400">—</span>
+                  ) : (
+                    `₱${Number(isCustom ? customWeightedForecast : weightedForecast).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                  )}
                 </td>
               </tr>
             </tbody>

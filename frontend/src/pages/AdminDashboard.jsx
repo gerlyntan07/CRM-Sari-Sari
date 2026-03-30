@@ -434,6 +434,10 @@ const RevenueChart = ({ revenueData, loading }) => {
           <IconArrowRight size={14} className="transform -rotate-45" />
         </span>
       </div>
+      {/* Info note for users about Closed Won filter, above the chart */}
+      <div className="w-full flex justify-center mb-2">
+        <span className="text-xs text-gray-500 italic text-center">Only <span className="font-semibold text-green-700">Closed Won</span> deals are counted in this chart</span>
+      </div>
       <div className="h-80 relative flex-1 flex items-center justify-center p-6">
         <div className="w-full h-full flex items-center justify-start lg:justify-center overflow-x-auto sm:overflow-x-hidden">
           {xAxisData && xAxisData.length > 0 && yAxisData && yAxisData.length > 0 ? (
@@ -692,7 +696,7 @@ const ActivityItem = ({ type, title, assignedTo, dueDate, scheduledDate, priorit
       )}
 
       <div className="flex-grow">
-        <p className="font-medium text-gray-800 flex items-center mb-1">
+        <p className="font-bold text-sm text-gray-900 flex items-center mb-1">
           {title || 'Untitled Activity'}
         </p>
 
@@ -1067,7 +1071,7 @@ const AdminDashboard = () => {
                   <RevenueChart revenueData={revenueData} loading={loading} />
                   {/* Forecasted Revenue Widget */}
                   <div className="mt-0">
-                    <ForecastRevenueWidget data={revenueData} />
+                    <ForecastRevenueWidget dashboardLoading={loading} />
                   </div>
                 </div>
 
@@ -1132,7 +1136,7 @@ const AdminDashboard = () => {
                   <h2 className={`text-lg font-semibold text-gray-800 mt-2 mb-2 ${activeTab === "revenuePerformance" ? "border-b-2 border-blue-600 inline-block" : ""}`}>Revenue Overview</h2>
                   <RevenueChart revenueData={revenueData} loading={loading} />
                   <div className="mt-0">
-                    <ForecastRevenueWidget data={revenueData} />
+                    <ForecastRevenueWidget dashboardLoading={loading} />
                   </div>
                 </div>
               </>

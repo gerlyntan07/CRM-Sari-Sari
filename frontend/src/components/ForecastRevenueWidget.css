@@ -1,0 +1,9 @@
+/* Make the calendar icon in the date picker show a pointer cursor */
+.date-picker-cursor::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+}
+
+/* For Firefox */
+input[type="date"].date-picker-cursor {
+  cursor: pointer;
+}

@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 from database import get_db
 from models.deal import Deal, DealStage, STAGE_PROBABILITY_MAP
@@ -16,15 +16,32 @@ router = APIRouter(
 def get_forecast_revenue_summary(
 	db: Session = Depends(get_db),
 	current_user: User = Depends(get_current_user),
-	range_param: str = "month"
+	range_param: str = "month",
+	start_date: str = Query(None),
+	end_date: str = Query(None)
 ):
-	# Get all deals for the user's company
-	deals = db.query(Deal).join(User, Deal.assigned_to == User.id)
-	deals = deals.filter(User.related_to_company == current_user.related_to_company)
-	deals = deals.filter(Deal.status != "Inactive")
-	deals = deals.all()
 
-	# Pipeline breakdown by stage
+	# Parse custom date range if provided
+	date_filter = None
+	if range_param == "custom" and start_date and end_date:
+		try:
+			start_dt = datetime.strptime(start_date, "%Y-%m-%d")
+			end_dt = datetime.strptime(end_date, "%Y-%m-%d")
+			date_filter = (start_dt, end_dt)
+		except Exception:
+			date_filter = None
+
+	# Get all deals for the user's company, filter by date if custom
+	deals_query = db.query(Deal).join(User, Deal.assigned_to == User.id)
+	deals_query = deals_query.filter(User.related_to_company == current_user.related_to_company)
+	deals_query = deals_query.filter(Deal.status != "Inactive")
+	if date_filter:
+		deals_query = deals_query.filter(Deal.close_date != None)
+		deals_query = deals_query.filter(Deal.close_date >= date_filter[0], Deal.close_date <= date_filter[1])
+	deals = deals_query.all()
+
+
+	# Pipeline breakdown by stage (filtered deals)
 	pipeline = {}
 	for stage in DealStage:
 		stage_deals = [d for d in deals if d.stage == stage.value]
@@ -36,12 +53,14 @@ def get_forecast_revenue_summary(
 			"weighted": expected * probability
 		}
 
+
 	# Weighted forecast
 	weighted_forecast = sum(v["weighted"] for v in pipeline.values())
 
+
 	# Actual and forecast revenue by month (for chart)
 	# For demo: group by close_date month, sum amount for Closed Won
-	actuals = db.query(
+	actuals_query = db.query(
 		extract('month', Deal.close_date).label('month'),
 		func.sum(Deal.amount).label('revenue')
 	).filter(
@@ -50,8 +69,11 @@ def get_forecast_revenue_summary(
 		Deal.close_date != None,
 		User.related_to_company == current_user.related_to_company
 	).join(User, Deal.assigned_to == User.id)
-	actuals = actuals.group_by('month').all()
+	if date_filter:
+		actuals_query = actuals_query.filter(Deal.close_date >= date_filter[0], Deal.close_date <= date_filter[1])
+	actuals = actuals_query.group_by('month').all()
 	actuals_dict = {int(a.month): float(a.revenue) for a in actuals}
+
 
 	# Advanced: Try Prophet, fallback to regression, then fallback to open deals
 	forecasts_dict = {}
@@ -83,7 +105,7 @@ def get_forecast_revenue_summary(
 				forecasts_dict[i] = max(0, float(forecast))
 		else:
 			fallback = {i: 0.0 for i in range(1, 13)}
-			forecasts = db.query(
+			forecasts_query = db.query(
 				extract('month', Deal.close_date).label('month'),
 				func.sum(Deal.amount).label('revenue')
 			).filter(
@@ -92,7 +114,9 @@ def get_forecast_revenue_summary(
 				Deal.close_date != None,
 				User.related_to_company == current_user.related_to_company
 			).join(User, Deal.assigned_to == User.id)
-			forecasts = forecasts.group_by('month').all()
+			if date_filter:
+				forecasts_query = forecasts_query.filter(Deal.close_date >= date_filter[0], Deal.close_date <= date_filter[1])
+			forecasts = forecasts_query.group_by('month').all()
 			for f in forecasts:
 				fallback[int(f.month)] = float(f.revenue)
 			forecasts_dict = fallback

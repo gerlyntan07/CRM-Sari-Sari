@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
+import "./ForecastRevenueWidget.css";
 import { Line } from "react-chartjs-2";
-import { FiTrendingUp, FiTrendingDown, FiInfo, FiChevronUp, FiChevronDown } from "react-icons/fi";
+import { FiTrendingUp, FiTrendingDown, FiInfo, FiChevronUp, FiChevronDown, FiX } from "react-icons/fi";
 
 const monthLabels = [
   "Jan", "Feb", "Mar", "Apr", "May", "Jun",
@@ -9,15 +10,17 @@ const monthLabels = [
 
 // timeRanges: Used for the time range dropdown (not yet connected to data)
 const timeRanges = [
-  { label: "This Month", value: "month" },
-  { label: "This Quarter", value: "quarter" },
   { label: "This Year", value: "year" },
+  { label: "Custom", value: "custom" },
 ];
 
 
 
 const ForecastRevenueWidget = () => {
+
   const [range, setRange] = useState("month");
+  const [customStart, setCustomStart] = useState("");
+  const [customEnd, setCustomEnd] = useState("");
   const [showInfo, setShowInfo] = useState(false);
   const [showPipeline, setShowPipeline] = useState(true);
   const [loading, setLoading] = useState(true);
@@ -30,7 +33,11 @@ const ForecastRevenueWidget = () => {
 
     const fetchData = () => {
       setError(null);
-      fetch(`/api/forecast-revenue/summary?range_param=${range}`, { credentials: 'include' })
+      let url = `/api/forecast-revenue/summary?range_param=${range}`;
+      if (range === "custom" && customStart && customEnd) {
+        url += `&start_date=${customStart}&end_date=${customEnd}`;
+      }
+      fetch(url, { credentials: 'include' })
         .then(async (res) => {
           const text = await res.text();
           if (!res.ok) {
@@ -50,64 +57,108 @@ const ForecastRevenueWidget = () => {
         });
     };
 
-    fetchData();
-    intervalId = setInterval(fetchData, 5000); // auto-refresh every 5 seconds
+    // If custom, only fetch if both dates are set; clear data if not
+    if (range === "custom") {
+      if (customStart && customEnd) {
+        fetchData();
+        intervalId = setInterval(fetchData, 5000);
+      } else {
+        setData(null);
+        setError(null);
+      }
+    } else {
+      fetchData();
+      intervalId = setInterval(fetchData, 5000);
+    }
 
     return () => {
       isMounted = false;
       clearInterval(intervalId);
     };
-  }, [range]);
+  }, [range, customStart, customEnd]);
 
-  // Prepare chart data
+
+  // --- Dynamic Data Preparation for Custom Range ---
   let sampleLabels = monthLabels;
   let sampleData = Array(12).fill(null);
   let forecastData = Array(12).fill(null);
   let pipelineStages = [];
   let weightedForecast = 0;
+  let customLabels = [];
+  let customSampleData = [];
+  let customForecastData = [];
+  let customPipelineStages = [];
+  let customWeightedForecast = 0;
+
   if (data) {
-    // Actuals
-    sampleData = monthLabels.map((_, i) => data.actuals && data.actuals[i+1] ? data.actuals[i+1] : null);
-    // Forecasts (use weighted values if available)
-    if (data.weighted_forecasts_by_month) {
-      forecastData = monthLabels.map((_, i) => data.weighted_forecasts_by_month[i+1] ? data.weighted_forecasts_by_month[i+1] : null);
-    } else if (data.forecasts) {
-      // fallback: try to use weighted value from pipeline if available for current month, excluding CLOSED_WON
-      forecastData = monthLabels.map((_, i) => {
-        if (i === (new Date()).getMonth() && data.pipeline) {
-          // sum of weighted values for all stages except CLOSED_WON
-          return Object.entries(data.pipeline)
-            .filter(([stage]) => stage !== 'CLOSED_WON')
-            .reduce((sum, [, v]) => sum + (v.weighted || 0), 0);
-        }
-        return data.forecasts && data.forecasts[i+1] ? data.forecasts[i+1] : null;
-      });
+    // If custom, expect backend to return .labels, .actuals, .forecasts, .weighted_forecasts_by_month, .pipeline for the custom range
+    if (range === "custom" && data.labels && Array.isArray(data.labels)) {
+      customLabels = data.labels;
+      customSampleData = data.actuals ? data.labels.map((label, i) => data.actuals[i+1] ?? null) : [];
+      if (data.weighted_forecasts_by_month) {
+        customForecastData = data.labels.map((label, i) => data.weighted_forecasts_by_month[i+1] ?? null);
+      } else if (data.forecasts) {
+        customForecastData = data.labels.map((label, i) => data.forecasts[i+1] ?? null);
+      }
+      // Pipeline for custom range
+      const allowedStages = [
+        'PROSPECTING',
+        'QUALIFICATION',
+        'PROPOSAL',
+        'NEGOTIATION',
+        'CLOSED_WON',
+      ];
+      customPipelineStages = Object.entries(data.pipeline || {})
+        .filter(([stage]) => allowedStages.includes(stage))
+        .map(([stage, v]) => ({
+          stage,
+          expected: v.expected,
+          probability: v.probability,
+          weighted: v.weighted,
+        }));
+      customWeightedForecast = data.weighted_forecast || customPipelineStages.filter(s => s.stage !== 'CLOSED_WON').reduce((sum, s) => sum + Number(s.weighted), 0);
+    } else {
+      // Default: use monthLabels
+      sampleData = monthLabels.map((_, i) => data.actuals && data.actuals[i+1] ? data.actuals[i+1] : null);
+      if (data.weighted_forecasts_by_month) {
+        forecastData = monthLabels.map((_, i) => data.weighted_forecasts_by_month[i+1] ? data.weighted_forecasts_by_month[i+1] : null);
+      } else if (data.forecasts) {
+        forecastData = monthLabels.map((_, i) => {
+          if (i === (new Date()).getMonth() && data.pipeline) {
+            return Object.entries(data.pipeline)
+              .filter(([stage]) => stage !== 'CLOSED_WON')
+              .reduce((sum, [, v]) => sum + (v.weighted || 0), 0);
+          }
+          return data.forecasts && data.forecasts[i+1] ? data.forecasts[i+1] : null;
+        });
+      }
+      const allowedStages = [
+        'PROSPECTING',
+        'QUALIFICATION',
+        'PROPOSAL',
+        'NEGOTIATION',
+        'CLOSED_WON',
+      ];
+      pipelineStages = Object.entries(data.pipeline || {})
+        .filter(([stage]) => allowedStages.includes(stage))
+        .map(([stage, v]) => ({
+          stage,
+          expected: v.expected,
+          probability: v.probability,
+          weighted: v.weighted,
+        }));
+      weightedForecast = data.weighted_forecast || pipelineStages.filter(s => s.stage !== 'CLOSED_WON').reduce((sum, s) => sum + Number(s.weighted), 0);
     }
-    // Pipeline: Only show selected stages
-    const allowedStages = [
-      'PROSPECTING',
-      'QUALIFICATION',
-      'PROPOSAL',
-      'NEGOTIATION',
-      'CLOSED_WON',
-    ];
-    pipelineStages = Object.entries(data.pipeline || {})
-      .filter(([stage]) => allowedStages.includes(stage))
-      .map(([stage, v]) => ({
-        stage,
-        expected: v.expected,
-        probability: v.probability,
-        weighted: v.weighted,
-      }));
-    weightedForecast = data.weighted_forecast || pipelineStages.filter(s => s.stage !== 'CLOSED_WON').reduce((sum, s) => sum + Number(s.weighted), 0);
   }
 
+  // Chart data and pipeline for custom or default
+  const isCustom = range === "custom" && customLabels.length > 0;
   const chartData = {
-    labels: sampleLabels,
+    labels: isCustom ? customLabels : sampleLabels,
     datasets: [
       {
         label: "Actual Revenue",
-        data: sampleData,
+        data: isCustom ? customSampleData : sampleData,
         fill: true,
         backgroundColor: "rgba(59,130,246,0.08)",
         borderColor: "#2563eb",
@@ -118,7 +169,7 @@ const ForecastRevenueWidget = () => {
       },
       {
         label: "Forecast Revenue",
-        data: forecastData,
+        data: isCustom ? customForecastData : forecastData,
         fill: false,
         borderColor: "#22c55e",
         borderDash: [6, 6],
@@ -147,24 +198,32 @@ const ForecastRevenueWidget = () => {
     maintainAspectRatio: false,
   };
 
-  // --- Auto-calculated Key Metrics ---
 
-  // Next Period: forecast for the month after the current month
-  const now = new Date();
-  const currentMonthIndex = now.getMonth(); // 0-based: Jan=0
-  const nextPeriodForecast = forecastData[currentMonthIndex + 1] ?? null;
-
-  // Previous Period: forecast for the current month
-  const previousForecast = forecastData[currentMonthIndex] ?? null;
-
-  // Growth: (next - current) / current
-  const growth =
-    nextPeriodForecast != null && previousForecast != null && previousForecast !== 0
-      ? (nextPeriodForecast - previousForecast) / previousForecast
-      : null;
-
-  // Total Forecast: sum of all non-null weighted forecast values
-  const totalForecast = forecastData.filter((v) => v != null).reduce((sum, v) => sum + v, 0);
+  // --- Auto-calculated Key Metrics (Dynamic for Custom) ---
+  let nextPeriodForecast = null;
+  let previousForecast = null;
+  let growth = null;
+  let totalForecast = 0;
+  if (isCustom) {
+    // Next period: after last label
+    nextPeriodForecast = customForecastData.length > 1 ? customForecastData[customForecastData.length - 1] : null;
+    previousForecast = customForecastData.length > 2 ? customForecastData[customForecastData.length - 2] : null;
+    growth =
+      nextPeriodForecast != null && previousForecast != null && previousForecast !== 0
+        ? (nextPeriodForecast - previousForecast) / previousForecast
+        : null;
+    totalForecast = customForecastData.filter((v) => v != null).reduce((sum, v) => sum + v, 0);
+  } else {
+    const now = new Date();
+    const currentMonthIndex = now.getMonth(); // 0-based: Jan=0
+    nextPeriodForecast = forecastData[currentMonthIndex + 1] ?? null;
+    previousForecast = forecastData[currentMonthIndex] ?? null;
+    growth =
+      nextPeriodForecast != null && previousForecast != null && previousForecast !== 0
+        ? (nextPeriodForecast - previousForecast) / previousForecast
+        : null;
+    totalForecast = forecastData.filter((v) => v != null).reduce((sum, v) => sum + v, 0);
+  }
 
   // Remove loading spinner when switching range
   if (error) {
@@ -179,24 +238,73 @@ const ForecastRevenueWidget = () => {
           </h2>
           <button
             className="ml-1 text-blue-500 hover:text-blue-700 focus:outline-none cursor-pointer"
-            title="How is this calculated?"
+            title={showInfo ? "Close info" : "How is this calculated?"}
             onClick={() => setShowInfo((v) => !v)}
-            aria-label="Show explanation"
+            aria-label={showInfo ? "Close info" : "Show explanation"}
           >
-            <FiInfo size={18} />
+            {showInfo ? <FiX size={18} /> : <FiInfo size={18} />}
+          </button>
+          <button
+            className="ml-2 cursor-pointer"
+            onClick={() => setShowPipeline((v) => !v)}
+            aria-label={showPipeline ? "Hide Pipeline Breakdown" : "Show Pipeline Breakdown"}
+            title={showPipeline ? "Hide Pipeline Breakdown" : "Show Pipeline Breakdown"}
+            style={{
+              background: 'none',
+              border: 'none',
+              boxShadow: 'none',
+              padding: 0,
+              borderRadius: 0,
+              lineHeight: 0,
+            }}
+          >
+            {showPipeline ? (
+              <FiChevronUp size={22} className="text-blue-500" style={{ background: 'none', border: 'none', boxShadow: 'none' }} />
+            ) : (
+              <FiChevronDown size={22} className="text-blue-500" style={{ background: 'none', border: 'none', boxShadow: 'none' }} />
+            )}
           </button>
         </div>
-        <select
-          className="border border-gray-300 rounded-lg px-2 py-1 text-xs text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-400 cursor-pointer"
-          value={range}
-          onChange={(e) => setRange(e.target.value)}
-        >
-          {timeRanges.map((opt) => (
-            <option key={opt.value} value={opt.value}>
-              {opt.label}
-            </option>
-          ))}
-        </select>
+        <div className="flex items-center gap-2">
+          <select
+            className="border border-gray-300 rounded-lg px-2 py-1 text-xs text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-400 cursor-pointer"
+            value={range}
+            onChange={(e) => {
+              setRange(e.target.value);
+              if (e.target.value !== "custom") {
+                setCustomStart("");
+                setCustomEnd("");
+              }
+            }}
+          >
+            {timeRanges.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
+              </option>
+            ))}
+          </select>
+          {range === "custom" && (
+            <>
+              <input
+                type="date"
+                className="border border-gray-300 rounded-lg px-2 py-1 text-xs text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-400 date-picker-cursor"
+                value={customStart}
+                onChange={e => setCustomStart(e.target.value)}
+                max={customEnd || undefined}
+                style={{ minWidth: 120 }}
+              />
+              <span className="mx-1 text-xs text-gray-500">to</span>
+              <input
+                type="date"
+                className="border border-gray-300 rounded-lg px-2 py-1 text-xs text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-400 date-picker-cursor"
+                value={customEnd}
+                onChange={e => setCustomEnd(e.target.value)}
+                min={customStart || undefined}
+                style={{ minWidth: 120 }}
+              />
+            </>
+          )}
+        </div>
       </div>
       {/* Explanatory Note & Formula (toggle) - moved above chart */}
       {showInfo && (
@@ -227,7 +335,7 @@ const ForecastRevenueWidget = () => {
                 </tr>
               </thead>
               <tbody>
-                {pipelineStages.map((s, i) => (
+                {(isCustom ? customPipelineStages : pipelineStages).map((s, i) => (
                   <tr key={s.stage} className={i % 2 === 0 ? "bg-white" : "bg-blue-50"}>
                     <td className="py-1 px-2 font-medium text-gray-700">
                       {s.stage === 'PROSPECTING' ? 'Prospecting'
@@ -247,17 +355,20 @@ const ForecastRevenueWidget = () => {
           </div>
           <div className="text-xs text-gray-500">
             <span className="font-semibold">Total Expected Revenue:</span>{" "}
-            {pipelineStages.map((s, i) => (
+            {(isCustom ? customPipelineStages : pipelineStages).map((s, i) => (
               <span key={s.stage}>
                 {i > 0 && ' + '}
                 ₱{Number(s.weighted).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </span>
             ))}
-            {pipelineStages.length > 0 && (
+            {(isCustom ? customPipelineStages : pipelineStages).length > 0 && (
               <>
                 {" = "}
                 <span className="font-bold text-blue-700">
-                  ₱{pipelineStages.reduce((sum, s) => sum + Number(s.weighted), 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  ₱{(isCustom
+                    ? customPipelineStages.reduce((sum, s) => sum + Number(s.weighted), 0)
+                    : pipelineStages.reduce((sum, s) => sum + Number(s.weighted), 0)
+                  ).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </span>
               </>
             )}
@@ -273,7 +384,7 @@ const ForecastRevenueWidget = () => {
         <Line data={chartData} options={chartOptions} />
       </div>
       {/* Key Metrics */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-2">
         <div>
           <span className="text-gray-500 text-xs">Next Period</span>
           <div className="text-2xl font-bold text-violet-700">
@@ -312,33 +423,13 @@ const ForecastRevenueWidget = () => {
         </div>
       </div>
       {/* Pipeline Stage Breakdown (toggle-able, icon only) */}
-      <div className="mb-4">
-        <div className="flex items-center mb-2">
-          <span className="text-xs font-bold text-gray-800 select-none">Pipeline Breakdown</span>
-          <button
-            className="ml-2 cursor-pointer"
-            onClick={() => setShowPipeline((v) => !v)}
-            aria-label={showPipeline ? "Hide Pipeline Breakdown" : "Show Pipeline Breakdown"}
-            title={showPipeline ? "Hide Pipeline Breakdown" : "Show Pipeline Breakdown"}
-            style={{
-              background: 'none',
-              border: 'none',
-              boxShadow: 'none',
-              padding: 0,
-              borderRadius: 0,
-              lineHeight: 0,
-            }}
-          >
-            {showPipeline ? (
-              <FiChevronUp size={22} className="text-blue-500" style={{ background: 'none', border: 'none', boxShadow: 'none' }} />
-            ) : (
-              <FiChevronDown size={22} className="text-blue-500" style={{ background: 'none', border: 'none', boxShadow: 'none' }} />
-            )}
-          </button>
-        </div>
-        {showPipeline && (
+      {showPipeline && (
+        <div className="mb-1">
           <table className="w-full text-xs text-left border rounded-lg overflow-hidden animate-fade-in">
             <thead className="bg-gray-50">
+              <tr>
+                <th colSpan="4" className="py-2 px-2 text-center text-base font-semibold text-gray-800 bg-white">Pipeline Breakdown</th>
+              </tr>
               <tr>
                 <th className="py-1 px-2">Stage</th>
                 <th className="py-1 px-2">Expected</th>
@@ -347,7 +438,7 @@ const ForecastRevenueWidget = () => {
               </tr>
             </thead>
             <tbody>
-              {pipelineStages.map((s, i) => (
+              {(isCustom ? customPipelineStages : pipelineStages).map((s, i) => (
                 <tr
                   key={s.stage}
                   className={i % 2 === 0 ? "bg-white" : "bg-gray-50"}
@@ -375,13 +466,13 @@ const ForecastRevenueWidget = () => {
                   Weighted Forecast:
                 </td>
                 <td className="py-1 px-2 text-xs font-bold text-green-700 text-left min-w-[120px]">
-                  ₱{Number(weightedForecast).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  ₱{Number(isCustom ? customWeightedForecast : weightedForecast).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </td>
               </tr>
             </tbody>
           </table>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 };

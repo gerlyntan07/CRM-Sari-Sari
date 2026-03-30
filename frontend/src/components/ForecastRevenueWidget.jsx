@@ -68,8 +68,21 @@ const ForecastRevenueWidget = () => {
   if (data) {
     // Actuals
     sampleData = monthLabels.map((_, i) => data.actuals && data.actuals[i+1] ? data.actuals[i+1] : null);
-    // Forecasts
-    forecastData = monthLabels.map((_, i) => data.forecasts && data.forecasts[i+1] ? data.forecasts[i+1] : null);
+    // Forecasts (use weighted values if available)
+    if (data.weighted_forecasts_by_month) {
+      forecastData = monthLabels.map((_, i) => data.weighted_forecasts_by_month[i+1] ? data.weighted_forecasts_by_month[i+1] : null);
+    } else if (data.forecasts) {
+      // fallback: try to use weighted value from pipeline if available for current month, excluding CLOSED_WON
+      forecastData = monthLabels.map((_, i) => {
+        if (i === (new Date()).getMonth() && data.pipeline) {
+          // sum of weighted values for all stages except CLOSED_WON
+          return Object.entries(data.pipeline)
+            .filter(([stage]) => stage !== 'CLOSED_WON')
+            .reduce((sum, [, v]) => sum + (v.weighted || 0), 0);
+        }
+        return data.forecasts && data.forecasts[i+1] ? data.forecasts[i+1] : null;
+      });
+    }
     // Pipeline: Only show selected stages
     const allowedStages = [
       'PROSPECTING',
@@ -86,7 +99,7 @@ const ForecastRevenueWidget = () => {
         probability: v.probability,
         weighted: v.weighted,
       }));
-    weightedForecast = data.weighted_forecast || 0;
+    weightedForecast = data.weighted_forecast || pipelineStages.filter(s => s.stage !== 'CLOSED_WON').reduce((sum, s) => sum + Number(s.weighted), 0);
   }
 
   const chartData = {
@@ -135,29 +148,22 @@ const ForecastRevenueWidget = () => {
   };
 
   // --- Auto-calculated Key Metrics ---
-  // Next Period: latest forecast revenue (last non-null in forecastData)
-  const lastForecastIndex = forecastData.map((v) => v != null).lastIndexOf(true);
-  const nextPeriodForecast = lastForecastIndex !== -1 ? forecastData[lastForecastIndex] : null;
 
-  // Previous Period: previous forecast revenue (second to the last non-null in forecastData)
-  let previousForecast = null;
-  if (lastForecastIndex > 0) {
-    // Find previous non-null before lastForecastIndex
-    for (let i = lastForecastIndex - 1; i >= 0; i--) {
-      if (forecastData[i] != null) {
-        previousForecast = forecastData[i];
-        break;
-      }
-    }
-  }
+  // Next Period: forecast for the month after the current month
+  const now = new Date();
+  const currentMonthIndex = now.getMonth(); // 0-based: Jan=0
+  const nextPeriodForecast = forecastData[currentMonthIndex + 1] ?? null;
 
-  // Growth: (latest - previous) / previous
+  // Previous Period: forecast for the current month
+  const previousForecast = forecastData[currentMonthIndex] ?? null;
+
+  // Growth: (next - current) / current
   const growth =
     nextPeriodForecast != null && previousForecast != null && previousForecast !== 0
       ? (nextPeriodForecast - previousForecast) / previousForecast
       : null;
 
-  // Total Forecast: sum of all non-null forecast values
+  // Total Forecast: sum of all non-null weighted forecast values
   const totalForecast = forecastData.filter((v) => v != null).reduce((sum, v) => sum + v, 0);
 
   // Remove loading spinner when switching range
@@ -274,7 +280,7 @@ const ForecastRevenueWidget = () => {
             {nextPeriodForecast != null ? (
               `₱${nextPeriodForecast.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
             ) : (
-              <span className="text-gray-400">—</span>
+              <div className="text-gray-400 text-2xl font-bold">—</div>
             )}
           </div>
         </div>
@@ -291,7 +297,7 @@ const ForecastRevenueWidget = () => {
               </div>
             )
           ) : (
-            <div className="text-gray-400 text-lg">—</div>
+            <div className="text-gray-400 text-2xl font-bold">—</div>
           )}
         </div>
         <div>

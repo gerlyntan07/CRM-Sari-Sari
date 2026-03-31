@@ -5,15 +5,52 @@ from sqlalchemy.orm import Session, joinedload
 from database import SessionLocal
 from jose import jwt, JWTError
 from models.auth import User
-from schemas.auth import UserCreate, UserLogin, UserResponse, EmailCheck, EmailCheckResponse, UserWithCompany
+from schemas.auth import UserCreate, UserLogin, UserResponse, EmailCheck, EmailCheckResponse, UserWithCompany, ForgotPasswordRequest, ForgotPasswordResponse, VerifyOtpRequest, VerifyOtpResponse, ResetPasswordRequest, ResetPasswordResponse
 from .auth_utils import hash_password, verify_password, create_access_token, get_default_avatar
+from .aws_ses_utils import send_otp_email
 import requests, os
-from datetime import datetime, timezone
-import string
+from datetime import datetime, timezone, timedelta
+import random
+import time
 
 router = APIRouter(prefix="/auth", tags=["Auth"])
 
 SECRET_KEY = os.getenv("SECRET_KEY", "defaultsecretkey")
+
+# 🔐 In-memory OTP store with expiration (email -> {otp, timestamp})
+otp_store = {}
+
+def generate_otp() -> str:
+    """Generate a random 6-digit OTP"""
+    return "".join([str(random.randint(0, 9)) for _ in range(6)])
+
+def store_otp(email: str, otp: str, expiration_minutes: int = 1):
+    """Store OTP with expiration timestamp"""
+    otp_store[email] = {
+        "otp": otp,
+        "timestamp": time.time(),
+        "expiration_minutes": expiration_minutes
+    }
+
+def verify_otp(email: str, otp: str) -> bool:
+    """Verify OTP and check if it's expired"""
+    if email not in otp_store:
+        return False
+    
+    stored = otp_store[email]
+    elapsed_minutes = (time.time() - stored["timestamp"]) / 60
+    
+    # Check if expired
+    if elapsed_minutes > stored["expiration_minutes"]:
+        del otp_store[email]
+        return False
+    
+    # Check if OTP matches
+    if stored["otp"] == otp:
+        del otp_store[email]  # Delete after successful verification
+        return True
+    
+    return False
 
 def get_db():
     db = SessionLocal()
@@ -271,3 +308,116 @@ def logout(response: Response):
         path="/",
     )
     return {"detail": "Logged out successfully"}
+
+
+@router.post("/forgot-password", response_model=ForgotPasswordResponse)
+def forgot_password(request: ForgotPasswordRequest, db: Session = Depends(get_db)):
+    """
+    Step 1: Request password reset with email.
+    Generates a 6-digit OTP and sends it via AWS SES email.
+    OTP expires in 1 minute. Returns generic message for security.
+    """
+    # Validate email format
+    if not request.email or "@" not in request.email:
+        return {
+            "detail": "If that email address is in our system, a verification code will be sent to it."
+        }
+    
+    user = db.query(User).filter(User.email == request.email).first()
+    if not user:
+        # Return generic message for security (don't reveal if email exists)
+        return {
+            "detail": "If that email address is in our system, a verification code will be sent to it."
+        }
+    
+    # Check if user has a password (manual auth) - can't reset OAuth accounts
+    if not user.hashed_password:
+        raise HTTPException(
+            status_code=400, 
+            detail="This account uses social login. Please reset your password through your social provider."
+        )
+    
+    # Generate 6-digit OTP
+    otp = generate_otp()
+    store_otp(request.email, otp, expiration_minutes=1)
+    
+    # Send OTP via AWS SES
+    email_sent = send_otp_email(request.email, otp)
+    
+    if email_sent:
+        return {
+            "detail": "If that email address is in our system, a verification code will be sent to it."
+        }
+    else:
+        raise HTTPException(status_code=500, detail="Failed to send verification email. Please try again.")
+
+
+@router.post("/verify-otp", response_model=VerifyOtpResponse)
+def verify_otp_endpoint(request: VerifyOtpRequest, db: Session = Depends(get_db)):
+    """
+    Step 2: Verify the OTP received via email.
+    Returns a reset token if OTP is valid.
+    """
+    # Validate OTP format
+    if not request.otp or len(request.otp) != 6:
+        raise HTTPException(status_code=400, detail="Verification code must be 6 digits.")
+    
+    if not request.otp.isdigit():
+        raise HTTPException(status_code=400, detail="Verification code must contain only numbers.")
+    
+    # Check if user exists
+    user = db.query(User).filter(User.email == request.email).first()
+    if not user:
+        raise HTTPException(status_code=400, detail="User not found. Please request a new verification code.")
+    
+    # Verify OTP
+    if not verify_otp(request.email, request.otp):
+        raise HTTPException(status_code=400, detail="Invalid or expired verification code. Please check and try again or request a new code.")
+    
+    # Create reset token with 15 minute expiration
+    reset_token = create_access_token(
+        {"sub": str(user.id), "email": request.email, "type": "password_reset"},
+        expires_delta=timedelta(minutes=15)
+    )
+    
+    return {
+        "detail": "Verification code accepted. Please reset your password.",
+        "reset_token": reset_token
+    }
+
+
+@router.post("/reset-password", response_model=ResetPasswordResponse)
+def reset_password(request: ResetPasswordRequest, db: Session = Depends(get_db)):
+    """
+    Step 3: Reset password using the reset token from OTP verification.
+    """
+    # Validate password format before processing token
+    if not request.new_password or len(request.new_password) < 8:
+        raise HTTPException(status_code=400, detail="Password must be at least 8 characters long.")
+    
+    try:
+        # Decode the reset token
+        payload = jwt.decode(request.reset_token, SECRET_KEY, algorithms=["HS256"])
+        user_id = int(payload.get("sub"))
+        token_type = payload.get("type")
+        
+        # Verify token is a password reset token
+        if token_type != "password_reset":
+            raise JWTError("Invalid token type")
+    except JWTError:
+        raise HTTPException(status_code=400, detail="Invalid or expired reset token. Please request a new verification code.")
+    
+    # Find user and verify email matches
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=400, detail="User not found. Please try again.")
+    
+    if user.email != request.email:
+        raise HTTPException(status_code=400, detail="Email does not match. Please try again.")
+    
+    # Update password
+    user.hashed_password = hash_password(request.new_password)
+    db.commit()
+    db.refresh(user)
+    
+    return {"detail": "Password reset successfully. You can now log in with your new password."}

@@ -120,3 +120,34 @@ class UserWithTerritories(UserResponse):
 
     class Config:
         orm_mode = True
+
+
+# ✅ For forgot password OTP flow
+class ForgotPasswordRequest(BaseModel):
+    email: EmailStr
+
+
+class ForgotPasswordResponse(BaseModel):
+    detail: str
+
+
+# ✅ For verifying OTP
+class VerifyOtpRequest(BaseModel):
+    email: EmailStr
+    otp: str
+
+
+class VerifyOtpResponse(BaseModel):
+    detail: str
+    reset_token: str
+
+
+# ✅ For reset password with OTP validation
+class ResetPasswordRequest(BaseModel):
+    email: EmailStr
+    reset_token: str
+    new_password: constr(min_length=8)
+
+
+class ResetPasswordResponse(BaseModel):
+    detail: str

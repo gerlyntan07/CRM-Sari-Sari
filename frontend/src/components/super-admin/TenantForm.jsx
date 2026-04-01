@@ -1,0 +1,398 @@
+import React, { useState, useEffect } from "react";
+import currencies from "../../data/currencies.json";
+import CurrencyDropdown from "../CurrencyDropdown";
+import api from "../../api";
+import { toast } from "react-toastify";
+import { Briefcase, DollarSign, Settings, Upload, X, Crown } from "lucide-react";
+
+export default function AddTenantForm({ onClose, onSuccess, editMode = false, initialData = null }) {
+  const [formData, setFormData] = useState({
+    company_name: "",
+    slug: "",
+    company_number: "",
+    company_website: "",
+    address: "",
+    currency: "₱",
+    quota_period: "January",
+    tax_rate: 0,
+    vat_registration_number: "",
+    tax_id_number: "",
+    is_subscription_active: true,
+    calendar_start_day: "Monday",
+    backup_reminder: "Daily",
+    fiscal_year_start: "January",
+  });
+
+  useEffect(() => {
+    if (editMode && initialData) {
+      setFormData({ ...initialData });
+    }
+  }, [editMode, initialData]);
+
+  const [loading, setLoading] = useState(false);
+
+  const handleChange = (e) => {
+    const { name, value, type, checked, files } = e.target;
+
+    if (name === "company_logo") {
+      setFormData({ ...formData, company_logo: files[0] });
+    } else if (type === "checkbox") {
+      setFormData({ ...formData, [name]: checked });
+    } else if (name === "company_name") {
+      // Auto-generate slug from the initials of each word in company name
+      const initials = value
+        .split(/\s+/)
+        .filter(Boolean)
+        .map(word => (word[0] || "").toUpperCase())
+        .join("");
+      setFormData({ ...formData, company_name: value, slug: initials });
+    } else {
+      setFormData({ ...formData, [name]: value });
+    }
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+
+    try {
+      const data = new FormData();
+      Object.entries(formData).forEach(([key, value]) => {
+        if (value !== "" && value !== null && value !== undefined) {
+          data.append(key, value);
+        }
+      });
+
+      if (editMode && initialData && initialData.id) {
+        await api.put(`/admin/tenants/${initialData.id}`, data, {
+          headers: { "Content-Type": "multipart/form-data" },
+        });
+        toast.success("Tenant updated successfully!");
+      } else {
+        await api.post("/admin/tenants", data, {
+          headers: { "Content-Type": "multipart/form-data" },
+        });
+        toast.success("Tenant added successfully!");
+      }
+      onSuccess?.();
+      onClose?.();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || (editMode ? "Failed to update tenant" : "Failed to add tenant"));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const input =
+    "w-full rounded-lg border border-gray-300/50 px-4 py-2.5 text-sm bg-white/50 backdrop-blur-sm hover:border-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 outline-none transition duration-200";
+
+  const label = "text-sm font-medium text-gray-700";
+
+  return (
+    <div className="fixed inset-0 bg-black flex items-center justify-center p-4 z-50">
+
+      {/* MODAL */}
+      <div className="bg-white rounded-3xl max-w-4xl w-full p-8 max-h-[90vh] overflow-y-auto" style={{ boxShadow: 'none' }}>
+
+        {/* HEADER */}
+        <div className="flex justify-between items-start mb-8 pb-6 border-b border-gray-100">
+          <div>
+            <h2 className="text-2xl font-bold text-gray-900">
+              {editMode ? 'Edit Tenant' : 'Add New Tenant'}
+            </h2>
+            <p className="text-sm text-gray-500 mt-2">
+              {editMode ? 'Update tenant company information.' : 'Create a new tenant workspace for your platform.'}
+            </p>
+          </div>
+
+          <button
+            onClick={onClose}
+            className="text-gray-400 hover:text-gray-600 transition hover:bg-gray-100 rounded-full p-1 w-10 h-10 flex items-center justify-center"
+          >
+            <X size={24} />
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-6">
+
+          {/* COMPANY CARD */}
+          <div className="bg-gradient-to-br from-blue-50/50 to-white border border-gray-100 rounded-2xl p-6">
+            <div className="flex items-center gap-3 mb-5">
+              <Briefcase size={24} className="text-blue-600" />
+              <h3 className="font-bold text-gray-900 text-lg">
+                Company Information
+              </h3>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+
+
+              <div>
+                <label className={label}>
+                  Company Name <span className="text-red-500">*</span>
+                </label>
+                <input
+                  name="company_name"
+                  value={formData.company_name}
+                  onChange={handleChange}
+                  required
+                  placeholder="e.g., Acme Corp"
+                  className={input}
+                />
+              </div>
+
+              <div>
+                <label className={label}>
+                  Company Number <span className="text-red-500">*</span>
+                </label>
+                <input
+                  name="company_number"
+                  value={formData.company_number}
+                  onChange={handleChange}
+                  required
+                  placeholder="e.g., 12345678"
+                  className={input}
+                />
+              </div>
+
+              <div>
+                <label className={label}>Slug</label>
+                <input
+                  name="slug"
+                  value={formData.slug}
+                  readOnly
+                  placeholder="Auto-generated from company name"
+                  className={input + " bg-gray-100 cursor-not-allowed"}
+                  tabIndex={-1}
+                />
+              </div>
+
+              <div>
+                <label className={label}>Website</label>
+                <input
+                  type="url"
+                  name="company_website"
+                  value={formData.company_website}
+                  onChange={handleChange}
+                  placeholder="https://example.com"
+                  className={input}
+                />
+              </div>
+
+              <div className="md:col-span-2">
+                <label className={label}>Address</label>
+                <input
+                  name="address"
+                  value={formData.address}
+                  onChange={handleChange}
+                  placeholder="123 Main Street, City, Country"
+                  className={input}
+                />
+              </div>
+
+              {/* LOGO UPLOAD */}
+              <div className="md:col-span-2">
+                <label className={`${label} mb-3 block`}>
+                  Company Logo
+                </label>
+
+                <label className="flex items-center justify-center border-2 border-dashed border-gray-300 hover:border-blue-400 rounded-xl p-8 cursor-pointer transition duration-200 bg-gray-50/50 hover:bg-blue-50/30">
+                  <div className="text-center">
+                    <Upload size={32} className="mx-auto mb-2 text-gray-400" />
+                    <span className="text-sm font-medium text-gray-600">
+                      Click to upload logo
+                    </span>
+                    <span className="text-xs text-gray-400 block mt-1">PNG, JPG up to 5MB</span>
+                  </div>
+                  <input
+                    type="file"
+                    name="company_logo"
+                    onChange={handleChange}
+                    className="hidden"
+                  />
+                </label>
+              </div>
+
+            </div>
+          </div>
+
+          {/* FINANCIAL CARD */}
+          <div className="bg-gradient-to-br from-emerald-50/50 to-white border border-gray-100 rounded-2xl p-6">
+            <div className="flex items-center gap-3 mb-5">
+              <DollarSign size={24} className="text-emerald-600" />
+              <h3 className="font-bold text-gray-900 text-lg">
+                Financial Information
+              </h3>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+
+              <div>
+                <label className={label}>Currency</label>
+                <CurrencyDropdown
+                  currencies={currencies}
+                  value={formData.currency}
+                  onChange={(code) => setFormData({ ...formData, currency: code })}
+                  disabled={loading}
+                />
+              </div>
+
+              <div>
+                <label className={label}>Tax Rate (%)</label>
+                <input
+                  type="number"
+                  name="tax_rate"
+                  value={formData.tax_rate}
+                  onChange={handleChange}
+                  placeholder="0"
+                  className={input}
+                />
+              </div>
+
+              <div>
+                <label className={label}>Fiscal Year Start</label>
+                <select
+                  name="fiscal_year_start"
+                  value={formData.fiscal_year_start}
+                  onChange={handleChange}
+                  className={input}
+                >
+                  <option>January</option>
+                  <option>February</option>
+                  <option>March</option>
+                  <option>April</option>
+                  <option>May</option>
+                  <option>June</option>
+                  <option>July</option>
+                  <option>August</option>
+                  <option>September</option>
+                  <option>October</option>
+                  <option>November</option>
+                  <option>December</option>
+                </select>
+              </div>
+
+              <div>
+                <label className={label}>
+                  VAT Registration
+                </label>
+                <input
+                  name="vat_registration_number"
+                  value={formData.vat_registration_number}
+                  onChange={handleChange}
+                  placeholder="e.g., VAT123456"
+                  className={input}
+                />
+              </div>
+
+            </div>
+            <div className="mt-5">
+              <label className={label}>Tax ID</label>
+              <input
+                name="tax_id_number"
+                value={formData.tax_id_number}
+                onChange={handleChange}
+                placeholder="e.g., TIN987654"
+                className={input}
+              />
+            </div>
+          </div>
+
+          {/* SETTINGS */}
+          <div className="bg-gradient-to-br from-purple-50/50 to-white border border-gray-100 rounded-2xl p-6">
+            <div className="flex items-center gap-3 mb-5">
+              <Settings size={24} className="text-purple-600" />
+              <h3 className="font-bold text-gray-900 text-lg">
+                Workspace Settings
+              </h3>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+
+              <div>
+                <label className={label}>
+                  Calendar Start Day
+                </label>
+
+                <select
+                  name="calendar_start_day"
+                  value={formData.calendar_start_day}
+                  onChange={handleChange}
+                  className={input}
+                >
+                  <option>Monday</option>
+                  <option>Sunday</option>
+                </select>
+              </div>
+
+              <div>
+                <label className={label}>
+                  Backup Reminder
+                </label>
+
+                <select
+                  name="backup_reminder"
+                  value={formData.backup_reminder}
+                  onChange={handleChange}
+                  className={input}
+                >
+                  <option>Daily</option>
+                  <option>Weekly</option>
+                  <option>Monthly</option>
+                  <option>Quarterly</option>
+                  <option>Yearly</option>
+                </select>
+              </div>
+
+            </div>
+          </div>
+
+          {/* SUBSCRIPTION CARD */}
+          <div className="bg-gradient-to-br from-amber-50/50 to-white border border-gray-100 rounded-2xl p-6">
+            <div className="flex items-center gap-3 mb-5">
+              <Crown size={24} className="text-amber-600" />
+              <h3 className="font-bold text-gray-900 text-lg">
+                Subscription Status
+              </h3>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                name="is_subscription_active"
+                checked={formData.is_subscription_active}
+                onChange={handleChange}
+                className="h-5 w-5 accent-blue-600 cursor-pointer"
+              />
+              <span className="text-sm font-medium text-gray-700">
+                {formData.is_subscription_active ? "Active" : "Inactive"}
+              </span>
+            </div>
+          </div>
+
+          {/* BUTTONS */}
+
+          <div className="flex justify-end gap-3 pt-6 border-t border-gray-100">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-6 py-2.5 rounded-lg border border-gray-200 text-gray-700 font-medium hover:bg-gray-50 transition duration-200"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="px-6 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-semibold border border-blue-600 shadow transition duration-200 disabled:opacity-50"
+              disabled={loading}
+            >
+              {loading
+                ? (editMode ? 'Saving...' : 'Adding...')
+                : (editMode ? 'Save Changes' : 'Add Tenant')}
+            </button>
+          </div>
+
+        </form>
+      </div>
+    </div>
+  );
+}

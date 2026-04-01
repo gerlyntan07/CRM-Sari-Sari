@@ -46,7 +46,7 @@ export default function CurrencyDropdown({ currencies, value, onChange, disabled
               <span className="truncate">{selectedCurrency.country}</span>
             </>
           ) : (
-            <span className="text-gray-400">Select Currency</span>
+            <span className="text-gray-400 text-sm font-normal">Select Currency</span>
           )}
         </span>
         <svg

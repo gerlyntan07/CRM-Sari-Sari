@@ -1,6 +1,7 @@
 import { NavLink } from "react-router-dom";
-import { FiHome, FiLogOut, FiSettings, FiChevronDown, FiUsers, FiUserPlus } from "react-icons/fi";
+import { FiHome, FiLogOut, FiSettings, FiChevronDown, FiUsers, FiUserPlus, FiRefreshCw, FiVolume2, FiHelpCircle, FiShield, FiActivity, FiSliders } from "react-icons/fi";
 import { useState } from "react";
+import { toast } from "react-toastify";
 import useAuth from '../hooks/useAuth.js';
 
 const activeLink =
@@ -12,6 +13,10 @@ export default function SuperAdminSidebar() {
   const [userMgmtOpen, setUserMgmtOpen] = useState(false);
   const { logout } = useAuth();
 
+  const handleFutureFeature = (featureName) => {
+    toast.info(`${featureName} is currently unavailable. This feature is under development and will be available soon.`);
+  };
+
   return (
     <div className="w-64 min-h-screen bg-[#1e293b] text-white flex flex-col shadow-lg">
       {/* Logo */}
@@ -20,8 +25,10 @@ export default function SuperAdminSidebar() {
         <p className="text-xs text-red-100 font-medium m-0 p-0">System Management</p>
       </div>
 
+
       {/* Nav */}
-      <nav className="flex-1 overflow-y-auto p-4 space-y-2">
+      <nav className="flex-1 overflow-y-auto p-4 space-y-2" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+        <style>{`nav::-webkit-scrollbar { display: none; }`}</style>
         <NavLink
           to="/super-admin/dashboard"
           className={({ isActive }) => (isActive ? activeLink : normalLink)}
@@ -30,7 +37,72 @@ export default function SuperAdminSidebar() {
           <span>Tenants Dashboard</span>
         </NavLink>
 
-        {/* User Management Dropdown */}
+
+
+        {/* Impersonate User */}
+        <div
+          onClick={() => handleFutureFeature('Impersonate User')}
+          className={normalLink + " cursor-pointer"}
+        >
+          <FiUserPlus className="text-lg" />
+          <span>Impersonate User</span>
+        </div>
+
+        {/* Export/Import Data */}
+        <div
+          onClick={() => handleFutureFeature('Export/Import Data')}
+          className={normalLink + " cursor-pointer"}
+        >
+          <FiRefreshCw className="text-lg" />
+          <span>Export/Import Data</span>
+        </div>
+
+        {/* Announcements */}
+        <div
+          onClick={() => handleFutureFeature('Announcements')}
+          className={normalLink + " cursor-pointer"}
+        >
+          <FiVolume2 className="text-lg" />
+          <span>Announcements</span>
+        </div>
+
+        {/* Support & Issues */}
+        <div
+          onClick={() => handleFutureFeature('Support & Issues')}
+          className={normalLink + " cursor-pointer"}
+        >
+          <FiHelpCircle className="text-lg" />
+          <span>Support & Issues</span>
+        </div>
+
+        {/* Security */}
+        <div
+          onClick={() => handleFutureFeature('Security')}
+          className={normalLink + " cursor-pointer"}
+        >
+          <FiShield className="text-lg" />
+          <span>Security</span>
+        </div>
+
+        {/* System Health */}
+        <div
+          onClick={() => handleFutureFeature('System Health')}
+          className={normalLink + " cursor-pointer"}
+        >
+          <FiActivity className="text-lg" />
+          <span>System Health</span>
+        </div>
+
+        {/* Configuration */}
+        <div
+          onClick={() => handleFutureFeature('Configuration')}
+          className={normalLink + " cursor-pointer"}
+        >
+          <FiSliders className="text-lg" />
+          <span>Configuration</span>
+        </div>
+
+        {/* User Management Dropdown (at the end) */}
         <div>
           <button
             className="w-full px-3 py-2 flex justify-between items-center text-sm font-medium text-gray-300 hover:bg-[#334155] rounded-lg transition"

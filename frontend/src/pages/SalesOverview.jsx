@@ -677,45 +677,47 @@ const RevenueChart = ({ revenueData, loading }) => {
           <IconArrowRight size={14} className="transform -rotate-45" />
         </span>
       </div>
-      <div className="h-80 relative flex-1 flex items-center justify-center p-6">
-        <div className="w-full h-full flex items-center justify-center">
+      <div className="h-80 relative flex-1 flex items-center justify-center p-6 overflow-x-auto md:overflow-x-visible">
+        <div className="w-full h-full flex items-center justify-center md:w-auto">
           {xAxisData &&
           xAxisData.length > 0 &&
           yAxisData &&
           yAxisData.length > 0 ? (
-            <LineChart
-              xAxis={[
-                {
-                  data: xAxisData,
-                  scaleType: "point",
-                },
-              ]}
-              yAxis={[
-                {
-                  valueFormatter: (value) => {
-                    if (value >= 1000) {
-                      return `${(value / 1000).toFixed(0)}k`;
-                    }
-                    return value.toString();
+            <div className="min-w-full md:min-w-0 flex items-center justify-center">
+              <LineChart
+                xAxis={[
+                  {
+                    data: xAxisData,
+                    scaleType: "point",
                   },
-                },
-              ]}
-              series={[
-                {
-                  data: yAxisData,
-                  showMark: true,
-                  area: true,
-                },
-              ]}
-              height={320}
-              width={undefined}
-              grid={{ vertical: true, horizontal: true }}
-              margin={{ top: 40, right: 40, bottom: 50, left: 50 }}
-              sx={{
-                width: "100%",
-                maxWidth: "100%",
-              }}
-            />
+                ]}
+                yAxis={[
+                  {
+                    valueFormatter: (value) => {
+                      if (value >= 1000) {
+                        return `${(value / 1000).toFixed(0)}k`;
+                      }
+                      return value.toString();
+                    },
+                  },
+                ]}
+                series={[
+                  {
+                    data: yAxisData,
+                    showMark: true,
+                    area: true,
+                  },
+                ]}
+                height={320}
+                width={xAxisData.length > 8 ? Math.max(800, xAxisData.length * 80) : undefined}
+                grid={{ vertical: true, horizontal: true }}
+                margin={{ top: 40, right: 40, bottom: 50, left: 50 }}
+                sx={{
+                  width: "100%",
+                  maxWidth: "100%",
+                }}
+              />
+            </div>
           ) : (
             <div className="text-center text-gray-500">
               <p className="text-sm">No revenue data available</p>

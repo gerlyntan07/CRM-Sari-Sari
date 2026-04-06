@@ -7,6 +7,7 @@ import LoadingSpinner from '../components/LoadingSpinner';
 import ConfirmationModal from '../components/ConfirmationModal';
 import AddTenantForm from '../components/super-admin/TenantForm';
 import SubscriptionForm from '../components/super-admin/SubscriptionForm';
+import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Cell } from 'recharts';
 
 const SuperAdminDashboard = () => {
   const [stats, setStats] = useState(null);
@@ -223,6 +224,99 @@ const SuperAdminDashboard = () => {
     return matchesSearch;
   });
 
+  const tenantGraphData = Object.values(
+    tenants.reduce((acc, tenant) => {
+      if (!tenant.created_at) return acc;
+
+      const createdDate = new Date(tenant.created_at);
+      if (Number.isNaN(createdDate.getTime())) return acc;
+
+      const monthKey = `${createdDate.getFullYear()}-${String(createdDate.getMonth() + 1).padStart(2, '0')}`;
+      if (!acc[monthKey]) {
+        acc[monthKey] = {
+          monthKey,
+          monthLabel: createdDate.toLocaleString('default', { month: 'short', year: 'numeric' }),
+          tenantCount: 0,
+        };
+      }
+
+      acc[monthKey].tenantCount += 1;
+      return acc;
+    }, {})
+  ).sort((a, b) => a.monthKey.localeCompare(b.monthKey));
+
+  const formatLoginDateTime = (value) => {
+    if (!value) return 'No login yet';
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return 'No login yet';
+    return date.toLocaleString();
+  };
+
+  const latestMonthTenants = tenantGraphData.length
+    ? tenantGraphData[tenantGraphData.length - 1].tenantCount
+    : 0;
+  const avgTenantsPerMonth = tenantGraphData.length
+    ? (tenantGraphData.reduce((sum, row) => sum + row.tenantCount, 0) / tenantGraphData.length).toFixed(1)
+    : '0.0';
+
+  const ACTIVITY_WINDOW_MS = 15 * 24 * 60 * 60 * 1000;
+  const activityWindowLabel = '15d';
+  const tenantUsageData = tenants.map((tenant) => {
+    const users = tenant.users || [];
+    const totalUsers = users.length;
+
+    const recentLogins30d = users.filter((user) => {
+      if (!user.last_login) return false;
+      const loginDate = new Date(user.last_login);
+      if (Number.isNaN(loginDate.getTime())) return false;
+      return Date.now() - loginDate.getTime() <= ACTIVITY_WINDOW_MS;
+    }).length;
+
+    return {
+      id: tenant.id,
+      name: tenant.company_name,
+      totalUsers,
+      recentLogins30d,
+      activityRate: totalUsers ? Math.round((recentLogins30d / totalUsers) * 100) : 0,
+      lastLogin: tenant.latest_last_login,
+    };
+  });
+
+  const getTenantActivityStatus = (tenant) => {
+    if (tenant.recentLogins30d === 0) return 'Inactive';
+    if (tenant.activityRate < 25) return 'Low Activity';
+    return 'Active';
+  };
+
+  const getTenantActivityStatusClasses = (tenant) => {
+    const status = getTenantActivityStatus(tenant);
+    if (status === 'Inactive') return 'bg-rose-200 text-rose-900';
+    if (status === 'Low Activity') return 'bg-amber-200 text-amber-900';
+    return 'bg-emerald-200 text-emerald-900';
+  };
+
+  const byActivityDesc = [...tenantUsageData].sort((a, b) => {
+    if (b.recentLogins30d !== a.recentLogins30d) return b.recentLogins30d - a.recentLogins30d;
+    if (b.activityRate !== a.activityRate) return b.activityRate - a.activityRate;
+    const aTime = a.lastLogin ? new Date(a.lastLogin).getTime() : 0;
+    const bTime = b.lastLogin ? new Date(b.lastLogin).getTime() : 0;
+    return bTime - aTime;
+  });
+
+  const activeAndHealthy = byActivityDesc.filter((tenant) => getTenantActivityStatus(tenant) === 'Active');
+  const notHealthy = [...byActivityDesc]
+    .filter((tenant) => getTenantActivityStatus(tenant) !== 'Active')
+    .sort((a, b) => {
+      if (a.recentLogins30d !== b.recentLogins30d) return a.recentLogins30d - b.recentLogins30d;
+      if (a.activityRate !== b.activityRate) return a.activityRate - b.activityRate;
+      const aTime = a.lastLogin ? new Date(a.lastLogin).getTime() : 0;
+      const bTime = b.lastLogin ? new Date(b.lastLogin).getTime() : 0;
+      return aTime - bTime;
+    });
+
+  const mostActiveTenants = activeAndHealthy.slice(0, 3);
+  const leastActiveTenants = notHealthy.slice(0, 3);
+
   if (loading && !stats) {
     return <LoadingSpinner />;
   }
@@ -287,6 +381,144 @@ const SuperAdminDashboard = () => {
           />
         </div>
       )}
+
+      {/* Tenant Monthly Graph */}
+      <div className="rounded-2xl shadow-lg border border-slate-200 bg-gradient-to-br from-slate-50 via-white to-blue-50/40 p-6 mb-8">
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-4">
+          <div>
+            <div className="inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold bg-blue-100 text-blue-700 mb-2">
+              <FiTrendingUp className="w-3.5 h-3.5" />
+              Tenant Growth Overview
+            </div>
+            <h2 className="text-2xl font-bold text-slate-800">Tenants Per Month</h2>
+            <p className="text-sm text-slate-500 mt-1">
+              Monthly count of newly created tenants and latest login visibility per tenant.
+            </p>
+          </div>
+          <div className="grid grid-cols-3 gap-2 sm:gap-3">
+            <div className="rounded-xl bg-white border border-slate-200 px-3 py-2 text-center">
+              <p className="text-[11px] uppercase tracking-wide text-slate-500">Months</p>
+              <p className="text-lg font-bold text-slate-800">{tenantGraphData.length}</p>
+            </div>
+            <div className="rounded-xl bg-white border border-slate-200 px-3 py-2 text-center">
+              <p className="text-[11px] uppercase tracking-wide text-slate-500">Latest</p>
+              <p className="text-lg font-bold text-slate-800">{latestMonthTenants}</p>
+            </div>
+            <div className="rounded-xl bg-white border border-slate-200 px-3 py-2 text-center">
+              <p className="text-[11px] uppercase tracking-wide text-slate-500">Avg/Month</p>
+              <p className="text-lg font-bold text-slate-800">{avgTenantsPerMonth}</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="text-sm text-gray-500 mb-4">
+          Number of tenants created each month.
+        </div>
+
+        {tenantGraphData.length > 0 ? (
+          <>
+            <div className="h-80 w-full mb-6 rounded-xl border border-slate-200 bg-white p-4">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={tenantGraphData} margin={{ top: 10, right: 20, left: 0, bottom: 60 }}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                  <XAxis
+                    dataKey="monthLabel"
+                    angle={-30}
+                    textAnchor="end"
+                    height={80}
+                    interval={0}
+                    tick={{ fontSize: 12, fill: '#64748b' }}
+                  />
+                  <YAxis
+                    allowDecimals={false}
+                    tick={{ fill: '#64748b' }}
+                    domain={[0, (dataMax) => (dataMax && dataMax > 0 ? dataMax : 1)]}
+                  />
+                  <Tooltip
+                    contentStyle={{ borderRadius: 10, borderColor: '#dbeafe' }}
+                    formatter={(value, key) => {
+                      if (key === 'tenantCount') return [value, 'Tenants'];
+                      return [value, key];
+                    }}
+                    labelFormatter={(label) => `Month: ${label}`}
+                  />
+                  <Bar dataKey="tenantCount" radius={[8, 8, 0, 0]}>
+                    {tenantGraphData.map((entry, index) => (
+                      <Cell key={`${entry.monthKey}-${index}`} fill={index % 2 === 0 ? '#2563eb' : '#3b82f6'} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              <div className="border border-emerald-200 rounded-xl bg-emerald-50/40 overflow-hidden">
+                <div className="px-4 py-3 border-b border-emerald-200 bg-emerald-100/60">
+                  <h3 className="text-sm font-semibold text-emerald-800 uppercase tracking-wide">Most Active Tenants</h3>
+                </div>
+                <div className="divide-y divide-emerald-100">
+                  {mostActiveTenants.length > 0 ? (
+                    mostActiveTenants.map((tenant, index) => (
+                      <div key={tenant.id} className="px-4 py-3">
+                        <div className="flex items-center justify-between gap-2">
+                          <p className="font-medium text-slate-800 truncate">{index + 1}. {tenant.name}</p>
+                          <div className="flex items-center gap-2">
+                            <span className={`text-xs font-semibold px-2 py-1 rounded-full ${getTenantActivityStatusClasses(tenant)}`}>
+                              {getTenantActivityStatus(tenant)}
+                            </span>
+                            <span className="text-xs font-semibold px-2 py-1 rounded-full bg-emerald-200 text-emerald-900">
+                              {tenant.activityRate}% active
+                            </span>
+                          </div>
+                        </div>
+                        <p className="text-xs text-slate-600 mt-1">Recent logins ({activityWindowLabel}): {tenant.recentLogins30d} / {tenant.totalUsers}</p>
+                        <p className="text-xs text-slate-500">Last login: {formatLoginDateTime(tenant.lastLogin)}</p>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="px-4 py-4 text-sm text-slate-500">
+                      No active tenants in this window.
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="border border-rose-200 rounded-xl bg-rose-50/40 overflow-hidden">
+                <div className="px-4 py-3 border-b border-rose-200 bg-rose-100/60">
+                  <h3 className="text-sm font-semibold text-rose-800 uppercase tracking-wide">Least Active Tenants</h3>
+                </div>
+                <div className="divide-y divide-rose-100">
+                  {leastActiveTenants.length > 0 ? (
+                    leastActiveTenants.map((tenant, index) => (
+                      <div key={tenant.id} className="px-4 py-3">
+                        <div className="flex items-center justify-between gap-2">
+                          <p className="font-medium text-slate-800 truncate">{index + 1}. {tenant.name}</p>
+                          <div className="flex items-center gap-2">
+                            <span className={`text-xs font-semibold px-2 py-1 rounded-full ${getTenantActivityStatusClasses(tenant)}`}>
+                              {getTenantActivityStatus(tenant)}
+                            </span>
+                            <span className="text-xs font-semibold px-2 py-1 rounded-full bg-rose-200 text-rose-900">
+                              {tenant.activityRate}% active
+                            </span>
+                          </div>
+                        </div>
+                        <p className="text-xs text-slate-600 mt-1">Recent logins ({activityWindowLabel}): {tenant.recentLogins30d} / {tenant.totalUsers}</p>
+                        <p className="text-xs text-slate-500">Last login: {formatLoginDateTime(tenant.lastLogin)}</p>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="px-4 py-4 text-sm text-slate-500">
+                      No distinct least-active tenants yet. Add more tenants to compare activity.
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </>
+        ) : (
+          <p className="text-sm text-slate-500">No tenant activity data available yet.</p>
+        )}
+      </div>
 
       {/* Subscription Alerts */}
       {subscriptionAlerts && subscriptionAlerts.total_alerts > 0 && (
@@ -895,9 +1127,12 @@ const SuperAdminDashboard = () => {
                           <span className="text-xs text-gray-500 mt-1">
                             Last login: {user.last_login ? new Date(user.last_login).toLocaleDateString() : '—'}
                           </span>
+                          <span className="text-xs text-gray-500 mt-1">
+                            Login location: {user.last_login_location || 'Unavailable'}
+                          </span>
                         </div>
                       </div>
-                      <div className="flex flex-wrap items-center gap-2 mt-2 sm:mt-0 ml-0 sm:ml-2 sm:static absolute right-2 top-2 sm:relative">
+                      <div className="flex flex-wrap items-center gap-2 mt-2 sm:mt-0 ml-0 sm:ml-2 absolute right-2 top-2 sm:relative">
                         <button
                           className={`p-2 rounded hover:bg-gray-200 ${user.is_active ? 'text-orange-500' : 'text-green-600'} cursor-pointer`}
                           title={user.is_active ? 'Deactivate User' : 'Reactivate User'}

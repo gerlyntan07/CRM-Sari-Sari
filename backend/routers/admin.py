@@ -6,6 +6,7 @@ from database import SessionLocal
 from models.auth import User, UserRole
 from models.company import Company
 from models.subscription import Subscription, StatusList
+from models.auditlog import Auditlog
 from jose import jwt, JWTError
 from typing import List
 from datetime import datetime, timedelta, timezone
@@ -54,6 +55,18 @@ def get_all_tenants(
         joinedload(Company.users),
         joinedload(Company.plan)
     ).all()
+
+    user_ids = [user.id for company in companies for user in company.users]
+    latest_login_logs = {}
+    if user_ids:
+        login_logs = db.query(Auditlog).filter(
+            Auditlog.user_id.in_(user_ids),
+            Auditlog.action == "LOGIN"
+        ).order_by(Auditlog.timestamp.desc()).all()
+
+        for log in login_logs:
+            if log.user_id not in latest_login_logs:
+                latest_login_logs[log.user_id] = log
     
     tenants_data = []
     for company in companies:
@@ -63,6 +76,14 @@ def get_all_tenants(
         
         # Get subscription info
         subscription = company.plan[0] if company.plan else None
+
+        company_logins = [
+            (u.last_login, latest_login_logs.get(u.id))
+            for u in company.users
+            if u.last_login is not None
+        ]
+        company_logins.sort(key=lambda item: item[0], reverse=True)
+        latest_company_login = company_logins[0] if company_logins else None
         
         tenant_info = {
             "id": company.id,
@@ -79,6 +100,8 @@ def get_all_tenants(
             "updated_at": company.updated_at,
             "total_users": total_users,
             "active_users": active_users,
+            "latest_last_login": latest_company_login[0] if latest_company_login else None,
+            "latest_last_login_location": latest_company_login[1].ip_address if latest_company_login and latest_company_login[1] else None,
             "subscription": {
                 "plan_name": subscription.plan_name if subscription else None,
                 "status": subscription.status if subscription else None,
@@ -95,6 +118,7 @@ def get_all_tenants(
                     "is_active": u.is_active,
                     "created_at": u.created_at,
                     "last_login": u.last_login,
+                    "last_login_location": latest_login_logs.get(u.id).ip_address if latest_login_logs.get(u.id) else None,
                 } for u in company.users
             ]
         }
@@ -121,8 +145,28 @@ def get_tenant_details(
     
     if not company:
         raise HTTPException(status_code=404, detail="Tenant not found")
+
+    user_ids = [u.id for u in company.users]
+    latest_login_logs = {}
+    if user_ids:
+        login_logs = db.query(Auditlog).filter(
+            Auditlog.user_id.in_(user_ids),
+            Auditlog.action == "LOGIN"
+        ).order_by(Auditlog.timestamp.desc()).all()
+
+        for log in login_logs:
+            if log.user_id not in latest_login_logs:
+                latest_login_logs[log.user_id] = log
     
     subscription = company.plan[0] if company.plan else None
+
+    company_logins = [
+        (u.last_login, latest_login_logs.get(u.id))
+        for u in company.users
+        if u.last_login is not None
+    ]
+    company_logins.sort(key=lambda item: item[0], reverse=True)
+    latest_company_login = company_logins[0] if company_logins else None
     
     return {
         "id": company.id,
@@ -136,6 +180,8 @@ def get_tenant_details(
         "tax_rate": float(company.tax_rate) if company.tax_rate else 0,
         "created_at": company.created_at,
         "updated_at": company.updated_at,
+        "latest_last_login": latest_company_login[0] if latest_company_login else None,
+        "latest_last_login_location": latest_company_login[1].ip_address if latest_company_login and latest_company_login[1] else None,
         "subscription": {
             "plan_name": subscription.plan_name if subscription else None,
             "status": subscription.status if subscription else None,
@@ -155,6 +201,7 @@ def get_tenant_details(
                 "auth_provider": u.auth_provider,
                 "created_at": u.created_at,
                 "last_login": u.last_login,
+                "last_login_location": latest_login_logs.get(u.id).ip_address if latest_login_logs.get(u.id) else None,
             } for u in company.users
         ]
     }

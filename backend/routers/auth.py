@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session, joinedload
 from database import SessionLocal
 from jose import jwt, JWTError
 from models.auth import User
+from models.auditlog import Auditlog
 from schemas.auth import UserCreate, UserLogin, UserResponse, EmailCheck, EmailCheckResponse, UserWithCompany, ForgotPasswordRequest, ForgotPasswordResponse, VerifyOtpRequest, VerifyOtpResponse, ResetPasswordRequest, ResetPasswordResponse
 from .auth_utils import hash_password, verify_password, create_access_token, get_default_avatar
 from .aws_ses_utils import send_otp_email
@@ -58,6 +59,20 @@ def get_db():
         yield db
     finally:
         db.close()
+
+
+def log_login_event(db: Session, db_user: User, request: Request):
+    login_log = Auditlog(
+        description=f"LOGIN User (ID: {db_user.id})",
+        user_id=db_user.id,
+        name=f"{db_user.first_name} {db_user.last_name}",
+        action="LOGIN",
+        entity_type="User",
+        entity_id=str(db_user.id),
+        ip_address=request.client.host if request and request.client else None,
+        success=True,
+    )
+    db.add(login_log)
 
 from fastapi import Request
 from sqlalchemy.orm import joinedload
@@ -143,7 +158,7 @@ def signup(user: UserCreate, response: Response, db: Session = Depends(get_db)):
 
 # Manual login
 @router.post("/login", response_model=UserResponse)
-def login(user: UserLogin, response: Response, db: Session = Depends(get_db)):
+def login(user: UserLogin, response: Response, request: Request, db: Session = Depends(get_db)):
     db_user = db.query(User).options(joinedload(User.company)).filter(User.email == user.email).first()
     if not db_user or not db_user.hashed_password:
         raise HTTPException(status_code=400, detail="Invalid credentials")
@@ -159,6 +174,7 @@ def login(user: UserLogin, response: Response, db: Session = Depends(get_db)):
         raise HTTPException(status_code=403, detail="Company subscription has been suspended. Please contact support or your administrator.")
     
     db_user.last_login = datetime.now(timezone.utc)
+    log_login_event(db, db_user, request)
     db.commit()
     db.refresh(db_user)
 
@@ -181,7 +197,7 @@ def login(user: UserLogin, response: Response, db: Session = Depends(get_db)):
 
 # Google OAuth login
 @router.post("/google/login", response_model=UserResponse)
-def google_login(token: dict, response: Response, db: Session = Depends(get_db)):
+def google_login(token: dict, response: Response, request: Request, db: Session = Depends(get_db)):
     id_token = token.get("id_token")
     company_id = token.get("company_id")
     if not id_token:
@@ -224,6 +240,11 @@ def google_login(token: dict, response: Response, db: Session = Depends(get_db))
     # Check if company subscription is active
     if db_user.company and not db_user.company.is_subscription_active:
         raise HTTPException(status_code=403, detail="Company subscription has been suspended. Please contact support or your administrator.")
+
+    db_user.last_login = datetime.now(timezone.utc)
+    log_login_event(db, db_user, request)
+    db.commit()
+    db.refresh(db_user)
 
     token = create_access_token({"sub": str(db_user.id)})
 

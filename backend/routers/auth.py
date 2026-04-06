@@ -13,6 +13,7 @@ import requests, os
 from datetime import datetime, timezone, timedelta
 import random
 import time
+from services.subscription_lifecycle import apply_trial_lifecycle
 
 router = APIRouter(prefix="/auth", tags=["Auth"])
 
@@ -100,6 +101,16 @@ def get_me(request: Request, db: Session = Depends(get_db)):
     # Check if company subscription is active
     if user.company and not user.company.is_subscription_active:
         raise HTTPException(status_code=403, detail="Company subscription has been suspended. Please contact support or your administrator.")
+        # Trial lifecycle / free-tier access rule
+    if user.related_to_company:
+        subscription_status = apply_trial_lifecycle(db, user.related_to_company)
+        if subscription_status.get("is_free_tier") and (user.role or "").strip().upper() != "CEO":
+            raise HTTPException(
+                status_code=403,
+                detail="This organization is currently on the Free tier. Only the tenant (CEO) can log in.",
+            )
+        setattr(user, "subscription_status", subscription_status)
+
     
     return user
 
@@ -172,6 +183,15 @@ def login(user: UserLogin, response: Response, request: Request, db: Session = D
     # Check if company subscription is active
     if db_user.company and not db_user.company.is_subscription_active:
         raise HTTPException(status_code=403, detail="Company subscription has been suspended. Please contact support or your administrator.")
+      # Trial lifecycle / free-tier access rule
+    if db_user.related_to_company:
+        subscription_status = apply_trial_lifecycle(db, db_user.related_to_company)
+        if subscription_status.get("is_free_tier") and (db_user.role or "").strip().upper() != "CEO":
+            raise HTTPException(
+                status_code=403,
+                detail="This organization is currently on the Free tier. Only the tenant (CEO) can log in.",
+            )
+        setattr(db_user, "subscription_status", subscription_status)
     
     db_user.last_login = datetime.now(timezone.utc)
     log_login_event(db, db_user, request)
@@ -240,7 +260,16 @@ def google_login(token: dict, response: Response, request: Request, db: Session 
     # Check if company subscription is active
     if db_user.company and not db_user.company.is_subscription_active:
         raise HTTPException(status_code=403, detail="Company subscription has been suspended. Please contact support or your administrator.")
-
+  # Trial lifecycle / free-tier access rule
+    if db_user.related_to_company:
+        subscription_status = apply_trial_lifecycle(db, db_user.related_to_company)
+        if subscription_status.get("is_free_tier") and (db_user.role or "").strip().upper() != "CEO":
+            raise HTTPException(
+                status_code=403,
+                detail="This organization is currently on the Free tier. Only the tenant (CEO) can log in.",
+            )
+        setattr(db_user, "subscription_status", subscription_status)
+        
     db_user.last_login = datetime.now(timezone.utc)
     log_login_event(db, db_user, request)
     db.commit()
@@ -304,6 +333,11 @@ def google_signup(token: dict, response: Response, db: Session = Depends(get_db)
     # Check if user is active
     if not db_user.is_active:
         raise HTTPException(status_code=403, detail="Your account has been deactivated. Please contact your administrator.")
+    
+    if db_user.related_to_company:
+        subscription_status = apply_trial_lifecycle(db, db_user.related_to_company)
+        setattr(db_user, "subscription_status", subscription_status)
+
 
     token = create_access_token({"sub": str(db_user.id)})
 
@@ -329,6 +363,25 @@ def logout(response: Response):
         path="/",
     )
     return {"detail": "Logged out successfully"}
+
+
+@router.get("/subscription-status")
+def get_subscription_status(request: Request, db: Session = Depends(get_db)):
+    access_token = request.cookies.get("access_token")
+    if not access_token:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+
+    try:
+        payload = jwt.decode(access_token, SECRET_KEY, algorithms=["HS256"])
+        user_id = int(payload.get("sub"))
+    except JWTError:
+        raise HTTPException(status_code=401, detail="Invalid token")
+
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    return apply_trial_lifecycle(db, user.related_to_company)
 
 
 @router.post("/forgot-password", response_model=ForgotPasswordResponse)

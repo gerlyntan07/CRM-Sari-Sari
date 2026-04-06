@@ -30,6 +30,15 @@ const SuperAdminDashboard = () => {
   const [showEditSubscription, setShowEditSubscription] = useState(false);
   // For delete tenant modal
   const [deleteTenantModal, setDeleteTenantModal] = useState({ open: false, tenant: null, loading: false });
+  // For per-tenant notify composer
+  const [notifyModal, setNotifyModal] = useState({
+    open: false,
+    tenantId: null,
+    tenantName: '',
+    recipients: '',
+    subject: '',
+    message: '',
+  });
 
   useEffect(() => {
     fetchStats();
@@ -259,8 +268,10 @@ const SuperAdminDashboard = () => {
     ? (tenantGraphData.reduce((sum, row) => sum + row.tenantCount, 0) / tenantGraphData.length).toFixed(1)
     : '0.0';
 
-  const ACTIVITY_WINDOW_MS = 15 * 24 * 60 * 60 * 1000;
-  const activityWindowLabel = '15d';
+  const useAngledMonthLabels = tenantGraphData.length > 6;
+
+  const ACTIVITY_WINDOW_MS = 1 * 60 * 1000; // Test window
+  const activityWindowLabel = '1m';
   const tenantUsageData = tenants.map((tenant) => {
     const users = tenant.users || [];
     const totalUsers = users.length;
@@ -316,6 +327,57 @@ const SuperAdminDashboard = () => {
 
   const mostActiveTenants = activeAndHealthy.slice(0, 3);
   const leastActiveTenants = notHealthy.slice(0, 3);
+
+  const openNotifyComposerForTenant = (tenant) => {
+    const matchedTenant = tenants.find((t) => t.id === tenant.id);
+    const isTenantAdmin = (user) => {
+      const role = (user?.role || '').toString().trim().toLowerCase();
+      return role === 'ceo' || role === 'tenant admin' || role === 'administrator';
+    };
+
+    const tenantAdminEmails = [
+      ...new Set(
+        (matchedTenant?.users || [])
+          .filter(isTenantAdmin)
+          .map((user) => user.email)
+          .filter(Boolean)
+      ),
+    ];
+
+    if (!tenantAdminEmails.length) {
+      toast.info('No tenant admin email found for this tenant.');
+      return;
+    }
+
+    setNotifyModal({
+      open: true,
+      tenantId: tenant.id,
+      tenantName: tenant.name,
+      recipients: tenantAdminEmails.join(', '),
+      subject: `Action needed: ${tenant.name} activity is low (${activityWindowLabel})`,
+      message: `Hi ${tenant.name} Admin,\n\nOur records show low activity in your tenant within the last ${activityWindowLabel}.\nPlease log in and continue your workflow.\n\nThanks,\nCRM Admin`,
+    });
+  };
+
+  const sendTenantNotificationEmail = () => {
+    const recipients = notifyModal.recipients
+      .split(',')
+      .map((item) => item.trim())
+      .filter(Boolean);
+
+    if (!recipients.length) {
+      toast.info('No tenant admin recipient is configured.');
+      return;
+    }
+
+    const bcc = encodeURIComponent(recipients.join(','));
+    const subject = encodeURIComponent(notifyModal.subject || 'Low activity notice');
+    const body = encodeURIComponent(notifyModal.message || '');
+
+    window.location.href = `mailto:?bcc=${bcc}&subject=${subject}&body=${body}`;
+    toast.success(`Opening email composer for ${notifyModal.tenantName}.`);
+    setNotifyModal({ open: false, tenantId: null, tenantName: '', recipients: '', subject: '', message: '' });
+  };
 
   if (loading && !stats) {
     return <LoadingSpinner />;
@@ -417,15 +479,15 @@ const SuperAdminDashboard = () => {
 
         {tenantGraphData.length > 0 ? (
           <>
-            <div className="h-80 w-full mb-6 rounded-xl border border-slate-200 bg-white p-4">
+            <div className="h-72 w-full mb-6 rounded-xl border border-slate-200 bg-white p-4">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={tenantGraphData} margin={{ top: 10, right: 20, left: 0, bottom: 60 }}>
+                <BarChart data={tenantGraphData} margin={{ top: 10, right: 20, left: 0, bottom: 12 }}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
                   <XAxis
                     dataKey="monthLabel"
-                    angle={-30}
-                    textAnchor="end"
-                    height={80}
+                    angle={useAngledMonthLabels ? -30 : 0}
+                    textAnchor={useAngledMonthLabels ? 'end' : 'middle'}
+                    height={useAngledMonthLabels ? 65 : 30}
                     interval={0}
                     tick={{ fontSize: 12, fill: '#64748b' }}
                   />
@@ -484,7 +546,7 @@ const SuperAdminDashboard = () => {
               </div>
 
               <div className="border border-rose-200 rounded-xl bg-rose-50/40 overflow-hidden">
-                <div className="px-4 py-3 border-b border-rose-200 bg-rose-100/60">
+                <div className="px-4 py-3 border-b border-rose-200 bg-rose-100/60 flex items-center justify-between gap-2">
                   <h3 className="text-sm font-semibold text-rose-800 uppercase tracking-wide">Least Active Tenants</h3>
                 </div>
                 <div className="divide-y divide-rose-100">
@@ -493,13 +555,20 @@ const SuperAdminDashboard = () => {
                       <div key={tenant.id} className="px-4 py-3">
                         <div className="flex items-center justify-between gap-2">
                           <p className="font-medium text-slate-800 truncate">{index + 1}. {tenant.name}</p>
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-2 flex-wrap justify-end">
                             <span className={`text-xs font-semibold px-2 py-1 rounded-full ${getTenantActivityStatusClasses(tenant)}`}>
                               {getTenantActivityStatus(tenant)}
                             </span>
                             <span className="text-xs font-semibold px-2 py-1 rounded-full bg-rose-200 text-rose-900">
                               {tenant.activityRate}% active
                             </span>
+                            <button
+                              type="button"
+                              onClick={() => openNotifyComposerForTenant(tenant)}
+                              className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-rose-600 text-white hover:bg-rose-700 transition"
+                            >
+                              Notify
+                            </button>
                           </div>
                         </div>
                         <p className="text-xs text-slate-600 mt-1">Recent logins ({activityWindowLabel}): {tenant.recentLogins30d} / {tenant.totalUsers}</p>
@@ -1193,6 +1262,73 @@ const SuperAdminDashboard = () => {
       onConfirm={handleConfirmAction}
       onCancel={handleCancelAction}
     />
+
+    {notifyModal.open && (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl">
+          <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+            <h3 className="text-lg font-semibold text-gray-800">Notify {notifyModal.tenantName}</h3>
+            <button
+              type="button"
+              className="text-gray-500 hover:text-gray-700"
+              onClick={() => setNotifyModal({ open: false, tenantId: null, tenantName: '', recipients: '', subject: '', message: '' })}
+            >
+              ✕
+            </button>
+          </div>
+
+          <div className="px-6 py-4 space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Recipients (comma separated)</label>
+              <input
+                type="text"
+                value={notifyModal.recipients}
+                readOnly
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 bg-gray-100 text-gray-600 cursor-not-allowed"
+                placeholder="user1@email.com, user2@email.com"
+              />
+              <p className="text-xs text-gray-500 mt-1">Recipients are fixed to tenant admin email(s).</p>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Subject</label>
+              <input
+                type="text"
+                value={notifyModal.subject}
+                onChange={(e) => setNotifyModal((prev) => ({ ...prev, subject: e.target.value }))}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Message</label>
+              <textarea
+                value={notifyModal.message}
+                onChange={(e) => setNotifyModal((prev) => ({ ...prev, message: e.target.value }))}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 min-h-[140px]"
+              />
+            </div>
+          </div>
+
+          <div className="px-6 py-4 border-t border-gray-200 flex justify-end gap-2">
+            <button
+              type="button"
+              className="px-4 py-2 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200"
+              onClick={() => setNotifyModal({ open: false, tenantId: null, tenantName: '', recipients: '', subject: '', message: '' })}
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              className="px-4 py-2 rounded-lg bg-rose-600 text-white hover:bg-rose-700"
+              onClick={sendTenantNotificationEmail}
+            >
+              Send Email
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
   </div>
   );
 };

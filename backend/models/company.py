@@ -27,6 +27,9 @@ class Company(Base):
     is_subscription_active = Column(Boolean, default=True, nullable=False)  # New field for subscription status
     calendar_start_day = Column(String, default=CalendarStartCategory.MONDAY.value, nullable=True)
 
+    # Tenant number: 12-digit randomized, auto-generated
+    tenant_number = Column(String(12), unique=True, nullable=False)
+
     # Backup reminder frequency (Daily, Weekly, Monthly, etc.)
     backup_reminder = Column(String, default="Daily", nullable=True)
 

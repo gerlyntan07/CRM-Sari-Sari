@@ -10,6 +10,7 @@ class CompanyBase(BaseModel):
     company_website: Optional[HttpUrl] = None
     company_logo: Optional[str] = None
     address: Optional[str] = None
+    tenant_number: Optional[str] = None  # 12-digit tenant number
 
 class CompanyCreate(CompanyBase):
     pass
@@ -33,6 +34,7 @@ class CompanyUpdate(BaseModel):
 
 class CompanyResponse(CompanyBase):
     id: int
+    tenant_number: str
     # ✅ UPDATE: Add these so the Frontend can read the saved settings
     currency: Optional[str] = "₱"
     quota_period: Optional[str] = "January"

@@ -178,6 +178,15 @@ def create_company(
     db: Session = Depends(get_db)
 ):    
     """Creates a new company record."""
+    import random
+    def generate_tenant_number():
+        return ''.join([str(random.randint(0, 9)) for _ in range(12)])
+
+    # Ensure uniqueness of tenant_number
+    tenant_number = generate_tenant_number()
+    while db.query(Company).filter(Company.tenant_number == tenant_number).first():
+        tenant_number = generate_tenant_number()
+
     new_company = Company(
         company_name=company_in.company_name,
         slug=_short_name_from_company(company_in.company_name) or None,
@@ -186,9 +195,10 @@ def create_company(
         # Default values for new companies
         currency="₱",
         quota_period="January",
-        tax_rate=0
+        tax_rate=0,
+        tenant_number=tenant_number
     )
-    
+
     db.add(new_company)
     db.commit()
     db.refresh(new_company)

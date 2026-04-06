@@ -71,7 +71,7 @@ class CompanyBase(BaseModel):
     class Config:
         orm_mode = True
 class CompanyOut(CompanyBase):
-    pass
+    tenant_number: Optional[str] = None
 
 class UserWithCompany(UserBase):
     id: int

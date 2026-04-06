@@ -13,6 +13,7 @@ import { getFlagEmoji } from "../utils/flagEmoji";
 import CurrencyDropdown from "./CurrencyDropdown";
 
 export default function AdminCompanyDetails() {
+    const [tenantNumber, setTenantNumber] = useState("");
   const { user, mutate } = useFetchUser();
   const fileInputRef = useRef(null);
   
@@ -49,6 +50,7 @@ export default function AdminCompanyDetails() {
   useEffect(() => {
     if (user?.company) {
       if (user.company.company_name) setCompanyName(user.company.company_name);
+      if (user.company.tenant_number) setTenantNumber(user.company.tenant_number);
       if (user.company.slug) setCompanySlug(user.company.slug);
       if (user.company.currency) setCurrency(user.company.currency);
       if (user.company.quota_period) setQuotaPeriod(user.company.quota_period);
@@ -264,6 +266,20 @@ export default function AdminCompanyDetails() {
 
             {/* Left Column - Company Information */}
             <div className="lg:col-span-3 space-y-4">
+              {/* Tenant Number (Read-only) */}
+              <div>
+                <label className="flex items-center gap-2 text-gray-700 font-medium mb-2 text-sm">
+                  <span className="text-blue-600">#</span> Tenant Number
+                </label>
+                <input
+                  type="text"
+                  value={tenantNumber}
+                  readOnly
+                  className="w-full px-4 py-2 border border-gray-300 rounded-md bg-gray-100 text-gray-700 cursor-not-allowed"
+                  style={{ letterSpacing: "2px" }}
+                />
+                <p className="text-xs text-gray-500 mt-1">Auto-generated, unique for your organization.</p>
+              </div>
 
               {/* Company Name */}
               <div>

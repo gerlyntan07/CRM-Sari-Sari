@@ -7,6 +7,7 @@ import os
 from fastapi import Depends, HTTPException, Request
 from models.auth import User
 import string
+from services.subscription_lifecycle import apply_trial_lifecycle
 
 def get_db():
     db = SessionLocal()
@@ -56,6 +57,20 @@ def get_current_user(request: Request, db: Session = Depends(get_db)):
     # Check if user is active
     if not user.is_active:
         raise HTTPException(status_code=403, detail="Your account has been deactivated. Please contact your administrator.")
+
+    # Trial lifecycle / plan enforcement
+    if user.related_to_company:
+        subscription_status = apply_trial_lifecycle(db, user.related_to_company)
+
+        # Free tier: only the tenant (CEO) can access the account
+        if subscription_status.get("is_free_tier") and (user.role or "").strip().upper() != "CEO":
+            raise HTTPException(
+                status_code=403,
+                detail="This organization is currently on the Free tier. Only the tenant (CEO) can log in."
+            )
+
+        # Attach dynamic subscription status for downstream handlers
+        setattr(user, "subscription_status", subscription_status)
 
     return user
 

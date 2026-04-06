@@ -1,19 +1,16 @@
 #backend/routers/subscription.py
-from fastapi import APIRouter, Depends, HTTPException, Response, Cookie, Request
-from fastapi.responses import JSONResponse
-from sqlalchemy.orm import Session, joinedload
+from fastapi import APIRouter, Depends, HTTPException, Response
+from sqlalchemy.orm import Session
 from database import SessionLocal
-from jose import jwt, JWTError
-from models.subscription import Subscription
+from models.subscription import Subscription, PlanName, StatusList
+from models.company import Company
 from schemas.subscription import SubscriptionCreate, SubscriptionResponse
-from .auth_utils import hash_password, verify_password, create_access_token, get_default_avatar
-import requests, os
-from datetime import datetime, timezone
-import string
+from .auth_utils import get_current_user
+from models.auth import User
+from datetime import timedelta
+from services.subscription_lifecycle import apply_trial_lifecycle, utc_now
 
 router = APIRouter(prefix="/subscription", tags=["Subscription"])
-
-SECRET_KEY = os.getenv("SECRET_KEY", "defaultsecretkey")
 
 def get_db():
     db = SessionLocal()
@@ -22,19 +19,82 @@ def get_db():
     finally:
         db.close()
 
-
-from fastapi import Request
-from sqlalchemy.orm import joinedload
-
 @router.post("/subscribe", response_model=SubscriptionResponse)
-def subscribe(user: SubscriptionCreate, response: Response, db: Session = Depends(get_db)):    
-    new_subscriber = Subscription(
-        company_id=user.company_id,
-        plan_name=user.plan_name,
-        price=user.price,
-        status="Active",        
+def subscribe(user: SubscriptionCreate, response: Response, db: Session = Depends(get_db)):
+    company = db.query(Company).filter(Company.id == user.company_id).first()
+    if not company:
+        raise HTTPException(status_code=404, detail="Company not found")
+
+    now = utc_now()
+    incoming_plan = (user.plan_name or "").strip()
+    incoming_plan_lower = incoming_plan.lower()
+
+    # If signup sends Free, we convert to a 15-day Pro trial by default.
+    if incoming_plan_lower == PlanName.FREE.value.lower():
+        normalized_plan_name = PlanName.PRO.value
+        normalized_status = StatusList.TRIAL.value
+        price = 0.0
+        is_trial = True
+        start_date = now
+        end_date = now + timedelta(minutes=1)
+    else:
+        allowed_plans = {
+            PlanName.BASIC.value.lower(): PlanName.BASIC.value,
+            PlanName.STARTER.value.lower(): PlanName.STARTER.value,
+            PlanName.PRO.value.lower(): PlanName.PRO.value,
+            PlanName.ENTERPRISE.value.lower(): PlanName.ENTERPRISE.value,
+        }
+        if incoming_plan_lower not in allowed_plans:
+            raise HTTPException(status_code=400, detail="Unsupported plan name")
+
+        normalized_plan_name = allowed_plans[incoming_plan_lower]
+        normalized_status = user.status or StatusList.ACTIVE.value
+        price = user.price
+        is_trial = False
+        start_date = user.start_date or now
+        end_date = user.end_date or (now + timedelta(days=30))
+
+    latest_subscription = (
+        db.query(Subscription)
+        .filter(Subscription.company_id == user.company_id)
+        .order_by(Subscription.created_at.desc(), Subscription.id.desc())
+        .first()
     )
-    db.add(new_subscriber)
+
+    if latest_subscription:
+        latest_subscription.plan_name = normalized_plan_name
+        latest_subscription.price = price
+        latest_subscription.status = normalized_status
+        latest_subscription.is_trial = is_trial
+        latest_subscription.start_date = start_date
+        latest_subscription.end_date = end_date
+        latest_subscription.trial_notification_sent_at = None
+        latest_subscription.downgraded_to_free_at = None
+        latest_subscription.updated_at = now
+        subscription = latest_subscription
+    else:
+        subscription = Subscription(
+            company_id=user.company_id,
+            plan_name=normalized_plan_name,
+            price=price,
+            status=normalized_status,
+            is_trial=is_trial,
+            start_date=start_date,
+            end_date=end_date,
+        )
+        db.add(subscription)
+
+    # Keep company active unless explicitly suspended by super admin flows.
+    company.is_subscription_active = True
+
     db.commit()
-    db.refresh(new_subscriber)    
-    return new_subscriber
+    db.refresh(subscription)
+    return subscription
+
+
+@router.get("/current")
+def current_subscription_status(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    return apply_trial_lifecycle(db, current_user.related_to_company)

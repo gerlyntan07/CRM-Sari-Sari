@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { NavLink, Outlet, useLocation } from "react-router-dom";
+import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import {
   FiHome,
   FiUsers,
@@ -25,6 +25,7 @@ import { LuMapPin } from "react-icons/lu";
 import { HiOutlineOfficeBuilding } from "react-icons/hi";
 import { toast } from "react-toastify";
 import AdminHeader from "./AdminHeader";
+import SubscriptionBanner from "./SubscriptionBanner";
 import useFetchUser from "../hooks/useFetchUser";
 
 export default function AdminPanel() {
@@ -35,7 +36,9 @@ export default function AdminPanel() {
   const [marketingOpen, setMarketingOpen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false); // mobile sidebar
   const location = useLocation();
+  const navigate = useNavigate();
   const { user } = useFetchUser();
+  const isFreeTier = Boolean(user?.subscription_status?.is_free_tier);
 
   useEffect(() => {
     user && console.log("Fetched user:", user);
@@ -62,6 +65,33 @@ export default function AdminPanel() {
       setSalesOpen(true);
     }
   }, [location.pathname]);
+
+  useEffect(() => {
+    if (!isFreeTier) return;
+
+    const restrictedPrefixes = [
+      "/admin/deals",
+      "/admin/quotes",
+      "/admin/soas",
+      "/admin/targets",
+      "/admin/tasks",
+      "/admin/calls",
+      "/admin/meetings",
+      "/admin/calendar",
+      "/admin/audit",
+      "/admin/users",
+      "/admin/territory",
+    ];
+
+    const isRestricted = restrictedPrefixes.some((prefix) =>
+      location.pathname.startsWith(prefix)
+    );
+
+    if (isRestricted) {
+      toast.info("You are on the Free tier. Some Pro features are unavailable.");
+      navigate("/admin/dashboard", { replace: true });
+    }
+  }, [isFreeTier, location.pathname, navigate]);
 
   const activeLink =
     "flex items-center gap-3 px-3 py-2 rounded-lg bg-white text-tertiary font-semibold shadow-sm";
@@ -380,6 +410,7 @@ export default function AdminPanel() {
           className="flex-1 p-6 overflow-auto hide-scrollbar"
           style={{ backgroundColor: "var(--color-paper-white)" }}
         >
+          <SubscriptionBanner />
           <Outlet />
         </main>
       </div>

@@ -17,6 +17,7 @@ import {
   FiMonitor,
 } from "react-icons/fi";
 import TechnicalSupportHeader from "./TechnicalSupportHeader";
+import SubscriptionBanner from "./SubscriptionBanner";
 import useFetchUser from "../hooks/useFetchUser";
 
 export default function TechnicalSupportPanel() {
@@ -235,6 +236,9 @@ export default function TechnicalSupportPanel() {
 
         {/* Main Content Area */}
         <main className="flex-1 overflow-y-auto bg-gray-50">
+          <div className="p-4 sm:p-6">
+            <SubscriptionBanner />
+          </div>
           <Outlet />
         </main>
       </div>

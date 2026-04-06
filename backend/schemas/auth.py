@@ -111,6 +111,7 @@ class UserResponse(UserBase):
     related_to_CEO: Optional[int] = None
     manager: Optional[RelatedToCEO] = None
     assigned_territory: List[UserTerritory] = []
+    subscription_status: Optional[dict] = None
 
     class Config:
         orm_mode = True

@@ -8,6 +8,7 @@ import pytz
 from database import SessionLocal
 from models.lead import Lead, LeadStatus
 from models.auditlog import Auditlog
+from services.subscription_lifecycle import process_trial_notifications
 
 
 def delete_old_converted_leads():
@@ -80,6 +81,26 @@ def start_scheduler() -> BackgroundScheduler:
         days=1,
         id="cleanup_audit_logs",
         replace_existing=True
+    )
+
+    def run_trial_subscription_processor():
+        db: Session = SessionLocal()
+        try:
+            processed = process_trial_notifications(db)
+            if processed:
+                print(f"[Subscription Lifecycle] Processed {processed} trial subscriptions.")
+        except Exception as e:
+            print(f"[Subscription Lifecycle Error] {e}")
+            db.rollback()
+        finally:
+            db.close()
+
+    scheduler.add_job(
+        run_trial_subscription_processor,
+        trigger="interval",
+        minutes=1,
+        id="process_trial_subscriptions",
+        replace_existing=True,
     )
 
     scheduler.start()

@@ -98,3 +98,49 @@ def send_otp_email(to_email: str, otp: str):
         # 🔧 Fallback for testing - print OTP to console if AWS SES fails
         print(f"⚠️  TESTING MODE: OTP for {to_email} is: {otp}")
         return True  # Return True to allow testing even if AWS fails
+
+
+def send_trial_ending_soon_email(to_email: str, first_name: str, days_remaining: int):
+    """Send trial ending reminder via AWS SES."""
+    ses = boto3.client("ses", region_name=os.getenv("AWS_DEFAULT_REGION"))
+
+    subject = f"Your Forekas CRM trial ends in {days_remaining} day(s)"
+    body_text = (
+        f"Hello {first_name},\n\n"
+        f"Your 15-day Pro trial for Forekas CRM ends in {days_remaining} day(s).\n"
+        f"To keep Pro features active, please subscribe to a paid plan before your trial ends.\n\n"
+        "If no plan is selected, your account will automatically move to the Free tier.\n\n"
+        "Best regards,\nForekas CRM Team"
+    )
+
+    body_html = f"""
+    <html>
+    <body>
+        <h3>Hello {first_name},</h3>
+        <p>Your <strong>15-day Pro trial</strong> for Forekas CRM ends in
+        <strong>{days_remaining} day(s)</strong>.</p>
+        <p>To keep Pro features active, please subscribe to a paid plan before your trial ends.</p>
+        <p>If no plan is selected, your account will automatically move to the <strong>Free tier</strong>.</p>
+
+        <p>Best regards,<br>Forekas CRM Team</p>
+    </body>
+    </html>
+    """
+
+    try:
+        ses.send_email(
+            Source="no-reply@forekas.com",
+            Destination={"ToAddresses": [to_email]},
+            Message={
+                "Subject": {"Data": subject},
+                "Body": {
+                    "Text": {"Data": body_text},
+                    "Html": {"Data": body_html},
+                },
+            },
+        )
+        print(f"✅ Trial ending reminder email sent to {to_email}")
+        return True
+    except ClientError as e:
+        print(f"❌ Failed to send trial reminder email to {to_email}: {e.response['Error']['Message']}")
+        return False

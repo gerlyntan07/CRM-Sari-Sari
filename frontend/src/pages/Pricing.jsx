@@ -276,7 +276,7 @@ const faqs = [
     a: "No. You can start using Forekas CRM with full Pro access without entering any payment details.",
   },
   {
-    q: "What happens after 14 days?",
+    q: "What happens after 15 days?",
     a: "You can choose a plan that fits your needs. If not, your account will continue on the Free plan.",
   },
   {
@@ -511,7 +511,7 @@ const Pricing = () => {
           Try Pro — No credit card required
         </h2>
         <div className="max-w-xl mx-auto text-gray-700 space-y-2">
-          <p>✔ Full Pro access for 14 days</p>
+          <p>✔ Full Pro access for 15 days</p>
           <p>✔ No credit card required</p>
           <p>✔ Auto-downgrade to Free if no plan is selected after trial</p>
         </div>

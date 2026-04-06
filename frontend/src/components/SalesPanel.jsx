@@ -26,6 +26,7 @@ import { BiCoinStack } from "react-icons/bi";
 import { LuMapPin } from "react-icons/lu";
 import { HiOutlineOfficeBuilding } from "react-icons/hi";
 import SalesHeader from "./SalesHeader";
+import SubscriptionBanner from "./SubscriptionBanner";
 import useFetchUser from "../hooks/useFetchUser";
 
 export default function SalesPanel() {
@@ -411,6 +412,7 @@ export default function SalesPanel() {
           className="flex-1 p-6 overflow-auto hide-scrollbar"
           style={{ backgroundColor: "var(--color-paper-white)" }}
         >
+          <SubscriptionBanner />
           <Outlet />
         </main>
       </div>

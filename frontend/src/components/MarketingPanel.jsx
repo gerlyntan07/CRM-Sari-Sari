@@ -14,6 +14,7 @@ import {
   FiLayout,
 } from "react-icons/fi";
 import MarketingHeader from "./MarketingHeader";
+import SubscriptionBanner from "./SubscriptionBanner";
 import useFetchUser from "../hooks/useFetchUser";
 
 export default function MarketingPanel() {
@@ -220,6 +221,7 @@ export default function MarketingPanel() {
           className="flex-1 p-6 overflow-auto"
           style={{ backgroundColor: "#fffeee" }}
         >
+          <SubscriptionBanner />
           <Outlet />
         </main>
       </div>

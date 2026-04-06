@@ -24,6 +24,7 @@ import { LuMapPin } from "react-icons/lu";
 import { toast } from "react-toastify";
 import { HiOutlineOfficeBuilding } from "react-icons/hi";
 import TManagerHeader from "./TManagerHeader"; 
+import SubscriptionBanner from "./SubscriptionBanner";
 import useFetchUser from "../hooks/useFetchUser";
 
 export default function TManagerPanel() {
@@ -336,6 +337,7 @@ export default function TManagerPanel() {
           className="flex-1 p-6 overflow-auto hide-scrollbar"
           style={{ backgroundColor: "var(--color-paper-white)" }}
         >
+          <SubscriptionBanner />
           <Outlet />
         </main>
       </div>

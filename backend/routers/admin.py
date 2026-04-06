@@ -278,7 +278,7 @@ def update_subscription_status(
         raise HTTPException(status_code=404, detail="Subscription not found")
     
     new_status = status_data.get("status")
-    if new_status not in [StatusList.ACTIVE.value, StatusList.CANCELLED.value, StatusList.EXPIRED.value]:
+    if new_status not in [StatusList.TRIAL.value, StatusList.ACTIVE.value, StatusList.CANCELLED.value, StatusList.EXPIRED.value]:
         raise HTTPException(status_code=400, detail="Invalid status")
     
     subscription.status = new_status
@@ -309,7 +309,7 @@ def get_subscription_alerts(
     ).filter(
         Subscription.end_date <= warning_date,
         Subscription.end_date > now,
-        Subscription.status == StatusList.ACTIVE.value
+        Subscription.status.in_([StatusList.ACTIVE.value, StatusList.TRIAL.value])
     ).all()
     
     # Already expired but still active
@@ -317,7 +317,7 @@ def get_subscription_alerts(
         joinedload(Subscription.subscriber)
     ).filter(
         Subscription.end_date <= now,
-        Subscription.status == StatusList.ACTIVE.value
+        Subscription.status.in_([StatusList.ACTIVE.value, StatusList.TRIAL.value])
     ).all()
     
     # Recently cancelled
@@ -465,7 +465,7 @@ def get_system_activity(
     
     # Active subscriptions
     active_subscriptions = db.query(Subscription).filter(
-        Subscription.status == StatusList.ACTIVE.value
+        Subscription.status.in_([StatusList.ACTIVE.value, StatusList.TRIAL.value])
     ).count()
     
     return {

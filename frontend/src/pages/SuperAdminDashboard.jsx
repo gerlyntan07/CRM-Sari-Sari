@@ -270,8 +270,8 @@ const SuperAdminDashboard = () => {
 
   const useAngledMonthLabels = tenantGraphData.length > 6;
 
-  const ACTIVITY_WINDOW_MS = 1 * 60 * 1000; // Test window
-  const activityWindowLabel = '1m';
+  const ACTIVITY_WINDOW_MS = 15 * 24 * 60 * 60 * 1000;
+  const activityWindowLabel = '15d';
   const tenantUsageData = tenants.map((tenant) => {
     const users = tenant.users || [];
     const totalUsers = users.length;

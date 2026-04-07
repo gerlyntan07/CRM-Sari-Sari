@@ -67,6 +67,7 @@ export default function SuperAdminSidebar() {
         </div>
 
         {/* Support & Issues */}
+        {/**
         <div
           onClick={() => handleFutureFeature('Support & Issues')}
           className={normalLink + " cursor-pointer"}
@@ -74,8 +75,10 @@ export default function SuperAdminSidebar() {
           <FiHelpCircle className="text-lg" />
           <span>Support & Issues</span>
         </div>
+        */}
 
         {/* Security */}
+        {/**
         <div
           onClick={() => handleFutureFeature('Security')}
           className={normalLink + " cursor-pointer"}
@@ -83,8 +86,10 @@ export default function SuperAdminSidebar() {
           <FiShield className="text-lg" />
           <span>Security</span>
         </div>
+        */}
 
         {/* System Health */}
+        {/**
         <div
           onClick={() => handleFutureFeature('System Health')}
           className={normalLink + " cursor-pointer"}
@@ -92,8 +97,10 @@ export default function SuperAdminSidebar() {
           <FiActivity className="text-lg" />
           <span>System Health</span>
         </div>
+        */}
 
         {/* Configuration */}
+        {/**
         <div
           onClick={() => handleFutureFeature('Configuration')}
           className={normalLink + " cursor-pointer"}
@@ -101,6 +108,7 @@ export default function SuperAdminSidebar() {
           <FiSliders className="text-lg" />
           <span>Configuration</span>
         </div>
+        */}
 
         {/* User Management Dropdown (at the end) */}
         <div>

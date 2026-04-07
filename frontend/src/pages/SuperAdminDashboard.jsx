@@ -7,6 +7,7 @@ import LoadingSpinner from '../components/LoadingSpinner';
 import ConfirmationModal from '../components/ConfirmationModal';
 import AddTenantForm from '../components/super-admin/TenantForm';
 import SubscriptionForm from '../components/super-admin/SubscriptionForm';
+import UserDetailsModal from '../components/super-admin/UserDetailsModal';
 import PaginationControls from '../components/PaginationControls';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Cell } from 'recharts';
 
@@ -45,6 +46,11 @@ const SuperAdminDashboard = () => {
   const [pageSize, setPageSize] = useState(10);
   // For controlled input, allow string or number
   const [pageSizeInput, setPageSizeInput] = useState('10');
+  // For search users in modal
+  const [searchUserTerm, setSearchUserTerm] = useState('');
+  // For user details modal
+  const [selectedUser, setSelectedUser] = useState(null);
+  const [showUserDetailsModal, setShowUserDetailsModal] = useState(false);
 
   useEffect(() => {
     fetchStats();
@@ -245,6 +251,24 @@ const SuperAdminDashboard = () => {
     
     return matchesSearch;
   });
+
+  // Filter users in the tenant details modal (exclude Admin, Technical Support, Marketing Admin roles)
+  const excludedRoles = ['Admin', 'Technical Support', 'Marketing Admin'];
+  const filteredUsers = selectedTenant && selectedTenant.users
+    ? selectedTenant.users.filter(user => {
+        // Exclude users with specific roles
+        if (excludedRoles.includes(user.role)) {
+          return false;
+        }
+        const term = searchUserTerm.toLowerCase();
+        return (
+          user.first_name.toLowerCase().includes(term) ||
+          user.last_name.toLowerCase().includes(term) ||
+          user.email.toLowerCase().includes(term) ||
+          user.role.toLowerCase().includes(term)
+        );
+      })
+    : [];
 
   // Pagination logic
   const pageSizeNum = parseInt(pageSizeInput, 10);
@@ -950,10 +974,18 @@ const SuperAdminDashboard = () => {
       {showTenantModal && selectedTenant && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto hide-scrollbar sm:max-w-2xl md:max-w-3xl lg:max-w-4xl">
-            <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex justify-between items-center">
-              <h3 className="text-xl font-semibold text-gray-800">
-                {selectedTenant.company_name} Details
-              </h3>
+
+            <div className="sticky top-0 z-10 bg-white border-b border-gray-200 px-6 py-4 flex justify-between items-center">
+              <div className="flex flex-col gap-1">
+                <h3 className="text-xl font-semibold text-gray-800">
+                  {selectedTenant.company_name} Details
+                </h3>
+                {selectedTenant.tenant_number && (
+                  <span className="inline-block mt-1 text-base font-medium text-gray-700">
+                    Tenant Number: <span className="px-2 py-1 rounded bg-blue-100 text-blue-700 text-sm font-mono font-semibold">{selectedTenant.tenant_number}</span>
+                  </span>
+                )}
+              </div>
               <button
                 onClick={() => setShowTenantModal(false)}
                 className="text-gray-500 hover:text-gray-700"
@@ -1072,7 +1104,7 @@ const SuperAdminDashboard = () => {
                     <p className="font-medium text-base">{selectedTenant.territories_count || 0}</p>
                   </div>
                   <div>
-                    <p className="text-sm text-gray-500">Quota Period</p>
+                    <p className="text-sm text-gray-500">Fiscal Year Start</p>
                     <p className="font-medium text-base">{selectedTenant.quota_period || 'January'}</p>
                   </div>
                   <div>
@@ -1185,7 +1217,7 @@ const SuperAdminDashboard = () => {
                           />
                     </div>
                   </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-gray-50 p-2 sm:p-4 rounded-lg">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 bg-gray-50 p-2 sm:p-4 rounded-lg">
                     <div>
                       <p className="text-sm text-gray-500">Plan</p>
                       <p className="font-medium">{selectedTenant.subscription.plan_name}</p>
@@ -1203,6 +1235,20 @@ const SuperAdminDashboard = () => {
                       </span>
                     </div>
                     <div>
+                      <p className="text-sm text-gray-500">Days Remaining</p>
+                      <p className={`font-medium ${
+                        (() => {
+                          const days = Math.ceil((new Date(selectedTenant.subscription.end_date) - new Date()) / (1000 * 60 * 60 * 24));
+                          return days <= 0 ? 'text-red-600' : days <= 7 ? 'text-orange-600' : 'text-green-600';
+                        })()
+                      }`}>
+                        {(() => {
+                          const days = Math.ceil((new Date(selectedTenant.subscription.end_date) - new Date()) / (1000 * 60 * 60 * 24));
+                          return days <= 0 ? 'Expired' : `${days} days`;
+                        })()}
+                      </p>
+                    </div>
+                    <div>
                       <p className="text-sm text-gray-500">Start Date</p>
                       <p className="font-medium">
                         {selectedTenant.subscription.start_date 
@@ -1218,20 +1264,6 @@ const SuperAdminDashboard = () => {
                           : 'N/A'}
                       </p>
                     </div>
-                    <div className="col-span-2">
-                      <p className="text-sm text-gray-500">Days Remaining</p>
-                      <p className={`font-medium ${
-                        (() => {
-                          const days = Math.ceil((new Date(selectedTenant.subscription.end_date) - new Date()) / (1000 * 60 * 60 * 24));
-                          return days <= 0 ? 'text-red-600' : days <= 7 ? 'text-orange-600' : 'text-green-600';
-                        })()
-                      }`}>
-                        {(() => {
-                          const days = Math.ceil((new Date(selectedTenant.subscription.end_date) - new Date()) / (1000 * 60 * 60 * 24));
-                          return days <= 0 ? 'Expired' : `${days} days`;
-                        })()}
-                      </p>
-                    </div>
                   </div>
                 </div>
               )}
@@ -1240,28 +1272,58 @@ const SuperAdminDashboard = () => {
               {/* Users List */}
               <div>
                 <div className="flex items-center justify-between mb-3">
-                  <h4 className="text-lg font-semibold">Users ({selectedTenant.users.length})</h4>
-                  <button
-                    className="p-2 rounded hover:bg-gray-200 text-green-600 cursor-pointer"
-                    title="Add User"
-                    style={{ cursor: 'pointer' }}
-                  >
-                    <FiPlus size={20} />
-                  </button>
+                  <h4 className="text-lg font-semibold">Users ({filteredUsers.length})</h4>
+                  <div className="flex items-center gap-2">
+                    <button
+                      className="p-2 rounded hover:bg-gray-200 text-green-600 cursor-pointer"
+                      title="Add User"
+                      style={{ cursor: 'pointer' }}
+                    >
+                      <FiPlus size={20} />
+                    </button>
+                    <button
+                      className="p-2 rounded hover:bg-gray-200 text-red-600 cursor-pointer"
+                      title="Delete All Users"
+                      style={{ cursor: 'pointer' }}
+                    >
+                      <FiTrash2 size={20} />
+                    </button>
+                  </div>
+                </div>
+                <div className="mb-3">
+                  <input
+                    type="text"
+                    className="w-full border border-gray-300 rounded px-4 py-2 text-base focus:outline-none focus:ring-2 focus:ring-blue-200"
+                    placeholder="Search users..."
+                    value={searchUserTerm}
+                    onChange={e => setSearchUserTerm(e.target.value)}
+                  />
                 </div>
                 <div className="space-y-2">
-                  {selectedTenant.users.map((user) => (
-                    <div key={user.id} className="relative flex flex-col sm:flex-row sm:items-center justify-between p-2 sm:p-3 bg-gray-50 rounded-lg">
+                  {filteredUsers.length === 0 ? (
+                    <div className="text-center text-gray-400 py-6">No users found.</div>
+                  ) : (
+                    filteredUsers.map((user) => (
+                      <div 
+                        key={user.id} 
+                        className="relative flex flex-col sm:flex-row sm:items-center justify-between p-2 sm:p-3 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer transition-colors"
+                        onClick={() => {
+                          setSelectedUser(user);
+                          setShowUserDetailsModal(true);
+                        }}
+                      >
                       <div className="flex-1 min-w-0 pr-0 sm:pr-0">
                         <div className="flex flex-col">
                           <p className="font-medium">{user.first_name} {user.last_name}</p>
-                          <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded mt-1 w-max">{user.role}</span>
+                          <div className="flex items-center gap-2 mt-1">
+                            <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">{user.role}</span>
+                            <span className={`text-xs px-2 py-1 rounded ${user.is_active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
+                              {user.is_active ? 'Active' : 'Inactive'}
+                            </span>
+                          </div>
                           <p className="text-sm text-gray-500 mt-1">{user.email}</p>
                           <span className="text-xs text-gray-500 mt-1">
                             Last login: {user.last_login ? new Date(user.last_login).toLocaleDateString() : '—'}
-                          </span>
-                          <span className="text-xs text-gray-500 mt-1">
-                            Login location: {user.last_login_location || 'Unavailable'}
                           </span>
                         </div>
                       </div>
@@ -1290,13 +1352,21 @@ const SuperAdminDashboard = () => {
                         </button>
                       </div>
                     </div>
-                  ))}
+                    ))
+                  )}
                 </div>
               </div>
             </div>
           </div>
         </div>
       )}
+
+      {/* User Details Modal */}
+      <UserDetailsModal 
+        open={showUserDetailsModal} 
+        user={selectedUser} 
+        onClose={() => setShowUserDetailsModal(false)}
+      />
     {/* Suspend/Reactivate Confirmation Modal */}
     <ConfirmationModal
       open={actionModal.open}

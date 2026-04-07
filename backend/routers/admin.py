@@ -70,9 +70,13 @@ def get_all_tenants(
     
     tenants_data = []
     for company in companies:
-        # Count active users
-        active_users = len([u for u in company.users if u.is_active])
-        total_users = len(company.users)
+        # Exclude users with specific roles when counting
+        excluded_roles = ['Admin', 'Technical Support', 'Marketing Admin']
+        filtered_users = [u for u in company.users if u.role not in excluded_roles]
+        
+        # Count active users (excluding admin roles)
+        active_users = len([u for u in filtered_users if u.is_active])
+        total_users = len(filtered_users)
         
         # Get subscription info
         subscription = company.plan[0] if company.plan else None

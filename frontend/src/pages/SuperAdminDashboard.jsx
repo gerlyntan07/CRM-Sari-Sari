@@ -7,6 +7,7 @@ import LoadingSpinner from '../components/LoadingSpinner';
 import ConfirmationModal from '../components/ConfirmationModal';
 import AddTenantForm from '../components/super-admin/TenantForm';
 import SubscriptionForm from '../components/super-admin/SubscriptionForm';
+import PaginationControls from '../components/PaginationControls';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Cell } from 'recharts';
 
 const SuperAdminDashboard = () => {
@@ -39,6 +40,11 @@ const SuperAdminDashboard = () => {
     subject: '',
     message: '',
   });
+  // For pagination
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  // For controlled input, allow string or number
+  const [pageSizeInput, setPageSizeInput] = useState('10');
 
   useEffect(() => {
     fetchStats();
@@ -209,7 +215,14 @@ const SuperAdminDashboard = () => {
     toast.success('Dashboard refreshed');
   };
 
-  const filteredTenants = tenants.filter(tenant => {
+  // Sort tenants by created_at descending (most recent first)
+  const sortedTenants = [...tenants].sort((a, b) => {
+    const aDate = new Date(a.created_at);
+    const bDate = new Date(b.created_at);
+    return bDate - aDate;
+  });
+
+  const filteredTenants = sortedTenants.filter(tenant => {
     const matchesSearch = tenant.company_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       tenant.company_number.toLowerCase().includes(searchTerm.toLowerCase());
     
@@ -232,6 +245,25 @@ const SuperAdminDashboard = () => {
     
     return matchesSearch;
   });
+
+  // Pagination logic
+  const pageSizeNum = parseInt(pageSizeInput, 10);
+  const totalTenants = filteredTenants.length;
+  let effectivePageSize = 10;
+  if (!pageSizeInput || isNaN(pageSizeNum) || pageSizeNum < 1) {
+    effectivePageSize = 0;
+  } else {
+    effectivePageSize = pageSizeNum;
+  }
+  const totalPages = effectivePageSize > 0 ? Math.ceil(totalTenants / effectivePageSize) : 1;
+  const startIndex = (currentPage - 1) * effectivePageSize;
+  const endIndex = startIndex + effectivePageSize;
+  const paginatedTenants = effectivePageSize > 0 ? filteredTenants.slice(startIndex, endIndex) : [];
+
+  // Reset to first page when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, filterStatus]);
 
   const tenantGraphData = Object.values(
     tenants.reduce((acc, tenant) => {
@@ -444,8 +476,59 @@ const SuperAdminDashboard = () => {
         </div>
       )}
 
+      {/* Subscription Alerts */}
+      {subscriptionAlerts && subscriptionAlerts.total_alerts > 0 && (
+        <div className="bg-white rounded-lg shadow-md p-6 mb-8 border-l-4 border-orange-500">
+          <div className="flex items-center gap-2 mb-4">
+            <FiAlertCircle className="text-orange-500 w-6 h-6" />
+            <h2 className="text-xl font-semibold text-gray-800">Subscription Alerts</h2>
+            <span className="ml-auto bg-orange-100 text-orange-800 px-3 py-1 rounded-full text-sm font-semibold">
+              {subscriptionAlerts.total_alerts} alerts
+            </span>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-0">
+            {/* Expiring Soon */}
+            {subscriptionAlerts.expiring_soon.length > 0 && (
+              <div className="bg-orange-50 rounded-lg p-4 col-span-full w-full">
+                <h3 className="font-semibold text-yellow-800 mb-2 flex items-center gap-2">
+                  <FiClock /> Expiring Soon ({subscriptionAlerts.expiring_soon.length})
+                </h3>
+                <div className="space-y-2">
+                  {subscriptionAlerts.expiring_soon.map((sub) => (
+                    <div key={sub.id} className="text-sm">
+                      <p className="font-medium text-gray-800">{sub.company_name}</p>
+                      <p className="text-gray-600">{sub.plan_name} - {sub.days_remaining} days left</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Expired */}
+            {subscriptionAlerts.expired.length > 0 && (
+              <div className="bg-red-50 rounded-lg col-span-full w-full p-0">
+                <div style={{ width: '100%', padding: 24 }}>
+                  <h3 className="font-semibold text-red-800 mb-2 flex items-center gap-2">
+                    <FiAlertCircle /> Expired ({subscriptionAlerts.expired.length})
+                  </h3>
+                  <div className="space-y-2">
+                    {subscriptionAlerts.expired.map((sub) => (
+                      <div key={sub.id} className="text-sm">
+                        <p className="font-medium text-gray-800">{sub.company_name}</p>
+                        <p className="text-gray-600">{sub.plan_name} - Expired</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Tenant Monthly Graph */}
-      <div className="rounded-2xl shadow-lg border border-slate-200 bg-gradient-to-br from-slate-50 via-white to-blue-50/40 p-6 mb-8">
+      <div className="bg-white rounded-lg shadow-md p-6 mb-8 border-l-4 border-blue-500">
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-4">
           <div>
             <div className="inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold bg-blue-100 text-blue-700 mb-2">
@@ -555,13 +638,9 @@ const SuperAdminDashboard = () => {
                       <div key={tenant.id} className="px-4 py-3">
                         <div className="flex items-center justify-between gap-2">
                           <p className="font-medium text-slate-800 truncate">{index + 1}. {tenant.name}</p>
-                          <div className="flex items-center gap-2 flex-wrap justify-end">
-                            <span className={`text-xs font-semibold px-2 py-1 rounded-full ${getTenantActivityStatusClasses(tenant)}`}>
-                              {getTenantActivityStatus(tenant)}
-                            </span>
-                            <span className="text-xs font-semibold px-2 py-1 rounded-full bg-rose-200 text-rose-900">
-                              {tenant.activityRate}% active
-                            </span>
+                          <div className="flex flex-row items-center gap-2 whitespace-nowrap">
+                            <span className={`text-xs font-semibold px-2 py-1 rounded-full ${getTenantActivityStatusClasses(tenant)}`}>{getTenantActivityStatus(tenant)}</span>
+                            <span className="text-xs font-semibold px-2 py-1 rounded-full bg-rose-200 text-rose-900">{tenant.activityRate}% active</span>
                             <button
                               type="button"
                               onClick={() => openNotifyComposerForTenant(tenant)}
@@ -588,60 +667,9 @@ const SuperAdminDashboard = () => {
           <p className="text-sm text-slate-500">No tenant activity data available yet.</p>
         )}
       </div>
-
-      {/* Subscription Alerts */}
-      {subscriptionAlerts && subscriptionAlerts.total_alerts > 0 && (
-        <div className="bg-white rounded-lg shadow-md p-6 mb-8 border-l-4 border-orange-500">
-          <div className="flex items-center gap-2 mb-4">
-            <FiAlertCircle className="text-orange-500 w-6 h-6" />
-            <h2 className="text-xl font-semibold text-gray-800">Subscription Alerts</h2>
-            <span className="ml-auto bg-orange-100 text-orange-800 px-3 py-1 rounded-full text-sm font-semibold">
-              {subscriptionAlerts.total_alerts} alerts
-            </span>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-0">
-            {/* Expiring Soon */}
-            {subscriptionAlerts.expiring_soon.length > 0 && (
-              <div className="bg-orange-50 rounded-lg p-4 col-span-full w-full">
-                <h3 className="font-semibold text-yellow-800 mb-2 flex items-center gap-2">
-                  <FiClock /> Expiring Soon ({subscriptionAlerts.expiring_soon.length})
-                </h3>
-                <div className="space-y-2">
-                  {subscriptionAlerts.expiring_soon.map((sub) => (
-                    <div key={sub.id} className="text-sm">
-                      <p className="font-medium text-gray-800">{sub.company_name}</p>
-                      <p className="text-gray-600">{sub.plan_name} - {sub.days_remaining} days left</p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Expired */}
-            {subscriptionAlerts.expired.length > 0 && (
-              <div className="bg-red-50 rounded-lg col-span-full w-full p-0">
-                <div style={{ width: '100%', padding: 24 }}>
-                  <h3 className="font-semibold text-red-800 mb-2 flex items-center gap-2">
-                    <FiAlertCircle /> Expired ({subscriptionAlerts.expired.length})
-                  </h3>
-                  <div className="space-y-2">
-                    {subscriptionAlerts.expired.map((sub) => (
-                      <div key={sub.id} className="text-sm">
-                        <p className="font-medium text-gray-800">{sub.company_name}</p>
-                        <p className="text-gray-600">{sub.plan_name} - Expired</p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
       {/* Search and Tenants List */}
-      <div className="bg-white rounded-lg shadow-md p-6">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6 w-full">
+      <div className="bg-white rounded-lg shadow-md p-6 mb-8 border-l-4 border-grey-500">
+        <div className="flex flex-col gap-4 mb-6 w-full">
           <div className="flex items-center w-full">
             <h2 className="text-xl font-semibold text-gray-800 flex items-center">
               All Tenants ({filteredTenants.length})
@@ -676,12 +704,12 @@ const SuperAdminDashboard = () => {
                   </div>
                 )}
           </div>
-          <div className="flex flex-col md:flex-row gap-3 w-full md:w-auto">
-            {/* Filter Buttons */}
-            <div className="flex gap-2">
+          <div className="flex flex-col gap-3 w-full">
+            {/* Filter Buttons - Top Right on MD+ */}
+            <div className="grid grid-cols-5 gap-1 w-full md:flex md:justify-end md:w-full md:gap-2">
               <button
                 onClick={() => setFilterStatus('all')}
-                className={`px-3 py-1 rounded-lg text-sm font-medium transition ${
+                className={`px-2 py-1 rounded-lg text-xs md:text-sm font-medium transition whitespace-nowrap ${
                   filterStatus === 'all'
                     ? 'bg-blue-600 text-white'
                     : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
@@ -691,7 +719,7 @@ const SuperAdminDashboard = () => {
               </button>
               <button
                 onClick={() => setFilterStatus('active')}
-                className={`px-3 py-1 rounded-lg text-sm font-medium transition ${
+                className={`px-2 py-1 rounded-lg text-xs md:text-sm font-medium transition whitespace-nowrap ${
                   filterStatus === 'active'
                     ? 'bg-green-600 text-white'
                     : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
@@ -701,7 +729,7 @@ const SuperAdminDashboard = () => {
               </button>
               <button
                 onClick={() => setFilterStatus('expiring')}
-                className={`px-3 py-1 rounded-lg text-sm font-medium transition ${
+                className={`px-2 py-1 rounded-lg text-xs md:text-sm font-medium transition whitespace-nowrap ${
                   filterStatus === 'expiring'
                     ? 'bg-orange-600 text-white'
                     : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
@@ -711,7 +739,7 @@ const SuperAdminDashboard = () => {
               </button>
               <button
                 onClick={() => setFilterStatus('expired')}
-                className={`px-3 py-1 rounded-lg text-sm font-medium transition ${
+                className={`px-2 py-1 rounded-lg text-xs md:text-sm font-medium transition whitespace-nowrap ${
                   filterStatus === 'expired'
                     ? 'bg-red-600 text-white'
                     : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
@@ -721,7 +749,7 @@ const SuperAdminDashboard = () => {
               </button>
               <button
                 onClick={() => setFilterStatus('suspended')}
-                className={`px-3 py-1 rounded-lg text-sm font-medium transition ${
+                className={`px-2 py-1 rounded-lg text-xs md:text-sm font-medium transition whitespace-nowrap ${
                   filterStatus === 'suspended'
                     ? 'bg-gray-600 text-white'
                     : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
@@ -731,15 +759,15 @@ const SuperAdminDashboard = () => {
               </button>
             </div>
 
-            {/* Search Box */}
-            <div className="flex gap-2 w-full md:w-auto">
-              <div className="relative flex-1 md:flex-none">
+            {/* Search Box - Full Width */}
+            <div className="w-full">
+              <div className="relative w-full">
                 <input
                   type="text"
                   placeholder="Search tenants..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10 pr-10 py-2 border border-gray-300 rounded-lg w-full md:w-64"
+                  className="pl-10 pr-10 py-2 border border-gray-300 rounded-lg w-full"
                 />
                 <FiSearch className="absolute left-3 top-3 text-gray-400" />
                 {searchTerm && (
@@ -785,100 +813,136 @@ const SuperAdminDashboard = () => {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {filteredTenants.map((tenant) => (
-                <tr
-                  key={tenant.id}
-                  className="hover:bg-gray-50 cursor-pointer group"
-                  onClick={() => viewTenantDetails(tenant.id)}
-                  style={{ userSelect: 'none' }}
-                >
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex items-center">
-                      {tenant.company_logo ? (
-                        <img
-                          src={tenant.company_logo}
-                          alt={tenant.company_name}
-                          className="h-10 w-10 rounded-full object-cover"
-                        />
-                      ) : (
-                        <div className="h-10 w-10 rounded-full bg-blue-500 flex items-center justify-center text-white font-semibold">
-                          {tenant.company_name.charAt(0)}
-                        </div>
-                      )}
-                      <div className="ml-4">
-                        <div className="text-sm font-medium text-gray-900">{tenant.company_name}</div>
-                        <div className="text-sm text-gray-500">{tenant.company_number}</div>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900">{tenant.company_website || 'N/A'}</div>
-                    <div className="text-sm text-gray-500">{tenant.address || 'N/A'}</div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900">
-                      <span className="text-green-600">{tenant.active_users}</span> / {tenant.total_users}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    {tenant.subscription ? (
-                      <div>
-                        <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                          tenant.subscription.status === 'Active' 
-                            ? 'bg-green-100 text-green-800' 
-                            : 'bg-red-100 text-red-800'
-                        }`}>
-                          {tenant.subscription.plan_name}
-                        </span>
-                        <div className="mt-1">
-                          <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                            tenant.is_subscription_active 
-                              ? 'bg-blue-100 text-blue-800' 
-                              : 'bg-gray-100 text-gray-800'
-                          }`}>
-                            {tenant.is_subscription_active ? 'Active Access' : 'Suspended'}
-                          </span>
-                        </div>
-                      </div>
-                    ) : (
-                      <span className="text-sm text-gray-500">No plan</span>
-                    )}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {new Date(tenant.created_at).toLocaleDateString()}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={e => { e.stopPropagation(); viewTenantDetails(tenant.id); }}
-                        className="text-blue-600 hover:text-blue-900 flex items-center gap-1 cursor-pointer focus:outline-none"
-                        style={{ cursor: 'pointer' }}
-                      >
-                        <FiEye /> View
-                      </button>
-                      {tenant.is_subscription_active ? (
-                        <button
-                          onClick={e => { e.stopPropagation(); openActionModal(tenant.id, tenant.company_name, 'suspend'); }}
-                          className="text-red-600 hover:text-red-900 flex items-center gap-1 ml-2 cursor-pointer focus:outline-none"
-                          style={{ cursor: 'pointer' }}
-                        >
-                          <FiToggleLeft /> Suspend
-                        </button>
-                      ) : (
-                        <button
-                          onClick={e => { e.stopPropagation(); openActionModal(tenant.id, tenant.company_name, 'reactivate'); }}
-                          className="text-green-600 hover:text-green-900 flex items-center gap-1 ml-2 cursor-pointer focus:outline-none"
-                          style={{ cursor: 'pointer' }}
-                        >
-                          <FiToggleRight /> Reactivate
-                        </button>
-                      )}
-                    </div>
-                  </td>
+              {(paginatedTenants.length === 0 || filteredTenants.length === 0) ? (
+                <tr>
+                  <td colSpan="6" className="text-center py-8 text-gray-500 text-sm">No tenants found.</td>
                 </tr>
-              ))}
+              ) : (
+                paginatedTenants.map((tenant) => (
+                  <tr
+                    key={tenant.id}
+                    className="hover:bg-gray-50 cursor-pointer group"
+                    onClick={() => viewTenantDetails(tenant.id)}
+                    style={{ userSelect: 'none' }}
+                  >
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center">
+                        {tenant.company_logo ? (
+                          <img
+                            src={tenant.company_logo}
+                            alt={tenant.company_name}
+                            className="h-10 w-10 rounded-full object-cover"
+                          />
+                        ) : (
+                          <div className="h-10 w-10 rounded-full bg-blue-500 flex items-center justify-center text-white font-semibold">
+                            {tenant.company_name.charAt(0)}
+                          </div>
+                        )}
+                        <div className="ml-4">
+                          <div className="text-sm font-medium text-gray-900">{tenant.company_name}</div>
+                          <div className="text-sm text-gray-500">{tenant.company_number}</div>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-900">{tenant.company_website || 'N/A'}</div>
+                      <div className="text-sm text-gray-500">{tenant.address || 'N/A'}</div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-900">
+                        <span className="text-green-600">{tenant.active_users}</span> / {tenant.total_users}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      {tenant.subscription ? (
+                        <div>
+                          <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                            tenant.subscription.status === 'Active' 
+                              ? 'bg-green-100 text-green-800' 
+                              : 'bg-red-100 text-red-800'
+                          }`}>
+                            {tenant.subscription.plan_name}
+                          </span>
+                          <div className="mt-1">
+                            <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                              tenant.is_subscription_active 
+                                ? 'bg-blue-100 text-blue-800' 
+                                : 'bg-gray-100 text-gray-800'
+                            }`}>
+                              {tenant.is_subscription_active ? 'Active Access' : 'Suspended'}
+                            </span>
+                          </div>
+                        </div>
+                      ) : (
+                        <span className="text-sm text-gray-500">No plan</span>
+                      )}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {new Date(tenant.created_at).toLocaleDateString()}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={e => { e.stopPropagation(); viewTenantDetails(tenant.id); }}
+                          className="text-blue-600 hover:text-blue-900 flex items-center gap-1 cursor-pointer focus:outline-none"
+                          style={{ cursor: 'pointer' }}
+                        >
+                          <FiEye /> View
+                        </button>
+                        {tenant.is_subscription_active ? (
+                          <button
+                            onClick={e => { e.stopPropagation(); openActionModal(tenant.id, tenant.company_name, 'suspend'); }}
+                            className="text-red-600 hover:text-red-900 flex items-center gap-1 ml-2 cursor-pointer focus:outline-none"
+                            style={{ cursor: 'pointer' }}
+                          >
+                            <FiToggleLeft /> Suspend
+                          </button>
+                        ) : (
+                          <button
+                            onClick={e => { e.stopPropagation(); openActionModal(tenant.id, tenant.company_name, 'reactivate'); }}
+                            className="text-green-600 hover:text-green-900 flex items-center gap-1 ml-2 cursor-pointer focus:outline-none"
+                            style={{ cursor: 'pointer' }}
+                          >
+                            <FiToggleRight /> Reactivate
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
+        </div>
+
+        {/* Pagination Controls */}
+        <div className="mt-4">
+          <PaginationControls
+            totalItems={totalTenants}
+            pageSize={pageSizeInput}
+            currentPage={currentPage}
+            onPrev={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+            onNext={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+            onPageSizeChange={(val) => {
+              setPageSizeInput(val);
+              // Only update pageSize if valid number >= 10
+              const num = parseInt(val, 10);
+              if (!isNaN(num) && num >= 10) {
+                setPageSize(num);
+                setCurrentPage(1);
+              }
+            }}
+            onPageSizeBlur={() => {
+              // On blur, reset to 10 if invalid
+              const num = parseInt(pageSizeInput, 10);
+              if (isNaN(num) || num < 10) {
+                setPageSizeInput('10');
+                setPageSize(10);
+                setCurrentPage(1);
+              }
+            }}
+            label="tenants"
+          />
         </div>
       </div>
 

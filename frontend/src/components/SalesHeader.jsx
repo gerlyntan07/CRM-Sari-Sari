@@ -19,6 +19,8 @@ export default function SalesHeader({ toggleSidebar }) {
   const navigate = useNavigate();
   const { logout } = useAuth();
   const { user, fetchUser } = useFetchUser();
+  const currentPlan = String(user?.subscription_status?.current_plan || "").toLowerCase();
+  const hasNotificationAccess = currentPlan === "pro" || currentPlan === "enterprise";
 
   const routeTitles = {
     "/sales/overview": "Dashboard",
@@ -90,9 +92,9 @@ export default function SalesHeader({ toggleSidebar }) {
         console.error("Failed to load history notifications", err);
       }
     };
-    if (user?.id) fetchInitialNotifications();
+    if (user?.id && hasNotificationAccess) fetchInitialNotifications();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.id]);
+  }, [hasNotificationAccess, user?.id]);
 
   // --- Helpers ---
   const deriveTypeFromLog = (log) => {
@@ -246,7 +248,7 @@ export default function SalesHeader({ toggleSidebar }) {
 
   // ✅ UPDATED: Use centralized WebSocket URL utility
   useEffect(() => {
-    if (!user?.id) return;
+    if (!user?.id || !hasNotificationAccess) return;
 
     const wsUrl = getWebSocketUrl(user.id);
     console.log("🔌 Connecting to WebSocket:", wsUrl);
@@ -292,7 +294,7 @@ export default function SalesHeader({ toggleSidebar }) {
       }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.id]);
+  }, [hasNotificationAccess, user?.id]);
 
   // Close dropdowns when clicking outside
   useEffect(() => {
@@ -330,150 +332,152 @@ export default function SalesHeader({ toggleSidebar }) {
       </div>
 
       <div className="flex items-center space-x-3 sm:space-x-4">
-        <div className="relative" ref={notifRef}>
-          <button
-            onClick={() => setNotifOpen(!notifOpen)}
-            className="relative text-gray-600 hover:text-gray-800 transition"
-          >
-            <FiBell className="text-xl sm:text-2xl" />
-            {unreadCount > 0 && (
-              <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] w-4 h-4 flex items-center justify-center rounded-full font-semibold">
-                {unreadCount}
-              </span>
-            )}
-          </button>
+        {hasNotificationAccess && (
+          <div className="relative" ref={notifRef}>
+            <button
+              onClick={() => setNotifOpen(!notifOpen)}
+              className="relative text-gray-600 hover:text-gray-800 transition"
+            >
+              <FiBell className="text-xl sm:text-2xl" />
+              {unreadCount > 0 && (
+                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] w-4 h-4 flex items-center justify-center rounded-full font-semibold">
+                  {unreadCount}
+                </span>
+              )}
+            </button>
 
-          {notifOpen && (
-            <div className="absolute right-0 mt-3 w-80 bg-white rounded-xl shadow-lg border z-50 overflow-hidden animate-fade-in">
-              <div className="p-3 border-b bg-gray-50 flex justify-between items-center">
-                <h3 className="font-semibold text-gray-800 text-sm">
-                  Notifications
-                </h3>
-                {notifications.length > 0 && (
-                  <button
-                    onClick={async () => {
-                      try {
-                        await api.patch(`/logs/mark-all-read`);
-                        setNotifications((prev) =>
-                          prev.map((n) => ({ ...n, read: true }))
-                        );
-                        setUnreadCount(0);
-                      } catch (err) {
-                        console.error("Failed to mark all notifications as read", err);
-                      }
-                    }}
-                    className="text-xs text-blue-600 hover:underline"
-                  >
-                    Clear all
-                  </button>
-                )}
-              </div>
-
-              <div className="max-h-80 overflow-y-auto">
-                {notifications.length > 0 ? (
-                  notifications.map((n, idx) => (
-                    <div
-                      key={n.id ?? idx}
-                      onClick={() => handleNotificationClick(n)}
-                      className={`p-4 border-b hover:bg-gray-50 cursor-pointer transition ${
-                        n.read ? "bg-gray-50" : "bg-white"
-                      }`}
+            {notifOpen && (
+              <div className="absolute right-0 mt-3 w-80 bg-white rounded-xl shadow-lg border z-50 overflow-hidden animate-fade-in">
+                <div className="p-3 border-b bg-gray-50 flex justify-between items-center">
+                  <h3 className="font-semibold text-gray-800 text-sm">
+                    Notifications
+                  </h3>
+                  {notifications.length > 0 && (
+                    <button
+                      onClick={async () => {
+                        try {
+                          await api.patch(`/logs/mark-all-read`);
+                          setNotifications((prev) =>
+                            prev.map((n) => ({ ...n, read: true }))
+                          );
+                          setUnreadCount(0);
+                        } catch (err) {
+                          console.error("Failed to mark all notifications as read", err);
+                        }
+                      }}
+                      className="text-xs text-blue-600 hover:underline"
                     >
-                      <div className="flex justify-between items-center mb-1">
-                        <span
-                          className={`text-[10px] px-2 py-1 rounded-full font-semibold uppercase
-                            ${
-                              n.type === "task_assignment" || n.type === "task_update"
-                                ? "bg-purple-100 text-purple-700"
-                                : n.type === "lead_assignment" || n.type === "lead_update"
-                                ? "bg-green-100 text-green-700"
-                                : n.type === "contact_assignment" || n.type === "contact_update"
-                                ? "bg-amber-100 text-amber-700"
-                                : n.type === "deal_assignment" || n.type === "deal_update"
-                                ? "bg-indigo-100 text-indigo-700"
-                                : n.type === "account_assignment" || n.type === "account_update"
-                                ? "bg-cyan-100 text-cyan-700"
-                                : n.type === "territory_assignment"
-                                ? "bg-blue-100 text-blue-700"
-                                : n.type === "quote"
-                                ? "bg-pink-100 text-pink-700"
-                                : n.type === "meeting"
-                                ? "bg-teal-100 text-teal-700"
-                                : n.type === "call"
-                                ? "bg-red-100 text-red-700"
-                                : n.type === "create"
-                                ? "bg-emerald-100 text-emerald-700"
-                                : n.type === "update"
-                                ? "bg-yellow-100 text-yellow-700"
-                                : n.type === "delete"
-                                ? "bg-rose-100 text-rose-700"
-                                : "bg-gray-100 text-gray-700"
-                            }`}
-                        >
-                          {n.type === "task_assignment" || n.type === "task_update"
-                            ? "Task"
-                            : n.type === "lead_assignment"
-                            ? "Lead"
-                            : n.type === "lead_update"
-                            ? "Lead Update"
-                            : n.type === "contact_assignment"
-                            ? "Contact"
-                            : n.type === "contact_update"
-                            ? "Contact Update"
-                            : n.type === "deal_assignment"
-                            ? "Deal"
-                            : n.type === "deal_update"
-                            ? "Deal Update"
-                            : n.type === "account_assignment"
-                            ? "Account"
-                            : n.type === "account_update"
-                            ? "Account Update"
-                            : n.type === "territory_assignment"
-                            ? "Territory"
-                            : n.type === "quote"
-                            ? "Quote"
-                            : n.type === "meeting"
-                            ? "Meeting"
-                            : n.type === "call"
-                            ? "Call"
-                            : n.type === "create"
-                            ? "Created"
-                            : n.type === "update"
-                            ? "Updated"
-                            : n.type === "delete"
-                            ? "Deleted"
-                            : "Activity"}
-                        </span>
+                      Clear all
+                    </button>
+                  )}
+                </div>
 
-                        {!n.read && (
-                          <span className="w-2 h-2 rounded-full bg-red-500" />
-                        )}
-                      </div>
+                <div className="max-h-80 overflow-y-auto">
+                  {notifications.length > 0 ? (
+                    notifications.map((n, idx) => (
+                      <div
+                        key={n.id ?? idx}
+                        onClick={() => handleNotificationClick(n)}
+                        className={`p-4 border-b hover:bg-gray-50 cursor-pointer transition ${
+                          n.read ? "bg-gray-50" : "bg-white"
+                        }`}
+                      >
+                        <div className="flex justify-between items-center mb-1">
+                          <span
+                            className={`text-[10px] px-2 py-1 rounded-full font-semibold uppercase
+                              ${
+                                n.type === "task_assignment" || n.type === "task_update"
+                                  ? "bg-purple-100 text-purple-700"
+                                  : n.type === "lead_assignment" || n.type === "lead_update"
+                                  ? "bg-green-100 text-green-700"
+                                  : n.type === "contact_assignment" || n.type === "contact_update"
+                                  ? "bg-amber-100 text-amber-700"
+                                  : n.type === "deal_assignment" || n.type === "deal_update"
+                                  ? "bg-indigo-100 text-indigo-700"
+                                  : n.type === "account_assignment" || n.type === "account_update"
+                                  ? "bg-cyan-100 text-cyan-700"
+                                  : n.type === "territory_assignment"
+                                  ? "bg-blue-100 text-blue-700"
+                                  : n.type === "quote"
+                                  ? "bg-pink-100 text-pink-700"
+                                  : n.type === "meeting"
+                                  ? "bg-teal-100 text-teal-700"
+                                  : n.type === "call"
+                                  ? "bg-red-100 text-red-700"
+                                  : n.type === "create"
+                                  ? "bg-emerald-100 text-emerald-700"
+                                  : n.type === "update"
+                                  ? "bg-yellow-100 text-yellow-700"
+                                  : n.type === "delete"
+                                  ? "bg-rose-100 text-rose-700"
+                                  : "bg-gray-100 text-gray-700"
+                              }`}
+                          >
+                            {n.type === "task_assignment" || n.type === "task_update"
+                              ? "Task"
+                              : n.type === "lead_assignment"
+                              ? "Lead"
+                              : n.type === "lead_update"
+                              ? "Lead Update"
+                              : n.type === "contact_assignment"
+                              ? "Contact"
+                              : n.type === "contact_update"
+                              ? "Contact Update"
+                              : n.type === "deal_assignment"
+                              ? "Deal"
+                              : n.type === "deal_update"
+                              ? "Deal Update"
+                              : n.type === "account_assignment"
+                              ? "Account"
+                              : n.type === "account_update"
+                              ? "Account Update"
+                              : n.type === "territory_assignment"
+                              ? "Territory"
+                              : n.type === "quote"
+                              ? "Quote"
+                              : n.type === "meeting"
+                              ? "Meeting"
+                              : n.type === "call"
+                              ? "Call"
+                              : n.type === "create"
+                              ? "Created"
+                              : n.type === "update"
+                              ? "Updated"
+                              : n.type === "delete"
+                              ? "Deleted"
+                              : "Activity"}
+                          </span>
 
-                      <div className="flex flex-col">
-                        <span className="font-medium text-gray-800 text-sm">
-                          {n.title}
-                        </span>
-                        <span className="text-xs text-gray-600 mt-0.5">
-                          {n.assignedBy ? `Assigned by ${n.assignedBy}` : "System"}
-                        </span>
-                        <span className="text-[11px] text-gray-400 mt-1">
-                          {n.createdAt
-                            ? new Date(n.createdAt).toLocaleString()
-                            : ""}
-                        </span>
+                          {!n.read && (
+                            <span className="w-2 h-2 rounded-full bg-red-500" />
+                          )}
+                        </div>
+
+                        <div className="flex flex-col">
+                          <span className="font-medium text-gray-800 text-sm">
+                            {n.title}
+                          </span>
+                          <span className="text-xs text-gray-600 mt-0.5">
+                            {n.assignedBy ? `Assigned by ${n.assignedBy}` : "System"}
+                          </span>
+                          <span className="text-[11px] text-gray-400 mt-1">
+                            {n.createdAt
+                              ? new Date(n.createdAt).toLocaleString()
+                              : ""}
+                          </span>
+                        </div>
                       </div>
+                    ))
+                  ) : (
+                    <div className="p-6 text-center text-gray-500 text-sm">
+                      No new notifications
                     </div>
-                  ))
-                ) : (
-                  <div className="p-6 text-center text-gray-500 text-sm">
-                    No new notifications
-                  </div>
-                )}
+                  )}
+                </div>
               </div>
-            </div>
-          )}
-        </div>
+            )}
+          </div>
+        )}
 
         <div className="relative" ref={dropdownRef}>
           <button

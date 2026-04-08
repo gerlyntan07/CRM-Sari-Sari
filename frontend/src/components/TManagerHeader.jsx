@@ -50,6 +50,8 @@ export default function AdminHeader({ toggleSidebar }) {
   const navigate = useNavigate();
   const { logout } = useAuth();
   const { user, fetchUser } = useFetchUser();
+  const currentPlan = String(user?.subscription_status?.current_plan || "").toLowerCase();
+  const hasNotificationAccess = currentPlan === "pro" || currentPlan === "enterprise";
 
   // Map routes to titles
   const routeTitles = {
@@ -96,7 +98,7 @@ export default function AdminHeader({ toggleSidebar }) {
 
   // WebSocket for Real-time Notifications
   useEffect(() => {
-    if (!user?.id) return;
+    if (!user?.id || !hasNotificationAccess) return;
 
     const isLocalhost = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
     const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
@@ -112,7 +114,7 @@ export default function AdminHeader({ toggleSidebar }) {
     };
 
     return () => ws.close();
-  }, [user?.id]);
+  }, [hasNotificationAccess, user?.id]);
 
   // Close dropdown if clicked outside
   useEffect(() => {
@@ -146,59 +148,61 @@ export default function AdminHeader({ toggleSidebar }) {
       {/* Right Side */}
       <div className="flex items-center space-x-4">
         {/* Notifications */}
-        <div className="relative" ref={notifRef}>
-          <button 
-            onClick={() => setNotifOpen(!notifOpen)}
-            className="relative text-gray-600 hover:text-gray-800 transition"
-          >
-            <FiBell className="text-xl" />
-            {unreadCount > 0 && (
-              <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] w-4 h-4 flex items-center justify-center rounded-full font-semibold">
-                {unreadCount}
-              </span>
-            )}
-          </button>
+        {hasNotificationAccess && (
+          <div className="relative" ref={notifRef}>
+            <button 
+              onClick={() => setNotifOpen(!notifOpen)}
+              className="relative text-gray-600 hover:text-gray-800 transition"
+            >
+              <FiBell className="text-xl" />
+              {unreadCount > 0 && (
+                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] w-4 h-4 flex items-center justify-center rounded-full font-semibold">
+                  {unreadCount}
+                </span>
+              )}
+            </button>
 
-          {notifOpen && (
-            <div className="absolute right-0 mt-3 w-80 bg-white rounded-xl shadow-lg border z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
-              <div className="p-3 border-b bg-gray-50 flex justify-between items-center">
-                <h3 className="font-semibold text-gray-800 text-sm">Notifications</h3>
-                <button 
-                  onClick={() => { setNotifications([]); setUnreadCount(0); }} 
-                  className="text-xs text-blue-600 hover:underline"
-                >
-                  Clear All
-                </button>
-              </div>
-              <div className="max-h-60 overflow-y-auto">
-                {notifications.length > 0 ? (
-                  notifications.map((n, i) => {
-                    const timestamp = n.timestamp || n.created_at || n.updated_at;
-                    const exactTime = formatNotificationDateTime(timestamp);
-                    const relativeTime = formatRelativeNotificationTime(timestamp);
+            {notifOpen && (
+              <div className="absolute right-0 mt-3 w-80 bg-white rounded-xl shadow-lg border z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+                <div className="p-3 border-b bg-gray-50 flex justify-between items-center">
+                  <h3 className="font-semibold text-gray-800 text-sm">Notifications</h3>
+                  <button 
+                    onClick={() => { setNotifications([]); setUnreadCount(0); }} 
+                    className="text-xs text-blue-600 hover:underline"
+                  >
+                    Clear All
+                  </button>
+                </div>
+                <div className="max-h-60 overflow-y-auto">
+                  {notifications.length > 0 ? (
+                    notifications.map((n, i) => {
+                      const timestamp = n.timestamp || n.created_at || n.updated_at;
+                      const exactTime = formatNotificationDateTime(timestamp);
+                      const relativeTime = formatRelativeNotificationTime(timestamp);
 
-                    return (
-                      <div key={i} className="p-3 border-b text-sm hover:bg-gray-50 cursor-pointer transition">
-                        <p className="text-sm text-gray-800">
-                          {n.title || n.message || "New Notification"}
-                        </p>
-                        {(relativeTime || exactTime) && (
-                          <p className="text-[11px] text-gray-500 mt-1">
-                            {relativeTime || ""}
-                            {relativeTime && exactTime ? " • " : ""}
-                            {exactTime || ""}
+                      return (
+                        <div key={i} className="p-3 border-b text-sm hover:bg-gray-50 cursor-pointer transition">
+                          <p className="text-sm text-gray-800">
+                            {n.title || n.message || "New Notification"}
                           </p>
-                        )}
-                      </div>
-                    );
-                  })
-                ) : (
-                  <div className="p-4 text-center text-gray-500 text-xs">No notifications</div>
-                )}
+                          {(relativeTime || exactTime) && (
+                            <p className="text-[11px] text-gray-500 mt-1">
+                              {relativeTime || ""}
+                              {relativeTime && exactTime ? " • " : ""}
+                              {exactTime || ""}
+                            </p>
+                          )}
+                        </div>
+                      );
+                    })
+                  ) : (
+                    <div className="p-4 text-center text-gray-500 text-xs">No notifications</div>
+                  )}
+                </div>
               </div>
-            </div>
-          )}
-        </div>
+            )}
+          </div>
+        )}
 
         {/* User Dropdown */}
         <div className="relative" ref={dropdownRef}>

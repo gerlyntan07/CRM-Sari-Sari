@@ -19,6 +19,8 @@ export default function AdminHeader({ toggleSidebar }) {
   const navigate = useNavigate();
   const { logout } = useAuth();
   const { user, fetchUser } = useFetchUser();
+  const currentPlan = String(user?.subscription_status?.current_plan || "").toLowerCase();
+  const hasNotificationAccess = currentPlan === "pro" || currentPlan === "enterprise";
 
   const formatNotificationDateTime = (value) => {
     if (!value) return "";
@@ -99,7 +101,7 @@ export default function AdminHeader({ toggleSidebar }) {
   }, [fetchUser]);
 
   useEffect(() => {
-    if (!user?.id) return;
+    if (!user?.id || !hasNotificationAccess) return;
 
     const loadNotifications = async () => {
       try {
@@ -113,11 +115,11 @@ export default function AdminHeader({ toggleSidebar }) {
     };
 
     loadNotifications();
-  }, [user?.id]);
+    }, [hasNotificationAccess, user?.id]);
 
   // --- WebSocket Connection with Proper URL Derivation ---
   useEffect(() => {
-    if (!user?.id) return;
+    if (!user?.id || !hasNotificationAccess) return;
 
     const wsUrl = getWebSocketUrl(user.id);
     console.log("🔌 Connecting to WebSocket:", wsUrl);
@@ -161,7 +163,7 @@ export default function AdminHeader({ toggleSidebar }) {
         ws.close();
       }
     };
-  }, [user?.id]);
+  }, [hasNotificationAccess, user?.id]);
 
   // Close dropdowns when clicking outside
   useEffect(() => {
@@ -200,66 +202,68 @@ export default function AdminHeader({ toggleSidebar }) {
       {/* Right Side */}
       <div className="flex items-center space-x-4">
         {/* Notifications */}
-        <div className="relative" ref={notifRef}>
-          <button
-            onClick={() => setNotifOpen(!notifOpen)}
-            className="relative text-gray-600 hover:text-gray-800 transition"
-          >
-            <FiBell className="text-xl" />
-            {unreadCount > 0 && (
-              <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] w-4 h-4 flex items-center justify-center rounded-full font-semibold">
-                {unreadCount}
-              </span>
+        {hasNotificationAccess && (
+          <div className="relative" ref={notifRef}>
+            <button
+              onClick={() => setNotifOpen(!notifOpen)}
+              className="relative text-gray-600 hover:text-gray-800 transition"
+            >
+              <FiBell className="text-xl" />
+              {unreadCount > 0 && (
+                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] w-4 h-4 flex items-center justify-center rounded-full font-semibold">
+                  {unreadCount}
+                </span>
+              )}
+            </button>
+
+            {/* Notification Dropdown (Optional: Same style as SalesHeader) */}
+            {notifOpen && (
+              <div className="absolute right-0 mt-3 w-80 bg-white rounded-xl shadow-lg border z-50 overflow-hidden animate-fade-in">
+                <div className="p-3 border-b bg-gray-50 flex justify-between items-center">
+                  <h3 className="font-semibold text-gray-800 text-sm">Notifications</h3>
+                  <button
+                    onClick={async () => {
+                      try {
+                        await api.patch("/logs/mark-all-read");
+                      } catch (error) {
+                        console.error("Failed to mark notifications as read:", error);
+                      }
+                      setUnreadCount(0);
+                      setNotifications((prev) => prev.map((item) => ({ ...item, is_read: true })));
+                    }}
+                    className="text-xs text-blue-600 hover:underline"
+                  >
+                    Clear
+                  </button>
+                </div>
+                <div className="max-h-60 overflow-y-auto">
+                  {notifications.length > 0 ? (
+                    notifications.map((n, i) => {
+                      const exactTime = formatNotificationDateTime(n.timestamp);
+                      const relativeTime = formatRelativeNotificationTime(n.timestamp);
+
+                      return (
+                        <div key={i} className="p-3 border-b text-sm hover:bg-gray-50 cursor-pointer">
+                          <p className="font-medium text-gray-800">{n.title || "Notification"}</p>
+                          <p className="text-xs text-gray-600 mt-1">{n.message || "New Update"}</p>
+                          {(relativeTime || exactTime) && (
+                            <p className="text-[11px] text-gray-500 mt-1">
+                              {relativeTime || ""}
+                              {relativeTime && exactTime ? " • " : ""}
+                              {exactTime || ""}
+                            </p>
+                          )}
+                        </div>
+                      );
+                    })
+                  ) : (
+                    <div className="p-4 text-center text-gray-500 text-xs">No notifications</div>
+                  )}
+                </div>
+              </div>
             )}
-          </button>
-
-          {/* Notification Dropdown (Optional: Same style as SalesHeader) */}
-          {notifOpen && (
-            <div className="absolute right-0 mt-3 w-80 bg-white rounded-xl shadow-lg border z-50 overflow-hidden animate-fade-in">
-              <div className="p-3 border-b bg-gray-50 flex justify-between items-center">
-                <h3 className="font-semibold text-gray-800 text-sm">Notifications</h3>
-                <button
-                  onClick={async () => {
-                    try {
-                      await api.patch("/logs/mark-all-read");
-                    } catch (error) {
-                      console.error("Failed to mark notifications as read:", error);
-                    }
-                    setUnreadCount(0);
-                    setNotifications((prev) => prev.map((item) => ({ ...item, is_read: true })));
-                  }}
-                  className="text-xs text-blue-600 hover:underline"
-                >
-                  Clear
-                </button>
-              </div>
-              <div className="max-h-60 overflow-y-auto">
-                {notifications.length > 0 ? (
-                  notifications.map((n, i) => {
-                    const exactTime = formatNotificationDateTime(n.timestamp);
-                    const relativeTime = formatRelativeNotificationTime(n.timestamp);
-
-                    return (
-                      <div key={i} className="p-3 border-b text-sm hover:bg-gray-50 cursor-pointer">
-                        <p className="font-medium text-gray-800">{n.title || "Notification"}</p>
-                        <p className="text-xs text-gray-600 mt-1">{n.message || "New Update"}</p>
-                        {(relativeTime || exactTime) && (
-                          <p className="text-[11px] text-gray-500 mt-1">
-                            {relativeTime || ""}
-                            {relativeTime && exactTime ? " • " : ""}
-                            {exactTime || ""}
-                          </p>
-                        )}
-                      </div>
-                    );
-                  })
-                ) : (
-                  <div className="p-4 text-center text-gray-500 text-xs">No notifications</div>
-                )}
-              </div>
-            </div>
-          )}
-        </div>
+          </div>
+        )}
 
         {/* User Dropdown */}
         <div className="relative" ref={dropdownRef}>

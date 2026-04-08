@@ -11,6 +11,8 @@ export default function MarketingHeader({ toggleSidebar }) {
   const location = useLocation();
   const { logout } = useAuth();
   const { user, fetchUser } = useFetchUser();
+  const currentPlan = String(user?.subscription_status?.current_plan || "").toLowerCase();
+  const hasNotificationAccess = currentPlan === "pro" || currentPlan === "enterprise";
 
   const routeTitles = {
     "/marketing/dashboard": "Dashboard",
@@ -52,12 +54,14 @@ export default function MarketingHeader({ toggleSidebar }) {
       </div>
 
       <div className="flex items-center space-x-4">
-        <button className="relative text-gray-600 hover:text-gray-800">
-          <FiBell className="text-xl" />
-          <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs w-4 h-4 flex items-center justify-center rounded-full">
-            3
-          </span>
-        </button>
+        {hasNotificationAccess && (
+          <button className="relative text-gray-600 hover:text-gray-800">
+            <FiBell className="text-xl" />
+            <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs w-4 h-4 flex items-center justify-center rounded-full">
+              3
+            </span>
+          </button>
+        )}
 
         <div className="relative" ref={dropdownRef}>
           <button

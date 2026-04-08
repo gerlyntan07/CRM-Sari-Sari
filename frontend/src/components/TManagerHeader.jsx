@@ -10,6 +10,40 @@ export default function AdminHeader({ toggleSidebar }) {
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
 
+  const formatNotificationDateTime = (value) => {
+    if (!value) return "";
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return "";
+    return date.toLocaleString(undefined, {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+    });
+  };
+
+  const formatRelativeNotificationTime = (value) => {
+    if (!value) return "";
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return "";
+
+    const now = Date.now();
+    const diffMs = date.getTime() - now;
+    const absMs = Math.abs(diffMs);
+
+    if (absMs < 60 * 1000) return "just now";
+
+    const rtf = new Intl.RelativeTimeFormat(undefined, { numeric: "auto" });
+    const minutes = Math.round(diffMs / (60 * 1000));
+    const hours = Math.round(diffMs / (60 * 60 * 1000));
+    const days = Math.round(diffMs / (24 * 60 * 60 * 1000));
+
+    if (absMs < 60 * 60 * 1000) return rtf.format(minutes, "minute");
+    if (absMs < 24 * 60 * 60 * 1000) return rtf.format(hours, "hour");
+    return rtf.format(days, "day");
+  };
+
   const dropdownRef = useRef(null);
   const notifRef = useRef(null);
   const location = useLocation();
@@ -138,11 +172,26 @@ export default function AdminHeader({ toggleSidebar }) {
               </div>
               <div className="max-h-60 overflow-y-auto">
                 {notifications.length > 0 ? (
-                  notifications.map((n, i) => (
-                    <div key={i} className="p-3 border-b text-sm hover:bg-gray-50 cursor-pointer transition">
-                      {n.title || n.message || "New Notification"}
-                    </div>
-                  ))
+                  notifications.map((n, i) => {
+                    const timestamp = n.timestamp || n.created_at || n.updated_at;
+                    const exactTime = formatNotificationDateTime(timestamp);
+                    const relativeTime = formatRelativeNotificationTime(timestamp);
+
+                    return (
+                      <div key={i} className="p-3 border-b text-sm hover:bg-gray-50 cursor-pointer transition">
+                        <p className="text-sm text-gray-800">
+                          {n.title || n.message || "New Notification"}
+                        </p>
+                        {(relativeTime || exactTime) && (
+                          <p className="text-[11px] text-gray-500 mt-1">
+                            {relativeTime || ""}
+                            {relativeTime && exactTime ? " • " : ""}
+                            {exactTime || ""}
+                          </p>
+                        )}
+                      </div>
+                    );
+                  })
                 ) : (
                   <div className="p-4 text-center text-gray-500 text-xs">No notifications</div>
                 )}

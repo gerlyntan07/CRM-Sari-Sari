@@ -20,11 +20,46 @@ export default function AdminHeader({ toggleSidebar }) {
   const { logout } = useAuth();
   const { user, fetchUser } = useFetchUser();
 
+  const formatNotificationDateTime = (value) => {
+    if (!value) return "";
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return "";
+    return date.toLocaleString(undefined, {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+    });
+  };
+
+  const formatRelativeNotificationTime = (value) => {
+    if (!value) return "";
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return "";
+
+    const now = Date.now();
+    const diffMs = date.getTime() - now;
+    const absMs = Math.abs(diffMs);
+
+    if (absMs < 60 * 1000) return "just now";
+
+    const rtf = new Intl.RelativeTimeFormat(undefined, { numeric: "auto" });
+    const minutes = Math.round(diffMs / (60 * 1000));
+    const hours = Math.round(diffMs / (60 * 60 * 1000));
+    const days = Math.round(diffMs / (24 * 60 * 60 * 1000));
+
+    if (absMs < 60 * 60 * 1000) return rtf.format(minutes, "minute");
+    if (absMs < 24 * 60 * 60 * 1000) return rtf.format(hours, "hour");
+    return rtf.format(days, "day");
+  };
+
   const normalizeNotification = (n) => ({
     id: n.id || n.task_id || n.taskId || `${Date.now()}-${Math.random()}`,
     title: n.title || (n.action === "BACKUP_REMINDER" ? "Backup Reminder" : "Notification"),
     message: n.message || n.description || n.task_title || n.taskTitle || "New Update",
     is_read: Boolean(n.is_read),
+    timestamp: n.timestamp || n.created_at || n.updated_at || null,
   });
 
   // Map routes to titles
@@ -200,12 +235,24 @@ export default function AdminHeader({ toggleSidebar }) {
               </div>
               <div className="max-h-60 overflow-y-auto">
                 {notifications.length > 0 ? (
-                  notifications.map((n, i) => (
-                    <div key={i} className="p-3 border-b text-sm hover:bg-gray-50 cursor-pointer">
-                      <p className="font-medium text-gray-800">{n.title || "Notification"}</p>
-                      <p className="text-xs text-gray-600 mt-1">{n.message || "New Update"}</p>
-                    </div>
-                  ))
+                  notifications.map((n, i) => {
+                    const exactTime = formatNotificationDateTime(n.timestamp);
+                    const relativeTime = formatRelativeNotificationTime(n.timestamp);
+
+                    return (
+                      <div key={i} className="p-3 border-b text-sm hover:bg-gray-50 cursor-pointer">
+                        <p className="font-medium text-gray-800">{n.title || "Notification"}</p>
+                        <p className="text-xs text-gray-600 mt-1">{n.message || "New Update"}</p>
+                        {(relativeTime || exactTime) && (
+                          <p className="text-[11px] text-gray-500 mt-1">
+                            {relativeTime || ""}
+                            {relativeTime && exactTime ? " • " : ""}
+                            {exactTime || ""}
+                          </p>
+                        )}
+                      </div>
+                    );
+                  })
                 ) : (
                   <div className="p-4 text-center text-gray-500 text-xs">No notifications</div>
                 )}

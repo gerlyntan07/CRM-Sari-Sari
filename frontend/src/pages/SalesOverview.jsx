@@ -341,6 +341,49 @@ const TopBar = ({
   );
 };
 
+const AnnouncementTicker = ({ message }) => {
+  const announcementText = (message || "").trim();
+  const marqueeText = `${announcementText}  |  ${announcementText}  |  ${announcementText}  |  ${announcementText}`;
+
+  if (!announcementText) return null;
+
+  return (
+    <div className="mb-4 rounded-xl border border-blue-100 bg-white shadow-sm overflow-hidden">
+      <div className="px-4 py-2 bg-blue-50 border-b border-blue-100">
+        <p className="text-xs sm:text-sm font-semibold uppercase tracking-wide text-blue-700">
+          Announcements
+        </p>
+      </div>
+
+      <div className="relative overflow-hidden py-2">
+        <div
+          className="flex items-center whitespace-nowrap"
+          style={{
+            width: "max-content",
+            animation: "forekas-announcement-scroll 18s linear infinite",
+          }}
+        >
+          <span className="px-8 text-sm text-gray-700">{marqueeText}</span>
+          <span className="px-8 text-sm text-gray-700" aria-hidden="true">
+            {marqueeText}
+          </span>
+        </div>
+      </div>
+
+      <style>{`
+        @keyframes forekas-announcement-scroll {
+          0% {
+            transform: translateX(0);
+          }
+          100% {
+            transform: translateX(-50%);
+          }
+        }
+      `}</style>
+    </div>
+  );
+};
+
 // NEW COMPONENT: Audit Log Item (Action and Time only)
 const AuditLogItem = ({
   action,
@@ -2043,6 +2086,7 @@ const SalesOverview= () => {
   const [allDeals, setAllDeals] = useState([]);
   const [allAccounts, setAllAccounts] = useState([]);
   const [allContacts, setAllContacts] = useState([]);
+  const [announcementMessage, setAnnouncementMessage] = useState("");
 
   // Comparison data for the comparison chart
   const [comparisonData, setComparisonData] = useState({
@@ -2202,6 +2246,7 @@ const SalesOverview= () => {
         callsRes,
         logsRes,
         targetsRes,
+        announcementRes,
       ] = await Promise.all([
         api.get("/leads/admin/getLeads").catch((err) => {
           console.error("Error fetching leads:", err);
@@ -2239,6 +2284,10 @@ const SalesOverview= () => {
           console.error("Error fetching targets:", err);
           return { data: [] };
         }),
+        api.get("/announcements/current").catch((err) => {
+          console.error("Error fetching announcement:", err);
+          return { data: { message: "" } };
+        }),
       ]);
 
       const leads = Array.isArray(leadsRes.data) ? leadsRes.data : [];
@@ -2250,6 +2299,7 @@ const SalesOverview= () => {
       const calls = Array.isArray(callsRes.data) ? callsRes.data : [];
       const logs = Array.isArray(logsRes.data) ? logsRes.data : [];
       const targets = Array.isArray(targetsRes.data) ? targetsRes.data : [];
+      const activeAnnouncementMessage = announcementRes?.data?.message || "";
 
       // Log raw deals data structure
       console.log("=== RAW DEALS API RESPONSE ===");
@@ -2269,6 +2319,7 @@ const SalesOverview= () => {
       setAllContacts(contacts);
 
       setAllTargets(targets);
+      setAnnouncementMessage(activeAnnouncementMessage);
 
       const totalTargetVal = targets.reduce((sum, t) => {
         const val = t.amount || t.value || t.target_amount || 0;
@@ -2989,6 +3040,8 @@ const SalesOverview= () => {
             <p className="font-medium">{error}</p>
           </div>
         )}
+
+        <AnnouncementTicker message={announcementMessage} />
 
         {/* Top Bar */}
         <div className="mb-8">

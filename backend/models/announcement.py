@@ -7,6 +7,7 @@ class Announcement(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     message = Column(String(300), nullable=False)
+    target_role = Column(String(50), nullable=False, default="ALL", index=True)
     is_active = Column(Boolean, nullable=False, default=True, index=True)
     starts_at = Column(DateTime(timezone=True), nullable=False, index=True)
     ends_at = Column(DateTime(timezone=True), nullable=True, index=True)

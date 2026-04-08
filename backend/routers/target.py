@@ -33,35 +33,65 @@ ALLOWED_TARGET_EDIT_ROLES = {"CEO", "ADMIN", "GROUP MANAGER"}
 STARTER_TARGET_LIMIT_PER_USER = 2
 
 
+def _get_active_target_count_for_user(
+    db: Session,
+    company_id: int,
+    user_id: int,
+    excluding_target_id: Optional[int] = None,
+) -> int:
+    query = (
+        db.query(Target)
+        .join(User, Target.user_id == User.id)
+        .filter(
+            Target.user_id == user_id,
+            User.related_to_company == company_id,
+            (Target.status != TargetStatus.INACTIVE.value) | (Target.status.is_(None)),
+        )
+    )
+    if excluding_target_id:
+        query = query.filter(Target.id != excluding_target_id)
+    return query.count()
+
+
 def _enforce_starter_target_limit_for_users(
     db: Session,
     current_user: User,
     user_ids: List[int],
     excluding_target_id: Optional[int] = None,
+    additional_targets_per_user: int = 1,
 ):
     if get_current_plan(db, current_user) != "starter":
         return
 
     for user_id in {uid for uid in (user_ids or []) if uid is not None}:
-        query = (
-            db.query(Target)
-            .join(User, Target.user_id == User.id)
+        target_user = (
+            db.query(User)
             .filter(
-                Target.user_id == user_id,
+                User.id == user_id,
                 User.related_to_company == current_user.related_to_company,
-                (Target.status != TargetStatus.INACTIVE.value) | (Target.status.is_(None)),
             )
+            .first()
         )
-        if excluding_target_id:
-            query = query.filter(Target.id != excluding_target_id)
+        user_display = (
+            f"{(target_user.first_name or '').strip()} {(target_user.last_name or '').strip()}".strip()
+            if target_user
+            else ""
+        )
+        if not user_display:
+            user_display = f"User #{user_id}"
 
-        existing_count = query.count()
-        if existing_count >= STARTER_TARGET_LIMIT_PER_USER:
+        existing_count = _get_active_target_count_for_user(
+            db,
+            current_user.related_to_company,
+            user_id,
+            excluding_target_id=excluding_target_id,
+        )
+        if existing_count + max(0, int(additional_targets_per_user or 0)) > STARTER_TARGET_LIMIT_PER_USER:
             raise HTTPException(
                 status_code=403,
                 detail=(
                     f"Starter plan allows up to {STARTER_TARGET_LIMIT_PER_USER} active targets per user. "
-                    f"User ID {user_id} has reached the limit."
+                    f"{user_display} has reached the limit."
                 ),
             )
 
@@ -1167,6 +1197,7 @@ def create_period_targets_from_annual(
     prorate_first_period: bool,
     db: Session,
     created_by: int = None,
+    max_targets_to_create: Optional[int] = None,
 ) -> List[dict]:
     """
     Generate target records for a user starting from generation_date.
@@ -1205,6 +1236,9 @@ def create_period_targets_from_annual(
     end_pn = totals[period_type]
 
     for pn in range(start_pn, end_pn + 1):
+        if max_targets_to_create is not None and len(targets_created) >= max_targets_to_create:
+            break
+
         # Period boundaries:
         # - MONTHLY: calendar months to match current UI
         # - QUARTERLY/SEMIANNUAL/ANNUAL: fiscal periods using company quota_period
@@ -1320,6 +1354,28 @@ def create_annual_targets(
         raise HTTPException(status_code=404, detail="User not found in your company")
 
     _enforce_starter_target_limit_for_users(db, current_user, [data.user_id])
+
+    max_targets_to_create = None
+    if get_current_plan(db, current_user) == "starter":
+        user_display = f"{(target_user.first_name or '').strip()} {(target_user.last_name or '').strip()}".strip()
+        if not user_display:
+            user_display = f"User #{data.user_id}"
+
+        existing_count = _get_active_target_count_for_user(
+            db,
+            current_user.related_to_company,
+            data.user_id,
+        )
+        remaining_slots = STARTER_TARGET_LIMIT_PER_USER - existing_count
+        if remaining_slots <= 0:
+            raise HTTPException(
+                status_code=403,
+                detail=(
+                    f"Starter plan allows up to {STARTER_TARGET_LIMIT_PER_USER} active targets per user. "
+                    f"{user_display} has reached the limit."
+                ),
+            )
+        max_targets_to_create = remaining_slots
     
     company = db.query(Company).filter(Company.id == current_user.related_to_company).first()
     fiscal_start_month = get_fiscal_start_month(company.quota_period if company else "January")
@@ -1353,6 +1409,7 @@ def create_annual_targets(
         prorate_first_period=data.prorate_first_period,
         db=db,
         created_by=current_user.id,
+        max_targets_to_create=max_targets_to_create,
     )
     
     if not targets_created:

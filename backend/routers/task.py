@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Request, Body
 from sqlalchemy.orm import Session, selectinload
 from typing import List
-from datetime import datetime
+from datetime import datetime, timezone
 from sqlalchemy import or_
 from database import get_db
 from models.task import Task, PriorityCategory, StatusCategory
@@ -17,10 +17,41 @@ from .logs_utils import serialize_instance, create_audit_log
 from models.deal import Deal
 from models.territory import Territory
 import traceback
+from services.plan_access import get_current_plan
 
 router = APIRouter(prefix="/tasks", tags=["Tasks"])
 
 ALLOWED_ADMIN_ROLES = {"CEO", "ADMIN", "GROUP MANAGER", "MANAGER", "SALES"}
+FREE_TASKS_MONTHLY_LIMIT = 50
+
+
+def _enforce_free_monthly_tasks_limit(db: Session, current_user: User):
+    if get_current_plan(db, current_user) != "free":
+        return
+
+    now = datetime.now(timezone.utc)
+    month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    if month_start.month == 12:
+        next_month_start = month_start.replace(year=month_start.year + 1, month=1)
+    else:
+        next_month_start = month_start.replace(month=month_start.month + 1)
+
+    tasks_count = (
+        db.query(Task.id)
+        .join(User, Task.created_by == User.id)
+        .filter(
+            User.related_to_company == current_user.related_to_company,
+            Task.created_at >= month_start,
+            Task.created_at < next_month_start,
+        )
+        .count()
+    )
+
+    if tasks_count >= FREE_TASKS_MONTHLY_LIMIT:
+        raise HTTPException(
+            status_code=403,
+            detail=f"Free plan allows up to {FREE_TASKS_MONTHLY_LIMIT} tasks per month. Please upgrade to create more.",
+        )
 
 
 # -----------------------------------------
@@ -69,6 +100,8 @@ async def create_task(
     current_user: User = Depends(get_current_user),
     request: Request = None,
 ):    
+    _enforce_free_monthly_tasks_limit(db, current_user)
+
     # --- AUTO-ASSIGN FOR SALES ROLE ---
     # If user has SALES role and no assigned_to is provided, assign to self
     assigned_to = payload.assigned_to

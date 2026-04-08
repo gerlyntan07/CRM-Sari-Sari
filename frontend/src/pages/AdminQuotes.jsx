@@ -266,6 +266,7 @@ export default function AdminQuotes() {
   // ✅ Get Currency from User Hook
   const { user } = useFetchUser();
   const currencySymbol = user?.company?.currency || "₱";
+  const isFreeTier = Boolean(user?.subscription_status?.is_free_tier);
 
   useEffect(() => {
     document.title = "Quotes | Forekas";
@@ -739,6 +740,11 @@ export default function AdminQuotes() {
   };
 
   const handleOpenAddModal = () => {
+    if (isFreeTier) {
+      toast.info("Quotes are view-only on the Free tier.");
+      return;
+    }
+
     // Use company's default tax rate when creating a new quote
     const companyTaxRate = user?.company?.tax_rate ?? 0;
     setFormData({
@@ -751,6 +757,11 @@ export default function AdminQuotes() {
   };
 
   const handleEditClick = (quote) => {
+    if (isFreeTier) {
+      toast.info("Quotes are view-only on the Free tier.");
+      return;
+    }
+
     if (!quote) return;
     setSelectedQuote(null);
 
@@ -848,6 +859,11 @@ export default function AdminQuotes() {
   };
 
   const handleDelete = (quote) => {
+    if (isFreeTier) {
+      toast.info("Quotes are view-only on the Free tier.");
+      return;
+    }
+
     if (!quote) return;
     const quoteName = quote.quote_id || "this quote";
     setConfirmModalData({
@@ -867,6 +883,11 @@ export default function AdminQuotes() {
   };
 
   const handleBulkDelete = async () => {
+    if (isFreeTier) {
+      toast.info("Quotes are view-only on the Free tier.");
+      return;
+    }
+
     if (selectedIds.length === 0) return;
 
     setConfirmModalData({
@@ -892,6 +913,11 @@ export default function AdminQuotes() {
   const [isSubmitted, setIsSubmitted] = useState(false);
   const handleSubmit = (e) => {
     e.preventDefault();
+    if (isFreeTier) {
+      toast.info("Quotes are view-only on the Free tier.");
+      return;
+    }
+
     setIsSubmitted(true);
 
     if (!currentUserId) {
@@ -1191,7 +1217,7 @@ export default function AdminQuotes() {
         "Failed to update quote status. Please try again.";
       toast.error(msg);
     }
-  }, [selectedQuote, selectedStatus, fetchQuotes, buildUpdatePayloadFromQuote]);
+  }, [isFreeTier, selectedQuote, selectedStatus, fetchQuotes, buildUpdatePayloadFromQuote]);
 
   const statusFilterOptions = [
     { label: "Filter by Status", value: "Filter by Status" },
@@ -1261,12 +1287,15 @@ export default function AdminQuotes() {
               >
                 <FiFileText className="mr-2" />
                 {invoicePrinting ? "Preparing..." : "Print Quotation"}
-              </button>
+              </button>          
 
-              <button
+                {!isFreeTier && (
+                  <>
+<button
                 className="inline-flex items-center justify-center w-full sm:w-auto bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 disabled:opacity-70 transition text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
                 onClick={() => handleEditClick(selectedQuote)}
                 disabled={
+                  isFreeTier ||
                   confirmProcessing ||
                   (confirmModalData?.action?.type === "update" &&
                     confirmModalData.action.targetId === selectedQuote.id)
@@ -1276,10 +1305,10 @@ export default function AdminQuotes() {
                 Edit
               </button>
 
-              <button
+                  <button
                 className="inline-flex items-center justify-center w-full sm:w-auto px-4 py-2 rounded-md text-sm bg-red-500 text-white hover:bg-red-600 transition focus:outline-none focus:ring-2 focus:ring-red-400"
                 onClick={() => handleDelete(selectedQuote)}
-                disabled={Boolean(selectedQuoteDeleteDisabled)}
+                disabled={isFreeTier || Boolean(selectedQuoteDeleteDisabled)}
               >
                 {selectedQuoteDeleting ? (
                   "Deleting..."
@@ -1290,6 +1319,8 @@ export default function AdminQuotes() {
                   </>
                 )}
               </button>
+                  </>
+                )}              
             </div>
           </div>
 
@@ -1541,6 +1572,7 @@ export default function AdminQuotes() {
                   </div>
                 </div>
 
+{!isFreeTier && (
                 <div className="bg-white border border-gray-100 rounded-lg p-3 sm:p-4 shadow-sm w-full">
                   <h4 className="font-semibold text-gray-800 mb-2 text-sm">
                     Status
@@ -1561,10 +1593,11 @@ export default function AdminQuotes() {
                       </option>
                     ))}
                   </select>
-
-                  <button
+                  
+                    <button
                     onClick={handleStatusUpdate}
                     disabled={
+                      isFreeTier ||
                       normalizeStatus(selectedStatus) ===
                       normalizeStatus(selectedQuote.status)
                     }
@@ -1576,8 +1609,11 @@ export default function AdminQuotes() {
                     }`}
                   >
                     Update
-                  </button>
+                  </button>                                 
                 </div>
+                )}   
+
+
               </div>
             </div>
           </div>
@@ -1601,12 +1637,20 @@ export default function AdminQuotes() {
               handleOpenAddModal(); // open the modal
               setIsSubmitted(false); // reset all error borders
             }}
-            className="flex items-center bg-black text-white px-3 sm:px-4 py-2 rounded-md hover:bg-gray-800 text-sm sm:text-base mx-auto sm:ml-auto cursor-pointer"
+            disabled={isFreeTier}
+            title={isFreeTier ? "Quotes are view-only on the Free tier" : "Add Quote"}
+            className="flex items-center bg-black text-white px-3 sm:px-4 py-2 rounded-md hover:bg-gray-800 text-sm sm:text-base mx-auto sm:ml-auto cursor-pointer disabled:opacity-50"
           >
             <FiPlus className="mr-2" /> Add Quote
           </button>
         </div>
       </div>
+
+      {isFreeTier && (
+        <div className="mb-4 rounded-md border border-amber-200 bg-amber-50 px-4 py-2 text-sm text-amber-800">
+          Free tier: Quotes are view-only. You can browse and print, but cannot create, edit, or delete.
+        </div>
+      )}
 
       <div className="bg-white rounded-xl p-4 shadow-sm mb-6 flex flex-col lg:flex-row items-center justify-between gap-3 w-full">
         <div className="flex items-center border border-gray-300 rounded-lg px-4 h-11 w-full lg:w-3/4 focus-within:ring-2 focus-within:ring-indigo-500 transition">
@@ -1647,6 +1691,7 @@ export default function AdminQuotes() {
                     selectedIds.length === paginatedQuotes.length
                   }
                   onChange={handleSelectAll}
+                  disabled={isFreeTier}
                   className="cursor-pointer"
                 />
               </th>
@@ -1662,6 +1707,7 @@ export default function AdminQuotes() {
                 {selectedIds.length > 0 ? (
                   <button
                     onClick={handleBulkDelete}
+                    disabled={isFreeTier}
                     className="text-red-600 hover:text-red-800 transition p-1 rounded-full hover:bg-red-50"
                     title={`Delete ${selectedIds.length} selected items`}
                   >
@@ -1714,6 +1760,7 @@ export default function AdminQuotes() {
                           type="checkbox"
                           checked={selectedIds.includes(quote.id)}
                           onChange={() => handleCheckboxChange(quote.id)}
+                          disabled={isFreeTier}
                           className="cursor-pointer"
                         />
                       </td>
@@ -1882,7 +1929,7 @@ export default function AdminQuotes() {
                 setFormData((prev) => ({ ...prev, items: newItems }))
               }
               currencySymbol={currencySymbol}
-              readOnly={isSubmitting}
+              readOnly={isSubmitting || isFreeTier}
               taxRate={formData.tax_rate}
               discountType={formData.discount_type}
               discountValue={formData.discount_value}
@@ -2060,7 +2107,7 @@ export default function AdminQuotes() {
             <button
               type="submit"
               className="w-full sm:w-auto px-4 py-2 text-white border border-tertiary bg-tertiary rounded hover:bg-secondary transition disabled:opacity-70"
-              disabled={isSubmitting || confirmProcessing}
+              disabled={isSubmitting || confirmProcessing || isFreeTier}
             >
               {isSubmitting
                 ? "Saving..."

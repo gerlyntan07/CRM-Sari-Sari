@@ -17,6 +17,7 @@ from .ws_notification import broadcast_notification
 from sqlalchemy.orm import joinedload
 from sqlalchemy.orm import joinedload
 from models.territory import Territory
+from services.plan_access import get_current_plan
 
 router = APIRouter(
     prefix="/deals",
@@ -24,6 +25,24 @@ router = APIRouter(
 )
 
 ALLOWED_ADMIN_ROLES = {"CEO", "ADMIN", "GROUP MANAGER", "MANAGER", "SALES"}
+FREE_DEALS_LIMIT = 50
+
+
+def _enforce_free_deals_limit(db: Session, current_user: User):
+    if get_current_plan(db, current_user) != "free":
+        return
+
+    deals_count = (
+        db.query(Deal.id)
+        .join(User, Deal.created_by == User.id)
+        .filter(User.related_to_company == current_user.related_to_company)
+        .count()
+    )
+    if deals_count >= FREE_DEALS_LIMIT:
+        raise HTTPException(
+            status_code=403,
+            detail=f"Free plan allows up to {FREE_DEALS_LIMIT} total deals. Please upgrade to create more.",
+        )
 
 
 def _push_notif(
@@ -74,6 +93,8 @@ def create_deal(
     current_user: User = Depends(get_current_user),
     request: Request = None
 ):
+    _enforce_free_deals_limit(db, current_user)
+
     _validate_amount(getattr(data, "amount", None))
 
     # Stage + probability safety (if stage is present)
@@ -234,6 +255,8 @@ def admin_create_deal(
 
     if not current_user.related_to_company:
         raise HTTPException(status_code=400, detail="Current user is not linked to any company.")
+
+    _enforce_free_deals_limit(db, current_user)
 
     # Validate account exists
     account = db.query(Account).filter(Account.id == data.account_id).first()

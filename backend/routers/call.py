@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Request, Body
 from sqlalchemy.orm import Session, joinedload
 from typing import List
-from datetime import datetime
+from datetime import datetime, timezone
 import json
 
 from database import get_db
@@ -16,6 +16,7 @@ from schemas.call import CallCreate, CallResponse, CallUpdate, CallBulkDelete
 from .auth_utils import get_current_user
 from .logs_utils import serialize_instance, create_audit_log
 from models.territory import Territory
+from services.plan_access import get_current_plan
 
 router = APIRouter(
     prefix="/calls",
@@ -23,6 +24,36 @@ router = APIRouter(
 )
 
 ALLOWED_ADMIN_ROLES = {"CEO", "ADMIN", "GROUP MANAGER", "MANAGER", "SALES"}
+FREE_CALLS_MONTHLY_LIMIT = 50
+
+
+def _enforce_free_monthly_calls_limit(db: Session, current_user: User):
+    if get_current_plan(db, current_user) != "free":
+        return
+
+    now = datetime.now(timezone.utc)
+    month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    if month_start.month == 12:
+        next_month_start = month_start.replace(year=month_start.year + 1, month=1)
+    else:
+        next_month_start = month_start.replace(month=month_start.month + 1)
+
+    calls_count = (
+        db.query(Call.id)
+        .join(User, Call.created_by == User.id)
+        .filter(
+            User.related_to_company == current_user.related_to_company,
+            Call.created_at >= month_start,
+            Call.created_at < next_month_start,
+        )
+        .count()
+    )
+
+    if calls_count >= FREE_CALLS_MONTHLY_LIMIT:
+        raise HTTPException(
+            status_code=403,
+            detail=f"Free plan allows up to {FREE_CALLS_MONTHLY_LIMIT} calls per month. Please upgrade to create more.",
+        )
 
 @router.post("/create", response_model=CallResponse, status_code=status.HTTP_201_CREATED)
 async def create_task(
@@ -31,6 +62,8 @@ async def create_task(
     current_user: User = Depends(get_current_user),
     request: Request = None,
 ):    
+    _enforce_free_monthly_calls_limit(db, current_user)
+
     assigned_user = None
     if payload.assigned_to:
         assigned_user = db.query(User).filter(User.id == payload.assigned_to).first()

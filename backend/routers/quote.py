@@ -20,11 +20,21 @@ from models.territory import Territory
 from models.company import Company
 
 from .logs_utils import serialize_instance, create_audit_log
+from services.plan_access import enforce_free_restriction
 
 
 router = APIRouter(prefix="/quotes", tags=["Quotes"])
 
 ALLOWED_ADMIN_ROLES = {"CEO", "ADMIN", "GROUP MANAGER", "MANAGER", "SALES"}
+
+
+def _enforce_free_quotes_view_only(db: Session, current_user: User):
+    enforce_free_restriction(
+        db,
+        current_user,
+        "Quotes",
+        detail="Quotes are view-only on the Free plan. Please upgrade to create or edit quotes.",
+    )
 
 
 def normalize_status(status_value: str | None) -> str:
@@ -122,6 +132,8 @@ def admin_create_quote(
     current_user: User = Depends(get_current_user),
     request: Request = None,
 ):
+    _enforce_free_quotes_view_only(db, current_user)
+
     if (current_user.role or "").upper() not in ALLOWED_ADMIN_ROLES:
         raise HTTPException(status_code=403, detail="Permission denied")
 
@@ -288,6 +300,8 @@ def admin_update_quote(
     current_user: User = Depends(get_current_user),
     request: Request = None,
 ):
+    _enforce_free_quotes_view_only(db, current_user)
+
     if (current_user.role or "").upper() not in ALLOWED_ADMIN_ROLES:
         raise HTTPException(status_code=403, detail="Permission denied")
 
@@ -436,6 +450,8 @@ def admin_delete_quote(
     current_user: User = Depends(get_current_user),
     request: Request = None,
 ):
+    _enforce_free_quotes_view_only(db, current_user)
+
     if (current_user.role or "").upper() not in ALLOWED_ADMIN_ROLES:
         raise HTTPException(status_code=403, detail="Permission denied")
 
@@ -500,6 +516,8 @@ def admin_update_quote_status(
     current_user: User = Depends(get_current_user),
     request: Request = None,
 ):
+    _enforce_free_quotes_view_only(db, current_user)
+
     if (current_user.role or "").upper() not in ALLOWED_ADMIN_ROLES:
         raise HTTPException(status_code=403, detail="Permission denied")
 
@@ -546,6 +564,8 @@ def admin_bulk_delete_quotes(
     current_user: User = Depends(get_current_user),
     request: Request = None
 ):
+    _enforce_free_quotes_view_only(db, current_user)
+
     if current_user.role.upper() not in ALLOWED_ADMIN_ROLES:
         raise HTTPException(status_code=403, detail="Permission denied")
 
@@ -675,6 +695,8 @@ def add_quote_item(
     request: Request = None,
 ):
     """Add a new line item to a quote."""
+    _enforce_free_quotes_view_only(db, current_user)
+
     if (current_user.role or "").upper() not in ALLOWED_ADMIN_ROLES:
         raise HTTPException(status_code=403, detail="Permission denied")
 
@@ -700,6 +722,7 @@ def add_quote_item(
         sort_order=sort_order,
         line_total=Decimal('0'),
     )
+
     quote_item.calculate_line_total()
 
     db.add(quote_item)
@@ -738,6 +761,8 @@ def add_quote_items_bulk(
     request: Request = None,
 ):
     """Add multiple line items to a quote at once."""
+    _enforce_free_quotes_view_only(db, current_user)
+
     if (current_user.role or "").upper() not in ALLOWED_ADMIN_ROLES:
         raise HTTPException(status_code=403, detail="Permission denied")
 
@@ -766,6 +791,7 @@ def add_quote_items_bulk(
             sort_order=item_data.sort_order if item_data.sort_order is not None else max_sort + idx,
             line_total=Decimal('0'),
         )
+
         quote_item.calculate_line_total()
         db.add(quote_item)
         created_items.append(quote_item)
@@ -809,6 +835,8 @@ def update_quote_item(
     request: Request = None,
 ):
     """Update an existing line item in a quote."""
+    _enforce_free_quotes_view_only(db, current_user)
+
     if (current_user.role or "").upper() not in ALLOWED_ADMIN_ROLES:
         raise HTTPException(status_code=403, detail="Permission denied")
 
@@ -860,6 +888,8 @@ def delete_quote_item(
     request: Request = None,
 ):
     """Delete a line item from a quote."""
+    _enforce_free_quotes_view_only(db, current_user)
+
     if (current_user.role or "").upper() not in ALLOWED_ADMIN_ROLES:
         raise HTTPException(status_code=403, detail="Permission denied")
 
@@ -904,6 +934,8 @@ def delete_all_quote_items(
     request: Request = None,
 ):
     """Delete all line items from a quote."""
+    _enforce_free_quotes_view_only(db, current_user)
+
     if (current_user.role or "").upper() not in ALLOWED_ADMIN_ROLES:
         raise HTTPException(status_code=403, detail="Permission denied")
 
@@ -940,6 +972,8 @@ def recalculate_quote_totals(
     request: Request = None,
 ):
     """Recalculate quote totals based on line items, tax, and discount settings."""
+    _enforce_free_quotes_view_only(db, current_user)
+
     if (current_user.role or "").upper() not in ALLOWED_ADMIN_ROLES:
         raise HTTPException(status_code=403, detail="Permission denied")
 
@@ -979,6 +1013,8 @@ def reorder_quote_items(
     request: Request = None,
 ):
     """Reorder line items in a quote by providing item IDs in desired order."""
+    _enforce_free_quotes_view_only(db, current_user)
+
     if (current_user.role or "").upper() not in ALLOWED_ADMIN_ROLES:
         raise HTTPException(status_code=403, detail="Permission denied")
 

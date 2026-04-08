@@ -23,3 +23,14 @@ def enforce_starter_restriction(db: Session, current_user: User, feature_name: s
             status_code=403,
             detail=f"{feature_name} is not available on the Starter plan. Please upgrade to Pro or Enterprise.",
         )
+
+
+def enforce_free_restriction(db: Session, current_user: User, feature_name: str, detail: str | None = None):
+    """
+    Block selected features for Free tier.
+    """
+    if is_current_plan(db, current_user, "free"):
+        raise HTTPException(
+            status_code=403,
+            detail=detail or f"{feature_name} is not available on the Free plan. Please upgrade to Starter, Pro, or Enterprise.",
+        )

@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Request, Body
 from sqlalchemy.orm import Session, joinedload
 from typing import List
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import json
 
 from database import get_db
@@ -16,6 +16,7 @@ from schemas.meeting import MeetingCreate, MeetingUpdate, MeetingResponse, Meeti
 from .auth_utils import get_current_user
 from .logs_utils import serialize_instance, create_audit_log
 from models.territory import Territory
+from services.plan_access import get_current_plan
 
 router = APIRouter(
     prefix="/meetings",
@@ -23,6 +24,36 @@ router = APIRouter(
 )
 
 ALLOWED_ADMIN_ROLES = {"CEO", "ADMIN", "GROUP MANAGER", "MANAGER", "SALES"}
+FREE_MEETINGS_MONTHLY_LIMIT = 50
+
+
+def _enforce_free_monthly_meetings_limit(db: Session, current_user: User):
+    if get_current_plan(db, current_user) != "free":
+        return
+
+    now = datetime.now(timezone.utc)
+    month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    if month_start.month == 12:
+        next_month_start = month_start.replace(year=month_start.year + 1, month=1)
+    else:
+        next_month_start = month_start.replace(month=month_start.month + 1)
+
+    meetings_count = (
+        db.query(Meeting.id)
+        .join(User, Meeting.created_by == User.id)
+        .filter(
+            User.related_to_company == current_user.related_to_company,
+            Meeting.created_at >= month_start,
+            Meeting.created_at < next_month_start,
+        )
+        .count()
+    )
+
+    if meetings_count >= FREE_MEETINGS_MONTHLY_LIMIT:
+        raise HTTPException(
+            status_code=403,
+            detail=f"Free plan allows up to {FREE_MEETINGS_MONTHLY_LIMIT} meetings per month. Please upgrade to create more.",
+        )
 
 @router.post("/create", response_model=MeetingResponse, status_code=status.HTTP_201_CREATED)
 async def create_task(
@@ -31,6 +62,8 @@ async def create_task(
     current_user: User = Depends(get_current_user),
     request: Request = None,
 ):    
+    _enforce_free_monthly_meetings_limit(db, current_user)
+
     assigned_user = None
     if payload.assignedTo:
         assigned_user = db.query(User).filter(User.id == payload.assignedTo).first()

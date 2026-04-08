@@ -72,13 +72,8 @@ export default function AdminPanel() {
     if (!isFreeTier) return;
 
     const restrictedPrefixes = [
-      "/admin/deals",
-      "/admin/quotes",
       "/admin/soas",
       "/admin/targets",
-      "/admin/tasks",
-      "/admin/calls",
-      "/admin/meetings",
       "/admin/calendar",
       "/admin/audit",
       "/admin/users",
@@ -209,15 +204,17 @@ export default function AdminPanel() {
                 >
                   <FiFileText /> Quotes
                 </NavLink>
-                
-                <NavLink
-                  to="/admin/targets"
-                  className={({ isActive }) =>
-                    isActive ? activeLink : normalLink
-                  }
-                >
-                  <FiTarget /> Targets
-                </NavLink>
+
+                {!isFreeTier && (
+                  <NavLink
+                    to="/admin/targets"
+                    className={({ isActive }) =>
+                      isActive ? activeLink : normalLink
+                    }
+                  >
+                    <FiTarget /> Targets
+                  </NavLink>
+                )}
               </div>
             )}
           </div>
@@ -240,14 +237,16 @@ export default function AdminPanel() {
 
             {activityOpen && (
               <div className="ml-6 mt-2 space-y-1">
-                <NavLink
-                  to="/admin/calendar"
-                  className={({ isActive }) =>
-                    isActive ? activeLink : normalLink
-                  }
-                >
-                  <FiCalendar /> Calendar
-                </NavLink>
+                {!isFreeTier && (
+                  <NavLink
+                    to="/admin/calendar"
+                    className={({ isActive }) =>
+                      isActive ? activeLink : normalLink
+                    }
+                  >
+                    <FiCalendar /> Calendar
+                  </NavLink>
+                )}
                 <NavLink
                   to="/admin/tasks"
                   className={({ isActive }) =>
@@ -272,7 +271,7 @@ export default function AdminPanel() {
                 >
                   <FiPhoneCall /> Calls
                 </NavLink>
-                {!isStarterTier && (
+                {(!isStarterTier && !isFreeTier) && (
                   <NavLink
                     to="/admin/audit"
                     className={({ isActive }) =>
@@ -286,7 +285,7 @@ export default function AdminPanel() {
             )}
           </div>
           {/* Territory */}
-          {!isStarterTier && (
+          {(!isStarterTier && !isFreeTier) && (
             <div>
               <NavLink
                 to="/admin/territory"
@@ -301,35 +300,37 @@ export default function AdminPanel() {
           )}
 
           {/* Accounting Dropdown */}
-          <div>
-            <button
-              className="w-full px-3 py-2 flex justify-between items-center text-sm font-medium text-gray-300 hover:bg-secondary rounded-lg transition"
-              onClick={() => setAccountingOpen(!accountingOpen)}
-            >
-              <span className="flex items-center gap-2">
-                <BiCoinStack className="text-lg" />
-                Accounting
-              </span>
-              <FiChevronDown
-                className={`transition-transform ${accountingOpen ? "rotate-180" : ""
-                  }`}
-              />
-            </button>
+          {!isFreeTier && (
+            <div>
+              <button
+                className="w-full px-3 py-2 flex justify-between items-center text-sm font-medium text-gray-300 hover:bg-secondary rounded-lg transition"
+                onClick={() => setAccountingOpen(!accountingOpen)}
+              >
+                <span className="flex items-center gap-2">
+                  <BiCoinStack className="text-lg" />
+                  Accounting
+                </span>
+                <FiChevronDown
+                  className={`transition-transform ${accountingOpen ? "rotate-180" : ""
+                    }`}
+                />
+              </button>
 
-            {accountingOpen && (
-              <div className="ml-6 mt-2 space-y-1">
-                <NavLink
-                  to="/admin/soas"
-                  className={({ isActive }) =>
-                    isActive ? activeLink : normalLink
-                  }
-                  title="Statement of Account"
-                >
-                  <MdOutlineSwitchAccount /> SOA
-                </NavLink>                
-              </div>
-            )}
-          </div>
+              {accountingOpen && (
+                <div className="ml-6 mt-2 space-y-1">
+                  <NavLink
+                    to="/admin/soas"
+                    className={({ isActive }) =>
+                      isActive ? activeLink : normalLink
+                    }
+                    title="Statement of Account"
+                  >
+                    <MdOutlineSwitchAccount /> SOA
+                  </NavLink>
+                </div>
+              )}
+            </div>
+          )}
 
            {/* Marketing Dropdown */}
           <div>
@@ -382,14 +383,16 @@ export default function AdminPanel() {
 
             {userMgmtOpen && (
               <div className="ml-6 mt-2 space-y-1">
-                <NavLink
-                  to="/admin/users"
-                  className={({ isActive }) =>
-                    isActive ? activeLink : normalLink
-                  }
-                >
-                  <FiUsers /> Users
-                </NavLink>
+                {!isFreeTier && (
+                  <NavLink
+                    to="/admin/users"
+                    className={({ isActive }) =>
+                      isActive ? activeLink : normalLink
+                    }
+                  >
+                    <FiUsers /> Users
+                  </NavLink>
+                )}
                 <NavLink
                   to="/admin/manage-account"
                   className={({ isActive }) =>

@@ -168,9 +168,7 @@ export default function SoaPrintPage() {
         <div className="relative bg-white border border-gray-300 shadow-sm p-6 soa-sheet">
           {isStarterTier && (
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none select-none">
-              <div className="text-7xl font-black tracking-[0.35em] text-gray-300 opacity-20 rotate-[-28deg]">
-                FOREKAS
-              </div>
+              <img src="/forekaslogo.png" className="text-7xl font-black tracking-[0.35em] text-gray-500 opacity-10 w-1/2" alt="" />
             </div>
           )}
 

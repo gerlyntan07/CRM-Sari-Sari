@@ -426,9 +426,7 @@ export default function QuotePrintPage() {
         <div className="print-surface relative bg-white border border-gray-200 rounded-xl shadow-sm p-6">
           {isStarterTier && (
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none select-none">
-              <div className="text-7xl font-black tracking-[0.35em] text-gray-400 opacity-20 rotate-[-28deg]">
-                FOREKAS
-              </div>
+              <img src="/forekaslogo.png" className="text-7xl font-black tracking-[0.35em] text-gray-500 opacity-10 w-1/2" alt="" />
             </div>
           )}
 

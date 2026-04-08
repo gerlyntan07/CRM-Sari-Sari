@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { NavLink, Outlet, useLocation } from "react-router-dom";
+import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import {
   FiHome,
   FiUsers,
@@ -36,6 +36,9 @@ export default function SalesPanel() {
   const [marketingOpen, setMarketingOpen] = useState(false);
   const { user } = useFetchUser();
   const [salesOpen, setSalesOpen] = useState(false);
+  const navigate = useNavigate();
+  const isStarterTier =
+    String(user?.subscription_status?.current_plan || "").toLowerCase() === "starter";
 
   useEffect(() => {
     user && console.log("Fetched user:", user);
@@ -55,6 +58,20 @@ export default function SalesPanel() {
 
   const location = useLocation();
   const isSalesActive = salesRoutes.includes(location.pathname);
+
+  useEffect(() => {
+    if (!isStarterTier) return;
+
+    const starterRestrictedPrefixes = ["/sales/territory", "/sales/audit"];
+    const isRestricted = starterRestrictedPrefixes.some((prefix) =>
+      location.pathname.startsWith(prefix)
+    );
+
+    if (isRestricted) {
+      toast.info("Territory and Audit Logs are not available on the Starter tier.");
+      navigate("/sales/overview", { replace: true });
+    }
+  }, [isStarterTier, location.pathname, navigate]);
 
   const activeLink =
     "flex items-center gap-3 px-3 py-2 rounded-lg bg-white text-tertiary font-semibold shadow-sm";
@@ -292,30 +309,34 @@ export default function SalesPanel() {
                 >
                   <FiPhoneCall /> Calls
                 </NavLink>
-                <NavLink
-                  to="/sales/audit"
-                  className={({ isActive }) =>
-                    isActive ? activeLink : normalLink
-                  }
-                >
-                  <FiClipboard /> Audit
-                </NavLink>
+                {!isStarterTier && (
+                  <NavLink
+                    to="/sales/audit"
+                    className={({ isActive }) =>
+                      isActive ? activeLink : normalLink
+                    }
+                  >
+                    <FiClipboard /> Audit
+                  </NavLink>
+                )}
               </div>
             )}
           </div>
 
           {/* Territory */}
-          <div>
-            <NavLink
-              to="/sales/territory"
-              className={({ isActive }) => (isActive ? activeLink : normalLink)}
-            >
-              <span className="flex items-center gap-2">
-                <LuMapPin className="text-lg" />
-                Territory
-              </span>
-            </NavLink>
-          </div>
+          {!isStarterTier && (
+            <div>
+              <NavLink
+                to="/sales/territory"
+                className={({ isActive }) => (isActive ? activeLink : normalLink)}
+              >
+                <span className="flex items-center gap-2">
+                  <LuMapPin className="text-lg" />
+                  Territory
+                </span>
+              </NavLink>
+            </div>
+          )}
 
           {/* Accounting Dropdown */}
           <div>

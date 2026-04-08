@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { NavLink, Outlet, useLocation } from "react-router-dom";
+import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import {
   FiHome,
   FiUsers,
@@ -35,7 +35,10 @@ export default function ManagerPanel() {
   const [userMgmtOpen, setUserMgmtOpen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false); // mobile sidebar
   const location = useLocation();
+  const navigate = useNavigate();
   const { user } = useFetchUser();
+  const isStarterTier =
+    String(user?.subscription_status?.current_plan || "").toLowerCase() === "starter";
 
   useEffect(() => {
     user && console.log("Fetched user:", user);
@@ -62,6 +65,20 @@ export default function ManagerPanel() {
     "/manager/manage-account",
   ];
   const isSalesActive = salesRoutes.includes(location.pathname);
+
+  useEffect(() => {
+    if (!isStarterTier) return;
+
+    const starterRestrictedPrefixes = ["/manager/territory", "/manager/audit"];
+    const isRestricted = starterRestrictedPrefixes.some((prefix) =>
+      location.pathname.startsWith(prefix)
+    );
+
+    if (isRestricted) {
+      toast.info("Territory and Audit Logs are not available on the Starter tier.");
+      navigate("/manager/dashboard", { replace: true });
+    }
+  }, [isStarterTier, location.pathname, navigate]);
 
   return (
     <div className="flex h-screen bg-gray-100 overflow-hidden">
@@ -196,27 +213,31 @@ export default function ManagerPanel() {
                 >
                   <FiPhoneCall /> Calls
                 </NavLink>
-                <NavLink
-                  to="/manager/audit"
-                  className={({ isActive }) => (isActive ? activeLink : normalLink)}
-                >
-                  <FiClipboard /> Audit
-                </NavLink>
+                {!isStarterTier && (
+                  <NavLink
+                    to="/manager/audit"
+                    className={({ isActive }) => (isActive ? activeLink : normalLink)}
+                  >
+                    <FiClipboard /> Audit
+                  </NavLink>
+                )}
               </div>
             )}
           </div>
           {/* Territory */}
-                    <div>
-                      <NavLink
-                        to="/manager/territory"
-                        className={({ isActive }) => (isActive ? activeLink : normalLink)}
-                      >
-                        <span className="flex items-center gap-2">
-                          <LuMapPin className="text-lg" />
-                          Territory
-                        </span>
-                      </NavLink>
-                    </div>
+          {!isStarterTier && (
+            <div>
+              <NavLink
+                to="/manager/territory"
+                className={({ isActive }) => (isActive ? activeLink : normalLink)}
+              >
+                <span className="flex items-center gap-2">
+                  <LuMapPin className="text-lg" />
+                  Territory
+                </span>
+              </NavLink>
+            </div>
+          )}
 
             {/* Accounting Dropdown */}
           <div>

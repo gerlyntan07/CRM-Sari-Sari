@@ -36,6 +36,8 @@ export default function SoasBasePage({ basePath }) {
 
 
   const currencySymbol = user?.company?.currency || "₱";
+  const isStarterTier =
+    String(user?.subscription_status?.current_plan || "").toLowerCase() === "starter";
   const defaultTaxRate = Number(user?.company?.tax_rate ?? 0);
   const defaultPreparedBy = useMemo(() => {
     const fullName = [user?.first_name, user?.last_name].filter(Boolean).join(" ").trim();
@@ -661,12 +663,17 @@ export default function SoasBasePage({ basePath }) {
                 items={formData.items}
                 onChange={(items) => setFormData((p) => ({ ...p, items }))}
                 currencySymbol={currencySymbol}
-                readOnly={fieldsDisabled}
+                readOnly={fieldsDisabled || isStarterTier}
                 taxRate={formData.tax_rate}
                 discountType={null}
                 discountValue={0}
                 onTotalsChange={(t) => setTotals(t)}
               />
+              {isStarterTier && (
+                <p className="mt-2 text-xs text-amber-700">
+                  Starter tier: line items are locked and cannot be edited or deleted.
+                </p>
+              )}
             </div>
 
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-t border-gray-200 pt-4">

@@ -12,10 +12,12 @@ from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
 from database import Base, get_db
+from models.auditlog import Auditlog
 from models.auth import User
 from models.company import Company
 from .auth_utils import get_current_user
 from .logs_utils import create_audit_log
+from services.plan_access import get_current_plan
 
 
 router = APIRouter(
@@ -94,6 +96,40 @@ def download_backup_csv_zip(
     company_id = current_user.related_to_company
     if not company_id:
         raise HTTPException(status_code=403, detail="User not associated with a company")
+
+    current_plan = get_current_plan(db, current_user)
+    if current_plan == "free":
+        raise HTTPException(status_code=403, detail="CSV export is not available on the Free plan")
+
+    if current_plan == "starter":
+        now = datetime.now(timezone.utc)
+        month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        if month_start.month == 12:
+            next_month_start = month_start.replace(year=month_start.year + 1, month=1)
+        else:
+            next_month_start = month_start.replace(month=month_start.month + 1)
+
+        starter_monthly_export_limit = 20
+        month_exports = (
+            db.query(Auditlog.id)
+            .join(User, Auditlog.user_id == User.id)
+            .filter(
+                User.related_to_company == company_id,
+                Auditlog.action == "BACKUP",
+                Auditlog.timestamp >= month_start,
+                Auditlog.timestamp < next_month_start,
+            )
+            .count()
+        )
+
+        if month_exports >= starter_monthly_export_limit:
+            raise HTTPException(
+                status_code=403,
+                detail=(
+                    f"Starter plan allows up to {starter_monthly_export_limit} CSV exports per month. "
+                    "You have reached this month's limit."
+                ),
+            )
 
     company_user_ids = [
         row[0]

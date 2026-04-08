@@ -20,6 +20,7 @@ from models.territory import Territory
 from models.deal import Deal, DealStage
 from models.company import Company
 from .logs_utils import serialize_instance, create_audit_log
+from services.plan_access import get_current_plan
 
 
 router = APIRouter(
@@ -29,6 +30,40 @@ router = APIRouter(
 
 ALLOWED_ADMIN_ROLES = {"CEO", "ADMIN", "GROUP MANAGER", "MANAGER"}
 ALLOWED_TARGET_EDIT_ROLES = {"CEO", "ADMIN", "GROUP MANAGER"}
+STARTER_TARGET_LIMIT_PER_USER = 2
+
+
+def _enforce_starter_target_limit_for_users(
+    db: Session,
+    current_user: User,
+    user_ids: List[int],
+    excluding_target_id: Optional[int] = None,
+):
+    if get_current_plan(db, current_user) != "starter":
+        return
+
+    for user_id in {uid for uid in (user_ids or []) if uid is not None}:
+        query = (
+            db.query(Target)
+            .join(User, Target.user_id == User.id)
+            .filter(
+                Target.user_id == user_id,
+                User.related_to_company == current_user.related_to_company,
+                (Target.status != TargetStatus.INACTIVE.value) | (Target.status.is_(None)),
+            )
+        )
+        if excluding_target_id:
+            query = query.filter(Target.id != excluding_target_id)
+
+        existing_count = query.count()
+        if existing_count >= STARTER_TARGET_LIMIT_PER_USER:
+            raise HTTPException(
+                status_code=403,
+                detail=(
+                    f"Starter plan allows up to {STARTER_TARGET_LIMIT_PER_USER} active targets per user. "
+                    f"User ID {user_id} has reached the limit."
+                ),
+            )
 
 
 def _get_manager_sales_user_ids(db: Session, manager_id: int, company_id: int) -> List[int]:
@@ -440,6 +475,8 @@ def admin_create_target(
     if not target_user:
         raise HTTPException(status_code=404, detail="User not found in your company")
 
+    _enforce_starter_target_limit_for_users(db, current_user, [data.user_id])
+
     # Check for overlapping date ranges instead of blocking all targets
     overlapping_target = (
         db.query(Target)
@@ -524,6 +561,13 @@ def admin_update_target(
 
     if target.user.related_to_company != current_user.related_to_company:
         raise HTTPException(status_code=403, detail="Not authorized")
+
+    _enforce_starter_target_limit_for_users(
+        db,
+        current_user,
+        [data.user_id if data.user_id is not None else target.user_id],
+        excluding_target_id=target.id,
+    )
 
     old_data = serialize_instance(target)
 
@@ -1044,6 +1088,8 @@ def create_period_targets(
     fiscal_start_month = get_fiscal_start_month(company.quota_period if company else "January")
     
     start_date, end_date = get_period_dates(period_type, year, period_number, fiscal_start_month)
+
+    _enforce_starter_target_limit_for_users(db, current_user, user_ids)
     
     created_targets = []
     skipped_users = []
@@ -1272,6 +1318,8 @@ def create_annual_targets(
     
     if not target_user:
         raise HTTPException(status_code=404, detail="User not found in your company")
+
+    _enforce_starter_target_limit_for_users(db, current_user, [data.user_id])
     
     company = db.query(Company).filter(Company.id == current_user.related_to_company).first()
     fiscal_start_month = get_fiscal_start_month(company.quota_period if company else "January")

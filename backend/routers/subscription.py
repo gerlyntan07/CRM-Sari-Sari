@@ -36,7 +36,7 @@ def subscribe(user: SubscriptionCreate, response: Response, db: Session = Depend
         price = 0.0
         is_trial = True
         start_date = now
-        end_date = now + timedelta(minutes=1)
+        end_date = now + timedelta(days=15)
     else:
         allowed_plans = {
             PlanName.BASIC.value.lower(): PlanName.BASIC.value,
@@ -98,3 +98,65 @@ def current_subscription_status(
     db: Session = Depends(get_db),
 ):
     return apply_trial_lifecycle(db, current_user.related_to_company)
+
+
+@router.post("/cancel")
+def cancel_subscription(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    company_id = current_user.related_to_company
+    if not company_id:
+        raise HTTPException(status_code=400, detail="Current user is not linked to a company")
+
+    latest_subscription = (
+        db.query(Subscription)
+        .filter(Subscription.company_id == company_id)
+        .order_by(Subscription.created_at.desc(), Subscription.id.desc())
+        .first()
+    )
+
+    if (
+        latest_subscription
+        and (latest_subscription.plan_name or "").strip().lower() == PlanName.FREE.value.lower()
+        and (latest_subscription.status or "").strip().lower() == StatusList.ACTIVE.value.lower()
+    ):
+        return {
+            "detail": "Already on Free tier",
+            "subscription": {
+                "id": latest_subscription.id,
+                "plan_name": latest_subscription.plan_name,
+                "status": latest_subscription.status,
+            },
+        }
+
+    now = utc_now()
+
+    if latest_subscription:
+        latest_subscription.status = StatusList.CANCELLED.value
+        latest_subscription.is_trial = False
+        latest_subscription.updated_at = now
+
+    free_subscription = Subscription(
+        company_id=company_id,
+        plan_name=PlanName.FREE.value,
+        price=0.0,
+        status=StatusList.ACTIVE.value,
+        is_trial=False,
+        start_date=now,
+        end_date=None,
+        downgraded_to_free_at=now,
+    )
+    db.add(free_subscription)
+
+    db.commit()
+    db.refresh(free_subscription)
+
+    return {
+        "detail": "Subscription cancelled. Organization moved to Free tier.",
+        "subscription": {
+            "id": free_subscription.id,
+            "plan_name": free_subscription.plan_name,
+            "status": free_subscription.status,
+        },
+    }

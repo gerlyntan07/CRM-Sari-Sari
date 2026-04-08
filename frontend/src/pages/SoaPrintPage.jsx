@@ -54,6 +54,8 @@ export default function SoaPrintPage() {
   const { user } = useFetchUser();
 
   const currencySymbol = user?.company?.currency || "₱";
+  const isStarterTier =
+    String(user?.subscription_status?.current_plan || "").toLowerCase() === "starter";
 
   const [soa, setSoa] = useState(() => {
     const incoming = location.state?.soa;
@@ -163,7 +165,15 @@ export default function SoaPrintPage() {
       </div>
 
       <div className="max-w-5xl mx-auto p-4 soa-print-page">
-        <div className="bg-white border border-gray-300 shadow-sm p-6 soa-sheet">
+        <div className="relative bg-white border border-gray-300 shadow-sm p-6 soa-sheet">
+          {isStarterTier && (
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none select-none">
+              <div className="text-7xl font-black tracking-[0.35em] text-gray-300 opacity-20 rotate-[-28deg]">
+                FOREKAS
+              </div>
+            </div>
+          )}
+
           <div className="flex items-start justify-between gap-4">
             <div>
               {companyInfo?.company_logo ? (

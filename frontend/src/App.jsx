@@ -37,6 +37,7 @@ import AdminManageAccount from "./pages/AdminManageAccount";
 import AdminDeals from "./pages/AdminDeals";
 import AdminDealsInformation from "./components/AdminDealsInformation";
 import AdminDealsQuickAction from "./components/AdminDealsQuickAction";
+import AdminSubscription from "./pages/AdminSubscription";
 import AdminTask from "./pages/AdminTask";
 import AdminTerritory from "./pages/AdminTerritory";
 import AdminCalls from "./pages/AdminCalls";
@@ -260,6 +261,7 @@ function App() {
           <Route path="users" element={<AdminUser />} />
           <Route path="manage-account" element={<AdminManageAccount />} />
           <Route path="company-details" element={<AdminCompanyDetails/>}/>
+          <Route path="subscription" element={<AdminSubscription />} />
           <Route path="deals" element={<AdminDeals />} />
           <Route path="deals/info" element={<AdminDealsInformation />} />
           <Route path="deals/quickaction" element={<AdminDealsQuickAction />} />

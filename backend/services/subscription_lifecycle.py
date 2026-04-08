@@ -10,7 +10,7 @@ from routers.aws_ses_utils import send_trial_ending_soon_email
 
 
 TRIAL_DAYS = 15
-TRIAL_WARNING_DAYS = 1
+TRIAL_WARNING_DAYS = 3
 
 
 def utc_now() -> datetime:

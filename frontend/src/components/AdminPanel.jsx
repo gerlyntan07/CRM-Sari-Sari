@@ -39,6 +39,8 @@ export default function AdminPanel() {
   const navigate = useNavigate();
   const { user } = useFetchUser();
   const isFreeTier = Boolean(user?.subscription_status?.is_free_tier);
+  const isStarterTier =
+    String(user?.subscription_status?.current_plan || "").toLowerCase() === "starter";
 
   useEffect(() => {
     user && console.log("Fetched user:", user);
@@ -64,7 +66,7 @@ export default function AdminPanel() {
     if (isSalesActive) {
       setSalesOpen(true);
     }
-  }, [location.pathname]);
+  }, [isSalesActive]);
 
   useEffect(() => {
     if (!isFreeTier) return;
@@ -92,6 +94,20 @@ export default function AdminPanel() {
       navigate("/admin/dashboard", { replace: true });
     }
   }, [isFreeTier, location.pathname, navigate]);
+
+  useEffect(() => {
+    if (!isStarterTier) return;
+
+    const starterRestrictedPrefixes = ["/admin/territory", "/admin/audit"];
+    const isRestricted = starterRestrictedPrefixes.some((prefix) =>
+      location.pathname.startsWith(prefix)
+    );
+
+    if (isRestricted) {
+      toast.info("Territory and Audit Logs are not available on the Starter tier.");
+      navigate("/admin/dashboard", { replace: true });
+    }
+  }, [isStarterTier, location.pathname, navigate]);
 
   const activeLink =
     "flex items-center gap-3 px-3 py-2 rounded-lg bg-white text-tertiary font-semibold shadow-sm";
@@ -256,29 +272,33 @@ export default function AdminPanel() {
                 >
                   <FiPhoneCall /> Calls
                 </NavLink>
-                <NavLink
-                  to="/admin/audit"
-                  className={({ isActive }) =>
-                    isActive ? activeLink : normalLink
-                  }
-                >
-                  <FiClipboard /> Audit
-                </NavLink>
+                {!isStarterTier && (
+                  <NavLink
+                    to="/admin/audit"
+                    className={({ isActive }) =>
+                      isActive ? activeLink : normalLink
+                    }
+                  >
+                    <FiClipboard /> Audit
+                  </NavLink>
+                )}
               </div>
             )}
           </div>
           {/* Territory */}
-          <div>
-            <NavLink
-              to="/admin/territory"
-              className={({ isActive }) => (isActive ? activeLink : normalLink)}
-            >
-              <span className="flex items-center gap-2">
-                <LuMapPin className="text-lg" />
-                Territory
-              </span>
-            </NavLink>
-          </div>
+          {!isStarterTier && (
+            <div>
+              <NavLink
+                to="/admin/territory"
+                className={({ isActive }) => (isActive ? activeLink : normalLink)}
+              >
+                <span className="flex items-center gap-2">
+                  <LuMapPin className="text-lg" />
+                  Territory
+                </span>
+              </NavLink>
+            </div>
+          )}
 
           {/* Accounting Dropdown */}
           <div>
@@ -383,6 +403,12 @@ export default function AdminPanel() {
                   className={({ isActive }) => (isActive ? activeLink : normalLink)}
                 >
                   <FiShield />Organization
+                </NavLink>
+                <NavLink
+                  to="/admin/subscription"
+                  className={({ isActive }) => (isActive ? activeLink : normalLink)}
+                >
+                  <MdOutlineSwitchAccount />Subscription
                 </NavLink>
               </div>
             )}

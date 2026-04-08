@@ -9,6 +9,7 @@ from models.territory import Territory
 from .logs_utils import serialize_instance, create_audit_log
 from routers.ws_notification import broadcast_notification
 import asyncio 
+from services.plan_access import enforce_starter_restriction
 
 router = APIRouter(
     prefix="/territories",
@@ -22,6 +23,8 @@ def get_territories(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    enforce_starter_restriction(db, current_user, "Territory management")
+
     if not current_user.related_to_company:
         return []
 
@@ -79,6 +82,8 @@ async def assign_territory(
     current_user: User = Depends(get_current_user),
     request: Request = None
 ):
+    enforce_starter_restriction(db, current_user, "Territory management")
+
     if current_user.role.upper() not in ["CEO", "ADMIN", "GROUP MANAGER", "GROUP_MANAGER"]:
         raise HTTPException(status_code=403, detail="Permission denied")   
 
@@ -159,6 +164,8 @@ async def update_territory(
     current_user: User = Depends(get_current_user),
     request: Request = None
 ):
+    enforce_starter_restriction(db, current_user, "Territory management")
+
     """
     Update a territory by its ID. Handles:
     - Updating territory name, description, manager
@@ -254,6 +261,8 @@ def admin_bulk_delete_territories(
     current_user: User = Depends(get_current_user),
     request: Request = None
 ):
+    enforce_starter_restriction(db, current_user, "Territory management")
+
     if current_user.role.upper() not in ALLOWED_ADMIN_ROLES:
         raise HTTPException(status_code=403, detail="Permission denied")
 
@@ -331,6 +340,8 @@ def delete_territory(
     current_user: User = Depends(get_current_user),
     request: Request = None
 ):
+    enforce_starter_restriction(db, current_user, "Territory management")
+
     territory = db.query(Territory).filter(Territory.id == territory_id).first()
     if not territory:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Territory not found")

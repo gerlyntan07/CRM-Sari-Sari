@@ -28,6 +28,7 @@ api.interceptors.response.use(
   (error) => {
     const status = error.response?.status;
     const requestUrl = String(error.config?.url || "");
+    const isAuthMeRequest = requestUrl.includes("/auth/me");
     const path = window.location?.pathname || "";
     const isAlreadyOnAuthPage =
       path.startsWith("/login") ||
@@ -43,8 +44,12 @@ api.interceptors.response.use(
     ];
     const shouldIgnore = ignore401For.some((p) => requestUrl.includes(p));
 
-    if ((status === 401 && !shouldIgnore && !isAlreadyOnAuthPage) || status === 403) {
-      // 403 is for inactive user or suspended company
+    // Force-logout only for auth failures, not for feature-level 403 responses.
+    const shouldForceLogout =
+      (status === 401 && !shouldIgnore && !isAlreadyOnAuthPage) ||
+      (status === 403 && isAuthMeRequest && !isAlreadyOnAuthPage);
+
+    if (shouldForceLogout) {
       localStorage.removeItem("isLoggedIn");
       localStorage.removeItem("userRole");
       localStorage.removeItem("user_id");

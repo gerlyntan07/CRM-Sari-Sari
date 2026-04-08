@@ -98,7 +98,7 @@ def start_scheduler() -> BackgroundScheduler:
     scheduler.add_job(
         run_trial_subscription_processor,
         trigger="interval",
-        minutes=1,
+        hours=12,
         id="process_trial_subscriptions",
         replace_existing=True,
     )

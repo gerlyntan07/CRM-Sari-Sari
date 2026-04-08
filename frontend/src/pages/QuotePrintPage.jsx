@@ -87,6 +87,8 @@ export default function QuotePrintPage() {
 
   const { user } = useFetchUser();
   const currencySymbol = user?.company?.currency || "₱";
+  const isStarterTier =
+    String(user?.subscription_status?.current_plan || "").toLowerCase() === "starter";
 
   const storageKey = useMemo(() => `quote-print:${quoteId || ""}`, [quoteId]);
 
@@ -421,7 +423,15 @@ export default function QuotePrintPage() {
           </div>
         </div>
 
-        <div className="print-surface bg-white border border-gray-200 rounded-xl shadow-sm p-6">
+        <div className="print-surface relative bg-white border border-gray-200 rounded-xl shadow-sm p-6">
+          {isStarterTier && (
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none select-none">
+              <div className="text-7xl font-black tracking-[0.35em] text-gray-400 opacity-20 rotate-[-28deg]">
+                FOREKAS
+              </div>
+            </div>
+          )}
+
           {/* Header */}
           <div className="flex items-center justify-between gap-4 border-b border-gray-300 pb-3">
             <div className="min-w-0 w-4/5">
@@ -691,7 +701,7 @@ export default function QuotePrintPage() {
           </div>
 
           <div className="mt-6 text-xs text-gray-500">
-            Generated from Sari-Sari CRM quotation.
+            Generated from Forekas CRM quotation.
           </div>
         </div>
       </div>

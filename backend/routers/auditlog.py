@@ -9,6 +9,7 @@ from models.auth import User
 from models.auditlog import Auditlog
 from models.territory import Territory
 from .logs_utils import serialize_instance, create_audit_log
+from services.plan_access import enforce_starter_restriction
 
 router = APIRouter(
     prefix="/logs",
@@ -50,6 +51,8 @@ def get_audit_logs(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
+    enforce_starter_restriction(db, current_user, "Audit logs")
+
     # CEO or Admin: get all logs from the same company (including themselves)
     if current_user.role in ["CEO", "Admin"]:
         logs = (

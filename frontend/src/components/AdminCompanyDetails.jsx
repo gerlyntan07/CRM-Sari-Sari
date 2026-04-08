@@ -181,15 +181,6 @@ export default function AdminCompanyDetails() {
   };
 
   const canEdit = ["CEO", "ADMIN"].includes(user?.role?.toUpperCase());
-  const subscriptionStatus = user?.subscription_status || null;
-  const currentPlan = subscriptionStatus?.current_plan || "Free";
-  const currentStatus = subscriptionStatus?.current_status || "Active";
-  const isTrial = Boolean(subscriptionStatus?.is_trial);
-  const trialDaysRemaining = subscriptionStatus?.trial_days_remaining;
-  const trialEndsAt = subscriptionStatus?.trial_ends_at
-    ? new Date(subscriptionStatus.trial_ends_at).toLocaleString()
-    : null;
-  const subscriptionMessage = subscriptionStatus?.message || null;
 
   return (
     <div className="p-4 lg:p-8 font-inter">
@@ -211,47 +202,6 @@ export default function AdminCompanyDetails() {
       )}
 
       <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Subscription / Tier Status Card */}
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
-          <h2 className="text-xl font-semibold text-gray-800 flex items-center gap-2 mb-4">
-            <MdOutlineSettings className="text-blue-600" /> Subscription Status
-          </h2>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="rounded-lg border border-gray-200 p-4 bg-gray-50">
-              <p className="text-xs text-gray-500 mb-1">Current Tier</p>
-              <p className="text-lg font-semibold text-gray-800">{currentPlan}</p>
-            </div>
-
-            <div className="rounded-lg border border-gray-200 p-4 bg-gray-50">
-              <p className="text-xs text-gray-500 mb-1">Subscription Status</p>
-              <p className="text-lg font-semibold text-gray-800">{currentStatus}</p>
-            </div>
-
-            <div className="rounded-lg border border-gray-200 p-4 bg-gray-50">
-              <p className="text-xs text-gray-500 mb-1">Trial</p>
-              <p className={`text-lg font-semibold ${isTrial ? "text-blue-700" : "text-gray-800"}`}>
-                {isTrial ? "Yes (Free Trial)" : "No"}
-              </p>
-            </div>
-          </div>
-
-          {isTrial && (
-            <div className="mt-4 rounded-lg border border-blue-200 bg-blue-50 p-4 text-sm text-blue-900">
-              <p>
-                Trial days remaining: <span className="font-semibold">{trialDaysRemaining ?? "-"}</span>
-              </p>
-              {trialEndsAt && <p className="mt-1">Trial ends at: <span className="font-semibold">{trialEndsAt}</span></p>}
-            </div>
-          )}
-
-          {subscriptionMessage && (
-            <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
-              {subscriptionMessage}
-            </div>
-          )}
-        </div>
-
         {/* Organization Settings Card */}
         <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
           <h2 className="text-xl font-semibold text-gray-800 flex items-center gap-2 mb-6">

@@ -765,6 +765,8 @@ const AdminDashboard = () => {
   const navigate = useNavigate();
   const { user } = useFetchUser();
   const currencySymbol = user?.company?.currency || "₱";
+  const isStarterTier =
+    String(user?.subscription_status?.current_plan || "").toLowerCase() === "starter";
 
   // --- NEW: State for Targets ---
   const [allTargets, setAllTargets] = useState([]);
@@ -893,7 +895,10 @@ const AdminDashboard = () => {
         api.get('/tasks/all').catch((err) => { console.error('Error fetching tasks:', err); return { data: [] }; }),
         api.get('/meetings/admin/fetch-all').catch((err) => { console.error('Error fetching meetings:', err); return { data: [] }; }),
         api.get('/calls/admin/fetch-all').catch((err) => { console.error('Error fetching calls:', err); return { data: [] }; }),
-        api.get('/logs/read-all').catch((err) => { console.error('Error fetching logs:', err); return { data: [] }; }),
+        (isStarterTier
+          ? Promise.resolve({ data: [] })
+          : api.get('/logs/read-all').catch((err) => { console.error('Error fetching logs:', err); return { data: [] }; })
+        ),
         api.get('/targets/admin/fetch-all').catch((err) => { console.error('Error fetching targets:', err); return { data: [] }; }),
         api.get('/announcements/current').catch((err) => { console.error('Error fetching announcement:', err); return { data: { message: '' } }; })
       ]);
@@ -1004,7 +1009,7 @@ const AdminDashboard = () => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [isStarterTier]);
 
   useEffect(() => {
     document.title = "Dashboard | Forekas";

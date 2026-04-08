@@ -20,6 +20,13 @@ export default function AdminHeader({ toggleSidebar }) {
   const { logout } = useAuth();
   const { user, fetchUser } = useFetchUser();
 
+  const normalizeNotification = (n) => ({
+    id: n.id || n.task_id || n.taskId || `${Date.now()}-${Math.random()}`,
+    title: n.title || (n.action === "BACKUP_REMINDER" ? "Backup Reminder" : "Notification"),
+    message: n.message || n.description || n.task_title || n.taskTitle || "New Update",
+    is_read: Boolean(n.is_read),
+  });
+
   // Map routes to titles
   const routeTitles = {
     "/admin/dashboard": "Dashboard",
@@ -56,6 +63,23 @@ export default function AdminHeader({ toggleSidebar }) {
     };
   }, [fetchUser]);
 
+  useEffect(() => {
+    if (!user?.id) return;
+
+    const loadNotifications = async () => {
+      try {
+        const { data } = await api.get("/logs/notifications");
+        const items = Array.isArray(data) ? data.map(normalizeNotification) : [];
+        setNotifications(items);
+        setUnreadCount(items.filter((item) => !item.is_read).length);
+      } catch (error) {
+        console.error("Failed to load notifications:", error);
+      }
+    };
+
+    loadNotifications();
+  }, [user?.id]);
+
   // --- WebSocket Connection with Proper URL Derivation ---
   useEffect(() => {
     if (!user?.id) return;
@@ -80,7 +104,7 @@ export default function AdminHeader({ toggleSidebar }) {
       try {
         const incoming = JSON.parse(event.data);
         console.log("📨 Notification received:", incoming);
-        setNotifications((prev) => [incoming, ...prev]);
+        setNotifications((prev) => [normalizeNotification(incoming), ...prev]);
         setUnreadCount((prev) => prev + 1);
       } catch (error) {
         console.error("Error parsing notification:", error);
@@ -159,13 +183,27 @@ export default function AdminHeader({ toggleSidebar }) {
             <div className="absolute right-0 mt-3 w-80 bg-white rounded-xl shadow-lg border z-50 overflow-hidden animate-fade-in">
               <div className="p-3 border-b bg-gray-50 flex justify-between items-center">
                 <h3 className="font-semibold text-gray-800 text-sm">Notifications</h3>
-                <button onClick={() => { setNotifications([]); setUnreadCount(0); }} className="text-xs text-blue-600 hover:underline">Clear</button>
+                <button
+                  onClick={async () => {
+                    try {
+                      await api.patch("/logs/mark-all-read");
+                    } catch (error) {
+                      console.error("Failed to mark notifications as read:", error);
+                    }
+                    setUnreadCount(0);
+                    setNotifications((prev) => prev.map((item) => ({ ...item, is_read: true })));
+                  }}
+                  className="text-xs text-blue-600 hover:underline"
+                >
+                  Clear
+                </button>
               </div>
               <div className="max-h-60 overflow-y-auto">
                 {notifications.length > 0 ? (
                   notifications.map((n, i) => (
                     <div key={i} className="p-3 border-b text-sm hover:bg-gray-50 cursor-pointer">
-                      {n.title || n.message || "New Update"}
+                      <p className="font-medium text-gray-800">{n.title || "Notification"}</p>
+                      <p className="text-xs text-gray-600 mt-1">{n.message || "New Update"}</p>
                     </div>
                   ))
                 ) : (

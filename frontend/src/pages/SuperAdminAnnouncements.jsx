@@ -9,8 +9,7 @@ const ROLE_OPTIONS = [
   { value: 'SALES', label: 'Sales' },
   { value: 'MANAGER', label: 'Manager' },
   { value: 'GROUP_MANAGER', label: 'Team Manager' },
-  { value: 'CEO', label: 'CEO' },
-  { value: 'ADMIN', label: 'Admin' },
+  { value: 'CEO', label: 'Admin' },
 ];
 
 const toInputDateTimeValue = (value) => {

@@ -8,6 +8,7 @@ import pytz
 from database import SessionLocal
 from models.lead import Lead, LeadStatus
 from models.auditlog import Auditlog
+from services.backup_reminder import process_backup_reminders
 from services.subscription_lifecycle import process_trial_notifications
 
 
@@ -100,6 +101,28 @@ def start_scheduler() -> BackgroundScheduler:
         trigger="interval",
         hours=12,
         id="process_trial_subscriptions",
+        replace_existing=True,
+    )
+
+    def run_backup_reminder_processor():
+        db: Session = SessionLocal()
+        try:
+            created = process_backup_reminders(db)
+            if created:
+                print(f"[Backup Reminder] Created {created} notifications.")
+        except Exception as e:
+            print(f"[Backup Reminder Error] {e}")
+            db.rollback()
+        finally:
+            db.close()
+
+    scheduler.add_job(
+        run_backup_reminder_processor,
+        trigger="cron",
+        hour=8,
+        minute=0,
+        timezone=pytz.timezone("Asia/Manila"),
+        id="backup_reminder_notifications",
         replace_existing=True,
     )
 

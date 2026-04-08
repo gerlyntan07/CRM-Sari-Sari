@@ -195,11 +195,14 @@ def create_user(
     hashed_pw = hash_password(user_data.password)        
 
     # ✅ Assign relationships properly
+    # If company_id is provided (super-admin creating user for specific tenant), use it
+    # Otherwise, use current_user's company
+    related_to_company = user_data.company_id if user_data.company_id else current_user.related_to_company
+    
     related_to_CEO = (
         current_user.id if current_user.role.upper() == "CEO"
         else current_user.related_to_CEO
     )
-    related_to_company = current_user.related_to_company
     profile_pic_url = get_default_avatar(user_data.first_name)
 
     # ✅ Create user
@@ -501,3 +504,37 @@ def admin_bulk_delete_users(
     db.commit()
 
     return {"detail": f"Successfully deactivated {deactivated_count} user(s)."}
+
+
+# ✅ HARD DELETE all users for a tenant (super-admin only)
+@router.delete("/admin/tenants/{tenant_id}/users/delete-all", status_code=status.HTTP_200_OK)
+def delete_all_users_for_tenant(
+    tenant_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Hard delete all users for a specific tenant. Super-admin only."""
+    if current_user.role.upper() not in ["CEO", "ADMIN"]:
+        raise HTTPException(status_code=403, detail="Permission denied")
+
+    # Find all users related to this tenant
+    users_to_delete = db.query(User).filter(
+        User.related_to_company == tenant_id
+    ).all()
+
+    if not users_to_delete:
+        return {"detail": "No users found for this tenant"}
+
+    deleted_count = 0
+    
+    try:
+        for user in users_to_delete:
+            # Hard delete the user (remove completely from database)
+            db.delete(user)
+            deleted_count += 1
+        
+        db.commit()
+        return {"detail": f"Successfully deleted {deleted_count} user(s) permanently"}
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Failed to delete users: {str(e)}")

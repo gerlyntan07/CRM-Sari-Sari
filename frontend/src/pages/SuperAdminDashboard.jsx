@@ -8,6 +8,7 @@ import ConfirmationModal from '../components/ConfirmationModal';
 import AddTenantForm from '../components/super-admin/TenantForm';
 import SubscriptionForm from '../components/super-admin/SubscriptionForm';
 import UserDetailsModal from '../components/super-admin/UserDetailsModal';
+import AddUserForm from '../components/super-admin/UserForm';
 import PaginationControls from '../components/PaginationControls';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Cell } from 'recharts';
 
@@ -32,6 +33,8 @@ const SuperAdminDashboard = () => {
   const [showEditSubscription, setShowEditSubscription] = useState(false);
   // For delete tenant modal
   const [deleteTenantModal, setDeleteTenantModal] = useState({ open: false, tenant: null, loading: false });
+  // For delete all users modal
+  const [deleteAllUsersModal, setDeleteAllUsersModal] = useState({ open: false, tenantId: null, tenantName: '', loading: false });
   // For per-tenant notify composer
   const [notifyModal, setNotifyModal] = useState({
     open: false,
@@ -51,6 +54,9 @@ const SuperAdminDashboard = () => {
   // For user details modal
   const [selectedUser, setSelectedUser] = useState(null);
   const [showUserDetailsModal, setShowUserDetailsModal] = useState(false);
+  // For add user form
+  const [showAddUserForm, setShowAddUserForm] = useState(false);
+  const [editUserData, setEditUserData] = useState(null);
 
   useEffect(() => {
     fetchStats();
@@ -213,6 +219,47 @@ const SuperAdminDashboard = () => {
     openActionModal(companyId, companyName, 'reactivate');
   };
 
+  // Handle delete all users for a tenant
+  const handleDeleteAllUsers = () => {
+    if (!selectedTenant) return;
+    
+    setDeleteAllUsersModal({
+      open: true,
+      tenantId: selectedTenant.id,
+      tenantName: selectedTenant.company_name,
+      loading: false
+    });
+  };
+
+  // Confirm delete all users
+  const handleConfirmDeleteAllUsers = async () => {
+    const { tenantId, tenantName } = deleteAllUsersModal;
+    
+    setDeleteAllUsersModal(prev => ({ ...prev, loading: true }));
+    
+    try {
+      await api.delete(`/users/admin/tenants/${tenantId}/users/delete-all`);
+      
+      toast.success(`All users of ${tenantName} deleted successfully`);
+      
+      // Refresh both tenants list and tenant details
+      await fetchTenants(); // Update user count in tenants table
+      if (selectedTenant?.id) {
+        await viewTenantDetails(selectedTenant.id); // Update users section in modal
+      }
+    } catch (error) {
+      console.error('Error deleting all users:', error);
+      toast.error(error.response?.data?.detail || 'Failed to delete all users');
+    } finally {
+      setDeleteAllUsersModal({ open: false, tenantId: null, tenantName: '', loading: false });
+    }
+  };
+
+  // Cancel delete all users
+  const handleCancelDeleteAllUsers = () => {
+    setDeleteAllUsersModal({ open: false, tenantId: null, tenantName: '', loading: false });
+  };
+
   const refreshAll = () => {
     fetchStats();
     fetchTenants();
@@ -255,19 +302,26 @@ const SuperAdminDashboard = () => {
   // Filter users in the tenant details modal (exclude Admin, Technical Support, Marketing Admin roles)
   const excludedRoles = ['Admin', 'Technical Support', 'Marketing Admin'];
   const filteredUsers = selectedTenant && selectedTenant.users
-    ? selectedTenant.users.filter(user => {
-        // Exclude users with specific roles
-        if (excludedRoles.includes(user.role)) {
-          return false;
-        }
-        const term = searchUserTerm.toLowerCase();
-        return (
-          user.first_name.toLowerCase().includes(term) ||
-          user.last_name.toLowerCase().includes(term) ||
-          user.email.toLowerCase().includes(term) ||
-          user.role.toLowerCase().includes(term)
-        );
-      })
+    ? selectedTenant.users
+        .filter(user => {
+          // Exclude users with specific roles
+          if (excludedRoles.includes(user.role)) {
+            return false;
+          }
+          const term = searchUserTerm.toLowerCase();
+          return (
+            user.first_name.toLowerCase().includes(term) ||
+            user.last_name.toLowerCase().includes(term) ||
+            user.email.toLowerCase().includes(term) ||
+            user.role.toLowerCase().includes(term)
+          );
+        })
+        .sort((a, b) => {
+          // Sort by created_at descending (most recent first)
+          const dateA = new Date(a.created_at || 0);
+          const dateB = new Date(b.created_at || 0);
+          return dateB - dateA;
+        })
     : [];
 
   // Pagination logic
@@ -1287,13 +1341,39 @@ const SuperAdminDashboard = () => {
                   <h4 className="text-lg font-semibold">Users ({filteredUsers.length})</h4>
                   <div className="flex items-center gap-2">
                     <button
+                      onClick={() => {
+                        setEditUserData(null);
+                        setShowAddUserForm(true);
+                      }}
                       className="p-2 rounded hover:bg-gray-200 text-green-600 cursor-pointer"
                       title="Add User"
                       style={{ cursor: 'pointer' }}
                     >
                       <FiPlus size={20} />
                     </button>
+                    {/* Add User Form Modal */}
+                    {showAddUserForm && (
+                      <AddUserForm
+                        tenantId={selectedTenant?.id}
+                        editMode={!!editUserData}
+                        initialData={editUserData}
+                        onClose={() => {
+                          setShowAddUserForm(false);
+                          setEditUserData(null);
+                        }}
+                        onSuccess={async () => {
+                          setShowAddUserForm(false);
+                          setEditUserData(null);
+                          // Refresh both tenants list and tenant details
+                          await fetchTenants(); // Update user count in tenants table
+                          if (selectedTenant?.id) {
+                            await viewTenantDetails(selectedTenant.id); // Update users section in modal
+                          }
+                        }}
+                      />
+                    )}
                     <button
+                      onClick={handleDeleteAllUsers}
                       className="p-2 rounded hover:bg-gray-200 text-red-600 cursor-pointer"
                       title="Delete All Users"
                       style={{ cursor: 'pointer' }}
@@ -1379,6 +1459,24 @@ const SuperAdminDashboard = () => {
         user={selectedUser} 
         onClose={() => setShowUserDetailsModal(false)}
       />
+
+      {/* Delete All Users Confirmation Modal */}
+      <ConfirmationModal
+        open={deleteAllUsersModal.open}
+        title="Delete All Users?"
+        message={
+          <span>
+            Are you sure you want to delete all users from <span className="font-semibold">{deleteAllUsersModal.tenantName}</span>? This will permanently delete all user records and related data. This action cannot be undone.
+          </span>
+        }
+        confirmLabel="Delete All Users"
+        cancelLabel="Cancel"
+        variant="danger"
+        loading={deleteAllUsersModal.loading}
+        onCancel={handleCancelDeleteAllUsers}
+        onConfirm={handleConfirmDeleteAllUsers}
+      />
+
     {/* Suspend/Reactivate Confirmation Modal */}
     <ConfirmationModal
       open={actionModal.open}

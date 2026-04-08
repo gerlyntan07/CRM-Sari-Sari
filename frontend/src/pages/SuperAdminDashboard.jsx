@@ -57,6 +57,10 @@ const SuperAdminDashboard = () => {
   // For add user form
   const [showAddUserForm, setShowAddUserForm] = useState(false);
   const [editUserData, setEditUserData] = useState(null);
+  // For toggle user status modal
+  const [toggleUserStatusModal, setToggleUserStatusModal] = useState({ open: false, user: null, newStatus: null, loading: false });
+  // For delete single user modal
+  const [deleteUserModal, setDeleteUserModal] = useState({ open: false, user: null, loading: false });
 
   useEffect(() => {
     fetchStats();
@@ -258,6 +262,84 @@ const SuperAdminDashboard = () => {
   // Cancel delete all users
   const handleCancelDeleteAllUsers = () => {
     setDeleteAllUsersModal({ open: false, tenantId: null, tenantName: '', loading: false });
+  };
+
+  // Handle toggle user status (deactivate/reactivate)
+  const handleToggleUserStatus = (user) => {
+    const newStatus = !user.is_active;
+    setToggleUserStatusModal({
+      open: true,
+      user,
+      newStatus,
+      loading: false
+    });
+  };
+
+  // Confirm toggle user status
+  const handleConfirmToggleUserStatus = async () => {
+    const { user, newStatus } = toggleUserStatusModal;
+    
+    setToggleUserStatusModal(prev => ({ ...prev, loading: true }));
+    
+    try {
+      await api.put(`/users/updateuser/${user.id}`, { is_active: newStatus });
+      
+      toast.success(`User ${newStatus ? 'reactivated' : 'deactivated'} successfully`);
+      
+      // Refresh both tenants list and tenant details
+      await fetchTenants(); // Update user count in tenants table
+      if (selectedTenant?.id) {
+        await viewTenantDetails(selectedTenant.id); // Update users section in modal
+      }
+    } catch (error) {
+      console.error('Error toggling user status:', error);
+      toast.error(error.response?.data?.detail || `Failed to ${newStatus ? 'reactivate' : 'deactivate'} user`);
+    } finally {
+      setToggleUserStatusModal({ open: false, user: null, newStatus: null, loading: false });
+    }
+  };
+
+  // Cancel toggle user status
+  const handleCancelToggleUserStatus = () => {
+    setToggleUserStatusModal({ open: false, user: null, newStatus: null, loading: false });
+  };
+
+  // Handle delete single user
+  const handleDeleteUser = (user) => {
+    setDeleteUserModal({
+      open: true,
+      user,
+      loading: false
+    });
+  };
+
+  // Confirm delete single user
+  const handleConfirmDeleteUser = async () => {
+    const { user } = deleteUserModal;
+    
+    setDeleteUserModal(prev => ({ ...prev, loading: true }));
+    
+    try {
+      await api.delete(`/users/harddeleteuser/${user.id}`);
+      
+      toast.success(`User ${user.first_name} ${user.last_name} deleted successfully`);
+      
+      // Refresh both tenants list and tenant details
+      await fetchTenants(); // Update user count in tenants table
+      if (selectedTenant?.id) {
+        await viewTenantDetails(selectedTenant.id); // Update users section in modal
+      }
+    } catch (error) {
+      console.error('Error deleting user:', error);
+      toast.error(error.response?.data?.detail || 'Failed to delete user');
+    } finally {
+      setDeleteUserModal({ open: false, user: null, loading: false });
+    }
+  };
+
+  // Cancel delete user
+  const handleCancelDeleteUser = () => {
+    setDeleteUserModal({ open: false, user: null, loading: false });
   };
 
   const refreshAll = () => {
@@ -1405,7 +1487,7 @@ const SuperAdminDashboard = () => {
                           <p className="font-medium">{user.first_name} {user.last_name}</p>
                           <div className="flex items-center gap-2 mt-1">
                             <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">{user.role}</span>
-                            <span className={`text-xs px-2 py-1 rounded ${user.is_active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
+                            <span className={`text-xs px-2 py-1 rounded ${user.is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
                               {user.is_active ? 'Active' : 'Inactive'}
                             </span>
                           </div>
@@ -1417,16 +1499,37 @@ const SuperAdminDashboard = () => {
                       </div>
                       <div className="flex flex-wrap items-center gap-2 mt-2 sm:mt-0 ml-0 sm:ml-2 absolute right-2 top-2 sm:relative">
                         <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleToggleUserStatus(user);
+                          }}
                           className={`p-2 rounded hover:bg-gray-200 ${user.is_active ? 'text-orange-500' : 'text-green-600'} cursor-pointer`}
                           title={user.is_active ? 'Deactivate User' : 'Reactivate User'}
                           style={{ cursor: 'pointer' }}
                         >
                           {user.is_active ? <FiToggleLeft size={20} /> : <FiToggleRight size={20} />}
                         </button>
-                        <button className="p-2 rounded hover:bg-gray-200 text-blue-600 cursor-pointer" title="Edit User" style={{ cursor: 'pointer' }}>
+                        <button 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setEditUserData(user);
+                            setShowAddUserForm(true);
+                          }}
+                          className="p-2 rounded hover:bg-gray-200 text-blue-600 cursor-pointer" 
+                          title="Edit User" 
+                          style={{ cursor: 'pointer' }}
+                        >
                           <FiEdit size={20} />
                         </button>
-                        <button className="p-2 rounded hover:bg-gray-200 text-red-600 cursor-pointer" title="Delete User" style={{ cursor: 'pointer' }}>
+                        <button 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteUser(user);
+                          }}
+                          className="p-2 rounded hover:bg-gray-200 text-red-600 cursor-pointer" 
+                          title="Delete User" 
+                          style={{ cursor: 'pointer' }}
+                        >
                           <FiTrash2 size={20} />
                         </button>
                         <button className="p-2 rounded hover:bg-gray-200 text-yellow-600 cursor-pointer" title="Reset Password" style={{ cursor: 'pointer' }}>
@@ -1471,6 +1574,40 @@ const SuperAdminDashboard = () => {
         loading={deleteAllUsersModal.loading}
         onCancel={handleCancelDeleteAllUsers}
         onConfirm={handleConfirmDeleteAllUsers}
+      />
+
+      {/* Toggle User Status Confirmation Modal */}
+      <ConfirmationModal
+        open={toggleUserStatusModal.open}
+        title={toggleUserStatusModal.newStatus ? `Reactivate ${toggleUserStatusModal.user?.first_name} ${toggleUserStatusModal.user?.last_name}?` : `Deactivate ${toggleUserStatusModal.user?.first_name} ${toggleUserStatusModal.user?.last_name}?`}
+        message={
+          toggleUserStatusModal.newStatus
+            ? `Are you sure you want to reactivate ${toggleUserStatusModal.user?.first_name}? They will be able to login again.`
+            : `Are you sure you want to deactivate ${toggleUserStatusModal.user?.first_name}? They will be unable to login.`
+        }
+        confirmLabel={toggleUserStatusModal.newStatus ? 'Reactivate' : 'Deactivate'}
+        cancelLabel="Cancel"
+        variant={toggleUserStatusModal.newStatus ? 'primary' : 'warning'}
+        loading={toggleUserStatusModal.loading}
+        onCancel={handleCancelToggleUserStatus}
+        onConfirm={handleConfirmToggleUserStatus}
+      />
+
+      {/* Delete Single User Confirmation Modal */}
+      <ConfirmationModal
+        open={deleteUserModal.open}
+        title={`Delete ${deleteUserModal.user?.first_name} ${deleteUserModal.user?.last_name}?`}
+        message={
+          <span>
+            Are you sure you want to delete <span className="font-semibold">{deleteUserModal.user?.first_name} {deleteUserModal.user?.last_name}</span>? This will permanently delete the user record and related data. This action cannot be undone.
+          </span>
+        }
+        confirmLabel="Delete User"
+        cancelLabel="Cancel"
+        variant="danger"
+        loading={deleteUserModal.loading}
+        onCancel={handleCancelDeleteUser}
+        onConfirm={handleConfirmDeleteUser}
       />
 
     {/* Suspend/Reactivate Confirmation Modal */}

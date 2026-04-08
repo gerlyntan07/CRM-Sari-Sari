@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { X, User, Lock, Shield, Eye, EyeOff } from "lucide-react";
+import { X, User, Lock, Shield, Eye, EyeOff, Upload } from "lucide-react";
 import { toast } from "react-toastify";
 import api from "../../api";
 
@@ -47,25 +47,51 @@ export default function AddUserForm({ onClose, onSuccess, editMode = false, init
     email: "",
     role: "",
     password: "",
+    profile_picture: "",
+    phone_number: "",
+    is_active: true,
   });
 
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [profilePicturePreview, setProfilePicturePreview] = useState(null);
 
   useEffect(() => {
     if (editMode && initialData) {
       setFormData({
-        ...initialData,
-        role: mapRoleToDisplay(initialData.role),
+        first_name: initialData.first_name || "",
+        last_name: initialData.last_name || "",
+        email: initialData.email || "",
+        role: mapRoleToDisplay(initialData.role) || "",
         password: "",
+        profile_picture: "",
+        phone_number: initialData.phone_number || "",
+        is_active: initialData.is_active !== undefined ? initialData.is_active : true,
       });
+      // Set profile picture preview if it exists
+      if (initialData.profile_picture) {
+        setProfilePicturePreview(initialData.profile_picture);
+      }
     }
   }, [editMode, initialData]);
 
   const handleChange = (e) => {
-    const { name, value, type, checked } = e.target;
+    const { name, value, type, checked, files } = e.target;
 
-    if (type === "checkbox") {
+    if (name === "profile_picture") {
+      const file = files[0];
+      setFormData({ ...formData, profile_picture: file });
+      // Create preview URL
+      if (file) {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setProfilePicturePreview(reader.result);
+        };
+        reader.readAsDataURL(file);
+      } else {
+        setProfilePicturePreview(null);
+      }
+    } else if (type === "checkbox") {
       setFormData({ ...formData, [name]: checked });
     } else {
       setFormData({ ...formData, [name]: value });
@@ -126,20 +152,29 @@ export default function AddUserForm({ onClose, onSuccess, editMode = false, init
 
       }
 
-      const submissionData = {
-        first_name: formData.first_name,
-        last_name: formData.last_name,
-        email: formData.email,
-        role: mapRoleToDatabase(formData.role),
-      };
+      const submissionData = new FormData();
+      submissionData.append("first_name", formData.first_name);
+      submissionData.append("last_name", formData.last_name);
+      submissionData.append("email", formData.email);
+      submissionData.append("role", mapRoleToDatabase(formData.role));
+
+      // Include profile picture if in edit mode and it's a new File (not existing image)
+      if (editMode && formData.profile_picture && typeof formData.profile_picture === "object") {
+        submissionData.append("profile_picture", formData.profile_picture);
+      }
+
+      // Include phone number if in edit mode and provided
+      if (editMode && formData.phone_number) {
+        submissionData.append("phone_number", formData.phone_number);
+      }
 
       // Include tenant/company ID if provided (for super-admin creating users for specific tenant)
       if (tenantId) {
-        submissionData.company_id = tenantId;
+        submissionData.append("company_id", tenantId);
       }
 
       if (!editMode || formData.password) {
-        submissionData.password = formData.password;
+        submissionData.append("password", formData.password);
       }
 
       let response;
@@ -171,7 +206,7 @@ export default function AddUserForm({ onClose, onSuccess, editMode = false, init
   const label = "text-sm font-medium text-gray-700";
 
   return (
-    <div className="fixed inset-0 bg-black flex items-center justify-center p-4 z-50">
+    <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-50">
       {/* MODAL */}
       <div className="bg-white rounded-3xl max-w-4xl w-full p-8 max-h-[90vh] overflow-y-auto" style={{ boxShadow: "none" }}>
         {/* HEADER */}
@@ -260,16 +295,70 @@ export default function AddUserForm({ onClose, onSuccess, editMode = false, init
                 </select>
               </div>
 
+              {editMode && (
+                <div className="md:col-span-2">
+                  <label className={label}>Phone Number</label>
+                  <input
+                    type="tel"
+                    name="phone_number"
+                    value={formData.phone_number}
+                    onChange={handleChange}
+                    placeholder="e.g., +1 (555) 123-4567"
+                    className={input}
+                  />
+                </div>
+              )}
 
+              {editMode && (
+                <div className="md:col-span-2">
+                  <label className={label}>Profile Picture</label>
+
+                  {profilePicturePreview ? (
+                    <div className="relative w-full">
+                      <div className="flex items-center justify-center border-2 border-dashed border-gray-300 rounded-xl bg-gray-50/50 overflow-hidden" style={{ minHeight: '300px' }}>
+                        <img src={profilePicturePreview} alt="Profile Preview" className="max-w-full max-h-64 object-contain" />
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setProfilePicturePreview(null);
+                          setFormData({ ...formData, profile_picture: null });
+                        }}
+                        className="absolute -top-3 -right-3 hover:opacity-80 transition"
+                      >
+                        <X size={25} className="text-white bg-black rounded-full p-1" />
+                      </button>
+                    </div>
+                  ) : (
+                    <label className="flex items-center justify-center border-2 border-dashed border-gray-300 hover:border-blue-400 rounded-xl p-12 cursor-pointer transition duration-200 bg-gray-50/50 hover:bg-blue-50/30">
+                      <div className="text-center">
+                        <Upload size={40} className="mx-auto mb-3 text-gray-400" />
+                        <span className="text-sm font-medium text-gray-600">
+                          Click to upload profile picture
+                        </span>
+                        <span className="text-xs text-gray-400 block mt-1">PNG, JPG up to 5MB</span>
+                      </div>
+                      <input
+                        type="file"
+                        name="profile_picture"
+                        onChange={handleChange}
+                        className="hidden"
+                        accept="image/*"
+                      />
+                    </label>
+                  )}
+                </div>
+              )}
             </div>
           </div>
 
-          {/* PASSWORD CARD */}
+          {/* PASSWORD CARD - Only show in add mode */}
+          {!editMode && (
           <div className="bg-gradient-to-br from-purple-50/50 to-white border border-gray-100 rounded-2xl p-6">
             <div className="flex items-center gap-3 mb-5">
               <Lock size={24} className="text-purple-600" />
               <h3 className="font-bold text-gray-900 text-lg">
-                {editMode ? "Password (Optional)" : "Password"}
+                Password
               </h3>
             </div>
 
@@ -277,7 +366,7 @@ export default function AddUserForm({ onClose, onSuccess, editMode = false, init
               <div>
                 <div className="flex items-center justify-between mb-2">
                   <label className={label}>
-                    Password {!editMode && <span className="text-red-500">*</span>}
+                    Password <span className="text-red-500">*</span>
                   </label>
                   <button
                     type="button"
@@ -311,6 +400,7 @@ export default function AddUserForm({ onClose, onSuccess, editMode = false, init
 
             </div>
           </div>
+          )}
 
           {/* BUTTONS */}
           <div className="flex justify-end gap-3 pt-6 border-t border-gray-100">

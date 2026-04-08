@@ -276,11 +276,13 @@ def update_user(
     if current_user.role.upper() not in ["CEO", "ADMIN", "GROUP MANAGER", "MANAGER"]:
         raise HTTPException(status_code=403, detail="Permission denied")
 
-    if user.related_to_company != current_user.related_to_company:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="You are not authorized to update this user.",
-        )
+    # Allow CEO/ADMIN to update any user (super admin), otherwise check company membership
+    if current_user.role.upper() not in ["CEO", "ADMIN"]:
+        if user.related_to_company != current_user.related_to_company:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="You are not authorized to update this user.",
+            )
 
     if user_data.email and user_data.email != user.email:
         existing_user = db.query(User).filter(User.email == user_data.email).first()
@@ -366,6 +368,52 @@ def delete_user(
     )
 
     return {"detail": f"✅ User '{user.first_name} {user.last_name}' deactivated successfully."}
+
+
+# ✅ HARD DELETE user (permanent deletion from database)
+@router.delete("/harddeleteuser/{user_id}", status_code=status.HTTP_200_OK)
+def hard_delete_user(
+    user_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    request: Request = None
+):
+    user = db.query(User).filter(User.id == user_id).first()
+
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    # Only CEO/ADMIN can hard delete users
+    if current_user.role.upper() not in ["CEO", "ADMIN"]:
+        raise HTTPException(status_code=403, detail="Permission denied")
+
+    # Allow CEO/ADMIN to delete any user (super admin across all companies)
+    # No company restriction for CEO/ADMIN
+    
+    old_data = serialize_instance(user)
+
+    try:
+        db.delete(user)
+        db.commit()
+
+        create_audit_log(
+            db=db,
+            current_user=current_user,
+            instance=user,
+            action="DELETE",
+            request=request,
+            old_data=old_data,
+            new_data=None,
+            custom_message=f"hard deleted user '{old_data.get('first_name')} {old_data.get('last_name')}' (ID: {user_id})"
+        )
+
+        return {"detail": f"✅ User permanently deleted successfully."}
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to delete user: {str(e)}"
+        )
 
 
 # ✅ UPDATE current user's own profile

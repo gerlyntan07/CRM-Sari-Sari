@@ -74,7 +74,7 @@ export default function SubscriptionForm({ onClose, onSuccess, editMode = false,
   };
 
   return (
-    <div className="fixed inset-0 bg-black flex items-center justify-center p-4 z-50">
+    <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-50">
       <div className="bg-white rounded-3xl shadow-2xl max-w-4xl w-full p-8 max-h-[90vh] overflow-y-auto">
         {/* HEADER */}
         <div className="flex justify-between items-start mb-8 pb-6 border-b border-gray-100">

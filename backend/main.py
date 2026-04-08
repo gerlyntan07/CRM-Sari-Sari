@@ -13,6 +13,7 @@ load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), ".env"))
 
 # Import models to create tables
 import models.account
+import models.announcement
 import models.auditlog
 import models.auth
 import models.call
@@ -31,6 +32,7 @@ import models.comment
 
 # Import routers
 import routers.auth as auth_router
+import routers.announcement as announcement_router
 import routers.company as company_router
 import routers.users as users_router
 import routers.subscription as subscription_router
@@ -66,6 +68,7 @@ app = FastAPI(lifespan=lifespan)
 
 # === Routers ===
 app.include_router(auth_router.router, prefix='/api')
+app.include_router(announcement_router.router, prefix='/api')
 app.include_router(admin_router.router, prefix='/api')
 app.include_router(company_router.router, prefix='/api')
 app.include_router(users_router.router, prefix='/api')

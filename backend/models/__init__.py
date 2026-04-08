@@ -1,4 +1,5 @@
 from .account import Account
+from .announcement import Announcement
 from .auditlog import Auditlog
 from .auth import User
 from .call import Call
@@ -18,7 +19,7 @@ from .territory import Territory
 from .comment import Comment
 
 __all__ = [
-    "Account", "Auditlog", "User", "Call", "Company",
+    "Account", "Announcement", "Auditlog", "User", "Call", "Company",
     "Contact", "Deal", "Lead", "Meeting", "Quote", "QuoteItem",
     "StatementOfAccount", "SoaItem",
     "Invoice", "InvoiceItem", "Payment",

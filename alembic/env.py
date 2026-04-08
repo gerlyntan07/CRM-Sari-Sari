@@ -11,6 +11,7 @@ sys.path.append(os.path.join(os.path.dirname(os.path.dirname(__file__)), "backen
 from database import Base, DATABASE_URL
 # Import your models so Alembic sees them
 import models.account
+import models.announcement
 import models.auditlog
 import models.auth
 import models.call

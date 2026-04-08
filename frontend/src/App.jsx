@@ -50,6 +50,7 @@ import AdminSoas from "./pages/AdminSoas";
 import SuperAdminPanel from "./components/SuperAdminPanel";
 import SuperAdminDashboard from "./pages/SuperAdminDashboard";
 import SuperAdminUsers from "./pages/SuperAdminUsers";
+import SuperAdminAnnouncements from "./pages/SuperAdminAnnouncements";
 
 // 🔹 Sales layout + pages
 import SalesPanel from "./components/SalesPanel";
@@ -240,6 +241,7 @@ function App() {
           <Route index element={<Navigate to="dashboard" replace />} />
           <Route path="dashboard" element={<SuperAdminDashboard />} />
           <Route path="users" element={<SuperAdminUsers />} />
+          <Route path="announcements" element={<SuperAdminAnnouncements />} />
           <Route path="manage-account" element={<PublicManageAccount />} />
         </Route>
 

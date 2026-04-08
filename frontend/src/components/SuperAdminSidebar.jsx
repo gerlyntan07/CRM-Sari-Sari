@@ -58,13 +58,13 @@ export default function SuperAdminSidebar() {
         </div>
 
         {/* Announcements */}
-        <div
-          onClick={() => handleFutureFeature('Announcements')}
-          className={normalLink + " cursor-pointer"}
+        <NavLink
+          to="/super-admin/announcements"
+          className={({ isActive }) => (isActive ? activeLink : normalLink)}
         >
           <FiVolume2 className="text-lg" />
           <span>Announcements</span>
-        </div>
+        </NavLink>
 
         {/* Support & Issues */}
         {/**

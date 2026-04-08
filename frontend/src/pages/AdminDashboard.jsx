@@ -256,6 +256,45 @@ const TopBar = ({ searchQuery, onSearchChange, searchResults, onSearchResultClic
   );
 };
 
+const AnnouncementTicker = ({ message }) => {
+  const announcementText = (message || '').trim();
+  const marqueeText = `${announcementText}  |  ${announcementText}  |  ${announcementText}  |  ${announcementText}`;
+
+  if (!announcementText) return null;
+
+  return (
+    <div className="mb-4 rounded-xl border border-blue-100 bg-white shadow-sm overflow-hidden">
+      <div className="px-4 py-2 bg-blue-50 border-b border-blue-100">
+        <p className="text-xs sm:text-sm font-semibold uppercase tracking-wide text-blue-700">Announcements</p>
+      </div>
+
+      <div className="relative overflow-hidden py-2">
+        <div
+          className="flex items-center whitespace-nowrap"
+          style={{
+            width: 'max-content',
+            animation: 'forekas-announcement-scroll 18s linear infinite'
+          }}
+        >
+          <span className="px-8 text-sm text-gray-700">{marqueeText}</span>
+          <span className="px-8 text-sm text-gray-700" aria-hidden="true">{marqueeText}</span>
+        </div>
+      </div>
+
+      <style>{`
+        @keyframes forekas-announcement-scroll {
+          0% {
+            transform: translateX(0);
+          }
+          100% {
+            transform: translateX(-50%);
+          }
+        }
+      `}</style>
+    </div>
+  );
+};
+
 const AuditLogItem = ({ action, description, entity_type, entity_name, timestamp }) => {
   const navigate = useNavigate();
 
@@ -750,6 +789,7 @@ const AdminDashboard = () => {
   const [allLeads, setAllLeads] = useState([]);
   const [allDeals, setAllDeals] = useState([]);
   const [allAccounts, setAllAccounts] = useState([]);
+  const [announcementMessage, setAnnouncementMessage] = useState('');
 
   const [lastUpdate, setLastUpdate] = useState(new Date());
   const refreshIntervalRef = useRef(null);
@@ -844,7 +884,8 @@ const AdminDashboard = () => {
         meetingsRes,
         callsRes,
         logsRes,
-        targetsRes // --- NEW: Fetch Targets ---
+        targetsRes,
+        announcementRes
       ] = await Promise.all([
         api.get('/leads/admin/getLeads').catch((err) => { console.error('Error fetching leads:', err); return { data: [] }; }),
         api.get('/deals/admin/fetch-all').catch((err) => { console.error('Error fetching deals:', err); return { data: [] }; }),
@@ -853,7 +894,8 @@ const AdminDashboard = () => {
         api.get('/meetings/admin/fetch-all').catch((err) => { console.error('Error fetching meetings:', err); return { data: [] }; }),
         api.get('/calls/admin/fetch-all').catch((err) => { console.error('Error fetching calls:', err); return { data: [] }; }),
         api.get('/logs/read-all').catch((err) => { console.error('Error fetching logs:', err); return { data: [] }; }),
-        api.get('/targets/admin/fetch-all').catch((err) => { console.error('Error fetching targets:', err); return { data: [] }; }) // --- NEW API CALL ---
+        api.get('/targets/admin/fetch-all').catch((err) => { console.error('Error fetching targets:', err); return { data: [] }; }),
+        api.get('/announcements/current').catch((err) => { console.error('Error fetching announcement:', err); return { data: { message: '' } }; })
       ]);
 
       const leads = Array.isArray(leadsRes.data) ? leadsRes.data : [];
@@ -864,11 +906,13 @@ const AdminDashboard = () => {
       const calls = Array.isArray(callsRes.data) ? callsRes.data : [];
       const logs = Array.isArray(logsRes.data) ? logsRes.data : [];
       const targets = Array.isArray(targetsRes.data) ? targetsRes.data : [];
+      const activeAnnouncementMessage = announcementRes?.data?.message || '';
 
       setAllLeads(leads);
       setAllDeals(deals);
       setAllAccounts(accounts);
       setAllTargets(targets); // --- Store Targets ---
+      setAnnouncementMessage(activeAnnouncementMessage);
 
       // --- Calculate Total Target ---
       // --- Calculate Total Target (exclude Inactive) ---
@@ -1017,6 +1061,8 @@ const AdminDashboard = () => {
       {loading && <LoadingSpinner />}
       <div className="max-w-screen-2xl mx-auto">
         {error && <div className="mb-6 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg"><p className="font-medium">{error}</p></div>}
+
+        <AnnouncementTicker message={announcementMessage} />
 
         {/* ROW 1: Top Bar (Full Width) */}
         <div className="mb-8">

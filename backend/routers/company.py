@@ -174,13 +174,24 @@ def update_company_details(
 
 @router.post("/create", response_model=CompanyResponse)
 def create_company(
-    company_in: CompanyCreate, 
+    company_in: CompanyCreate,
     db: Session = Depends(get_db)
-):    
+):
     """Creates a new company record."""
     import random
     def generate_tenant_number():
         return ''.join([str(random.randint(0, 9)) for _ in range(12)])
+
+
+    # Uniqueness validation for company_name
+    if db.query(Company).filter(Company.company_name == company_in.company_name).first():
+        raise HTTPException(status_code=400, detail="Company name already exists.")
+
+    # Uniqueness validation for company_number
+    if db.query(Company).filter(Company.company_number == company_in.company_number).first():
+        raise HTTPException(status_code=400, detail="Company number already exists.")
+
+    # Uniqueness validation for slug removed; slug is optional and not required to be unique
 
     # Ensure uniqueness of tenant_number
     tenant_number = generate_tenant_number()
@@ -193,7 +204,7 @@ def create_company(
         company_number=company_in.company_number,
         company_website=str(company_in.company_website) if company_in.company_website else None,
         # Default values for new companies
-        currency="₱",
+        currency="PHP",
         quota_period="January",
         tax_rate=0,
         tenant_number=tenant_number

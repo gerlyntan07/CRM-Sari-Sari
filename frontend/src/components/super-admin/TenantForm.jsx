@@ -5,6 +5,15 @@ import api from "../../api";
 import { toast } from "react-toastify";
 import { Briefcase, DollarSign, Settings, Upload, X, Crown } from "lucide-react";
 
+// Utility to generate a random 12-digit tenant number (for preview only)
+function generateTenantNumber() {
+  let num = "";
+  for (let i = 0; i < 12; i++) {
+    num += Math.floor(Math.random() * 10);
+  }
+  return num;
+}
+
 export default function AddTenantForm({ onClose, onSuccess, editMode = false, initialData = null }) {
   const [formData, setFormData] = useState({
     company_name: "",
@@ -12,7 +21,7 @@ export default function AddTenantForm({ onClose, onSuccess, editMode = false, in
     company_number: "",
     company_website: "",
     address: "",
-    currency: "₱",
+    currency: "PHP",
     quota_period: "January",
     tax_rate: 0,
     vat_registration_number: "",
@@ -21,11 +30,17 @@ export default function AddTenantForm({ onClose, onSuccess, editMode = false, in
     calendar_start_day: "Monday",
     backup_reminder: "Daily",
     fiscal_year_start: "January",
+    tenant_number: generateTenantNumber(), // Preview only, backend will assign real unique value
   });
+
+  const [logoPreview, setLogoPreview] = useState(null);
 
   useEffect(() => {
     if (editMode && initialData) {
       setFormData({ ...initialData });
+    } else if (!editMode) {
+      // For add mode, always show a preview tenant number (not sent to backend)
+      setFormData((prev) => ({ ...prev, tenant_number: generateTenantNumber() }));
     }
   }, [editMode, initialData]);
 
@@ -35,7 +50,18 @@ export default function AddTenantForm({ onClose, onSuccess, editMode = false, in
     const { name, value, type, checked, files } = e.target;
 
     if (name === "company_logo") {
-      setFormData({ ...formData, company_logo: files[0] });
+      const file = files[0];
+      setFormData({ ...formData, company_logo: file });
+      // Create preview URL
+      if (file) {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setLogoPreview(reader.result);
+        };
+        reader.readAsDataURL(file);
+      } else {
+        setLogoPreview(null);
+      }
     } else if (type === "checkbox") {
       setFormData({ ...formData, [name]: checked });
     } else if (name === "company_name") {
@@ -58,21 +84,28 @@ export default function AddTenantForm({ onClose, onSuccess, editMode = false, in
     try {
       const data = new FormData();
       Object.entries(formData).forEach(([key, value]) => {
+        // Do not send tenant_number on create (backend will generate unique one)
+        if (!editMode && key === "tenant_number") return;
         if (value !== "" && value !== null && value !== undefined) {
           data.append(key, value);
         }
       });
 
+      let response;
       if (editMode && initialData && initialData.id) {
-        await api.put(`/admin/tenants/${initialData.id}`, data, {
+        response = await api.put(`/admin/tenants/${initialData.id}`, data, {
           headers: { "Content-Type": "multipart/form-data" },
         });
         toast.success("Tenant updated successfully!");
       } else {
-        await api.post("/admin/tenants", data, {
+        response = await api.post("/admin/tenants", data, {
           headers: { "Content-Type": "multipart/form-data" },
         });
         toast.success("Tenant added successfully!");
+      }
+      // After creation, show the real tenant_number from backend if available
+      if (response?.data?.tenant_number) {
+        setFormData((prev) => ({ ...prev, tenant_number: response.data.tenant_number }));
       }
       onSuccess?.();
       onClose?.();
@@ -141,6 +174,21 @@ export default function AddTenantForm({ onClose, onSuccess, editMode = false, in
                 />
               </div>
 
+
+              <div>
+                <label className={label}>
+                  Tenant Number
+                </label>
+                <input
+                  name="tenant_number"
+                  value={formData.tenant_number || ""}
+                  readOnly
+                  placeholder="Auto-generated tenant number"
+                  className={input + " bg-gray-100 cursor-not-allowed"}
+                  tabIndex={-1}
+                />
+              </div>
+
               <div>
                 <label className={label}>
                   Company Number <span className="text-red-500">*</span>
@@ -160,14 +208,13 @@ export default function AddTenantForm({ onClose, onSuccess, editMode = false, in
                 <input
                   name="slug"
                   value={formData.slug}
-                  readOnly
+                  onChange={handleChange}
                   placeholder="Auto-generated from company name"
-                  className={input + " bg-gray-100 cursor-not-allowed"}
-                  tabIndex={-1}
+                  className={input}
                 />
               </div>
 
-              <div>
+              <div className="md:col-span-2">
                 <label className={label}>Website</label>
                 <input
                   type="url"
@@ -196,21 +243,40 @@ export default function AddTenantForm({ onClose, onSuccess, editMode = false, in
                   Company Logo
                 </label>
 
-                <label className="flex items-center justify-center border-2 border-dashed border-gray-300 hover:border-blue-400 rounded-xl p-8 cursor-pointer transition duration-200 bg-gray-50/50 hover:bg-blue-50/30">
-                  <div className="text-center">
-                    <Upload size={32} className="mx-auto mb-2 text-gray-400" />
-                    <span className="text-sm font-medium text-gray-600">
-                      Click to upload logo
-                    </span>
-                    <span className="text-xs text-gray-400 block mt-1">PNG, JPG up to 5MB</span>
+                {logoPreview ? (
+                  <div className="relative w-full">
+                    <div className="flex items-center justify-center border-2 border-dashed border-gray-300 rounded-xl bg-gray-50/50 overflow-hidden" style={{ minHeight: '400px' }}>
+                      <img src={logoPreview} alt="Logo Preview" className="max-w-full max-h-96 object-contain" />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setLogoPreview(null);
+                        setFormData({ ...formData, company_logo: null });
+                      }}
+                      className="absolute -top-3 -right-3 hover:opacity-80 transition"
+                    >
+                      <X size={25} className="text-white bg-black rounded-full p-1" />
+                    </button>
                   </div>
-                  <input
-                    type="file"
-                    name="company_logo"
-                    onChange={handleChange}
-                    className="hidden"
-                  />
-                </label>
+                ) : (
+                  <label className="flex items-center justify-center border-2 border-dashed border-gray-300 hover:border-blue-400 rounded-xl p-16 cursor-pointer transition duration-200 bg-gray-50/50 hover:bg-blue-50/30">
+                    <div className="text-center">
+                      <Upload size={40} className="mx-auto mb-3 text-gray-400" />
+                      <span className="text-sm font-medium text-gray-600">
+                        Click to upload logo
+                      </span>
+                      <span className="text-xs text-gray-400 block mt-1">PNG, JPG up to 5MB</span>
+                    </div>
+                    <input
+                      type="file"
+                      name="company_logo"
+                      onChange={handleChange}
+                      className="hidden"
+                      accept="image/*"
+                    />
+                  </label>
+                )}
               </div>
 
             </div>

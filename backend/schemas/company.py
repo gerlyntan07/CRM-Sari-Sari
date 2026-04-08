@@ -1,12 +1,12 @@
 # backend/schemas/company.py
-from pydantic import BaseModel, HttpUrl
+from pydantic import BaseModel, HttpUrl, constr
 from typing import Optional
 from datetime import datetime
 
-class CompanyBase(BaseModel):    
-    company_name: str
+class CompanyBase(BaseModel):
+    company_name: constr(min_length=2, max_length=100)
+    company_number: constr(min_length=2, max_length=50)
     slug: Optional[str] = None
-    company_number: str
     company_website: Optional[HttpUrl] = None
     company_logo: Optional[str] = None
     address: Optional[str] = None
@@ -19,7 +19,7 @@ class CompanyCreate(CompanyBase):
 class CompanyUpdate(BaseModel):
     company_name: str
     slug: Optional[str] = None
-    currency: Optional[str] = "₱"       # e.g., "₱" or "$"
+    currency: Optional[str] = "PHP"       # e.g., "PHP" or "USD"
     quota_period: Optional[str] = "January" # e.g., "April"
     tax_rate: Optional[float] = 0       # Default tax rate percentage
     vat_registration_number: Optional[str] = None
@@ -36,7 +36,7 @@ class CompanyResponse(CompanyBase):
     id: int
     tenant_number: str
     # ✅ UPDATE: Add these so the Frontend can read the saved settings
-    currency: Optional[str] = "₱"
+    currency: Optional[str] = "PHP"
     quota_period: Optional[str] = "January"
     tax_rate: Optional[float] = 0
     vat_registration_number: Optional[str] = None

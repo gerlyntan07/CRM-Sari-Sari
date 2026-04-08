@@ -1,5 +1,5 @@
 # backend/routers/admin.py
-from fastapi import APIRouter, Depends, HTTPException, Request, Body
+from fastapi import APIRouter, Depends, HTTPException, Request, Body, File, UploadFile, Form
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import func, or_
 from database import SessionLocal
@@ -7,10 +7,13 @@ from models.auth import User, UserRole
 from models.company import Company
 from models.subscription import Subscription, StatusList
 from models.auditlog import Auditlog
+from schemas.company import CompanyCreate
 from jose import jwt, JWTError
-from typing import List
+from typing import List, Optional
 from datetime import datetime, timedelta, timezone
 import os
+import random
+import base64
 
 router = APIRouter(prefix="/admin", tags=["Admin"])
 
@@ -131,6 +134,103 @@ def get_all_tenants(
     return {
         "total_tenants": len(tenants_data),
         "tenants": tenants_data
+    }
+
+# Create a new tenant
+@router.post("/tenants")
+async def create_tenant(
+    company_name: str = Form(...),
+    company_number: str = Form(...),
+    slug: Optional[str] = Form(None),
+    company_website: Optional[str] = Form(None),
+    address: Optional[str] = Form(None),
+    company_logo: Optional[UploadFile] = File(None),
+    currency: Optional[str] = Form("PHP"),
+    quota_period: Optional[str] = Form("January"),
+    tax_rate: Optional[float] = Form(0),
+    vat_registration_number: Optional[str] = Form(None),
+    tax_id_number: Optional[str] = Form(None),
+    is_subscription_active: Optional[bool] = Form(True),
+    calendar_start_day: Optional[str] = Form("Monday"),
+    backup_reminder: Optional[str] = Form("Daily"),
+    fiscal_year_start: Optional[str] = Form("January"),
+    current_admin: User = Depends(get_current_super_admin),
+    db: Session = Depends(get_db)
+):
+    """Create a new tenant/company (admin only)"""
+    # Validate required fields
+    if not company_name or not company_name.strip():
+        raise HTTPException(status_code=400, detail="Company name is required.")
+    
+    if not company_number or not company_number.strip():
+        raise HTTPException(status_code=400, detail="Company number is required.")
+    
+    # Uniqueness validation for company_name
+    if db.query(Company).filter(Company.company_name == company_name).first():
+        raise HTTPException(status_code=400, detail="Company name already exists.")
+
+    # Uniqueness validation for company_number
+    if db.query(Company).filter(Company.company_number == company_number).first():
+        raise HTTPException(status_code=400, detail="Company number already exists.")
+    
+    # Handle logo file upload - convert to base64 with data URI prefix
+    logo_base64 = None
+    if company_logo:
+        try:
+            contents = await company_logo.read()
+            encoded = base64.b64encode(contents).decode('utf-8')
+            mime_type = company_logo.content_type or "image/png"
+            logo_base64 = f"data:{mime_type};base64,{encoded}"
+        except Exception as e:
+            raise HTTPException(status_code=400, detail=f"Failed to process logo: {str(e)}")
+    
+    # Generate unique tenant_number
+    def generate_tenant_number():
+        return ''.join([str(random.randint(0, 9)) for _ in range(12)])
+
+    tenant_number = generate_tenant_number()
+    while db.query(Company).filter(Company.tenant_number == tenant_number).first():
+        tenant_number = generate_tenant_number()
+
+    # Create new company
+    new_company = Company(
+        company_name=company_name,
+        company_number=company_number,
+        slug=slug if slug else None,
+        company_website=company_website if company_website else None,
+        address=address if address else None,
+        company_logo=logo_base64,
+        currency=currency or "PHP",
+        quota_period=quota_period or "January",
+        tax_rate=float(tax_rate) if tax_rate else 0,
+        vat_registration_number=vat_registration_number if vat_registration_number else None,
+        tax_id_number=tax_id_number if tax_id_number else None,
+        tenant_number=tenant_number,
+        is_subscription_active=bool(is_subscription_active),
+        calendar_start_day=calendar_start_day or "Monday",
+        backup_reminder=backup_reminder or "Daily"
+    )
+
+    db.add(new_company)
+    db.commit()
+    db.refresh(new_company)
+    
+    return {
+        "id": new_company.id,
+        "company_name": new_company.company_name,
+        "company_number": new_company.company_number,
+        "slug": new_company.slug,
+        "company_website": new_company.company_website,
+        "address": new_company.address,
+        "company_logo": new_company.company_logo,
+        "currency": new_company.currency,
+        "tenant_number": new_company.tenant_number,
+        "is_subscription_active": new_company.is_subscription_active,
+        "calendar_start_day": new_company.calendar_start_day,
+        "backup_reminder": new_company.backup_reminder,
+        "created_at": new_company.created_at,
+        "updated_at": new_company.updated_at,
+        "message": "Tenant created successfully"
     }
 
 # Get specific tenant details

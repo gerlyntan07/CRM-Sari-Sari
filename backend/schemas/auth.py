@@ -60,7 +60,7 @@ class CompanyBase(BaseModel):
     company_number: str
     company_website: Optional[str] = None
     company_logo: Optional[str] = None
-    currency: Optional[str] = "₱"
+    currency: Optional[str] = "PHP"
     quota_period: Optional[str] = "January"
     tax_rate: Optional[float] = 0
     vat_registration_number: Optional[str] = None

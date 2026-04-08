@@ -52,7 +52,11 @@ export default function AdminCompanyDetails() {
       if (user.company.company_name) setCompanyName(user.company.company_name);
       if (user.company.tenant_number) setTenantNumber(user.company.tenant_number);
       if (user.company.slug) setCompanySlug(user.company.slug);
-      if (user.company.currency) setCurrency(user.company.currency);
+      // Handle currency - convert ₱ to PHP if needed
+      if (user.company.currency) {
+        const currencyValue = user.company.currency === "₱" ? "PHP" : user.company.currency;
+        setCurrency(currencyValue);
+      }
       if (user.company.quota_period) setQuotaPeriod(user.company.quota_period);
       if (user.company.tax_rate !== undefined) setTaxRate(user.company.tax_rate);
       if (user.company.vat_registration_number !== undefined && user.company.vat_registration_number !== null) {

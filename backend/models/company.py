@@ -38,5 +38,5 @@ class Company(Base):
 
     # Add this line to link back to User
     users = relationship("User", back_populates="company", cascade="all, delete-orphan")
-    plan = relationship("Subscription", back_populates="subscriber")
+    plan = relationship("Subscription", back_populates="subscriber", cascade="all, delete-orphan")
     territory = relationship("Territory", back_populates="under_company", cascade="all, delete-orphan")

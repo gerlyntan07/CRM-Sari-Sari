@@ -27,7 +27,7 @@ const SuperAdminDashboard = () => {
   const [actionModal, setActionModal] = useState({ open: false, companyId: null, companyName: '', action: null });
   const [refreshing, setRefreshing] = useState(false);
   // For subscription confirmation modal
-  const [subscriptionModal, setSubscriptionModal] = useState({ open: false, tenantId: null, status: '', loading: false });
+  const [subscriptionModal, setSubscriptionModal] = useState({ open: false, tenantId: null, isActive: true, loading: false });
   // For edit subscription modal
   const [showEditSubscription, setShowEditSubscription] = useState(false);
   // For delete tenant modal
@@ -1017,11 +1017,18 @@ const SuperAdminDashboard = () => {
                               editMode={true}
                               initialData={editTenant}
                               onClose={() => setEditTenant(null)}
-                              onSuccess={() => {
+                              onSuccess={async () => {
                                 setEditTenant(null);
-                                fetchTenants();
-                                // Optionally close details modal if you want
-                                // setShowTenantModal(false);
+                                await fetchTenants();
+                                // Refresh selectedTenant with updated data
+                                if (selectedTenant?.id) {
+                                  try {
+                                    const response = await api.get(`/admin/tenants/${selectedTenant.id}`);
+                                    setSelectedTenant(response.data);
+                                  } catch (error) {
+                                    console.error('Failed to refresh tenant details:', error);
+                                  }
+                                }
                               }}
                             />
                           )}
@@ -1156,7 +1163,7 @@ const SuperAdminDashboard = () => {
                             {showEditSubscription && selectedTenant?.subscription && (
                               <SubscriptionForm
                                 editMode={true}
-                                initialData={{ ...selectedTenant.subscription, id: selectedTenant.id }}
+                                initialData={selectedTenant.subscription}
                                 onClose={() => setShowEditSubscription(false)}
                                 onSuccess={() => {
                                   setShowEditSubscription(false);
@@ -1167,48 +1174,53 @@ const SuperAdminDashboard = () => {
                             )}
                       <button
                         onClick={() => {
-                          const sub = selectedTenant.subscription;
                           const subscriptionId = selectedTenant.id;
-                          setSubscriptionModal({ open: true, tenantId: subscriptionId, status: sub.status, loading: false });
+                          setSubscriptionModal({ open: true, tenantId: subscriptionId, isActive: selectedTenant.is_subscription_active, loading: false });
                         }}
                         className={`p-2 rounded hover:bg-gray-200 ${
-                          selectedTenant.subscription.status === 'Active'
+                          selectedTenant.is_subscription_active
                             ? 'text-red-600'
                             : 'text-green-600'
                         } cursor-pointer`}
-                        title={selectedTenant.subscription.status === 'Active' ? 'Suspend Subscription' : 'Activate Subscription'}
+                        title={selectedTenant.is_subscription_active ? 'Suspend Subscription' : 'Reactivate Subscription'}
                         style={{ cursor: 'pointer' }}
                       >
-                        {selectedTenant.subscription.status === 'Active' 
+                        {selectedTenant.is_subscription_active
                           ? <FiSlash size={20} /> 
                           : <FiCheckCircle size={20} />}
                       </button>
                           {/* Subscription Confirmation Modal */}
                           <ConfirmationModal
                             open={subscriptionModal.open}
-                            title={subscriptionModal.status === 'Active' ? 'Suspend Subscription?' : 'Activate Subscription?'}
+                            title={subscriptionModal.isActive ? 'Suspend Subscription?' : 'Reactivate Subscription?'}
                             message={
-                              subscriptionModal.status === 'Active'
+                              subscriptionModal.isActive
                                 ? 'Are you sure you want to suspend this subscription?'
-                                : 'Are you sure you want to activate this subscription?'
+                                : 'Are you sure you want to reactivate this subscription?'
                             }
-                            confirmLabel={subscriptionModal.status === 'Active' ? 'Suspend' : 'Activate'}
+                            confirmLabel={subscriptionModal.isActive ? 'Suspend' : 'Reactivate'}
                             cancelLabel="Cancel"
-                            variant={subscriptionModal.status === 'Active' ? 'danger' : 'primary'}
+                            variant={subscriptionModal.isActive ? 'danger' : 'primary'}
                             loading={subscriptionModal.loading}
-                            onCancel={() => setSubscriptionModal({ open: false, tenantId: null, status: '', loading: false })}
+                            onCancel={() => setSubscriptionModal({ open: false, tenantId: null, isActive: true, loading: false })}
                             onConfirm={async () => {
                               setSubscriptionModal(modal => ({ ...modal, loading: true }));
                               try {
-                                const newStatus = subscriptionModal.status === 'Active' ? 'Cancelled' : 'Active';
-                                await api.patch(`/admin/subscriptions/${subscriptionModal.tenantId}/status`, { status: newStatus });
-                                setSubscriptionModal({ open: false, tenantId: null, status: '', loading: false });
+                                let response;
+                                if (subscriptionModal.isActive) {
+                                  // Suspend
+                                  response = await api.post(`/admin/companies/${subscriptionModal.tenantId}/suspend`);
+                                } else {
+                                  // Reactivate
+                                  response = await api.post(`/admin/companies/${subscriptionModal.tenantId}/reactivate`);
+                                }
+                                setSubscriptionModal({ open: false, tenantId: null, isActive: true, loading: false });
                                 fetchTenants();
                                 fetchSubscriptionAlerts();
                                 if (selectedTenant) {
                                   viewTenantDetails(selectedTenant.id);
                                 }
-                                toast.success('Subscription status updated!');
+                                toast.success(response.data.message);
                               } catch (error) {
                                 setSubscriptionModal(modal => ({ ...modal, loading: false }));
                                 toast.error(error.response?.data?.detail || 'Failed to update subscription');

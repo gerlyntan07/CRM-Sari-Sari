@@ -5,7 +5,7 @@ from sqlalchemy import func, or_
 from database import SessionLocal
 from models.auth import User, UserRole
 from models.company import Company
-from models.subscription import Subscription, StatusList
+from models.subscription import Subscription, StatusList, PlanName
 from models.auditlog import Auditlog
 from schemas.company import CompanyCreate
 from jose import jwt, JWTError
@@ -96,13 +96,19 @@ def get_all_tenants(
             "id": company.id,
             "company_name": company.company_name,
             "company_number": company.company_number,
+            "slug": company.slug,
             "company_website": company.company_website,
             "company_logo": company.company_logo,
             "address": company.address,
             "currency": company.currency,
             "quota_period": company.quota_period,
             "tax_rate": float(company.tax_rate) if company.tax_rate else 0,
+            "vat_registration_number": company.vat_registration_number,
+            "tax_id_number": company.tax_id_number,
+            "calendar_start_day": company.calendar_start_day,
+            "backup_reminder": company.backup_reminder,
             "is_subscription_active": company.is_subscription_active,
+            "tenant_number": company.tenant_number,
             "created_at": company.created_at,
             "updated_at": company.updated_at,
             "total_users": total_users,
@@ -110,6 +116,7 @@ def get_all_tenants(
             "latest_last_login": latest_company_login[0] if latest_company_login else None,
             "latest_last_login_location": latest_company_login[1].ip_address if latest_company_login and latest_company_login[1] else None,
             "subscription": {
+                "id": subscription.id if subscription else None,
                 "plan_name": subscription.plan_name if subscription else None,
                 "status": subscription.status if subscription else None,
                 "start_date": subscription.start_date if subscription else None,
@@ -215,6 +222,21 @@ async def create_tenant(
     db.commit()
     db.refresh(new_company)
     
+    # Create subscription for the new tenant - Pro plan with 15 days trial
+    subscription = Subscription(
+        company_id=new_company.id,
+        plan_name=PlanName.PRO.value,
+        price=0.0,
+        status=StatusList.TRIAL.value,
+        is_trial=True,
+        start_date=datetime.now(timezone.utc),
+        end_date=datetime.now(timezone.utc) + timedelta(days=15)
+    )
+    
+    db.add(subscription)
+    db.commit()
+    db.refresh(subscription)
+    
     return {
         "id": new_company.id,
         "company_name": new_company.company_name,
@@ -288,11 +310,13 @@ def get_tenant_details(
         "calendar_start_day": company.calendar_start_day,
         "backup_reminder": company.backup_reminder,
         "tenant_number": company.tenant_number,
+        "is_subscription_active": company.is_subscription_active,
         "created_at": company.created_at,
         "updated_at": company.updated_at,
         "latest_last_login": latest_company_login[0] if latest_company_login else None,
         "latest_last_login_location": latest_company_login[1].ip_address if latest_company_login and latest_company_login[1] else None,
         "subscription": {
+            "id": subscription.id if subscription else None,
             "plan_name": subscription.plan_name if subscription else None,
             "status": subscription.status if subscription else None,
             "start_date": subscription.start_date if subscription else None,
@@ -314,6 +338,127 @@ def get_tenant_details(
                 "last_login_location": latest_login_logs.get(u.id).ip_address if latest_login_logs.get(u.id) else None,
             } for u in company.users
         ]
+    }
+
+# Update tenant details
+@router.put("/tenants/{tenant_id}")
+async def update_tenant(
+    tenant_id: int,
+    company_name: Optional[str] = Form(None),
+    company_number: Optional[str] = Form(None),
+    slug: Optional[str] = Form(None),
+    company_website: Optional[str] = Form(None),
+    address: Optional[str] = Form(None),
+    company_logo: Optional[UploadFile] = File(None),
+    currency: Optional[str] = Form(None),
+    quota_period: Optional[str] = Form(None),
+    tax_rate: Optional[float] = Form(None),
+    vat_registration_number: Optional[str] = Form(None),
+    tax_id_number: Optional[str] = Form(None),
+    calendar_start_day: Optional[str] = Form(None),
+    backup_reminder: Optional[str] = Form(None),
+    fiscal_year_start: Optional[str] = Form(None),
+    current_admin: User = Depends(get_current_super_admin),
+    db: Session = Depends(get_db)
+):
+    """Update tenant/company information (admin only)"""
+    company = db.query(Company).filter(Company.id == tenant_id).first()
+    if not company:
+        raise HTTPException(status_code=404, detail="Tenant not found")
+    
+    # Update company_name if provided
+    if company_name and company_name.strip():
+        # Check uniqueness if changing
+        if company_name != company.company_name:
+            if db.query(Company).filter(
+                Company.company_name == company_name,
+                Company.id != tenant_id
+            ).first():
+                raise HTTPException(status_code=400, detail="Company name already exists.")
+        company.company_name = company_name
+    
+    # Update company_number if provided
+    if company_number and company_number.strip():
+        # Check uniqueness if changing
+        if company_number != company.company_number:
+            if db.query(Company).filter(
+                Company.company_number == company_number,
+                Company.id != tenant_id
+            ).first():
+                raise HTTPException(status_code=400, detail="Company number already exists.")
+        company.company_number = company_number
+    
+    # Update optional fields
+    if slug is not None:
+        company.slug = slug if slug.strip() else None
+    if company_website is not None:
+        company.company_website = company_website if company_website.strip() else None
+    if address is not None:
+        company.address = address if address.strip() else None
+    if currency is not None:
+        company.currency = currency
+    if quota_period is not None:
+        company.quota_period = quota_period
+    if tax_rate is not None:
+        company.tax_rate = float(tax_rate) if tax_rate else 0
+    if vat_registration_number is not None:
+        company.vat_registration_number = vat_registration_number if vat_registration_number.strip() else None
+    if tax_id_number is not None:
+        company.tax_id_number = tax_id_number if tax_id_number.strip() else None
+    if calendar_start_day is not None:
+        company.calendar_start_day = calendar_start_day
+    if backup_reminder is not None:
+        company.backup_reminder = backup_reminder
+    
+    # Handle logo upload if provided
+    if company_logo:
+        try:
+            contents = await company_logo.read()
+            encoded = base64.b64encode(contents).decode('utf-8')
+            mime_type = company_logo.content_type or "image/png"
+            company.company_logo = f"data:{mime_type};base64,{encoded}"
+        except Exception as e:
+            raise HTTPException(status_code=400, detail=f"Failed to process logo: {str(e)}")
+    
+    db.commit()
+    db.refresh(company)
+    
+    return {
+        "id": company.id,
+        "company_name": company.company_name,
+        "company_number": company.company_number,
+        "slug": company.slug,
+        "company_website": company.company_website,
+        "address": company.address,
+        "company_logo": company.company_logo,
+        "currency": company.currency,
+        "tenant_number": company.tenant_number,
+        "tax_rate": float(company.tax_rate) if company.tax_rate else 0,
+        "calendar_start_day": company.calendar_start_day,
+        "backup_reminder": company.backup_reminder,
+        "message": "Tenant updated successfully"
+    }
+
+# Delete tenant
+@router.delete("/tenants/{tenant_id}")
+def delete_tenant(
+    tenant_id: int,
+    current_admin: User = Depends(get_current_super_admin),
+    db: Session = Depends(get_db)
+):
+    """Delete a tenant/company (admin only)"""
+    company = db.query(Company).filter(Company.id == tenant_id).first()
+    if not company:
+        raise HTTPException(status_code=404, detail="Tenant not found")
+    
+    company_name = company.company_name
+    
+    # Delete company (cascade will handle related records)
+    db.delete(company)
+    db.commit()
+    
+    return {
+        "message": f"Tenant '{company_name}' deleted successfully"
     }
 
 # Get admin dashboard statistics
@@ -640,4 +785,62 @@ def get_company_subscription_status(
         "company_name": company.company_name,
         "is_subscription_active": company.is_subscription_active,
         "status": "Active" if company.is_subscription_active else "Suspended"
+    }
+
+# Update subscription details
+@router.put("/subscriptions/{subscription_id}")
+def update_subscription(
+    subscription_id: int,
+    subscription_data: dict = Body(...),
+    current_admin: User = Depends(get_current_super_admin),
+    db: Session = Depends(get_db)
+):
+    """Update subscription details (plan, status, dates)"""
+    subscription = db.query(Subscription).filter(Subscription.id == subscription_id).first()
+    
+    if not subscription:
+        raise HTTPException(status_code=404, detail="Subscription not found")
+    
+    # Update plan_name if provided
+    plan_name = subscription_data.get("plan_name")
+    if plan_name:
+        if plan_name not in [PlanName.FREE.value, PlanName.BASIC.value, PlanName.STARTER.value, PlanName.PRO.value, PlanName.ENTERPRISE.value]:
+            raise HTTPException(status_code=400, detail="Invalid plan name")
+        subscription.plan_name = plan_name
+    
+    # Update status if provided
+    status = subscription_data.get("status")
+    if status:
+        if status not in [StatusList.TRIAL.value, StatusList.ACTIVE.value, StatusList.CANCELLED.value, StatusList.EXPIRED.value]:
+            raise HTTPException(status_code=400, detail="Invalid status")
+        subscription.status = status
+    
+    # Update start_date if provided
+    start_date = subscription_data.get("start_date")
+    if start_date:
+        try:
+            subscription.start_date = datetime.fromisoformat(start_date.replace('Z', '+00:00'))
+        except (ValueError, AttributeError):
+            raise HTTPException(status_code=400, detail="Invalid start_date format")
+    
+    # Update end_date if provided
+    end_date = subscription_data.get("end_date")
+    if end_date:
+        try:
+            subscription.end_date = datetime.fromisoformat(end_date.replace('Z', '+00:00'))
+        except (ValueError, AttributeError):
+            raise HTTPException(status_code=400, detail="Invalid end_date format")
+    
+    subscription.updated_at = datetime.now(timezone.utc)
+    db.commit()
+    db.refresh(subscription)
+    
+    return {
+        "id": subscription.id,
+        "company_id": subscription.company_id,
+        "plan_name": subscription.plan_name,
+        "status": subscription.status,
+        "start_date": subscription.start_date,
+        "end_date": subscription.end_date,
+        "message": "Subscription updated successfully"
     }

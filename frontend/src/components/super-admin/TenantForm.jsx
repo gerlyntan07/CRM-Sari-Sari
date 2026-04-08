@@ -3,7 +3,7 @@ import currencies from "../../data/currencies.json";
 import CurrencyDropdown from "../CurrencyDropdown";
 import api from "../../api";
 import { toast } from "react-toastify";
-import { Briefcase, DollarSign, Settings, Upload, X, Crown } from "lucide-react";
+import { Briefcase, DollarSign, Settings, Upload, X } from "lucide-react";
 
 // Utility to generate a random 12-digit tenant number (for preview only)
 function generateTenantNumber() {
@@ -38,6 +38,10 @@ export default function AddTenantForm({ onClose, onSuccess, editMode = false, in
   useEffect(() => {
     if (editMode && initialData) {
       setFormData({ ...initialData });
+      // Set logo preview if company_logo exists
+      if (initialData.company_logo) {
+        setLogoPreview(initialData.company_logo);
+      }
     } else if (!editMode) {
       // For add mode, always show a preview tenant number (not sent to backend)
       setFormData((prev) => ({ ...prev, tenant_number: generateTenantNumber() }));
@@ -86,6 +90,8 @@ export default function AddTenantForm({ onClose, onSuccess, editMode = false, in
       Object.entries(formData).forEach(([key, value]) => {
         // Do not send tenant_number on create (backend will generate unique one)
         if (!editMode && key === "tenant_number") return;
+        // On edit, only send logo if it's a new File (not existing base64 string)
+        if (editMode && key === "company_logo" && typeof value === "string") return;
         if (value !== "" && value !== null && value !== undefined) {
           data.append(key, value);
         }
@@ -410,29 +416,6 @@ export default function AddTenantForm({ onClose, onSuccess, editMode = false, in
                 </select>
               </div>
 
-            </div>
-          </div>
-
-          {/* SUBSCRIPTION CARD */}
-          <div className="bg-gradient-to-br from-amber-50/50 to-white border border-gray-100 rounded-2xl p-6">
-            <div className="flex items-center gap-3 mb-5">
-              <Crown size={24} className="text-amber-600" />
-              <h3 className="font-bold text-gray-900 text-lg">
-                Subscription Status
-              </h3>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                name="is_subscription_active"
-                checked={formData.is_subscription_active}
-                onChange={handleChange}
-                className="h-5 w-5 accent-blue-600 cursor-pointer"
-              />
-              <span className="text-sm font-medium text-gray-700">
-                {formData.is_subscription_active ? "Active" : "Inactive"}
-              </span>
             </div>
           </div>
 

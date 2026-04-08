@@ -4,6 +4,20 @@ import api from "../../api";
 import { toast } from "react-toastify";
 import { Crown } from "lucide-react";
 
+// Helper function to convert ISO datetime to YYYY-MM-DD format
+function formatDateForInput(dateString) {
+  if (!dateString) return "";
+  try {
+    const date = new Date(dateString);
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  } catch {
+    return dateString;
+  }
+}
+
 export default function SubscriptionForm({ onClose, onSuccess, editMode = false, initialData = null }) {
   const [formData, setFormData] = useState({
     plan_name: "",
@@ -14,7 +28,12 @@ export default function SubscriptionForm({ onClose, onSuccess, editMode = false,
 
   useEffect(() => {
     if (editMode && initialData) {
-      setFormData({ ...initialData });
+      setFormData({
+        plan_name: initialData.plan_name || "",
+        status: initialData.status || "Active",
+        start_date: formatDateForInput(initialData.start_date) || "",
+        end_date: formatDateForInput(initialData.end_date) || "",
+      });
     }
   }, [editMode, initialData]);
 
@@ -29,11 +48,20 @@ export default function SubscriptionForm({ onClose, onSuccess, editMode = false,
     e.preventDefault();
     setLoading(true);
     try {
-      if (editMode && initialData && initialData.id) {
-        await api.put(`/admin/subscriptions/${initialData.id}`, formData);
+      // Convert YYYY-MM-DD dates to ISO format for backend
+      const dataToSubmit = {
+        plan_name: formData.plan_name,
+        status: formData.status,
+        start_date: formData.start_date ? new Date(formData.start_date).toISOString() : "",
+        end_date: formData.end_date ? new Date(formData.end_date).toISOString() : "",
+      };
+
+      if (editMode && initialData) {
+        // Use subscription id from initialData
+        await api.put(`/admin/subscriptions/${initialData.id}`, dataToSubmit);
         toast.success("Subscription updated successfully!");
       } else {
-        await api.post("/admin/subscriptions", formData);
+        await api.post("/admin/subscriptions", dataToSubmit);
         toast.success("Subscription added successfully!");
       }
       onSuccess?.();
@@ -78,14 +106,20 @@ export default function SubscriptionForm({ onClose, onSuccess, editMode = false,
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               <div>
                 <label className="text-sm font-medium text-gray-700">Plan Name</label>
-                <input
+                <select
                   name="plan_name"
                   value={formData.plan_name}
                   onChange={handleChange}
                   required
-                  placeholder="e.g., Basic, Premium"
                   className="w-full rounded-lg border border-gray-300/50 px-4 py-2.5 text-sm bg-white/50 backdrop-blur-sm hover:border-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 outline-none transition duration-200"
-                />
+                >
+                  <option value="" disabled>Select a plan</option>
+                  <option value="Free">Free</option>
+                  <option value="Basic">Basic</option>
+                  <option value="Starter">Starter</option>
+                  <option value="Pro">Pro</option>
+                  <option value="Enterprise">Enterprise</option>
+                </select>
               </div>
               <div>
                 <label className="text-sm font-medium text-gray-700">Status</label>
@@ -95,6 +129,7 @@ export default function SubscriptionForm({ onClose, onSuccess, editMode = false,
                   onChange={handleChange}
                   className="w-full rounded-lg border border-gray-300/50 px-4 py-2.5 text-sm bg-white/50 backdrop-blur-sm hover:border-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 outline-none transition duration-200"
                 >
+                  <option value="Trial">Trial</option>
                   <option value="Active">Active</option>
                   <option value="Cancelled">Cancelled</option>
                   <option value="Expired">Expired</option>

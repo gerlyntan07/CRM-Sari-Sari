@@ -772,14 +772,10 @@ const SuperAdminDashboard = () => {
             </button>
                 {/* Add Tenant Modal */}
                 {showAddTenantModal && (
-                  <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-                    <div className="bg-white rounded-lg max-w-lg w-full max-h-[90vh] overflow-y-auto">
-                      <AddTenantForm
-                        onClose={() => setShowAddTenantModal(false)}
-                        onSuccess={fetchTenants}
-                      />
-                    </div>
-                  </div>
+                  <AddTenantForm
+                    onClose={() => setShowAddTenantModal(false)}
+                    onSuccess={fetchTenants}
+                  />
                 )}
           </div>
           <div className="flex flex-col gap-3 w-full">
@@ -1026,7 +1022,7 @@ const SuperAdminDashboard = () => {
 
       {/* Tenant Details Modal */}
       {showTenantModal && selectedTenant && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto hide-scrollbar sm:max-w-2xl md:max-w-3xl lg:max-w-4xl">
 
             <div className="sticky top-0 z-10 bg-white border-b border-gray-200 px-6 py-4 flex justify-between items-center">

@@ -128,7 +128,7 @@ export default function AddTenantForm({ onClose, onSuccess, editMode = false, in
   const label = "text-sm font-medium text-gray-700";
 
   return (
-    <div className="fixed inset-0 bg-black flex items-center justify-center p-4 z-50">
+    <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-50">
 
       {/* MODAL */}
       <div className="bg-white rounded-3xl max-w-4xl w-full p-8 max-h-[90vh] overflow-y-auto" style={{ boxShadow: 'none' }}>

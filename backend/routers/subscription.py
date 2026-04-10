@@ -8,7 +8,7 @@ from schemas.subscription import SubscriptionCreate, SubscriptionResponse
 from .auth_utils import get_current_user
 from models.auth import User
 from datetime import timedelta
-from services.subscription_lifecycle import apply_trial_lifecycle, utc_now
+from services.subscription_lifecycle import apply_trial_lifecycle, clear_promo_discount_fields, utc_now
 
 router = APIRouter(prefix="/subscription", tags=["Subscription"])
 
@@ -70,6 +70,7 @@ def subscribe(user: SubscriptionCreate, response: Response, db: Session = Depend
         latest_subscription.end_date = end_date
         latest_subscription.trial_notification_sent_at = None
         latest_subscription.downgraded_to_free_at = None
+        clear_promo_discount_fields(latest_subscription)
         latest_subscription.updated_at = now
         subscription = latest_subscription
     else:
@@ -135,6 +136,7 @@ def cancel_subscription(
     if latest_subscription:
         latest_subscription.status = StatusList.CANCELLED.value
         latest_subscription.is_trial = False
+        clear_promo_discount_fields(latest_subscription)
         latest_subscription.updated_at = now
 
     free_subscription = Subscription(

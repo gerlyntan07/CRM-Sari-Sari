@@ -31,6 +31,14 @@ class Subscription(Base):
     end_date = Column(DateTime(timezone=True), default=lambda: datetime.utcnow() + timedelta(days=15))
     trial_notification_sent_at = Column(DateTime(timezone=True), nullable=True)
     downgraded_to_free_at = Column(DateTime(timezone=True), nullable=True)
+
+    promo_discount_is_active = Column(Boolean, default=False, nullable=False)
+    promo_discount_type = Column(String(20), nullable=True)
+    promo_discount_value = Column(Float, nullable=True)
+    promo_discount_code = Column(String(8), nullable=True)
+    promo_discount_applied_at = Column(DateTime(timezone=True), nullable=True)
+    promo_discount_ends_at = Column(DateTime(timezone=True), nullable=True)
+
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 

@@ -52,6 +52,7 @@ import SuperAdminPanel from "./components/SuperAdminPanel";
 import SuperAdminDashboard from "./pages/SuperAdminDashboard";
 import SuperAdminUsers from "./pages/SuperAdminUsers";
 import SuperAdminAnnouncements from "./pages/SuperAdminAnnouncements";
+import SuperAdminPromos from "./pages/SuperAdminPromos";
 
 // 🔹 Sales layout + pages
 import SalesPanel from "./components/SalesPanel";
@@ -241,6 +242,7 @@ function App() {
         <Route path="/super-admin" element={<PrivateRoute requiredRole="admin"><SuperAdminPanel /></PrivateRoute>}>
           <Route index element={<Navigate to="dashboard" replace />} />
           <Route path="dashboard" element={<SuperAdminDashboard />} />
+          <Route path="promos" element={<SuperAdminPromos />} />
           <Route path="users" element={<SuperAdminUsers />} />
           <Route path="announcements" element={<SuperAdminAnnouncements />} />
           <Route path="manage-account" element={<PublicManageAccount />} />

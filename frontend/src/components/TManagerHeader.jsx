@@ -3,6 +3,7 @@ import { FiBell, FiMenu } from "react-icons/fi";
 import { useLocation, useNavigate } from "react-router-dom";
 import useAuth from '../hooks/useAuth.js';
 import useFetchUser from "../hooks/useFetchUser.js";
+import api from "../api.js";
 
 export default function AdminHeader({ toggleSidebar }) {
   const [open, setOpen] = useState(false);
@@ -53,6 +54,14 @@ export default function AdminHeader({ toggleSidebar }) {
   const currentPlan = String(user?.subscription_status?.current_plan || "").toLowerCase();
   const hasNotificationAccess = currentPlan === "pro" || currentPlan === "enterprise";
 
+  const normalizeNotification = (n) => ({
+    id: n.id || n.task_id || n.taskId || `${Date.now()}-${Math.random()}`,
+    title: n.title || (n.action === "BACKUP_REMINDER" ? "Backup Reminder" : ""),
+    message: n.message || n.description || n.task_title || n.taskTitle || "New Update",
+    is_read: Boolean(n.is_read),
+    timestamp: n.timestamp || n.created_at || n.updated_at || null,
+  });
+
   // Map routes to titles
   const routeTitles = {
     "/group-manager/dashboard": "Dashboard",
@@ -95,6 +104,23 @@ export default function AdminHeader({ toggleSidebar }) {
       window.removeEventListener('userProfileUpdated', handleProfileUpdate);
     };
   }, [fetchUser]);
+
+  useEffect(() => {
+    if (!user?.id || !hasNotificationAccess) return;
+
+    const loadNotifications = async () => {
+      try {
+        const { data } = await api.get("/logs/notifications");
+        const items = Array.isArray(data) ? data.map(normalizeNotification) : [];
+        setNotifications(items);
+        setUnreadCount(items.filter((item) => !item.is_read).length);
+      } catch (error) {
+        console.error("Failed to load notifications:", error);
+      }
+    };
+
+    loadNotifications();
+    }, [hasNotificationAccess, user?.id]);
 
   // WebSocket for Real-time Notifications
   useEffect(() => {
@@ -176,15 +202,14 @@ export default function AdminHeader({ toggleSidebar }) {
                 <div className="max-h-60 overflow-y-auto">
                   {notifications.length > 0 ? (
                     notifications.map((n, i) => {
-                      const timestamp = n.timestamp || n.created_at || n.updated_at;
-                      const exactTime = formatNotificationDateTime(timestamp);
-                      const relativeTime = formatRelativeNotificationTime(timestamp);
+                      const exactTime = formatNotificationDateTime(n.timestamp);
+                      const relativeTime = formatRelativeNotificationTime(n.timestamp);
 
                       return (
-                        <div key={i} className="p-3 border-b text-sm hover:bg-gray-50 cursor-pointer transition">
-                          <p className="text-sm text-gray-800">
-                            {n.title || n.message || "New Notification"}
-                          </p>
+                        <div key={i} className="p-3 border-b text-sm hover:bg-gray-50 cursor-pointer">
+                          {/* <p className="font-medium text-gray-800">{n.title || "Notification"} {n.message || "New Update"}</p> */}
+                          <p className="font-medium text-gray-800">{n.title || (n.message || "New Update")}</p>
+                          {/* <p className="text-xs text-gray-600 mt-1">{n.message || "New Update"}</p> */}
                           {(relativeTime || exactTime) && (
                             <p className="text-[11px] text-gray-500 mt-1">
                               {relativeTime || ""}

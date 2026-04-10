@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { FiCreditCard, FiRefreshCw, FiXCircle, FiAlertCircle } from "react-icons/fi";
 import { toast } from "react-toastify";
@@ -16,6 +16,10 @@ export default function AdminSubscription() {
   const { user, mutate } = useFetchUser();
   const [selectedPlan, setSelectedPlan] = useState("Starter");
   const [billingCycle, setBillingCycle] = useState("monthly");
+  const [promoCode, setPromoCode] = useState("");
+  const [applyingPromo, setApplyingPromo] = useState(false);
+  const [availablePromos, setAvailablePromos] = useState([]);
+  const [loadingPromos, setLoadingPromos] = useState(false);
   const [loadingUpgrade, setLoadingUpgrade] = useState(false);
   const [loadingCancel, setLoadingCancel] = useState(false);
   const [showCancelModal, setShowCancelModal] = useState(false);
@@ -25,8 +29,13 @@ export default function AdminSubscription() {
   const currentPlan = subscription.current_plan || "Free";
   const currentStatus = subscription.current_status || "Active";
   const isTrial = Boolean(subscription.is_trial);
+  const currentPlanPrice = Number(subscription.current_price ?? 0);
+  const regularPlanPrice = Number(subscription.regular_plan_price ?? currentPlanPrice);
   const trialEndsAt = subscription.trial_ends_at
     ? new Date(subscription.trial_ends_at).toLocaleString()
+    : null;
+  const subscriptionEndsAt = subscription.subscription_ends_at
+    ? new Date(subscription.subscription_ends_at).toLocaleString()
     : null;
 
   const computedPrice = useMemo(() => {
@@ -34,6 +43,22 @@ export default function AdminSubscription() {
     if (!plan) return 0;
     return billingCycle === "annual" ? plan.annual : plan.monthly;
   }, [selectedPlan, billingCycle]);
+
+  const fetchAvailablePromos = async () => {
+    try {
+      setLoadingPromos(true);
+      const res = await api.get("/promo/available");
+      setAvailablePromos(res.data?.promos || []);
+    } catch {
+      setAvailablePromos([]);
+    } finally {
+      setLoadingPromos(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchAvailablePromos();
+  }, []);
 
   const handleUpgrade = async () => {
     if (!user?.company?.id) {
@@ -80,6 +105,31 @@ export default function AdminSubscription() {
     }
   };
 
+  const handleApplyPromo = async () => {
+    const trimmed = promoCode.trim();
+    if (!trimmed) {
+      toast.warn("Please enter a promo code.");
+      return;
+    }
+
+    setApplyingPromo(true);
+    try {
+      const res = await api.post("/promo/redeem", {
+        code: trimmed,
+        company_id: user?.company?.id,
+        redemption_channel: "account",
+      });
+      await mutate();
+      setPromoCode("");
+      toast.success(res.data?.applied_effect || "Promo applied successfully.");
+    } catch (error) {
+      const detail = error?.response?.data?.detail || "Failed to apply promo code.";
+      toast.error(detail);
+    } finally {
+      setApplyingPromo(false);
+    }
+  };
+
   return (
     <div className="p-4 lg:p-8 font-inter space-y-6">
       <div>
@@ -120,6 +170,75 @@ export default function AdminSubscription() {
             {subscription.message}
           </div>
         )}
+
+        {!isTrial && (
+          <div className="mt-4 rounded-lg border border-gray-200 bg-white p-4">
+            <p className="text-xs text-gray-500 mb-1">Current Plan Price (Non-Trial)</p>
+            <p className="text-lg font-semibold text-gray-800">PHP {currentPlanPrice.toFixed(2)} / month</p>
+            {regularPlanPrice !== currentPlanPrice && (
+              <p className="text-xs text-gray-600 mt-1">
+                Regular price: PHP {regularPlanPrice.toFixed(2)}
+              </p>
+            )}
+            <p className="text-xs text-gray-600 mt-2">
+              Subscription expires at: <span className="font-semibold text-gray-800">{subscriptionEndsAt || "No scheduled expiry"}</span>
+            </p>
+          </div>
+        )}
+      </div>
+
+      <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6 space-y-4">
+        <h2 className="text-xl font-semibold text-gray-800">Redeem Promo / Coupon</h2>
+        <p className="text-sm text-gray-600">
+          Enter your promo code to immediately apply trial extensions, subscription extensions, or price discounts.
+        </p>
+        <div className="flex flex-col sm:flex-row gap-2">
+          <input
+            value={promoCode}
+            onChange={(e) => setPromoCode(e.target.value.toUpperCase())}
+            className="flex-1 border border-gray-300 rounded-md px-3 py-2"
+            placeholder="A1B2C3 or A1B2C3D4"
+          />
+          <button
+            onClick={handleApplyPromo}
+            disabled={applyingPromo || loadingUpgrade || loadingCancel}
+            className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-md bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50"
+          >
+            {applyingPromo ? "Applying..." : "Apply Promo"}
+          </button>
+        </div>
+
+        <div className="pt-2 border-t border-gray-100">
+          <p className="text-sm font-medium text-gray-700 mb-2">Available Promos</p>
+          {loadingPromos ? (
+            <p className="text-xs text-gray-500">Loading promos...</p>
+          ) : availablePromos.length === 0 ? (
+            <p className="text-xs text-gray-500">No active promos available.</p>
+          ) : (
+            <div className="space-y-2">
+              {availablePromos.slice(0, 8).map((promo) => (
+                <div key={promo.id} className="flex items-start justify-between gap-2 border border-gray-200 rounded-md p-3 bg-gray-50">
+                  <div>
+                    <p className="text-sm font-semibold text-gray-800">{promo.name}</p>
+                    <p className="text-xs text-gray-600">{promo.effect_preview}</p>
+                    <p className="text-xs text-gray-600">Code: <span className="font-semibold tracking-wider">{promo.manual_code}</span></p>
+                    {!promo.can_redeem && (
+                      <p className="text-xs text-red-600 mt-1">{promo.reason || "Not redeemable right now."}</p>
+                    )}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setPromoCode(promo.manual_code || "")}
+                    disabled={!promo.can_redeem}
+                    className="text-xs px-3 py-1.5 rounded-md bg-gray-900 text-white hover:bg-gray-800 disabled:opacity-50"
+                  >
+                    Use
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6 space-y-4">
@@ -155,6 +274,18 @@ export default function AdminSubscription() {
 
         <div className="text-sm text-gray-600">
           Selected plan price: <span className="font-semibold">₱{computedPrice}</span> per user / month.
+        </div>
+
+        <div className="rounded-lg border border-gray-200 bg-gray-50 p-3 text-sm text-gray-800">
+          <p>
+            Next plan preview: <span className="font-semibold">{selectedPlan}</span> ({billingCycle}) at
+            <span className="font-semibold"> PHP {computedPrice.toFixed(2)}</span> per user / month.
+          </p>
+          {!isTrial && (
+            <p className="text-xs text-gray-600 mt-1">
+              Change from current: PHP {(computedPrice - currentPlanPrice).toFixed(2)}
+            </p>
+          )}
         </div>
 
         {selectedPlan === "Free" && (

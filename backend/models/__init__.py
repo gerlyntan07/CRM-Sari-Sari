@@ -13,6 +13,7 @@ from .soa import StatementOfAccount, SoaItem
 from .invoice import Invoice, InvoiceItem
 from .payment import Payment
 from .subscription import Subscription
+from .promo import PromoCode, PromoRedemption
 from .target import Target
 from .task import Task
 from .territory import Territory
@@ -23,6 +24,6 @@ __all__ = [
     "Contact", "Deal", "Lead", "Meeting", "Quote", "QuoteItem",
     "StatementOfAccount", "SoaItem",
     "Invoice", "InvoiceItem", "Payment",
-    "Subscription", "Target", "Task", "Territory", 
+    "Subscription", "PromoCode", "PromoRedemption", "Target", "Task", "Territory", 
     "Comment"
 ]

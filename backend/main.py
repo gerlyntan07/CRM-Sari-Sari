@@ -25,6 +25,7 @@ import models.meeting
 import models.quote
 import models.soa
 import models.subscription
+import models.promo
 import models.target
 import models.task
 import models.territory
@@ -36,6 +37,7 @@ import routers.announcement as announcement_router
 import routers.company as company_router
 import routers.users as users_router
 import routers.subscription as subscription_router
+import routers.promo as promo_router
 import routers.territory as territory_router
 import routers.lead as lead_router
 import routers.task as task_router
@@ -73,6 +75,7 @@ app.include_router(admin_router.router, prefix='/api')
 app.include_router(company_router.router, prefix='/api')
 app.include_router(users_router.router, prefix='/api')
 app.include_router(subscription_router.router, prefix='/api')
+app.include_router(promo_router.router, prefix='/api')
 app.include_router(territory_router.router, prefix='/api')
 app.include_router(lead_router.router, prefix='/api')
 app.include_router(task_router.router, prefix='/api')

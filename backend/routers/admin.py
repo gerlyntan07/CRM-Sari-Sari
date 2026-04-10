@@ -5,9 +5,20 @@ from sqlalchemy import func, or_
 from database import SessionLocal
 from models.auth import User, UserRole
 from models.company import Company
+from models.promo import PromoCode, PromoRedemption
 from models.subscription import Subscription, StatusList, PlanName
 from models.auditlog import Auditlog
 from schemas.company import CompanyCreate
+from schemas.promo import PromoCreate, PromoUpdate
+from services.promo_service import (
+    ALLOWED_PROMO_PURPOSES,
+    ALLOWED_TARGET_SCOPES,
+    build_qr_code_url,
+    ensure_valid_promo_code_shape,
+    generate_unique_promo_code,
+    normalize_promo_code,
+    validate_promo_configuration,
+)
 from jose import jwt, JWTError
 from typing import List, Optional
 from datetime import datetime, timedelta, timezone
@@ -46,6 +57,115 @@ def get_current_super_admin(request: Request, db: Session = Depends(get_db)):
         raise HTTPException(status_code=403, detail="Access denied. Admin privileges required.")
     
     return user
+
+
+def _serialize_promo(promo: PromoCode) -> dict:
+    can_edit = bool(getattr(promo, "can_edit", int(promo.total_redemptions or 0) == 0))
+    can_delete = bool(getattr(promo, "can_delete", True))
+    edit_block_reason = getattr(promo, "edit_block_reason", None)
+    delete_block_reason = getattr(promo, "delete_block_reason", None)
+
+    return {
+        "id": promo.id,
+        "code": promo.code,
+        "manual_code": promo.manual_code,
+        "code_length": promo.code_length,
+        "name": promo.name,
+        "description": promo.description,
+        "purpose": promo.purpose,
+        "target_scope": promo.target_scope,
+        "extend_days": promo.extend_days,
+        "discount_percent": promo.discount_percent,
+        "discount_amount": promo.discount_amount,
+        "max_total_redemptions": promo.max_total_redemptions,
+        "max_redemptions_per_company": promo.max_redemptions_per_company,
+        "max_redemptions_per_user": promo.max_redemptions_per_user,
+        "total_redemptions": promo.total_redemptions,
+        "starts_at": promo.starts_at,
+        "expires_at": promo.expires_at,
+        "generated_at": promo.generated_at,
+        "created_at": promo.created_at,
+        "updated_at": promo.updated_at,
+        "is_active": promo.is_active,
+        "is_public": promo.is_public,
+        "visibility": "public" if bool(promo.is_public) else "private",
+        "qr_code_url": promo.qr_code_url,
+        "extra_data": promo.extra_data,
+        "created_by": promo.created_by,
+        "can_edit": can_edit,
+        "can_delete": can_delete,
+        "edit_block_reason": edit_block_reason,
+        "delete_block_reason": delete_block_reason,
+        "created_by_name": (
+            f"{promo.creator.first_name} {promo.creator.last_name}".strip()
+            if promo.creator
+            else None
+        ),
+    }
+
+
+def _get_promo_mutation_rules(db: Session, promo: PromoCode) -> dict:
+    redemptions_count = int(promo.total_redemptions or 0)
+    can_edit = redemptions_count == 0
+    edit_block_reason = None
+    if not can_edit:
+        edit_block_reason = "Promo can only be edited before the first redemption."
+
+    can_delete = True
+    delete_block_reason = None
+
+    if redemptions_count > 0:
+        now = datetime.now(timezone.utc)
+        expires_at = promo.expires_at
+
+        reached_total_limit = (
+            promo.max_total_redemptions is not None
+            and redemptions_count >= int(promo.max_total_redemptions)
+        )
+        is_expired = bool(expires_at and expires_at <= now)
+        is_deactivated = not bool(promo.is_active)
+
+        usage_completed = is_expired or reached_total_limit or is_deactivated
+
+        purpose = (promo.purpose or "CUSTOM").strip().upper()
+        has_active_discount_usage = False
+        if purpose in {"PRICE_DISCOUNT_PERCENT", "PRICE_DISCOUNT_FIXED"}:
+            active_discount = (
+                db.query(Subscription.id)
+                .filter(
+                    Subscription.promo_discount_is_active == True,
+                    Subscription.promo_discount_code == promo.code,
+                    or_(
+                        Subscription.promo_discount_ends_at == None,
+                        Subscription.promo_discount_ends_at > now,
+                    ),
+                )
+                .first()
+            )
+            has_active_discount_usage = active_discount is not None
+
+        if has_active_discount_usage:
+            can_delete = False
+            delete_block_reason = "Promo cannot be deleted while any active discount from this promo is still in effect."
+        elif not usage_completed:
+            can_delete = False
+            delete_block_reason = "Promo can be deleted after usage is completed (expired, fully redeemed, or manually deactivated)."
+
+    return {
+        "can_edit": can_edit,
+        "can_delete": can_delete,
+        "edit_block_reason": edit_block_reason,
+        "delete_block_reason": delete_block_reason,
+    }
+
+
+def _attach_promo_mutation_rules(db: Session, promo: PromoCode) -> PromoCode:
+    rules = _get_promo_mutation_rules(db, promo)
+    promo.can_edit = rules["can_edit"]
+    promo.can_delete = rules["can_delete"]
+    promo.edit_block_reason = rules["edit_block_reason"]
+    promo.delete_block_reason = rules["delete_block_reason"]
+    return promo
 
 # Get all tenants/companies with their users and subscription info
 @router.get("/tenants")
@@ -844,4 +964,274 @@ def update_subscription(
         "start_date": subscription.start_date,
         "end_date": subscription.end_date,
         "message": "Subscription updated successfully"
+    }
+
+
+@router.get("/promos")
+def list_promos(
+    include_inactive: bool = True,
+    current_admin: User = Depends(get_current_super_admin),
+    db: Session = Depends(get_db),
+):
+    query = db.query(PromoCode).options(joinedload(PromoCode.creator)).order_by(PromoCode.created_at.desc(), PromoCode.id.desc())
+    if not include_inactive:
+        query = query.filter(PromoCode.is_active == True)
+
+    promos = query.all()
+    promos = [_attach_promo_mutation_rules(db, p) for p in promos]
+    return {
+        "total": len(promos),
+        "promos": [_serialize_promo(p) for p in promos],
+    }
+
+
+@router.post("/promos")
+def create_promo(
+    payload: PromoCreate,
+    current_admin: User = Depends(get_current_super_admin),
+    db: Session = Depends(get_db),
+):
+    code_length = payload.code_length if payload.code_length in (6, 8) else 8
+
+    purpose = (payload.purpose or "CUSTOM").strip().upper()
+    target_scope = (payload.target_scope or "company").strip().lower()
+
+    validate_promo_configuration(
+        purpose=purpose,
+        target_scope=target_scope,
+        extend_days=payload.extend_days,
+        discount_percent=payload.discount_percent,
+        discount_amount=payload.discount_amount,
+        expires_at=payload.expires_at,
+    )
+
+    manual_code = normalize_promo_code(payload.manual_code or "")
+    if manual_code:
+        ensure_valid_promo_code_shape(manual_code)
+        if db.query(PromoCode).filter(or_(PromoCode.code == manual_code, PromoCode.manual_code == manual_code)).first():
+            raise HTTPException(status_code=400, detail="Promo code already exists.")
+        code = manual_code
+        code_length = len(manual_code)
+    else:
+        code = generate_unique_promo_code(db, code_length)
+        manual_code = code
+
+    promo = PromoCode(
+        code=code,
+        manual_code=manual_code,
+        code_length=code_length,
+        name=payload.name.strip(),
+        description=payload.description,
+        purpose=purpose,
+        target_scope=target_scope,
+        extend_days=payload.extend_days,
+        discount_percent=payload.discount_percent,
+        discount_amount=payload.discount_amount,
+        max_total_redemptions=payload.max_total_redemptions,
+        max_redemptions_per_company=payload.max_redemptions_per_company,
+        max_redemptions_per_user=payload.max_redemptions_per_user,
+        starts_at=payload.starts_at,
+        expires_at=payload.expires_at,
+        extra_data=payload.extra_data,
+        is_active=payload.is_active,
+        is_public=payload.is_public,
+        created_by=current_admin.id,
+        qr_code_url=build_qr_code_url(code),
+    )
+
+    db.add(promo)
+    db.commit()
+    db.refresh(promo)
+
+    promo = _attach_promo_mutation_rules(db, promo)
+
+    return {
+        "detail": "Promo code created successfully.",
+        "promo": _serialize_promo(promo),
+    }
+
+
+@router.get("/promos/{promo_id}")
+def get_promo(
+    promo_id: int,
+    current_admin: User = Depends(get_current_super_admin),
+    db: Session = Depends(get_db),
+):
+    promo = db.query(PromoCode).options(joinedload(PromoCode.creator)).filter(PromoCode.id == promo_id).first()
+    if not promo:
+        raise HTTPException(status_code=404, detail="Promo code not found.")
+
+    redemptions = (
+        db.query(PromoRedemption)
+        .filter(PromoRedemption.promo_id == promo.id)
+        .order_by(PromoRedemption.created_at.desc(), PromoRedemption.id.desc())
+        .limit(50)
+        .all()
+    )
+
+    promo = _attach_promo_mutation_rules(db, promo)
+
+    return {
+        "promo": _serialize_promo(promo),
+        "redemptions": [
+            {
+                "id": r.id,
+                "promo_code_snapshot": r.promo_code_snapshot,
+                "redeemed_by_user_id": r.redeemed_by_user_id,
+                "redeemed_for_company_id": r.redeemed_for_company_id,
+                "redemption_channel": r.redemption_channel,
+                "applied_effect": r.applied_effect,
+                "discount_applied": r.discount_applied,
+                "days_extended": r.days_extended,
+                "created_at": r.created_at,
+            }
+            for r in redemptions
+        ],
+    }
+
+
+@router.put("/promos/{promo_id}")
+def update_promo(
+    promo_id: int,
+    payload: PromoUpdate,
+    current_admin: User = Depends(get_current_super_admin),
+    db: Session = Depends(get_db),
+):
+    promo = db.query(PromoCode).options(joinedload(PromoCode.creator)).filter(PromoCode.id == promo_id).first()
+    if not promo:
+        raise HTTPException(status_code=404, detail="Promo code not found.")
+
+    rules = _get_promo_mutation_rules(db, promo)
+    if not rules["can_edit"]:
+        raise HTTPException(status_code=400, detail=rules["edit_block_reason"])
+
+    if payload.new_code is not None:
+        normalized = normalize_promo_code(payload.new_code)
+        ensure_valid_promo_code_shape(normalized)
+        duplicate = (
+            db.query(PromoCode)
+            .filter(
+                PromoCode.id != promo_id,
+                or_(PromoCode.code == normalized, PromoCode.manual_code == normalized),
+            )
+            .first()
+        )
+        if duplicate:
+            raise HTTPException(status_code=400, detail="Promo code already exists.")
+
+        promo.code = normalized
+        promo.manual_code = normalized
+        promo.code_length = len(normalized)
+        promo.qr_code_url = build_qr_code_url(normalized)
+
+    if payload.name is not None:
+        promo.name = payload.name.strip()
+
+    if payload.description is not None:
+        promo.description = payload.description
+
+    if payload.purpose is not None:
+        normalized_purpose = payload.purpose.strip().upper()
+        if normalized_purpose not in ALLOWED_PROMO_PURPOSES:
+            raise HTTPException(status_code=400, detail="Invalid promo purpose.")
+        promo.purpose = normalized_purpose
+
+    if payload.target_scope is not None:
+        normalized_scope = payload.target_scope.strip().lower()
+        if normalized_scope not in ALLOWED_TARGET_SCOPES:
+            raise HTTPException(status_code=400, detail="Invalid promo target scope.")
+        promo.target_scope = normalized_scope
+
+    if payload.extend_days is not None:
+        promo.extend_days = payload.extend_days
+    if payload.discount_percent is not None:
+        promo.discount_percent = payload.discount_percent
+    if payload.discount_amount is not None:
+        promo.discount_amount = payload.discount_amount
+    if payload.max_total_redemptions is not None:
+        promo.max_total_redemptions = payload.max_total_redemptions
+    if payload.max_redemptions_per_company is not None:
+        promo.max_redemptions_per_company = payload.max_redemptions_per_company
+    if payload.max_redemptions_per_user is not None:
+        promo.max_redemptions_per_user = payload.max_redemptions_per_user
+    if payload.starts_at is not None:
+        promo.starts_at = payload.starts_at
+    if payload.expires_at is not None:
+        promo.expires_at = payload.expires_at
+    if payload.extra_data is not None:
+        promo.extra_data = payload.extra_data
+    if payload.is_active is not None:
+        promo.is_active = payload.is_active
+    if payload.is_public is not None:
+        promo.is_public = payload.is_public
+
+    try:
+        validate_promo_configuration(
+            purpose=promo.purpose,
+            target_scope=promo.target_scope,
+            extend_days=promo.extend_days,
+            discount_percent=promo.discount_percent,
+            discount_amount=promo.discount_amount,
+            expires_at=promo.expires_at,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+
+    promo.updated_at = datetime.now(timezone.utc)
+
+    db.commit()
+    db.refresh(promo)
+
+    promo = _attach_promo_mutation_rules(db, promo)
+
+    return {
+        "detail": "Promo code updated successfully.",
+        "promo": _serialize_promo(promo),
+    }
+
+
+@router.delete("/promos/{promo_id}")
+def delete_promo(
+    promo_id: int,
+    current_admin: User = Depends(get_current_super_admin),
+    db: Session = Depends(get_db),
+):
+    promo = db.query(PromoCode).options(joinedload(PromoCode.creator)).filter(PromoCode.id == promo_id).first()
+    if not promo:
+        raise HTTPException(status_code=404, detail="Promo code not found.")
+
+    rules = _get_promo_mutation_rules(db, promo)
+    if not rules["can_delete"]:
+        raise HTTPException(status_code=400, detail=rules["delete_block_reason"])
+
+    deleted_code = promo.manual_code
+    db.delete(promo)
+    db.commit()
+
+    return {
+        "detail": "Promo code deleted successfully.",
+        "deleted_manual_code": deleted_code,
+    }
+
+
+@router.patch("/promos/{promo_id}/toggle-active")
+def toggle_promo_active_state(
+    promo_id: int,
+    current_admin: User = Depends(get_current_super_admin),
+    db: Session = Depends(get_db),
+):
+    promo = db.query(PromoCode).options(joinedload(PromoCode.creator)).filter(PromoCode.id == promo_id).first()
+    if not promo:
+        raise HTTPException(status_code=404, detail="Promo code not found.")
+
+    promo.is_active = not promo.is_active
+    promo.updated_at = datetime.now(timezone.utc)
+    db.commit()
+    db.refresh(promo)
+
+    promo = _attach_promo_mutation_rules(db, promo)
+
+    return {
+        "detail": f"Promo code {'activated' if promo.is_active else 'deactivated'} successfully.",
+        "promo": _serialize_promo(promo),
     }

@@ -164,7 +164,7 @@ const Step1Content = React.memo(({ formData, handleChange, handleCodeChange, han
 ));
 
 // Step 2 Content
-const Step2Content = React.memo(({ companyData, handleCodeChange1, handleSubmit, handleCompanyChange, formError, isSubmitted, isButtonDisabled, setStep, setIsSubmitted, setFormError }) => (
+const Step2Content = React.memo(({ companyData, handleCodeChange1, handleSubmit, handleCompanyChange, formError, isSubmitted, isButtonDisabled, setStep, setIsSubmitted, setFormError, signupPromos, signupPromosLoading, onSelectPromoCode }) => (
   <>
     <div className="space-y-6">
       <Input label="Company Name" id="company_name" placeholder="Acme Corp" value={companyData.company_name} onChange={handleCompanyChange} />
@@ -188,6 +188,35 @@ const Step2Content = React.memo(({ companyData, handleCodeChange1, handleSubmit,
 
 
       <Input label="Company Website" id="company_website" type="url" placeholder="https://www.acme.com" value={companyData.company_website} onChange={handleCompanyChange} />
+      <Input label="Promo / Coupon Code (optional)" id="promo_code" placeholder="A1B2C3 or A1B2C3D4" value={companyData.promo_code} onChange={handleCompanyChange} />
+
+      <div>
+        <p className="text-sm font-medium text-gray-700 mb-2">Available Promos</p>
+        {signupPromosLoading ? (
+          <p className="text-xs text-gray-500">Loading promos...</p>
+        ) : signupPromos.length === 0 ? (
+          <p className="text-xs text-gray-500">No active promos available right now.</p>
+        ) : (
+          <div className="space-y-2">
+            {signupPromos.map((promo) => (
+              <div key={promo.id} className="border border-gray-200 rounded-lg p-3 bg-gray-50 flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-sm font-semibold text-gray-800">{promo.name}</p>
+                  <p className="text-xs text-gray-600">{promo.effect_preview}</p>
+                  <p className="text-xs text-gray-600">Code: <span className="font-semibold tracking-wider">{promo.manual_code}</span></p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => onSelectPromoCode(promo.manual_code)}
+                  className="text-xs px-3 py-1.5 rounded-md bg-amber-500 text-white hover:bg-amber-600"
+                >
+                  Use Code
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
 
     {formError && (
@@ -233,11 +262,14 @@ const Signup = () => {
     company_number: '',
     company_website: '',
     countryCode: "+63",
+    promo_code: '',
   })
   const [isPassVisible, setIsPassVisible] = React.useState({});
   const [termsAccepted, setTermsAccepted] = React.useState(false);
   const [formError, setFormError] = React.useState(null);
   const [isSubmitted, setIsSubmitted] = React.useState(false);
+  const [signupPromos, setSignupPromos] = React.useState([]);
+  const [signupPromosLoading, setSignupPromosLoading] = React.useState(false);
 
   // --- Add fetchUser from UserProvider ---
   const { login } = useAuth();
@@ -252,6 +284,24 @@ const Signup = () => {
   React.useEffect(() => {
     document.title = "Sign Up | Sari-Sari CRM";
   }, []);
+
+  React.useEffect(() => {
+    if (step !== 2) return;
+
+    const fetchSignupPromos = async () => {
+      try {
+        setSignupPromosLoading(true);
+        const res = await api.get("/promo/signup/available");
+        setSignupPromos(res.data?.promos || []);
+      } catch {
+        setSignupPromos([]);
+      } finally {
+        setSignupPromosLoading(false);
+      }
+    };
+
+    fetchSignupPromos();
+  }, [step]);
 
   React.useEffect(() => {
     const initializeGoogle = () => {
@@ -424,9 +474,10 @@ const Signup = () => {
       try {
         // Remove confirmPassword before sending to backend
         const { confirmPassword, ...cleanedFormData } = formData;
+        const { promo_code, ...companyPayloadRaw } = companyData;
         const companyPayload1 = {
-          ...companyData,
-          company_number: `${companyData.countryCode} ${companyData.company_number}`,
+          ...companyPayloadRaw,
+          company_number: `${companyPayloadRaw.countryCode} ${companyPayloadRaw.company_number}`,
         };
         const resCompany = await api.post(`/company/create`, companyPayload1);
         const companyID = resCompany.data.id;
@@ -440,6 +491,8 @@ const Signup = () => {
 
         console.log("📤 Sending payload:", finalFormData);
 
+        let promoWarning = null;
+
         if (cleanedFormData.auth_provider === 'google') {
 
           const resGoogle = await api.post(`/auth/google/signup`, finalFormData);
@@ -452,7 +505,19 @@ const Signup = () => {
 
           const resSubscription = await api.post(`/subscription/subscribe`, subsPayload);
 
-          setFormError(null);
+          if ((promo_code || "").trim()) {
+            try {
+              await api.post(`/promo/redeem`, {
+                code: promo_code,
+                company_id: companyID,
+                redemption_channel: "signup",
+              });
+            } catch (promoErr) {
+              promoWarning = promoErr.response?.data?.detail || "Account was created, but promo code could not be applied.";
+            }
+          }
+
+          setFormError(promoWarning);
           setIsSubmitted(true);
           login(resGoogle.data);
           await fetchUser(); // <-- auto-fetch user context
@@ -467,7 +532,19 @@ const Signup = () => {
 
           const resSubscription = await api.post(`/subscription/subscribe`, subsPayload);
 
-          setFormError(null);
+          if ((promo_code || "").trim()) {
+            try {
+              await api.post(`/promo/redeem`, {
+                code: promo_code,
+                company_id: companyID,
+                redemption_channel: "signup",
+              });
+            } catch (promoErr) {
+              promoWarning = promoErr.response?.data?.detail || "Account was created, but promo code could not be applied.";
+            }
+          }
+
+          setFormError(promoWarning);
           setIsSubmitted(true);
           login(res2.data);
           await fetchUser(); // <-- auto-fetch user context
@@ -619,6 +696,9 @@ const Signup = () => {
                 setIsSubmitted={setIsSubmitted}
                 setFormError={setFormError}
                 handleCodeChange1={handleCodeChange1}
+                signupPromos={signupPromos}
+                signupPromosLoading={signupPromosLoading}
+                onSelectPromoCode={(code) => setCompanyData((prev) => ({ ...prev, promo_code: code }))}
               />
             )}
 

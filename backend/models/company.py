@@ -40,3 +40,4 @@ class Company(Base):
     users = relationship("User", back_populates="company", cascade="all, delete-orphan")
     plan = relationship("Subscription", back_populates="subscriber", cascade="all, delete-orphan")
     territory = relationship("Territory", back_populates="under_company", cascade="all, delete-orphan")
+    promo_redemptions = relationship("PromoRedemption", back_populates="company")

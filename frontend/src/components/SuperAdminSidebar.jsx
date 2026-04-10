@@ -1,5 +1,5 @@
 import { NavLink } from "react-router-dom";
-import { FiHome, FiLogOut, FiSettings, FiChevronDown, FiUsers, FiUserPlus, FiRefreshCw, FiVolume2, FiHelpCircle, FiShield, FiActivity, FiSliders } from "react-icons/fi";
+import { FiHome, FiLogOut, FiSettings, FiChevronDown, FiUsers, FiUserPlus, FiRefreshCw, FiVolume2, FiHelpCircle, FiShield, FiActivity, FiSliders, FiTag } from "react-icons/fi";
 import { useState } from "react";
 import { toast } from "react-toastify";
 import useAuth from '../hooks/useAuth.js';
@@ -64,6 +64,14 @@ export default function SuperAdminSidebar() {
         >
           <FiVolume2 className="text-lg" />
           <span>Announcements</span>
+        </NavLink>
+
+        <NavLink
+          to="/super-admin/promos"
+          className={({ isActive }) => (isActive ? activeLink : normalLink)}
+        >
+          <FiTag className="text-lg" />
+          <span>Promos & Coupons</span>
         </NavLink>
 
         {/* Support & Issues */}

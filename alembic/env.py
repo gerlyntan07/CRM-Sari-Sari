@@ -24,6 +24,7 @@ import models.quote
 import models.invoice
 import models.payment
 import models.subscription
+import models.promo
 import models.target
 import models.task
 import models.territory

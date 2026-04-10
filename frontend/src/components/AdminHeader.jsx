@@ -58,7 +58,7 @@ export default function AdminHeader({ toggleSidebar }) {
 
   const normalizeNotification = (n) => ({
     id: n.id || n.task_id || n.taskId || `${Date.now()}-${Math.random()}`,
-    title: n.title || (n.action === "BACKUP_REMINDER" ? "Backup Reminder" : "Notification"),
+    title: n.title || (n.action === "BACKUP_REMINDER" ? "Backup Reminder" : ""),
     message: n.message || n.description || n.task_title || n.taskTitle || "New Update",
     is_read: Boolean(n.is_read),
     timestamp: n.timestamp || n.created_at || n.updated_at || null,
@@ -244,8 +244,9 @@ export default function AdminHeader({ toggleSidebar }) {
 
                       return (
                         <div key={i} className="p-3 border-b text-sm hover:bg-gray-50 cursor-pointer">
-                          <p className="font-medium text-gray-800">{n.title || "Notification"}</p>
-                          <p className="text-xs text-gray-600 mt-1">{n.message || "New Update"}</p>
+                          {/* <p className="font-medium text-gray-800">{n.title || "Notification"} {n.message || "New Update"}</p> */}
+                          <p className="font-medium text-gray-800">{n.title || (n.message || "New Update")}</p>
+                          {/* <p className="text-xs text-gray-600 mt-1">{n.message || "New Update"}</p> */}
                           {(relativeTime || exactTime) && (
                             <p className="text-[11px] text-gray-500 mt-1">
                               {relativeTime || ""}

@@ -3,12 +3,47 @@ import { FiBell, FiMenu } from "react-icons/fi";
 import { useLocation, useNavigate } from "react-router-dom";
 import useAuth from '../hooks/useAuth.js';
 import useFetchUser from "../hooks/useFetchUser.js";
+import api from "../api.js";
 
 export default function ManagerHeader({ toggleSidebar }) {
   const [open, setOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
+
+  const formatNotificationDateTime = (value) => {
+    if (!value) return "";
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return "";
+    return date.toLocaleString(undefined, {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+    });
+  };
+
+  const formatRelativeNotificationTime = (value) => {
+    if (!value) return "";
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return "";
+
+    const now = Date.now();
+    const diffMs = date.getTime() - now;
+    const absMs = Math.abs(diffMs);
+
+    if (absMs < 60 * 1000) return "just now";
+
+    const rtf = new Intl.RelativeTimeFormat(undefined, { numeric: "auto" });
+    const minutes = Math.round(diffMs / (60 * 1000));
+    const hours = Math.round(diffMs / (60 * 60 * 1000));
+    const days = Math.round(diffMs / (24 * 60 * 60 * 1000));
+
+    if (absMs < 60 * 60 * 1000) return rtf.format(minutes, "minute");
+    if (absMs < 24 * 60 * 60 * 1000) return rtf.format(hours, "hour");
+    return rtf.format(days, "day");
+  };
 
   const dropdownRef = useRef(null);
   const notifRef = useRef(null);
@@ -18,6 +53,14 @@ export default function ManagerHeader({ toggleSidebar }) {
   const { user, fetchUser } = useFetchUser();
   const currentPlan = String(user?.subscription_status?.current_plan || "").toLowerCase();
   const hasNotificationAccess = currentPlan === "pro" || currentPlan === "enterprise";
+  
+  const normalizeNotification = (n) => ({
+    id: n.id || n.task_id || n.taskId || `${Date.now()}-${Math.random()}`,
+    title: n.title || (n.action === "BACKUP_REMINDER" ? "Backup Reminder" : ""),
+    message: n.message || n.description || n.task_title || n.taskTitle || "New Update",
+    is_read: Boolean(n.is_read),
+    timestamp: n.timestamp || n.created_at || n.updated_at || null,
+  });
 
   // Map routes to titles
   const routeTitles = {
@@ -77,6 +120,23 @@ export default function ManagerHeader({ toggleSidebar }) {
     return () => ws.close();
   }, [hasNotificationAccess, user?.id]);
 
+  useEffect(() => {
+    if (!user?.id || !hasNotificationAccess) return;
+
+    const loadNotifications = async () => {
+      try {
+        const { data } = await api.get("/logs/notifications");
+        const items = Array.isArray(data) ? data.map(normalizeNotification) : [];
+        setNotifications(items);
+        setUnreadCount(items.filter((item) => !item.is_read).length);
+      } catch (error) {
+        console.error("Failed to load notifications:", error);
+      }
+    };
+
+    loadNotifications();
+    }, [hasNotificationAccess, user?.id]);
+
   // Close dropdowns when clicking outside
   useEffect(() => {
     function handleClickOutside(event) {
@@ -131,11 +191,25 @@ export default function ManagerHeader({ toggleSidebar }) {
                 </div>
                 <div className="max-h-60 overflow-y-auto">
                   {notifications.length > 0 ? (
-                    notifications.map((n, i) => (
-                      <div key={i} className="p-3 border-b text-sm hover:bg-gray-50 cursor-pointer transition">
-                        {n.title || n.message || "New Notification"}
-                      </div>
-                    ))
+                    notifications.map((n, i) => {
+                      const exactTime = formatNotificationDateTime(n.timestamp);
+                      const relativeTime = formatRelativeNotificationTime(n.timestamp);
+
+                      return (
+                        <div key={i} className="p-3 border-b text-sm hover:bg-gray-50 cursor-pointer">
+                          {/* <p className="font-medium text-gray-800">{n.title || "Notification"} {n.message || "New Update"}</p> */}
+                          <p className="font-medium text-gray-800">{n.title || (n.message || "New Update")}</p>
+                          {/* <p className="text-xs text-gray-600 mt-1">{n.message || "New Update"}</p> */}
+                          {(relativeTime || exactTime) && (
+                            <p className="text-[11px] text-gray-500 mt-1">
+                              {relativeTime || ""}
+                              {relativeTime && exactTime ? " • " : ""}
+                              {exactTime || ""}
+                            </p>
+                          )}
+                        </div>
+                      );
+                    })
                   ) : (
                     <div className="p-4 text-center text-gray-500 text-xs">No notifications</div>
                   )}

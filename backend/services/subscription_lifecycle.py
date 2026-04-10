@@ -1,3 +1,4 @@
+import os
 from datetime import datetime, timezone
 from math import ceil
 from typing import Optional, Dict, Any
@@ -11,6 +12,14 @@ from routers.aws_ses_utils import send_trial_ending_soon_email
 
 TRIAL_DAYS = 15
 TRIAL_WARNING_DAYS = 3
+
+DEFAULT_PLAN_PRICES = {
+    PlanName.FREE.value.lower(): 0.0,
+    PlanName.BASIC.value.lower(): 99.0,
+    PlanName.STARTER.value.lower(): 199.0,
+    PlanName.PRO.value.lower(): 399.0,
+    PlanName.ENTERPRISE.value.lower(): 799.0,
+}
 
 
 def utc_now() -> datetime:
@@ -34,6 +43,81 @@ def get_latest_subscription(db: Session, company_id: int) -> Optional[Subscripti
     )
 
 
+def _get_env_price(plan_name: str) -> Optional[float]:
+    env_key = f"PLAN_PRICE_{(plan_name or '').strip().upper()}"
+    raw = os.getenv(env_key)
+    if raw is None:
+        return None
+    try:
+        value = float(raw)
+        return value if value >= 0 else None
+    except ValueError:
+        return None
+
+
+def get_regular_plan_price(plan_name: Optional[str], fallback_price: Optional[float] = None) -> float:
+    normalized = (plan_name or "").strip().lower()
+    env_value = _get_env_price(plan_name or "")
+    if env_value is not None:
+        return env_value
+    if normalized in DEFAULT_PLAN_PRICES:
+        return float(DEFAULT_PLAN_PRICES[normalized])
+    return float(fallback_price or 0.0)
+
+
+def clear_promo_discount_fields(subscription: Subscription) -> None:
+    subscription.promo_discount_is_active = False
+    subscription.promo_discount_type = None
+    subscription.promo_discount_value = None
+    subscription.promo_discount_code = None
+    subscription.promo_discount_applied_at = None
+    subscription.promo_discount_ends_at = None
+
+
+def _apply_discount(base_price: float, discount_type: Optional[str], discount_value: Optional[float]) -> float:
+    dtype = (discount_type or "").strip().lower()
+    dvalue = float(discount_value or 0)
+
+    if dtype == "percent":
+        return max(0.0, round(base_price - (base_price * (dvalue / 100.0)), 2))
+    if dtype == "fixed":
+        return max(0.0, round(base_price - dvalue, 2))
+    return max(0.0, round(base_price, 2))
+
+
+def apply_discount_lifecycle_for_subscription(subscription: Optional[Subscription]) -> bool:
+    if not subscription:
+        return False
+
+    changed = False
+    base_price = get_regular_plan_price(subscription.plan_name, subscription.price)
+
+    if not bool(subscription.promo_discount_is_active):
+        return False
+
+    ends_at = to_utc(subscription.promo_discount_ends_at)
+    now = utc_now()
+
+    if not ends_at or now >= ends_at:
+        clear_promo_discount_fields(subscription)
+        if subscription.price != base_price:
+            subscription.price = base_price
+        subscription.updated_at = now
+        return True
+
+    discounted_price = _apply_discount(
+        base_price,
+        subscription.promo_discount_type,
+        subscription.promo_discount_value,
+    )
+    if subscription.price != discounted_price:
+        subscription.price = discounted_price
+        subscription.updated_at = now
+        changed = True
+
+    return changed
+
+
 def _trial_days_remaining(end_date: Optional[datetime]) -> Optional[int]:
     trial_end_utc = to_utc(end_date)
     if not trial_end_utc:
@@ -51,10 +135,17 @@ def _build_payload(subscription: Optional[Subscription], *, downgraded: bool = F
         return {
             "current_plan": PlanName.FREE.value,
             "current_status": StatusList.ACTIVE.value,
+            "current_price": 0.0,
+            "regular_plan_price": 0.0,
             "is_trial": False,
             "is_free_tier": True,
             "trial_days_remaining": None,
             "trial_ends_at": None,
+            "subscription_ends_at": None,
+            "promo_discount_active": False,
+            "promo_discount_ends_at": None,
+            "promo_discount_type": None,
+            "promo_discount_value": None,
             "show_trial_ending_banner": False,
             "show_downgraded_banner": False,
             "message": None,
@@ -83,10 +174,17 @@ def _build_payload(subscription: Optional[Subscription], *, downgraded: bool = F
     return {
         "current_plan": subscription.plan_name,
         "current_status": subscription.status,
+        "current_price": float(subscription.price or 0),
+        "regular_plan_price": get_regular_plan_price(subscription.plan_name, subscription.price),
         "is_trial": is_trial,
         "is_free_tier": is_free,
         "trial_days_remaining": days_remaining,
         "trial_ends_at": subscription.end_date,
+        "subscription_ends_at": None if is_trial else subscription.end_date,
+        "promo_discount_active": bool(subscription.promo_discount_is_active),
+        "promo_discount_ends_at": subscription.promo_discount_ends_at,
+        "promo_discount_type": subscription.promo_discount_type,
+        "promo_discount_value": subscription.promo_discount_value,
         "show_trial_ending_banner": show_trial_ending_banner,
         "show_downgraded_banner": downgraded,
         "message": message,
@@ -115,6 +213,8 @@ def apply_trial_lifecycle(db: Session, company_id: Optional[int], *, commit: boo
     subscription = get_latest_subscription(db, company_id)
     if not subscription:
         return _build_payload(None)
+
+    discount_changed = apply_discount_lifecycle_for_subscription(subscription)
 
     is_trial = bool(subscription.is_trial) or subscription.status == StatusList.TRIAL.value
     end_at = to_utc(subscription.end_date)
@@ -148,6 +248,10 @@ def apply_trial_lifecycle(db: Session, company_id: Optional[int], *, commit: boo
             db.refresh(downgraded_subscription)
 
         return _build_payload(downgraded_subscription, downgraded=True)
+
+    if commit and discount_changed:
+        db.commit()
+        db.refresh(subscription)
 
     return _build_payload(subscription)
 
@@ -195,4 +299,17 @@ def process_trial_notifications(db: Session) -> int:
                 subscription.trial_notification_sent_at = utc_now()
 
     db.commit()
+    return processed
+
+
+def process_subscription_discount_lifecycle(db: Session) -> int:
+    processed = 0
+    subscriptions = db.query(Subscription).filter(Subscription.promo_discount_is_active == True).all()
+    for sub in subscriptions:
+        if apply_discount_lifecycle_for_subscription(sub):
+            processed += 1
+
+    if processed:
+        db.commit()
+
     return processed

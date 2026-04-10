@@ -9,7 +9,7 @@ from database import SessionLocal
 from models.lead import Lead, LeadStatus
 from models.auditlog import Auditlog
 from services.backup_reminder import process_backup_reminders
-from services.subscription_lifecycle import process_trial_notifications
+from services.subscription_lifecycle import process_subscription_discount_lifecycle, process_trial_notifications
 
 
 def delete_old_converted_leads():
@@ -90,6 +90,10 @@ def start_scheduler() -> BackgroundScheduler:
             processed = process_trial_notifications(db)
             if processed:
                 print(f"[Subscription Lifecycle] Processed {processed} trial subscriptions.")
+
+            discount_processed = process_subscription_discount_lifecycle(db)
+            if discount_processed:
+                print(f"[Subscription Lifecycle] Recomputed {discount_processed} subscription discount prices.")
         except Exception as e:
             print(f"[Subscription Lifecycle Error] {e}")
             db.rollback()

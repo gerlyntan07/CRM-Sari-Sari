@@ -57,6 +57,7 @@ const SuperAdminDashboard = () => {
   // For add user form
   const [showAddUserForm, setShowAddUserForm] = useState(false);
   const [editUserData, setEditUserData] = useState(null);
+  const [resetPasswordUserData, setResetPasswordUserData] = useState(null);
   // For toggle user status modal
   const [toggleUserStatusModal, setToggleUserStatusModal] = useState({ open: false, user: null, newStatus: null, loading: false });
   // For delete single user modal
@@ -1430,18 +1431,31 @@ const SuperAdminDashboard = () => {
                       <FiPlus size={20} />
                     </button>
                     {/* Add User Form Modal */}
-                    {showAddUserForm && (
+                    {(showAddUserForm || resetPasswordUserData) && (
                       <AddUserForm
                         tenantId={selectedTenant?.id}
                         editMode={!!editUserData}
-                        initialData={editUserData}
+                        initialData={editUserData || resetPasswordUserData}
+                        initialResetPasswordMode={!!resetPasswordUserData}
                         onClose={() => {
-                          setShowAddUserForm(false);
-                          setEditUserData(null);
+                          if (resetPasswordUserData) {
+                            // Coming from reset password - just close the form, keep tenant details visible
+                            setResetPasswordUserData(null);
+                          } else {
+                            // Coming from edit user - close the form completely
+                            setShowAddUserForm(false);
+                            setEditUserData(null);
+                          }
                         }}
                         onSuccess={async () => {
-                          setShowAddUserForm(false);
-                          setEditUserData(null);
+                          if (resetPasswordUserData) {
+                            // Password reset succeeded - just close the form, keep tenant details visible
+                            setResetPasswordUserData(null);
+                          } else {
+                            // User edit succeeded - close everything
+                            setShowAddUserForm(false);
+                            setEditUserData(null);
+                          }
                           // Refresh both tenants list and tenant details
                           await fetchTenants(); // Update user count in tenants table
                           if (selectedTenant?.id) {
@@ -1532,7 +1546,15 @@ const SuperAdminDashboard = () => {
                         >
                           <FiTrash2 size={20} />
                         </button>
-                        <button className="p-2 rounded hover:bg-gray-200 text-yellow-600 cursor-pointer" title="Reset Password" style={{ cursor: 'pointer' }}>
+                        <button 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setResetPasswordUserData(user);
+                          }}
+                          className="p-2 rounded hover:bg-gray-200 text-yellow-600 cursor-pointer" 
+                          title="Reset Password" 
+                          style={{ cursor: 'pointer' }}
+                        >
                           <FiKey size={20} />
                         </button>
                         <button className="p-2 rounded hover:bg-gray-200 text-purple-600 cursor-pointer" title="View Activity" style={{ cursor: 'pointer' }}>
@@ -1706,7 +1728,8 @@ const SuperAdminDashboard = () => {
         </div>
       </div>
     )}
-  </div>
+
+    </div>
   );
 };
 

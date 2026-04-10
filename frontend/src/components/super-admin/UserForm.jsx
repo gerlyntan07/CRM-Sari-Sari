@@ -40,14 +40,14 @@ function mapRoleToDisplay(dbRole) {
   return roleMap[dbRole] || dbRole;
 }
 
-export default function AddUserForm({ onClose, onSuccess, editMode = false, initialData = null, tenantId = null }) {
+export default function AddUserForm({ onClose, onSuccess, editMode = false, initialData = null, tenantId = null, initialResetPasswordMode = false }) {
   const [formData, setFormData] = useState({
     first_name: "",
     last_name: "",
     email: "",
     role: "",
     password: "",
-    profile_picture: "",
+    profile_picture: null,
     phone_number: "",
     is_active: true,
   });
@@ -55,23 +55,51 @@ export default function AddUserForm({ onClose, onSuccess, editMode = false, init
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [profilePicturePreview, setProfilePicturePreview] = useState(null);
+  const [resetPasswordMode, setResetPasswordMode] = useState(initialResetPasswordMode);
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   useEffect(() => {
     if (editMode && initialData) {
+      console.log("Edit mode - Loading user data:", {
+        name: `${initialData.first_name} ${initialData.last_name}`,
+        profile_picture: initialData.profile_picture ? "EXISTS" : "MISSING"
+      });
+      
       setFormData({
         first_name: initialData.first_name || "",
         last_name: initialData.last_name || "",
         email: initialData.email || "",
         role: mapRoleToDisplay(initialData.role) || "",
         password: "",
-        profile_picture: "",
+        profile_picture: null,
         phone_number: initialData.phone_number || "",
         is_active: initialData.is_active !== undefined ? initialData.is_active : true,
       });
+      
       // Set profile picture preview if it exists
       if (initialData.profile_picture) {
+        console.log("Setting profile picture preview");
         setProfilePicturePreview(initialData.profile_picture);
+      } else {
+        console.log("No profile picture in initialData");
+        setProfilePicturePreview(null);
       }
+    } else {
+      // Reset for add mode
+      setFormData({
+        first_name: "",
+        last_name: "",
+        email: "",
+        role: "",
+        password: "",
+        profile_picture: null,
+        phone_number: "",
+        is_active: true,
+      });
+      setProfilePicturePreview(null);
     }
   }, [editMode, initialData]);
 
@@ -104,6 +132,61 @@ export default function AddUserForm({ onClose, onSuccess, editMode = false, init
       ...formData,
       password: newPassword,
     });
+  };
+
+  const handleGenerateResetPassword = () => {
+    const generatedPassword = generatePassword();
+    setNewPassword(generatedPassword);
+    setConfirmPassword(generatedPassword);
+  };
+
+  const handleResetPassword = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+
+    try {
+      // Validation
+      if (!newPassword.trim()) {
+        toast.error("New password is required");
+        setLoading(false);
+        return;
+      }
+
+      if (newPassword.length < 8) {
+        toast.error("Password must be at least 8 characters long");
+        setLoading(false);
+        return;
+      }
+
+      if (newPassword !== confirmPassword) {
+        toast.error("Passwords do not match");
+        setLoading(false);
+        return;
+      }
+
+      // Reset password via backend
+      const resetData = new FormData();
+      resetData.append("password", newPassword.trim());
+
+      const response = await api.put(
+        `/users/resetpassword/${initialData.id}`,
+        resetData,
+        {
+          headers: { "Content-Type": undefined }
+        }
+      );
+
+      toast.success("Password reset successfully");
+      setNewPassword("");
+      setConfirmPassword("");
+      setResetPasswordMode(false);
+      onSuccess?.();
+      onClose?.();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || "Failed to reset password");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -158,14 +241,14 @@ export default function AddUserForm({ onClose, onSuccess, editMode = false, init
       submissionData.append("email", formData.email);
       submissionData.append("role", mapRoleToDatabase(formData.role));
 
-      // Include profile picture if in edit mode and it's a new File (not existing image)
-      if (editMode && formData.profile_picture && typeof formData.profile_picture === "object") {
+      // Include profile picture if it's a new File (not existing image)
+      if (formData.profile_picture && typeof formData.profile_picture === "object") {
         submissionData.append("profile_picture", formData.profile_picture);
       }
 
-      // Include phone number if in edit mode and provided
-      if (editMode && formData.phone_number) {
-        submissionData.append("phone_number", formData.phone_number);
+      // Include phone number if provided (non-empty)
+      if (formData.phone_number && formData.phone_number.trim()) {
+        submissionData.append("phone_number", formData.phone_number.trim());
       }
 
       // Include tenant/company ID if provided (for super-admin creating users for specific tenant)
@@ -173,18 +256,37 @@ export default function AddUserForm({ onClose, onSuccess, editMode = false, init
         submissionData.append("company_id", tenantId);
       }
 
-      if (!editMode || formData.password) {
+      // Always include password for create, only if provided for edit
+      if (!editMode) {
+        submissionData.append("password", formData.password);
+      } else if (formData.password) {
         submissionData.append("password", formData.password);
       }
+
+      // Debug: log FormData contents
+      console.log("FormData being sent:", {
+        first_name: formData.first_name,
+        last_name: formData.last_name,
+        email: formData.email,
+        role: mapRoleToDatabase(formData.role),
+        password: formData.password,
+        phone_number: formData.phone_number,
+        company_id: tenantId,
+        has_profile_picture: formData.profile_picture && typeof formData.profile_picture === "object"
+      });
 
       let response;
       try {
         if (editMode && initialData?.id) {
-          // Update user
-          response = await api.put(`/users/updateuser/${initialData.id}`, submissionData);
+          // Update user via FormData endpoint
+          response = await api.put(`/users/updateuser-form/${initialData.id}`, submissionData, {
+            headers: { "Content-Type": undefined }
+          });
         } else {
-          // Create new user - /users/createuser already sends credentials email via AWS
-          response = await api.post("/users/createuser", submissionData);
+          // Create new user via FormData endpoint
+          response = await api.post("/users/createuser-form", submissionData, {
+            headers: { "Content-Type": undefined }
+          });
         }
       } catch (error) {
         throw new Error(error.response?.data?.detail || (editMode ? "Failed to update user" : "Failed to add user"));
@@ -213,22 +315,129 @@ export default function AddUserForm({ onClose, onSuccess, editMode = false, init
         <div className="flex justify-between items-start mb-8 pb-6 border-b border-gray-100">
           <div>
             <h2 className="text-2xl font-bold text-gray-900">
-              {editMode ? "Edit User" : "Add New User"}
+              {resetPasswordMode ? "Reset Password" : (editMode ? "Edit User" : "Add New User")}
             </h2>
             <p className="text-sm text-gray-500 mt-2">
-              {editMode ? "Update user account information." : "Create a new user account for your platform."}
+              {resetPasswordMode ? (
+                <>
+                  Set a new password for{" "}
+                  <span className="font-bold text-gray-900">
+                    {initialData?.first_name} {initialData?.last_name}
+                  </span>
+                </>
+              ) : (editMode ? "Update user account information." : "Create a new user account for your platform.")}
             </p>
           </div>
 
           <button
-            onClick={onClose}
+            onClick={() => {
+              if (resetPasswordMode && initialResetPasswordMode) {
+                // If opened directly in reset mode, close the modal
+                onClose();
+              } else if (resetPasswordMode) {
+                // If switched to reset mode, go back to edit form
+                setResetPasswordMode(false);
+              } else {
+                // Normal close
+                onClose();
+              }
+            }}
             className="text-gray-400 hover:text-gray-600 transition hover:bg-gray-100 rounded-full p-1 w-10 h-10 flex items-center justify-center"
           >
             <X size={24} />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        {/* RESET PASSWORD MODE */}
+        {resetPasswordMode ? (
+          <form onSubmit={handleResetPassword} className="space-y-6">
+            <div className="bg-gradient-to-br from-purple-50/50 to-white border border-gray-100 rounded-2xl p-6">
+              <div className="flex items-center gap-3 mb-5">
+                <Lock size={24} className="text-purple-600" />
+                <h3 className="font-bold text-gray-900 text-lg">New Password</h3>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <label className={label}>
+                      New Password <span className="text-red-500">*</span>
+                    </label>
+                    <button
+                      type="button"
+                      onClick={handleGenerateResetPassword}
+                      className="text-xs font-medium text-blue-600 hover:text-blue-700 transition"
+                    >
+                      Generate
+                    </button>
+                  </div>
+                  <div className="relative">
+                    <input
+                      type={showNewPassword ? "text" : "password"}
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      placeholder="Enter or generate password"
+                      className={input}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowNewPassword(!showNewPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                    >
+                      {showNewPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                    </button>
+                  </div>
+                </div>
+
+                <div>
+                  <label className={label}>
+                    Confirm Password <span className="text-red-500">*</span>
+                  </label>
+                  <div className="relative">
+                    <input
+                      type={showConfirmPassword ? "text" : "password"}
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      placeholder="Confirm your password"
+                      className={input}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                    >
+                      {showConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                    </button>
+                  </div>
+                </div>
+
+                <p className="text-xs text-gray-500">Password must be at least 8 characters long.</p>
+              </div>
+            </div>
+
+            {/* BUTTONS */}
+            <div className="flex justify-end gap-3 pt-6 border-t border-gray-100">
+              <button
+                type="button"
+                onClick={() => {
+                  onClose();
+                }}
+                className="px-6 py-2.5 rounded-lg border border-gray-200 text-gray-700 font-medium hover:bg-gray-50 transition duration-200"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className="px-6 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-semibold border border-blue-600 shadow transition duration-200 disabled:opacity-50"
+                disabled={loading}
+              >
+                {loading ? "Resetting..." : "Reset Password"}
+              </button>
+            </div>
+          </form>
+        ) : (
+          /* REGULAR USER FORM MODE */
+          <form onSubmit={handleSubmit} className="space-y-6">
           {/* USER INFO CARD */}
           <div className="bg-gradient-to-br from-blue-50/50 to-white border border-gray-100 rounded-2xl p-6">
             <div className="flex items-center gap-3 mb-5">
@@ -287,7 +496,7 @@ export default function AddUserForm({ onClose, onSuccess, editMode = false, init
                   Role <span className="text-red-500">*</span>
                 </label>
                 <select name="role" value={formData.role} onChange={handleChange} className={input}>
-                  <option value="">Select a role</option>
+                  <option value="" disabled>Select a role</option>
                   <option value="Admin (CEO)">Admin (CEO)</option>
                   <option value="Group Manager">Group Manager</option>
                   <option value="Manager">Manager</option>
@@ -295,60 +504,56 @@ export default function AddUserForm({ onClose, onSuccess, editMode = false, init
                 </select>
               </div>
 
-              {editMode && (
-                <div className="md:col-span-2">
-                  <label className={label}>Phone Number</label>
-                  <input
-                    type="tel"
-                    name="phone_number"
-                    value={formData.phone_number}
-                    onChange={handleChange}
-                    placeholder="e.g., +1 (555) 123-4567"
-                    className={input}
-                  />
-                </div>
-              )}
+              <div className="md:col-span-2">
+                <label className={label}>Phone Number</label>
+                <input
+                  type="tel"
+                  name="phone_number"
+                  value={formData.phone_number}
+                  onChange={handleChange}
+                  placeholder="e.g., +1 (555) 123-4567"
+                  className={input}
+                />
+              </div>
 
-              {editMode && (
-                <div className="md:col-span-2">
-                  <label className={label}>Profile Picture</label>
+              <div className="md:col-span-2">
+                <label className={label}>Profile Picture</label>
 
-                  {profilePicturePreview ? (
-                    <div className="relative w-full">
-                      <div className="flex items-center justify-center border-2 border-dashed border-gray-300 rounded-xl bg-gray-50/50 overflow-hidden" style={{ minHeight: '300px' }}>
-                        <img src={profilePicturePreview} alt="Profile Preview" className="max-w-full max-h-64 object-contain" />
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setProfilePicturePreview(null);
-                          setFormData({ ...formData, profile_picture: null });
-                        }}
-                        className="absolute -top-3 -right-3 hover:opacity-80 transition"
-                      >
-                        <X size={25} className="text-white bg-black rounded-full p-1" />
-                      </button>
+                {profilePicturePreview ? (
+                  <div className="relative w-full">
+                    <div className="flex items-center justify-center border-2 border-dashed border-gray-300 rounded-xl bg-gray-50/50 overflow-hidden" style={{ minHeight: '300px' }}>
+                      <img src={profilePicturePreview} alt="Profile Preview" className="max-w-full max-h-64 object-contain" />
                     </div>
-                  ) : (
-                    <label className="flex items-center justify-center border-2 border-dashed border-gray-300 hover:border-blue-400 rounded-xl p-12 cursor-pointer transition duration-200 bg-gray-50/50 hover:bg-blue-50/30">
-                      <div className="text-center">
-                        <Upload size={40} className="mx-auto mb-3 text-gray-400" />
-                        <span className="text-sm font-medium text-gray-600">
-                          Click to upload profile picture
-                        </span>
-                        <span className="text-xs text-gray-400 block mt-1">PNG, JPG up to 5MB</span>
-                      </div>
-                      <input
-                        type="file"
-                        name="profile_picture"
-                        onChange={handleChange}
-                        className="hidden"
-                        accept="image/*"
-                      />
-                    </label>
-                  )}
-                </div>
-              )}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setProfilePicturePreview(null);
+                        setFormData({ ...formData, profile_picture: null });
+                      }}
+                      className="absolute -top-3 -right-3 hover:opacity-80 transition"
+                    >
+                      <X size={25} className="text-white bg-black rounded-full p-1" />
+                    </button>
+                  </div>
+                ) : (
+                  <label className="flex items-center justify-center border-2 border-dashed border-gray-300 hover:border-blue-400 rounded-xl p-12 cursor-pointer transition duration-200 bg-gray-50/50 hover:bg-blue-50/30">
+                    <div className="text-center">
+                      <Upload size={40} className="mx-auto mb-3 text-gray-400" />
+                      <span className="text-sm font-medium text-gray-600">
+                        Click to upload profile picture
+                      </span>
+                      <span className="text-xs text-gray-400 block mt-1">PNG, JPG up to 5MB</span>
+                    </div>
+                    <input
+                      type="file"
+                      name="profile_picture"
+                      onChange={handleChange}
+                      className="hidden"
+                      accept="image/*"
+                    />
+                  </label>
+                )}
+              </div>
             </div>
           </div>
 
@@ -419,7 +624,8 @@ export default function AddUserForm({ onClose, onSuccess, editMode = false, init
               {loading ? editMode ? "Saving..." : "Adding..." : editMode ? "Save Changes" : "Add User"}
             </button>
           </div>
-        </form>
+          </form>
+        )}
       </div>
     </div>
   );

@@ -139,8 +139,57 @@ def send_trial_ending_soon_email(to_email: str, first_name: str, days_remaining:
                 },
             },
         )
-        print(f"✅ Trial ending reminder email sent to {to_email}")
+        print(f"✅ Trial ending email sent to {to_email}")
+    except ClientError as e:
+        print(f"❌ Failed to send trial email to {to_email}: {e.response['Error']['Message']}")
+
+
+def send_password_reset_email(to_email: str, first_name: str, last_name: str, new_password: str):
+    """Send new password via AWS SES after admin resets user password"""
+    ses = boto3.client("ses", region_name=os.getenv("AWS_DEFAULT_REGION"))
+
+    subject = "Your Password Has Been Reset"
+    body_text = (
+        f"Hello {first_name} {last_name},\n\n"
+        f"Your password has been reset by an administrator.\n\n"
+        f"Your new password is: {new_password}\n\n"
+        f"Please log in with this new password and change it to something more secure in your account settings.\n\n"
+        f"If you did not request this password reset, please contact your administrator immediately.\n\n"
+        f"Best regards,\nForekas CRM Team"
+    )
+
+    body_html = f"""
+    <html>
+    <body>
+        <h3>Hello {first_name} {last_name},</h3>
+        <p>Your password has been reset by an administrator.</p>
+        
+        <p><strong>Your new password is:</strong></p>
+        <p><code style="background-color: #f0f0f0; padding: 10px; display: inline-block; font-family: monospace; font-size: 14px; border-radius: 4px;">{new_password}</code></p>
+
+        <p><strong>⚠️ Important:</strong> Please log in with this new password and change it to something more secure in your account settings.</p>
+        
+        <p>If you did not request this password reset, please contact your administrator immediately.</p>
+
+        <p>Best regards,<br>Forekas CRM Team</p>
+    </body>
+    </html>
+    """
+
+    try:
+        ses.send_email(
+            Source="no-reply@forekas.com",
+            Destination={"ToAddresses": [to_email]},
+            Message={
+                "Subject": {"Data": subject},
+                "Body": {
+                    "Text": {"Data": body_text},
+                    "Html": {"Data": body_html},
+                },
+            },
+        )
+        print(f"✅ Password reset email sent to {to_email}")
         return True
     except ClientError as e:
-        print(f"❌ Failed to send trial reminder email to {to_email}: {e.response['Error']['Message']}")
+        print(f"❌ Failed to send password reset email to {to_email}: {e.response['Error']['Message']}")
         return False

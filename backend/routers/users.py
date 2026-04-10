@@ -1,15 +1,16 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Request, Body
+from fastapi import APIRouter, Depends, HTTPException, status, Request, Body, Form, File, UploadFile
 from sqlalchemy.orm import Session
-from typing import List
+from typing import List, Optional
 from database import get_db
 from schemas.auth import UserCreate, UserUpdate, UserResponse, UserMeUpdate, UserBulkDelete
 from .auth_utils import get_current_user, hash_password, get_default_avatar, DEFAULT_AVATAR_BASE
 from models.auth import User
 from .logs_utils import serialize_instance, create_audit_log
-from .aws_ses_utils import send_welcome_email
+from .aws_ses_utils import send_welcome_email, send_password_reset_email
 from models.auth import UserRole
 from sqlalchemy import or_
 from models.territory import Territory
+import base64
 
 router = APIRouter(
     prefix="/users",
@@ -182,6 +183,7 @@ def create_user(
     current_user: User = Depends(get_current_user),
     request: Request = None
 ):
+    """Create user via JSON body - for backward compatibility"""
     # Only CEO or Admin can create users
     if current_user.role.upper() not in ["CEO", "ADMIN", "MANAGER", "GROUP MANAGER"]:
         raise HTTPException(status_code=403, detail="Permission denied")
@@ -195,15 +197,15 @@ def create_user(
     hashed_pw = hash_password(user_data.password)        
 
     # ✅ Assign relationships properly
-    # If company_id is provided (super-admin creating user for specific tenant), use it
-    # Otherwise, use current_user's company
     related_to_company = user_data.company_id if user_data.company_id else current_user.related_to_company
     
     related_to_CEO = (
         current_user.id if current_user.role.upper() == "CEO"
         else current_user.related_to_CEO
     )
-    profile_pic_url = get_default_avatar(user_data.first_name)
+    
+    # Use provided profile picture or default
+    profile_pic_url = user_data.profile_picture or get_default_avatar(user_data.first_name)
 
     # ✅ Create user
     new_user = User(
@@ -212,6 +214,7 @@ def create_user(
         email=user_data.email,
         hashed_password=hashed_pw,
         role=user_data.role,
+        phone_number=user_data.phone_number.strip() if user_data.phone_number and user_data.phone_number.strip() else None,
         related_to_CEO=related_to_CEO,
         related_to_company=related_to_company,
         profile_picture=profile_pic_url
@@ -233,6 +236,90 @@ def create_user(
     )
 
     send_welcome_email(new_user.email, new_user.first_name, user_data.password, new_user.role)
+
+    return new_user
+
+
+# ✅ CREATE USER WITH FILE UPLOAD (for FormData requests)
+@router.post("/createuser-form", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
+async def create_user_with_form(
+    first_name: str = Form(...),
+    last_name: str = Form(...),
+    email: str = Form(...),
+    role: str = Form(...),
+    password: str = Form(...),
+    phone_number: str = Form(default=""),
+    company_id: str = Form(default=""),
+    profile_picture: Optional[UploadFile] = File(default=None),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Create user via FormData with optional file upload"""
+    # Only CEO or Admin can create users
+    if current_user.role.upper() not in ["CEO", "ADMIN", "MANAGER", "GROUP MANAGER"]:
+        raise HTTPException(status_code=403, detail="Permission denied")
+
+    # Prevent duplicate emails
+    existing_user = db.query(User).filter(User.email == email).first()
+    if existing_user:
+        raise HTTPException(status_code=400, detail="Email already exists")
+
+    # Validate password
+    if not password or len(password) < 8:
+        raise HTTPException(status_code=400, detail="Password must be at least 8 characters long")
+
+    # Hash password
+    hashed_pw = hash_password(password)        
+
+    # Assign relationships
+    company_id_int = int(company_id) if company_id and company_id.strip() else None
+    related_to_company = company_id_int if company_id_int else current_user.related_to_company
+    related_to_CEO = (
+        current_user.id if current_user.role.upper() == "CEO"
+        else current_user.related_to_CEO
+    )
+    
+    # Handle profile picture - uploaded file or default avatar
+    profile_pic_url = None
+    if profile_picture and profile_picture.filename:
+        try:
+            file_content = await profile_picture.read()
+            base64_content = base64.b64encode(file_content).decode("utf-8")
+            profile_pic_url = f"data:{profile_picture.content_type};base64,{base64_content}"
+        except Exception:
+            profile_pic_url = get_default_avatar(first_name)
+    else:
+        profile_pic_url = get_default_avatar(first_name)
+
+    # Create user
+    new_user = User(
+        first_name=first_name,
+        last_name=last_name,
+        email=email,
+        hashed_password=hashed_pw,
+        role=role,
+        phone_number=phone_number.strip() if phone_number and phone_number.strip() else None,
+        related_to_CEO=related_to_CEO,
+        related_to_company=related_to_company,
+        profile_picture=profile_pic_url
+    )
+    db.add(new_user)
+    db.commit()
+    db.refresh(new_user)
+
+    new_data = serialize_instance(new_user)    
+
+    create_audit_log(
+        db=db,
+        current_user=current_user,
+        instance=new_user,
+        action="CREATE",
+        request=None,
+        new_data=new_data,
+        custom_message=f"new user '{new_user.first_name} {new_user.last_name}' with role '{new_user.role}'"
+    )
+
+    send_welcome_email(new_user.email, new_user.first_name, password, new_user.role)
 
     return new_user
 
@@ -268,6 +355,7 @@ def update_user(
     current_user: User = Depends(get_current_user),
     request: Request = None,
 ):
+    """Update user via JSON body - for backward compatibility"""
     user = db.query(User).filter(User.id == user_id).first()
 
     if not user:
@@ -303,6 +391,10 @@ def update_user(
         user.hashed_password = hash_password(user_data.password)
     if user_data.is_active is not None:
         user.is_active = user_data.is_active
+    if user_data.phone_number is not None:
+        user.phone_number = user_data.phone_number.strip() if user_data.phone_number and user_data.phone_number.strip() else None
+    if user_data.profile_picture is not None:
+        user.profile_picture = user_data.profile_picture
 
     if not user.profile_picture:
         user.profile_picture = get_default_avatar(user.first_name)
@@ -316,6 +408,90 @@ def update_user(
         instance=user,
         action="UPDATE",
         request=request,
+        old_data=old_data,
+        new_data=serialize_instance(user),
+        custom_message=f"updated user '{user.first_name} {user.last_name}' with role '{user.role}'",
+    )
+
+    return user
+
+
+# ✅ UPDATE USER WITH FILE UPLOAD (for FormData requests)
+@router.put("/updateuser-form/{user_id}", response_model=UserResponse)
+async def update_user_with_form(
+    user_id: int,
+    first_name: str = Form(default=""),
+    last_name: str = Form(default=""),
+    email: str = Form(default=""),
+    role: str = Form(default=""),
+    password: str = Form(default=""),
+    phone_number: str = Form(default=""),
+    profile_picture: Optional[UploadFile] = File(default=None),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Update user via FormData with optional file upload"""
+    user = db.query(User).filter(User.id == user_id).first()
+
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    if current_user.role.upper() not in ["CEO", "ADMIN", "GROUP MANAGER", "MANAGER"]:
+        raise HTTPException(status_code=403, detail="Permission denied")
+
+    # Allow CEO/ADMIN to update any user (super admin), otherwise check company membership
+    if current_user.role.upper() not in ["CEO", "ADMIN"]:
+        if user.related_to_company != current_user.related_to_company:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="You are not authorized to update this user.",
+            )
+
+    # Check email uniqueness if changing
+    if email and email != user.email:
+        existing_user = db.query(User).filter(User.email == email).first()
+        if existing_user and existing_user.id != user.id:
+            raise HTTPException(status_code=400, detail="Email already exists")
+
+    old_data = serialize_instance(user)
+
+    # Update fields if provided (non-empty)
+    if first_name and first_name.strip():
+        user.first_name = first_name.strip()
+    if last_name and last_name.strip():
+        user.last_name = last_name.strip()
+    if email and email.strip():
+        user.email = email.strip()
+    if role and role.strip():
+        user.role = role.strip()
+    if password and password.strip():
+        if len(password.strip()) < 8:
+            raise HTTPException(status_code=400, detail="Password must be at least 8 characters long")
+        user.hashed_password = hash_password(password.strip())
+    if phone_number and phone_number.strip():
+        user.phone_number = phone_number.strip()
+    
+    # Handle profile picture upload
+    if profile_picture and profile_picture.filename:
+        try:
+            file_content = await profile_picture.read()
+            base64_content = base64.b64encode(file_content).decode("utf-8")
+            user.profile_picture = f"data:{profile_picture.content_type};base64,{base64_content}"
+        except Exception:
+            if not user.profile_picture:
+                user.profile_picture = get_default_avatar(user.first_name)
+    elif not user.profile_picture:
+        user.profile_picture = get_default_avatar(user.first_name)
+
+    db.commit()
+    db.refresh(user)
+
+    create_audit_log(
+        db=db,
+        current_user=current_user,
+        instance=user,
+        action="UPDATE",
+        request=None,
         old_data=old_data,
         new_data=serialize_instance(user),
         custom_message=f"updated user '{user.first_name} {user.last_name}' with role '{user.role}'",
@@ -586,3 +762,69 @@ def delete_all_users_for_tenant(
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=500, detail=f"Failed to delete users: {str(e)}")
+
+
+# ✅ RESET password for a specific user (super-admin only)
+@router.put("/resetpassword/{user_id}", status_code=status.HTTP_200_OK)
+def reset_user_password(
+    user_id: int,
+    password: str = Form(...),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    request: Request = None
+):
+    """Reset password for a user. Super-admin can reset any user's password."""
+    
+    # Only super-admin (CEO/ADMIN) can reset passwords
+    if current_user.role.upper() not in ["CEO", "ADMIN"]:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only super-admin can reset user passwords"
+        )
+    
+    # Validate password length
+    if not password or len(password.strip()) < 8:
+        raise HTTPException(status_code=400, detail="Password must be at least 8 characters long")
+    
+    # Find the user
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    # Super-admin can reset password for any user - no company restriction
+    
+    old_data = serialize_instance(user)
+    
+    # Store plain password for email (before hashing)
+    plain_password = password.strip()
+    
+    # Update password
+    user.hashed_password = hash_password(plain_password)
+    db.commit()
+    db.refresh(user)
+    
+    # Create audit log
+    create_audit_log(
+        db=db,
+        current_user=current_user,
+        instance=user,
+        action="UPDATE",
+        request=request,
+        old_data=old_data,
+        new_data=serialize_instance(user),
+        custom_message=f"reset password for user '{user.first_name} {user.last_name}'"
+    )
+    
+    # Send password reset email with the new password
+    try:
+        send_password_reset_email(
+            to_email=user.email,
+            first_name=user.first_name,
+            last_name=user.last_name,
+            new_password=plain_password
+        )
+    except Exception as e:
+        # Log email error but don't fail the password reset
+        print(f"⚠️ Warning: Failed to send password reset email to {user.email}: {str(e)}")
+    
+    return {"detail": "Password reset successfully and email sent"}

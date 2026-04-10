@@ -331,6 +331,7 @@ def get_tenant_details(
                 "email": u.email,
                 "role": u.role,
                 "phone_number": u.phone_number,
+                "profile_picture": u.profile_picture,
                 "is_active": u.is_active,
                 "auth_provider": u.auth_provider,
                 "created_at": u.created_at,

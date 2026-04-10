@@ -135,3 +135,34 @@ def mark_all_logs_as_read(
     ).update({"is_read": True})
     db.commit()
     return {"status": "success", "message": "All notifications marked as read"}
+
+
+@router.get("/user/{user_id}", response_model=List[LeadResponse])
+def get_user_activity_logs(
+    user_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Get all activity logs for a specific user (Super Admin only)"""
+    # Only CEO/ADMIN can view other users' activity logs
+    current_role = (current_user.role or "").upper()
+    if current_role not in ["CEO", "ADMIN"]:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only super-admins can view user activity logs"
+        )
+    
+    # Verify the target user exists
+    target_user = db.query(User).filter(User.id == user_id).first()
+    if not target_user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    # Get all audit logs for the target user, ordered by most recent first
+    logs = (
+        db.query(Auditlog)
+        .filter(Auditlog.user_id == user_id)
+        .order_by(Auditlog.timestamp.desc(), Auditlog.id.desc())
+        .all()
+    )
+    
+    return logs

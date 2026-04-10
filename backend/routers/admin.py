@@ -383,8 +383,11 @@ def get_tenant_details(
     db: Session = Depends(get_db)
 ):
     """Get detailed information about a specific tenant"""
+    from sqlalchemy.orm import joinedload
+    
     company = db.query(Company).options(
-        joinedload(Company.users),
+        joinedload(Company.users).joinedload(User.company),
+        joinedload(Company.users).joinedload(User.manager),
         joinedload(Company.plan),
         joinedload(Company.territory)
     ).filter(Company.id == tenant_id).first()
@@ -457,6 +460,17 @@ def get_tenant_details(
                 "created_at": u.created_at,
                 "last_login": u.last_login,
                 "last_login_location": latest_login_logs.get(u.id).ip_address if latest_login_logs.get(u.id) else None,
+                "company": {
+                    "id": u.company.id,
+                    "company_name": u.company.company_name,
+                    "company_number": u.company.company_number,
+                } if u.company else None,
+                "manager": {
+                    "id": u.manager.id,
+                    "first_name": u.manager.first_name,
+                    "last_name": u.manager.last_name,
+                    "email": u.manager.email,
+                } if u.manager else None,
             } for u in company.users
         ]
     }

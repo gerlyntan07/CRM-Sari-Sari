@@ -331,7 +331,17 @@ def get_user_by_id(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    user = db.query(User).filter(User.id == user_id).first()
+
+    from sqlalchemy.orm import joinedload
+    user = (
+        db.query(User)
+        .options(
+            joinedload(User.company),
+            joinedload(User.manager)
+        )
+        .filter(User.id == user_id)
+        .first()
+    )
 
     if not user:
         raise HTTPException(status_code=404, detail="User not found")

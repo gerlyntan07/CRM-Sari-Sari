@@ -9,6 +9,7 @@ import AddTenantForm from '../components/super-admin/TenantForm';
 import SubscriptionForm from '../components/super-admin/SubscriptionForm';
 import UserDetailsModal from '../components/super-admin/UserDetailsModal';
 import AddUserForm from '../components/super-admin/UserForm';
+import ActivityLogsModal from '../components/super-admin/ActivityLogsModal';
 import PaginationControls from '../components/PaginationControls';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Cell } from 'recharts';
 
@@ -62,6 +63,9 @@ const SuperAdminDashboard = () => {
   const [toggleUserStatusModal, setToggleUserStatusModal] = useState({ open: false, user: null, newStatus: null, loading: false });
   // For delete single user modal
   const [deleteUserModal, setDeleteUserModal] = useState({ open: false, user: null, loading: false });
+  // For activity logs modal
+  const [showActivityLogsModal, setShowActivityLogsModal] = useState(false);
+  const [activityLogsUser, setActivityLogsUser] = useState(null);
 
   useEffect(() => {
     fetchStats();
@@ -1557,7 +1561,16 @@ const SuperAdminDashboard = () => {
                         >
                           <FiKey size={20} />
                         </button>
-                        <button className="p-2 rounded hover:bg-gray-200 text-purple-600 cursor-pointer" title="View Activity" style={{ cursor: 'pointer' }}>
+                        <button 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setActivityLogsUser(user);
+                            setShowActivityLogsModal(true);
+                          }} 
+                          className="p-2 rounded hover:bg-gray-200 text-purple-600 cursor-pointer" 
+                          title="View Activity" 
+                          style={{ cursor: 'pointer' }}
+                        >
                           <FiActivity size={20} />
                         </button>
                         <button className="p-2 rounded hover:bg-gray-200 text-pink-600 cursor-pointer" title="Send Notification" style={{ cursor: 'pointer' }}>
@@ -1579,6 +1592,13 @@ const SuperAdminDashboard = () => {
         open={showUserDetailsModal} 
         user={selectedUser} 
         onClose={() => setShowUserDetailsModal(false)}
+      />
+
+      {/* Activity Logs Modal */}
+      <ActivityLogsModal 
+        open={showActivityLogsModal} 
+        user={activityLogsUser} 
+        onClose={() => setShowActivityLogsModal(false)}
       />
 
       {/* Delete All Users Confirmation Modal */}

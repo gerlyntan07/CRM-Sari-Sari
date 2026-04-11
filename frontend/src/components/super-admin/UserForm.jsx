@@ -231,8 +231,6 @@ export default function AddUserForm({ onClose, onSuccess, editMode = false, init
           setLoading(false);
           return;
         }
-
-
       }
 
       const submissionData = new FormData();
@@ -241,14 +239,23 @@ export default function AddUserForm({ onClose, onSuccess, editMode = false, init
       submissionData.append("email", formData.email);
       submissionData.append("role", mapRoleToDatabase(formData.role));
 
+      // Check if profile picture was removed during edit
+      const profilePictureWasRemoved = editMode && initialData?.profile_picture && profilePicturePreview === null;
+
       // Include profile picture if it's a new File (not existing image)
       if (formData.profile_picture && typeof formData.profile_picture === "object") {
         submissionData.append("profile_picture", formData.profile_picture);
+      } else if (profilePictureWasRemoved) {
+        // Send delete flag if profile picture was removed
+        submissionData.append("delete_profile_picture", "true");
       }
 
-      // Include phone number if provided (non-empty)
+      // Include phone number if provided (non-empty) - optional field
       if (formData.phone_number && formData.phone_number.trim()) {
         submissionData.append("phone_number", formData.phone_number.trim());
+      } else if (editMode) {
+        // If editing and phone number is empty, send empty string to clear it
+        submissionData.append("phone_number", "");
       }
 
       // Include tenant/company ID if provided (for super-admin creating users for specific tenant)
@@ -270,9 +277,10 @@ export default function AddUserForm({ onClose, onSuccess, editMode = false, init
         email: formData.email,
         role: mapRoleToDatabase(formData.role),
         password: formData.password,
-        phone_number: formData.phone_number,
+        phone_number: formData.phone_number || "(empty - optional)",
         company_id: tenantId,
-        has_profile_picture: formData.profile_picture && typeof formData.profile_picture === "object"
+        has_profile_picture: formData.profile_picture && typeof formData.profile_picture === "object",
+        profile_picture_removed: profilePictureWasRemoved
       });
 
       let response;

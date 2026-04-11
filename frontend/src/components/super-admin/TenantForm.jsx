@@ -87,15 +87,28 @@ export default function AddTenantForm({ onClose, onSuccess, editMode = false, in
 
     try {
       const data = new FormData();
+      
+      // Check if logo was removed during edit
+      const logoWasRemoved = editMode && initialData?.company_logo && logoPreview === null;
+
       Object.entries(formData).forEach(([key, value]) => {
         // Do not send tenant_number on create (backend will generate unique one)
         if (!editMode && key === "tenant_number") return;
         // On edit, only send logo if it's a new File (not existing base64 string)
         if (editMode && key === "company_logo" && typeof value === "string") return;
+        // Skip logo field (handled separately below)
+        if (key === "company_logo") return;
         if (value !== "" && value !== null && value !== undefined) {
           data.append(key, value);
         }
       });
+
+      // Handle logo separately
+      if (formData.company_logo instanceof File) {
+        data.append("company_logo", formData.company_logo);
+      } else if (logoWasRemoved) {
+        data.append("delete_logo", "true");
+      }
 
       let response;
       if (editMode && initialData && initialData.id) {

@@ -485,6 +485,7 @@ async def update_tenant(
     company_website: Optional[str] = Form(None),
     address: Optional[str] = Form(None),
     company_logo: Optional[UploadFile] = File(None),
+    delete_logo: Optional[str] = Form(None),
     currency: Optional[str] = Form(None),
     quota_period: Optional[str] = Form(None),
     tax_rate: Optional[float] = Form(None),
@@ -545,8 +546,11 @@ async def update_tenant(
     if backup_reminder is not None:
         company.backup_reminder = backup_reminder
     
+    # Handle logo deletion
+    if delete_logo == "true":
+        company.company_logo = None
     # Handle logo upload if provided
-    if company_logo:
+    elif company_logo:
         try:
             contents = await company_logo.read()
             encoded = base64.b64encode(contents).decode('utf-8')

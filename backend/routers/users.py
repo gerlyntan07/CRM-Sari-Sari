@@ -435,8 +435,9 @@ async def update_user_with_form(
     email: str = Form(default=""),
     role: str = Form(default=""),
     password: str = Form(default=""),
-    phone_number: str = Form(default=""),
+    phone_number: Optional[str] = Form(default=None),
     profile_picture: Optional[UploadFile] = File(default=None),
+    delete_profile_picture: Optional[str] = Form(default=None),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
@@ -478,11 +479,16 @@ async def update_user_with_form(
         if len(password.strip()) < 8:
             raise HTTPException(status_code=400, detail="Password must be at least 8 characters long")
         user.hashed_password = hash_password(password.strip())
-    if phone_number and phone_number.strip():
-        user.phone_number = phone_number.strip()
     
+    # Handle phone number - can be cleared (optional field)
+    if phone_number is not None:
+        user.phone_number = phone_number.strip() if phone_number else None
+
+    # Handle profile picture deletion
+    if delete_profile_picture == "true":
+        user.profile_picture = get_default_avatar(user.first_name)
     # Handle profile picture upload
-    if profile_picture and profile_picture.filename:
+    elif profile_picture and profile_picture.filename:
         try:
             file_content = await profile_picture.read()
             base64_content = base64.b64encode(file_content).decode("utf-8")

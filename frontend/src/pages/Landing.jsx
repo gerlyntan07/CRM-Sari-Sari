@@ -52,8 +52,7 @@ const HeroSection = () => {
         {/* Left */}
         <div className="lg:text-left text-center">
           <h1 className="text-5xl sm:text-6xl lg:text-7xl font-lg text-secondary mb-6 leading-tight">
-            Forekas{" "}
-            <span className="text-accent font-extrabold">CRM</span>
+            Forekas <span className="text-accent font-extrabold">CRM</span>
           </h1>
           <p className="max-w-xl mx-auto lg:mx-0 text-lg sm:text-xl text-secondary mb-10 italic">
             The CRM that keeps your customers organized and your sales growing.
@@ -74,44 +73,58 @@ const HeroSection = () => {
           </div>
         </div>
 
-        {/* Right */}
-        <div className="relative">
-          {/* Background Accent Shape */}
-          <div className="hidden lg:block absolute inset-0 -top-10 -bottom-10 right-4 bg-accent rounded-3xl transform rotate-3 z-0"></div>
+        {/* Right - Laptop Mockup */}
+        <div className="relative flex flex-col items-center">
+          {/* Modernized Background Accent Shape */}
+          <div className="hidden lg:block absolute inset-0 -top-16 -bottom-16 -right-8 bg-gradient-to-br from-accent/20 to-accent/5 blur-3xl rounded-full transform -rotate-6 z-0"></div>
+          <div className="hidden lg:block absolute inset-0 -top-6 -bottom-6 right-4 bg-accent/10 rounded-[3rem] transform rotate-3 z-0 border border-accent/20"></div>
 
-          {/* Carousel */}
-         <div
-  className="relative z-10 overflow-hidden rounded-xl shadow-2xl border-4 border-gray-800 h-[400px] bg-gray-900 flex items-center justify-center"
-  onMouseEnter={() => setPaused(true)}
-  onMouseLeave={() => setPaused(false)}
-  onTouchStart={handleTouchStart}
-  onTouchMove={handleTouchMove}
-  onTouchEnd={handleTouchEnd}
->
-  {images.map((src, i) => (
-    <img
-      key={i}
-      src={src}
-      alt={`Slide ${i + 1}`}
-      className={`absolute inset-0 w-full h-full object-contain bg-gray-50 transition-opacity duration-1000 ease-in-out ${
-        i === current ? "opacity-100" : "opacity-0"
-      }`}
-    />
-  ))}
+          {/* Laptop Screen Frame */}
+          <div className="relative z-10 w-full max-w-xl bg-gray-800 rounded-t-2xl pt-1.5 sm:pt-2 px-1.5 sm:px-2 shadow-2xl border-x-[3px] sm:border-x-[6px] border-t-[3px] sm:border-t-[6px] border-gray-800 flex justify-center">
+            {/* Camera dot at top */}
+            <div className="absolute top-0.5 sm:top-1 w-1 h-1 sm:w-1.5 sm:h-1.5 bg-gray-600 rounded-full z-20"></div>
 
-  {/* Dots Indicator */}
-  <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex space-x-2">
-    {images.map((_, i) => (
-      <button
-        key={i}
-        onClick={() => setCurrent(i)}
-        className={`w-3 h-3 rounded-full transition-all ${
-          i === current ? "bg-accent" : "bg-gray-400 opacity-50"
-        }`}
-      />
-    ))}
-  </div>
-</div>
+            {/* Carousel (The Screen) */}
+            <div
+              className="relative z-10 overflow-hidden rounded-lg w-full h-[180px] sm:h-[280px] lg:h-[320px] mb-1 sm:mb-2 bg-white flex items-center justify-center"
+              onMouseEnter={() => setPaused(true)}
+              onMouseLeave={() => setPaused(false)}
+              onTouchStart={handleTouchStart}
+              onTouchMove={handleTouchMove}
+              onTouchEnd={handleTouchEnd}
+            >
+              {images.map((src, i) => (
+                <img
+                  key={i}
+                  src={src}
+                  alt={`Slide ${i + 1}`}
+                  className={`absolute inset-0 w-full h-full object-cover sm:object-fill transition-opacity duration-1000 ease-in-out ${
+                    i === current ? "opacity-100" : "opacity-0"
+                  }`}
+                />
+              ))}
+
+              {/* Dots Indicator */}
+              <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex space-x-2 z-20">
+                {images.map((_, i) => (
+                  <button
+                    key={i}
+                    onClick={() => setCurrent(i)}
+                    className={`w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full transition-all duration-300 ${
+                      i === current ? "bg-accent scale-125" : "bg-gray-400 opacity-60"
+                    }`}
+                  />
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Laptop Base (Accent base) */}
+          <div className="relative z-0 -mt-1 sm:-mt-2 w-[105%] max-w-2xl h-3 sm:h-6 bg-gray-800 rounded-b-xl shadow-xl flex justify-center">
+            {/* Small notch/opening */}
+            <div className="w-8 sm:w-12 h-1 sm:h-1.5 bg-gray-700 rounded-b-lg"></div>
+          </div>
+          <div className="w-[40%] h-1 bg-gray-700 rounded-b-xl opacity-30 shadow-lg"></div>
         </div>
       </div>
     </section>
@@ -189,7 +202,7 @@ const CTASection = () => (
     </p>
     <a
       href="/signup"
-      className="px-12 py-4 text-lg font-bold rounded-xl shadow-2xl bg-accent border border-secondary text-white bg-secondary hover:bg-accent hover:text-secondary hover:border-accent transition-all duration-400"
+      className="px-12 py-4 text-lg font-bold rounded-xl shadow-2xl bg-secondary border border-secondary text-white hover:bg-accent hover:text-secondary hover:border-accent transition-all duration-400"
     >
       Start 15-Day Free Trial
     </a>
@@ -201,10 +214,10 @@ const Footer = () => (
   <footer className="bg-tertiary text-white border-t py-10">
     <div className="container mx-auto px-4 sm:px-6 lg:px-5 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8">
       <div>
-        <span className="text-xl font-white">Forekas <span className="text-accent">CRM</span></span>        
-        <p className="text-sm text-white mt-4">
-          &copy; 2026 Forekas CRM
-        </p>
+        <span className="text-xl font-white">
+          Forekas <span className="text-accent">CRM</span>
+        </span>
+        <p className="text-sm text-white mt-4">&copy; 2026 Forekas CRM</p>
       </div>
       {[
         // {
@@ -234,7 +247,12 @@ const Footer = () => (
           <ul className="space-y-2 text-sm text-white">
             {col.links.map((link, j) => (
               <li key={j}>
-                <a href={col.href} target="_blank" rel="noopener noreferrer" className="hover:text-accent">
+                <a
+                  href={col.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hover:text-accent"
+                >
                   {link}
                 </a>
               </li>

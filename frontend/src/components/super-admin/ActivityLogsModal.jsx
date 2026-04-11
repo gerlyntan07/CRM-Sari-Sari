@@ -174,7 +174,7 @@ const ActivityLogsModal = ({ open, user, onClose }) => {
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-2 sm:p-4">
       <div className="bg-white rounded-2xl sm:rounded-3xl w-full max-w-sm sm:max-w-2xl lg:max-w-4xl max-h-[85vh] sm:max-h-[90vh] overflow-hidden flex flex-col">
         {/* HEADER */}
-        <div className="flex justify-between items-start sm:items-center gap-3 mb-4 sm:mb-6 pb-4 sm:pb-6 border-b border-gray-100 px-4 sm:px-6 lg:px-8 py-4 sm:py-6 flex-shrink-0">
+        <div className="flex justify-between items-start sm:items-center gap-3 pb-4 sm:pb-6 border-b border-gray-100 px-4 sm:px-6 lg:px-8 py-4 sm:py-6 flex-shrink-0">
           <div className="flex-1 min-w-0">
             <h2 className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900">
               Activity Logs

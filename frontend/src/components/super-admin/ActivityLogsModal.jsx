@@ -97,6 +97,63 @@ const ActivityLogsModal = ({ open, user, onClose }) => {
     }
   };
 
+  // Generate detailed description of what changed
+  const getChangeDetails = (log) => {
+    // Helper to capitalize first letter
+    const capitalize = (str) => {
+      if (!str) return '';
+      return str.charAt(0).toUpperCase() + str.slice(1);
+    };
+
+    if (!log.description) return 'Activity recorded';
+
+    const description = log.description.trim();
+    const actionLower = log.action?.toLowerCase() || '';
+
+    // Handle LOGIN action specially
+    if (actionLower === 'login') {
+      return capitalize('User logged in');
+    }
+
+    // Handle LOGOUT action
+    if (actionLower === 'logout') {
+      return capitalize('User logged out');
+    }
+
+    // Parse descriptions like "UPDATE - custom message" or "UPDATE Contact (ID: 123)"
+    if (description.includes(' - ')) {
+      // Format: "ACTION - custom message"
+      const parts = description.split(' - ');
+      const action = parts[0].trim();
+      const customMsg = parts.slice(1).join(' - ').trim();
+      
+      // Convert action to verb
+      const verb = action.toLowerCase() === 'update' ? 'updated' :
+                   action.toLowerCase() === 'create' ? 'created' :
+                   action.toLowerCase() === 'delete' ? 'deleted' :
+                   action.toLowerCase() + 'ed';
+      
+      return capitalize(customMsg);
+    }
+
+    // Parse descriptions like "UPDATE Contact (ID: 123)"
+    const match = description.match(/^(\w+)\s+(\w+)\s+\(ID:\s+(\d+)\)$/);
+    if (match) {
+      const [, action, entity] = match;
+      const verb = action.toLowerCase() === 'update' ? 'updated' :
+                   action.toLowerCase() === 'create' ? 'created' :
+                   action.toLowerCase() === 'delete' ? 'deleted' :
+                   action.toLowerCase() === 'login' ? 'logged in' :
+                   action.toLowerCase() === 'logout' ? 'logged out' :
+                   action.toLowerCase();
+      
+      return capitalize(`${entity} ${verb}`);
+    }
+
+    // Default: return as-is but capitalized
+    return capitalize(description);
+  };
+
   const getActionBadgeColor = (action) => {
     const actionLower = action?.toLowerCase() || '';
     
@@ -228,13 +285,11 @@ const ActivityLogsModal = ({ open, user, onClose }) => {
             </div>
           ) : activityLogs.length === 0 ? (
             <div className="mt-3 sm:mt-4 mb-3 sm:mb-4 bg-gray-50 border border-gray-200 rounded-lg p-6 sm:p-8 text-center">
-              <p className="text-gray-600 font-medium mb-1 sm:mb-2 text-sm sm:text-base">No Activity Found</p>
-              <p className="text-gray-500 text-xs sm:text-sm">This user has no recorded activity yet</p>
+              <p className="text-gray-500 text-xs sm:text-sm">No activity found</p>
             </div>
           ) : filteredLogs.length === 0 ? (
             <div className="mt-3 sm:mt-4 mb-3 sm:mb-4 bg-gray-50 border border-gray-200 rounded-lg p-6 sm:p-8 text-center">
-              <p className="text-gray-600 font-medium mb-1 sm:mb-2 text-sm sm:text-base">No Matching Logs</p>
-              <p className="text-gray-500 text-xs sm:text-sm">Try adjusting your search filters</p>
+              <p className="text-gray-500 text-xs sm:text-sm">No matching logs</p>
             </div>
           ) : (
             <div className="mt-3 sm:mt-4 mb-3 sm:mb-4 space-y-2 sm:space-y-3">
@@ -253,21 +308,25 @@ const ActivityLogsModal = ({ open, user, onClose }) => {
                         >
                           {log.action}
                         </span>
-                        {log.status && (
-                          <span
-                            className={`text-xs font-semibold px-2 sm:px-3 py-1 rounded-full ${
-                              log.status === 'SUCCESS'
-                                ? 'bg-green-100 text-green-800'
-                                : 'bg-red-100 text-red-800'
-                            }`}
-                          >
-                            {log.status}
+                        {log.entity_type && (
+                          <span className="text-xs font-medium px-2 sm:px-3 py-1 rounded-full bg-indigo-100 text-indigo-800">
+                            {log.entity_type}
+                          </span>
+                        )}
+                        {log.success === false && (
+                          <span className="text-xs font-semibold px-2 sm:px-3 py-1 rounded-full bg-red-100 text-red-800">
+                            FAILED
+                          </span>
+                        )}
+                        {log.success === true && (
+                          <span className="text-xs font-semibold px-2 sm:px-3 py-1 rounded-full bg-green-100 text-green-800">
+                            SUCCESS
                           </span>
                         )}
                       </div>
-                      {log.details && (
-                        <p className="text-xs sm:text-sm text-gray-700 mb-2 break-words">{log.details}</p>
-                      )}
+                      <p className="text-xs sm:text-sm text-gray-700 mb-2 break-words font-medium">
+                        {getChangeDetails(log)}
+                      </p>
                       {log.ip_address && (
                         <p className="text-xs text-gray-500 break-all">IP: {log.ip_address}</p>
                       )}

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
-import { X, User, Lock, Shield, Eye, EyeOff, Upload } from "lucide-react";
+import { X, User, Lock, Shield, Upload } from "lucide-react";
+import { FiEye, FiEyeOff } from "react-icons/fi";
 import { toast } from "react-toastify";
 import api from "../../api";
 
@@ -311,12 +312,22 @@ export default function AddUserForm({ onClose, onSuccess, editMode = false, init
   };
 
   const input =
-    "w-full rounded-lg border border-gray-300/50 px-4 py-2.5 text-sm bg-white/50 backdrop-blur-sm hover:border-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 outline-none transition duration-200";
+    "w-full rounded-lg border border-gray-300/50 px-4 py-2.5 pr-10 text-sm bg-white/50 backdrop-blur-sm hover:border-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 outline-none transition duration-200";
 
   const label = "text-sm font-medium text-gray-700";
 
   return (
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-50">
+      <style>{`
+        input[type="password"]::-webkit-outer-spin-button,
+        input[type="password"]::-webkit-inner-spin-button {
+          -webkit-appearance: none;
+          margin: 0;
+        }
+        input[type="password"]::-ms-reveal {
+          display: none;
+        }
+      `}</style>
       {/* MODAL */}
       <div className="bg-white rounded-3xl max-w-4xl w-full p-8 max-h-[90vh] overflow-y-auto" style={{ boxShadow: "none" }}>
         {/* HEADER */}
@@ -389,10 +400,15 @@ export default function AddUserForm({ onClose, onSuccess, editMode = false, init
                     />
                     <button
                       type="button"
-                      onClick={() => setShowNewPassword(!showNewPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                      onClick={() => setShowNewPassword((prev) => !prev)}
+                      className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-700 hover:text-gray-900 focus:outline-none z-10 transition-colors cursor-pointer"
+                      aria-label={showNewPassword ? "Hide password" : "Show password"}
                     >
-                      {showNewPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                      {showNewPassword ? (
+                        <FiEyeOff className="size-5" />
+                      ) : (
+                        <FiEye className="size-5" />
+                      )}
                     </button>
                   </div>
                 </div>
@@ -411,10 +427,15 @@ export default function AddUserForm({ onClose, onSuccess, editMode = false, init
                     />
                     <button
                       type="button"
-                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                      onClick={() => setShowConfirmPassword((prev) => !prev)}
+                      className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-700 hover:text-gray-900 focus:outline-none z-10 transition-colors cursor-pointer"
+                      aria-label={showConfirmPassword ? "Hide password" : "Show password"}
                     >
-                      {showConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                      {showConfirmPassword ? (
+                        <FiEyeOff className="size-5" />
+                      ) : (
+                        <FiEye className="size-5" />
+                      )}
                     </button>
                   </div>
                 </div>
@@ -601,10 +622,15 @@ export default function AddUserForm({ onClose, onSuccess, editMode = false, init
                   />
                   <button
                     type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                    onClick={() => setShowPassword((prev) => !prev)}
+                    className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-700 hover:text-gray-900 focus:outline-none z-10 transition-colors cursor-pointer"
+                    aria-label={showPassword ? "Hide password" : "Show password"}
                   >
-                    {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                    {showPassword ? (
+                      <FiEyeOff className="size-5" />
+                    ) : (
+                      <FiEye className="size-5" />
+                    )}
                   </button>
                 </div>
                 <p className="text-xs text-gray-500 mt-1">Password must be at least 8 characters long.</p>

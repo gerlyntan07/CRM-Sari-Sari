@@ -50,6 +50,7 @@ import AdminSoas from "./pages/AdminSoas";
 // 🔹 Super Admin layout + pages
 import SuperAdminPanel from "./components/SuperAdminPanel";
 import SuperAdminDashboard from "./pages/SuperAdminDashboard";
+import TenantDetailsPage from "./components/super-admin/TenantDetailsPage.jsx";
 import SuperAdminUsers from "./pages/SuperAdminUsers";
 import SuperAdminAnnouncements from "./pages/SuperAdminAnnouncements";
 import SuperAdminPromos from "./pages/SuperAdminPromos";
@@ -242,6 +243,7 @@ function App() {
         <Route path="/super-admin" element={<PrivateRoute requiredRole="admin"><SuperAdminPanel /></PrivateRoute>}>
           <Route index element={<Navigate to="dashboard" replace />} />
           <Route path="dashboard" element={<SuperAdminDashboard />} />
+          <Route path="tenant/:tenantId" element={<TenantDetailsPage />} />
           <Route path="promos" element={<SuperAdminPromos />} />
           <Route path="users" element={<SuperAdminUsers />} />
           <Route path="announcements" element={<SuperAdminAnnouncements />} />

@@ -271,7 +271,7 @@ export default function SuperAdminPromos() {
         </div>
         <button
           onClick={fetchPromos}
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-md border border-gray-300 bg-white hover:bg-gray-50"
+          className="inline-flex items-center text-white bg-blue-600 gap-2 px-4 py-2 rounded-md border border-gray-300 hover:bg-blue-700"
         >
           <FiRefreshCw /> Refresh
         </button>

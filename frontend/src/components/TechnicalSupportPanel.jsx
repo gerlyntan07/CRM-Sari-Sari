@@ -32,7 +32,7 @@ export default function TechnicalSupportPanel() {
   }, [user]);
 
   useEffect(() => {
-    document.title = `Technical Support | Sari-Sari CRM`;
+    document.title = `Technical Support | Forekas CRM`;
   }, []);
 
   const ticketRoutes = [
@@ -74,7 +74,7 @@ export default function TechnicalSupportPanel() {
       >
         {/* Logo */}
         <div className="px-4 py-3 bg-[#fbbf24] leading-none">
-          <p className="text-gray-900 font-bold text-lg m-0 p-0"> Sari-Sari.CRM{" "}
+          <p className="text-gray-900 font-bold text-lg m-0 p-0"> Forekas CRM{" "}
             <span className="text-[12px] text-gray-700 font-medium align-bottom">
               v2
             </span>

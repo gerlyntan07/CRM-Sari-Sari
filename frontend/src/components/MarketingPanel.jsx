@@ -30,7 +30,7 @@ export default function MarketingPanel() {
   }, []);
 
   useEffect(() => {
-    document.title = `Panel | Sari-Sari CRM`;
+    document.title = `Panel | Forekas CRM`;
   }, []);
 
   const activeLink =

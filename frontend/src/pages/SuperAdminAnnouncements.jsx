@@ -32,7 +32,7 @@ export default function SuperAdminAnnouncements() {
   const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
-    document.title = 'Announcements | Sari-Sari CRM';
+    document.title = 'Announcements | Forekas CRM';
   }, []);
 
   useEffect(() => {

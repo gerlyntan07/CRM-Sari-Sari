@@ -444,7 +444,7 @@ export function printQuoteInvoice({
       ` : ""}
 
       <div class="footer">
-        Generated from Sari-Sari CRM quote. This printout is for business use.
+        Generated from Forekas CRM quote. This printout is for business use.
       </div>
     </div>
   </body>

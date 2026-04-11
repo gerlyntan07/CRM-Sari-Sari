@@ -102,12 +102,12 @@ const TermsModal = ({ isOpen, onClose }) => {
         <strong key="dept">Forekas CRM Administration</strong>,
     <a
       key="email"
-      href="https://www.sari-sari.com/"
+      href="https://crm.forekas.com/"
       className="font-bold text-accent hover:underline"
        target="_blank"
        rel="noopener noreferrer"
     >
-      sari-sari.com
+      crm.forekas.com
     </a>
       ]
     }

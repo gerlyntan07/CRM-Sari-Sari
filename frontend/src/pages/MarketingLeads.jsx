@@ -64,7 +64,7 @@ export default function MarketingLeads() {
   });
 
   useEffect(() => {
-    document.title = "Leads | Sari-Sari CRM";
+    document.title = "Leads | Forekas CRM";
   }, []);
 
   const handleLeadClick = (lead) => setSelectedLead(lead);

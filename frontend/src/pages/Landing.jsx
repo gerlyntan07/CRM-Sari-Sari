@@ -10,8 +10,8 @@ const HeroSection = () => {
     "/image/crm3.png",
     "/image/crm4.png",
     "/image/crm5.png",
-    "/image/crm7.png",
     "/image/crm6.png",
+    "/image/crm7.png",
   ];
 
   const [current, setCurrent] = useState(0);

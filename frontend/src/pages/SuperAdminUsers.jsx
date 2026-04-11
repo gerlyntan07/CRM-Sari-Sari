@@ -193,7 +193,7 @@ export default function SuperAdminUsers() {
   }, [fetchUsers]);
 
   useEffect(() => {
-    document.title = "Admin and Super Admin | Sari-Sari CRM";
+    document.title = "Admin and Super Admin | Forekas CRM";
   }, []);
 
   const filteredUsers = useMemo(() => {

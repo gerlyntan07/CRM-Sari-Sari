@@ -73,7 +73,7 @@ export default function AdminContacts() {
   const location = useLocation();
 
   useEffect(() => {
-    document.title = "Contacts | Sari-Sari CRM";
+    document.title = "Contacts | Forekas CRM";
   }, []);
 
   const [contacts, setContacts] = useState([]);

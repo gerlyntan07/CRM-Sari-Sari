@@ -11,7 +11,7 @@ export default function SuperAdminPanel() {
   const navigate = useNavigate();
   
   useEffect(() => {
-    document.title = `Super Admin | Sari-Sari CRM`;
+    document.title = `Super Admin | Forekas CRM`;
   }, []);
 
   return (

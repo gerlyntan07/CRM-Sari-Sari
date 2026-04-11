@@ -82,7 +82,7 @@ export default function SuperAdminPromos() {
   };
 
   useEffect(() => {
-    document.title = "Promo Management | Sari-Sari CRM";
+    document.title = "Promo Management | Forekas CRM";
     fetchPromos();
   }, []);
 

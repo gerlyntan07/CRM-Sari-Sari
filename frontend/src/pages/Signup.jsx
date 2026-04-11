@@ -282,7 +282,7 @@ const Signup = () => {
   const [signupError, setSignupError] = React.useState(null);
 
   React.useEffect(() => {
-    document.title = "Sign Up | Forekas CRM";
+    document.title = "Sign Up | Forekas";
   }, []);
 
   React.useEffect(() => {

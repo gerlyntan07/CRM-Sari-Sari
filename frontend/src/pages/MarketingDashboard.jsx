@@ -304,7 +304,7 @@ export default function MarketingDashboard() {
   const { user } = useFetchUser();
 
   useEffect(() => {
-    document.title = "Dashboard | Forekas CRM";
+    document.title = "Dashboard | Forekas";
   }, []);
 
   return (

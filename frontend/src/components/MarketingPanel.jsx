@@ -30,7 +30,7 @@ export default function MarketingPanel() {
   }, []);
 
   useEffect(() => {
-    document.title = `Panel | Forekas CRM`;
+    document.title = `Marketing Panel | Forekas`;
   }, []);
 
   const activeLink =

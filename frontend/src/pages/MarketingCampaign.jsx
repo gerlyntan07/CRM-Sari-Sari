@@ -11,7 +11,7 @@ import { HiArrowLeft } from "react-icons/hi";
 
 export default function MarketingCampaign() {
   useEffect(() => {
-    document.title = "Campaign | Forekas CRM";
+    document.title = "Campaign | Forekas";
   }, []);
 
   const [showModal, setShowModal] = useState(false);

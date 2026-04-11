@@ -1,4 +1,5 @@
 from passlib.context import CryptContext
+from passlib.exc import UnknownHashError
 from jose import JWTError, jwt
 from sqlalchemy.orm import Session
 from database import SessionLocal, SECRET_KEY
@@ -16,8 +17,8 @@ def get_db():
     finally:
         db.close()
 
-# ✅ Use Argon2 instead of bcrypt (no 72-byte limit)
-pwd_context = CryptContext(schemes=["argon2"], deprecated="auto")
+# Support legacy bcrypt hashes and new argon2 hashes.
+pwd_context = CryptContext(schemes=["argon2", "bcrypt"], deprecated="auto")
 
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 * 7  # 7 days
@@ -28,8 +29,11 @@ def hash_password(password: str) -> str:
     return pwd_context.hash(password)
 
 def verify_password(plain_password, hashed_password) -> bool:
-    """Verify password using Argon2"""
-    return pwd_context.verify(plain_password, hashed_password)
+    """Verify password using configured hash schemes."""
+    try:
+        return pwd_context.verify(plain_password, hashed_password)
+    except (UnknownHashError, ValueError, TypeError):
+        return False
 
 def create_access_token(data: dict, expires_delta: timedelta = None):
     to_encode = data.copy()

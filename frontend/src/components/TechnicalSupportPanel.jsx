@@ -32,7 +32,7 @@ export default function TechnicalSupportPanel() {
   }, [user]);
 
   useEffect(() => {
-    document.title = `Technical Support | Forekas CRM`;
+    document.title = `Technical Support | Forekas`;
   }, []);
 
   const ticketRoutes = [

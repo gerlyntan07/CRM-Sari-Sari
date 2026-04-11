@@ -12,7 +12,7 @@ import { HiArrowLeft } from "react-icons/hi";
 
 export default function MarketingAccounts() {
   useEffect(() => {
-    document.title = "Accounts | Forekas CRM";
+    document.title = "Accounts | Forekas";
   }, []);
 
   const [selectedAccount, setSelectedAccount] = useState(null);

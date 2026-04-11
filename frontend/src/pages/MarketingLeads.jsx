@@ -64,7 +64,7 @@ export default function MarketingLeads() {
   });
 
   useEffect(() => {
-    document.title = "Leads | Forekas CRM";
+    document.title = "Leads | Forekas";
   }, []);
 
   const handleLeadClick = (lead) => setSelectedLead(lead);

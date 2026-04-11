@@ -29,15 +29,15 @@ export default function SuperAdminSidebar() {
       {/* Nav */}
       <nav className="flex-1 overflow-y-auto p-4 space-y-2" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
         <style>{`nav::-webkit-scrollbar { display: none; }`}</style>
+
         <NavLink
           to="/super-admin/dashboard"
           className={({ isActive }) => (isActive ? activeLink : normalLink)}
+          onClick={() => { document.title = "Dashboard | Forekas"; }}
         >
           <FiHome className="text-lg" />
-          <span>Tenants Dashboard</span>
+          <span>Dashboard</span>
         </NavLink>
-
-
 
         {/* Impersonate User */}
         <div
@@ -142,7 +142,7 @@ export default function SuperAdminSidebar() {
                 }
               >
                 <FiUsers className="text-lg" />
-                <span>Manage Users</span>
+                <span>Users</span>
               </NavLink>
             </div>
           )}

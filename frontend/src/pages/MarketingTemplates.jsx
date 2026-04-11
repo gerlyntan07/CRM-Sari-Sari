@@ -42,7 +42,7 @@ const categoryColors = {
 
 export default function MarketingTemplates() {
   useEffect(() => {
-    document.title = "Templates | Forekas CRM";
+    document.title = "Templates | Forekas";
   }, []);
 
   const [templates, setTemplates] = useState(initialTemplates);

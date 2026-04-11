@@ -11,7 +11,7 @@ export default function SuperAdminPanel() {
   const navigate = useNavigate();
   
   useEffect(() => {
-    document.title = `Super Admin | Forekas CRM`;
+    document.title = `Super Admin Panel | Forekas`;
   }, []);
 
   return (

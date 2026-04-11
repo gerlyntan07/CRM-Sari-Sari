@@ -15,7 +15,7 @@ import { BsBuilding } from "react-icons/bs";
 
 export default function MarketingContacts() {
   useEffect(() => {
-    document.title = "Contacts | Forekas CRM";
+    document.title = "Contacts | Forekas";
   }, []);
 
   const [showModal, setShowModal] = useState(false);

@@ -5,7 +5,6 @@ import React, {
   useRef,
   useCallback,
 } from "react";
-
 import {
   FiSearch,
   FiUsers,
@@ -2048,7 +2047,10 @@ const ActivityItem = ({
 
 // --- Main SalesOverview Component ---
 
-const SalesOverview= () => {
+const SalesOverview = () => {
+  useEffect(() => {
+    document.title = "Dashboard | Forekas";
+  }, []);
     // State for AdminTabs active tab (sales role)
     const [activeSalesTab, setActiveSalesTab] = useState("all");
   const navigate = useNavigate();

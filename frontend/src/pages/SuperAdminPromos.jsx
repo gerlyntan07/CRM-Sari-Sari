@@ -82,7 +82,7 @@ export default function SuperAdminPromos() {
   };
 
   useEffect(() => {
-    document.title = "Promo Management | Forekas CRM";
+    document.title = "Promos & Coupons | Forekas";
     fetchPromos();
   }, []);
 
@@ -265,7 +265,7 @@ export default function SuperAdminPromos() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
           <h1 className="text-2xl sm:text-3xl font-semibold text-gray-800">Promo Management</h1>
-          <p className="text-sm text-gray-600">
+          <p className="text-m text-gray-600">
             Create and manage coupon/promo codes for signup and in-account redemption.
           </p>
         </div>

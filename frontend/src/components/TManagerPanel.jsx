@@ -49,7 +49,7 @@ export default function TManagerPanel() {
   }, []);
 
   useEffect(() => {
-    document.title = `Panel | Forekas`;
+    document.title = `Group Manager Panel | Forekas`;
   }, []);
 
   const activeLink =

@@ -45,7 +45,7 @@ export default function ManagerPanel() {
   }, [user]);
 
   useEffect(() => {
-    document.title = `Panel | Forekas`;
+    document.title = `Manager Panel | Forekas`;
   }, []);
 
   const activeLink =
